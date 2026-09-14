@@ -25,7 +25,6 @@ export default function NoxLogo({
         color,
       }}
     >
-      {/* Nouveau symbole officiel NOX AI */}
       <svg
         width={size}
         height={size * 0.72}
@@ -38,7 +37,6 @@ export default function NoxLogo({
           overflow: 'visible',
         }}
       >
-        {/* Partie supérieure gauche */}
         <path
           d="
             M10.8 8.7
@@ -53,7 +51,6 @@ export default function NoxLogo({
           fill="currentColor"
         />
 
-        {/* Partie principale droite */}
         <path
           d="
             M27.4 29.7
