@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { calculateTrainingStreak, parseRestSeconds } from '../lib/trainingLogic';
 
 const ACCENT = '#c8ff00';
 const BG = '#0a0a0a';
@@ -27,8 +28,10 @@ export default function Training() {
   const [done, setDone] = useState(false);
   const [workoutId, setWorkoutId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [savingSet, setSavingSet] = useState(false);
   const [startTime] = useState(Date.now());
   const timerRef = useRef<any>(null);
+  const finishingRef = useRef(false);
 
   useEffect(() => {
     if (!user) return;
@@ -72,17 +75,38 @@ export default function Training() {
     setSessionName(session.name || 'SÉANCE');
     setExercises(session.exercises || []);
 
-    // Créer un workout log
-    const { data: wk } = await supabase.from('workouts').insert({
-      user_id: user!.id,
-      program_id: prog.id,
-      name: session.name,
-      started_at: new Date().toISOString(),
-      status: 'in_progress',
-      created_at: new Date().toISOString(),
-    }).select().maybeSingle();
+    // Reprendre une séance en cours aujourd'hui si elle existe déjà.
+    // Cela évite de créer plusieurs workouts lors d'un simple refresh.
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
 
-    if (wk) setWorkoutId(wk.id);
+    const { data: existingWorkout } = await supabase
+      .from('workouts')
+      .select('id, started_at')
+      .eq('user_id', user!.id)
+      .eq('program_id', prog.id)
+      .eq('name', session.name)
+      .eq('status', 'in_progress')
+      .gte('started_at', dayStart.toISOString())
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingWorkout?.id) {
+      setWorkoutId(existingWorkout.id);
+    } else {
+      const { data: wk } = await supabase.from('workouts').insert({
+        user_id: user!.id,
+        program_id: prog.id,
+        name: session.name,
+        started_at: new Date().toISOString(),
+        status: 'in_progress',
+        created_at: new Date().toISOString(),
+      }).select().maybeSingle();
+
+      if (wk) setWorkoutId(wk.id);
+    }
+
     setLoading(false);
   };
 
@@ -110,8 +134,11 @@ export default function Training() {
   };
 
   const validateSet = async () => {
+    if (savingSet) return;
     const ex = exercises[currentIdx];
     if (!weight || !reps) return;
+
+    setSavingSet(true);
 
     const setData = {
       exercise_name: ex.name,
@@ -147,9 +174,7 @@ export default function Training() {
     setCompletedSets(prev => [...prev, setData]);
 
     const totalSets = parseInt(ex.sets) || 3;
-    const restSecs = ex.rest
-      ? parseInt(ex.rest.replace(/[^0-9]/g, '')) || 90
-      : 90;
+    const restSecs = parseRestSeconds(ex.rest);
 
     if (currentSet >= totalSets) {
       // Exercice terminé
@@ -167,25 +192,68 @@ export default function Training() {
 
     setWeight('');
     setReps('');
+    setSavingSet(false);
   };
 
   const finishWorkout = async () => {
-    const duration = Math.round((Date.now() - startTime) / 60000);
-    if (workoutId) {
-      await supabase.from('workouts').update({
-        status: 'completed',
-        finished_at: new Date().toISOString(),
-        duration_minutes: duration,
-      }).eq('id', workoutId);
-    }
-    // Update streak + XP
-    const { data: profile } = await supabase.from('profiles').select('streak_days, xp').eq('id', user!.id).maybeSingle();
-    await supabase.from('profiles').update({
-      streak_days: (profile?.streak_days || 0) + 1,
-      xp: (profile?.xp || 0) + 50,
-    }).eq('id', user!.id);
+    if (finishingRef.current) return;
+    finishingRef.current = true;
 
-    setDone(true);
+    try {
+      const duration = Math.max(1, Math.round((Date.now() - startTime) / 60000));
+      if (workoutId) {
+        await supabase.from('workouts').update({
+          status: 'completed',
+          finished_at: new Date().toISOString(),
+          duration_minutes: duration,
+        }).eq('id', workoutId).eq('status', 'in_progress');
+      }
+
+      // Recalcul du streak à partir des vraies séances complétées.
+      // Plusieurs entraînements le même jour ne comptent donc qu'une fois.
+      const { data: completedWorkouts } = await supabase
+        .from('workouts')
+        .select('finished_at, started_at')
+        .eq('user_id', user!.id)
+        .eq('status', 'completed')
+        .order('started_at', { ascending: false })
+        .limit(120);
+
+      const streak = calculateTrainingStreak(
+        (completedWorkouts || [])
+          .map((w: any) => w.finished_at || w.started_at)
+          .filter(Boolean),
+      );
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('xp')
+        .eq('id', user!.id)
+        .maybeSingle();
+
+      await supabase.from('profiles').update({
+        streak_days: streak,
+        xp: (profile?.xp || 0) + 50,
+      }).eq('id', user!.id);
+
+      setDone(true);
+    } finally {
+      finishingRef.current = false;
+    }
+  };
+
+  const abandonWorkout = async () => {
+    if (workoutId) {
+      // Aucun détail de série n'est encore persisté dans cette version.
+      // Supprimer le workout in_progress évite qu'il pollue l'historique.
+      await supabase
+        .from('workouts')
+        .delete()
+        .eq('id', workoutId)
+        .eq('user_id', user!.id)
+        .eq('status', 'in_progress');
+    }
+    navigate('/home');
   };
 
   // ─── LOADING ────────────────────────────────────────────────
@@ -237,7 +305,7 @@ export default function Training() {
         </div>
 
         <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 14, padding: 16, marginBottom: 32, width: '100%', maxWidth: 320 }}>
-          <div style={{ fontSize: 13, color: ACCENT, fontWeight: 800 }}>+50 XP · Streak +1 🔥</div>
+          <div style={{ fontSize: 13, color: ACCENT, fontWeight: 800 }}>+50 XP · Streak recalculé 🔥</div>
         </div>
 
         <button onClick={() => navigate('/home')}
@@ -257,7 +325,7 @@ export default function Training() {
       {/* Header */}
       <div style={{ padding: '20px 20px 0', flexShrink: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <button onClick={() => { if (confirm('Abandonner la séance ?')) navigate('/home'); }}
+          <button onClick={() => { if (confirm('Abandonner la séance ?')) void abandonWorkout(); }}
             style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 22 }}>×</button>
           <div style={{ fontSize: 13, fontWeight: 800, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em' }}>{sessionName}</div>
           <div style={{ fontSize: 12, color: '#555' }}>{currentIdx + 1}/{exercises.length}</div>
@@ -374,9 +442,9 @@ export default function Training() {
           </button>
 
           {/* Validate */}
-          <button onClick={validateSet} disabled={!weight || !reps}
-            style={{ width: '100%', padding: 18, background: weight && reps ? ACCENT : '#1a1a1a', border: 'none', borderRadius: 16, color: weight && reps ? '#000' : '#333', fontWeight: 900, fontSize: 16, cursor: weight && reps ? 'pointer' : 'not-allowed', marginBottom: 12, letterSpacing: '.03em', transition: 'background .2s' }}>
-            VALIDER LA SÉRIE ✓
+          <button onClick={validateSet} disabled={!weight || !reps || savingSet}
+            style={{ width: '100%', padding: 18, background: weight && reps && !savingSet ? ACCENT : '#1a1a1a', border: 'none', borderRadius: 16, color: weight && reps && !savingSet ? '#000' : '#333', fontWeight: 900, fontSize: 16, cursor: weight && reps && !savingSet ? 'pointer' : 'not-allowed', marginBottom: 12, letterSpacing: '.03em', transition: 'background .2s' }}>
+            {savingSet ? 'ENREGISTREMENT...' : 'VALIDER LA SÉRIE ✓'}
           </button>
 
           {/* Next exercises */}
