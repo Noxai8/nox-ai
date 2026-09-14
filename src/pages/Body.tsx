@@ -71,168 +71,230 @@ export default function Body() {
       return `${x},${y}`;
     }).join(' ');
     return (
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 80 }}>
-        <polyline points={points} fill="none" stroke={ACCENT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        {weightLogs.map((l, i) => {
-          const x = (i / (weightLogs.length - 1)) * W;
-          const y = H - ((l.weight - min) / (max - min)) * H;
-          return <circle key={i} cx={x} cy={y} r="3" fill={ACCENT} />;
-        })}
-      </svg>
-    );
-  };
-
-  return (
-    <div style={{ minHeight: '100vh', background: BG, paddingBottom: 80 }}>
-      <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid ' + BORDER }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Suivi</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>BODY</div>
+    <div style={{ minHeight: '100vh', background: BG, color: '#fff', paddingBottom: 100 }}>
+      <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
+        <header style={{
+          padding: '24px 20px 18px',
+          background: 'radial-gradient(circle at 88% 0%, rgba(200,255,0,.06), transparent 30%), #090909',
+          borderBottom: `1px solid ${BORDER}`
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 10, color: '#777', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '.14em' }}>Progression physique</div>
+              <div style={{ fontSize: 27, fontWeight: 950, letterSpacing: '-.04em', marginTop: 4 }}>BODY</div>
+            </div>
+            <button onClick={() => setShowAdd(true)} style={{
+              border: 0, borderRadius: 13, background: ACCENT, color: '#050505', padding: '11px 15px',
+              fontSize: 11, fontWeight: 950, letterSpacing: '.04em', cursor: 'pointer'
+            }}>+ CHECK-IN</button>
           </div>
-          <button onClick={() => setShowAdd(true)} style={{ background: ACCENT, color: '#000', border: 'none', borderRadius: 12, padding: '10px 18px', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>+ CHECK-IN</button>
-        </div>
-      </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', padding: '12px 20px', gap: 8, borderBottom: '1px solid ' + BORDER }}>
-        {(['weight', 'measurements', 'photos'] as Tab[]).map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            style={{ flex: 1, padding: '8px 0', background: tab === t ? ACCENT : 'transparent', border: '1px solid ' + (tab === t ? ACCENT : BORDER), borderRadius: 10, color: tab === t ? '#000' : '#555', fontWeight: 800, fontSize: 11, textTransform: 'uppercase', cursor: 'pointer' }}>
-            {t === 'weight' ? '⚖️ Poids' : t === 'measurements' ? '📏 Mesures' : '📸 Photos'}
-          </button>
-        ))}
-      </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', background: '#111', padding: 4, borderRadius: 14, marginTop: 20 }}>
+            {([
+              ['weight', 'POIDS'],
+              ['measurements', 'MESURES'],
+              ['photos', 'PHOTOS'],
+            ] as [Tab, string][]).map(([id, label]) => (
+              <button key={id} onClick={() => setTab(id)} style={{
+                border: 0, borderRadius: 11, padding: '10px 4px', cursor: 'pointer',
+                background: tab === id ? '#202020' : 'transparent',
+                color: tab === id ? '#fff' : '#666', fontSize: 10, fontWeight: 900, letterSpacing: '.05em'
+              }}>{label}</button>
+            ))}
+          </div>
+        </header>
 
-      <div style={{ padding: '20px 20px 0' }}>
-        {tab === 'weight' && (
-          <>
-            {/* Summary */}
-            {latest && (
-              <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 20, marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em' }}>Poids actuel</div>
-                    <div style={{ fontSize: 40, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{latest.weight}<span style={{ fontSize: 16, color: '#555', marginLeft: 4 }}>kg</span></div>
-                  </div>
-                  {delta !== null && (
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em' }}>Évolution</div>
-                      <div style={{ fontSize: 24, fontWeight: 900, color: parseFloat(delta) < 0 ? ACCENT : '#ff6644' }}>
-                        {parseFloat(delta) > 0 ? '+' : ''}{delta} kg
+        <section style={{ padding: 20 }}>
+          {tab === 'weight' && (
+            <>
+              {latest ? (
+                <div style={{
+                  background: 'linear-gradient(145deg,#151515,#0e0e0e)', border: `1px solid ${BORDER}`,
+                  borderRadius: 22, padding: 20, marginBottom: 14
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: '#777', fontWeight: 850, letterSpacing: '.09em' }}>POIDS ACTUEL</div>
+                      <div style={{ fontSize: 42, fontWeight: 950, letterSpacing: '-.055em', lineHeight: 1.05, marginTop: 6 }}>
+                        {latest.weight}<span style={{ fontSize: 15, color: '#777', marginLeft: 5 }}>kg</span>
                       </div>
                     </div>
-                  )}
-                </div>
-                {/* Range selector */}
-                <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-                  {(['7d', '30d', '90d'] as const).map(r => (
-                    <button key={r} onClick={() => setRange(r)}
-                      style={{ flex: 1, padding: '6px 0', background: range === r ? ACCENT + '22' : 'transparent', border: '1px solid ' + (range === r ? ACCENT : BORDER), borderRadius: 8, color: range === r ? ACCENT : '#555', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                      {r}
-                    </button>
-                  ))}
-                </div>
-                <MiniChart />
-              </div>
-            )}
+                    {delta !== null && (
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 9.5, color: '#666', fontWeight: 850, letterSpacing: '.08em' }}>ÉVOLUTION</div>
+                        <div style={{ marginTop: 6, fontSize: 20, fontWeight: 950, color: parseFloat(delta) <= 0 ? ACCENT : '#ff785f' }}>
+                          {parseFloat(delta) > 0 ? '+' : ''}{delta} kg
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-            {/* Log list */}
-            {logs.filter(l => l.weight).length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: '#333' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>⚖️</div>
-                <div style={{ fontWeight: 700, color: '#444' }}>Pas encore de pesée</div>
-                <div style={{ fontSize: 13, marginTop: 8 }}>Commence à tracker ton poids</div>
-              </div>
-            ) : logs.filter(l => l.weight).slice(0, 10).map(log => (
-              <div key={log.id} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '14px 16px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>{log.weight} kg</div>
-                  <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>{new Date(log.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                </div>
-                {log.notes && <div style={{ fontSize: 12, color: '#555', maxWidth: 120, textAlign: 'right' }}>{log.notes}</div>}
-              </div>
-            ))}
-          </>
-        )}
+                  <div style={{ display: 'flex', gap: 6, margin: '22px 0 15px' }}>
+                    {(['7d', '30d', '90d'] as const).map(r => (
+                      <button key={r} onClick={() => setRange(r)} style={{
+                        flex: 1, borderRadius: 9, padding: '7px 0', cursor: 'pointer',
+                        border: `1px solid ${range === r ? 'rgba(200,255,0,.28)' : BORDER}`,
+                        background: range === r ? 'rgba(200,255,0,.08)' : '#0c0c0c',
+                        color: range === r ? ACCENT : '#666', fontSize: 10.5, fontWeight: 850
+                      }}>{r}</button>
+                    ))}
+                  </div>
 
-        {tab === 'measurements' && (
-          <>
-            {logs.filter(l => l.waist_cm || l.chest_cm).length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: '#333' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>📏</div>
-                <div style={{ fontWeight: 700, color: '#444' }}>Pas encore de mesures</div>
-                <div style={{ fontSize: 13, marginTop: 8 }}>Ajoute tes mensurations pour suivre ta composition</div>
-              </div>
-            ) : logs.filter(l => l.waist_cm || l.chest_cm).slice(0, 5).map(log => (
-              <div key={log.id} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '14px 16px', marginBottom: 12 }}>
-                <div style={{ fontSize: 12, color: '#555', marginBottom: 10 }}>{new Date(log.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                  {[
-                    { key: 'chest_cm', label: 'Poitrine' },
-                    { key: 'waist_cm', label: 'Tour de taille' },
-                    { key: 'hips_cm', label: 'Hanches' },
-                    { key: 'arms_cm', label: 'Bras' },
-                    { key: 'thighs_cm', label: 'Cuisses' },
-                  ].filter(m => log[m.key]).map(({ key, label }) => (
-                    <div key={key} style={{ textAlign: 'center', background: '#0d0d0d', borderRadius: 10, padding: '10px 8px' }}>
-                      <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{log[key]}</div>
-                      <div style={{ fontSize: 9, color: '#555', textTransform: 'uppercase', marginTop: 2 }}>cm</div>
-                      <div style={{ fontSize: 10, color: '#444', marginTop: 2 }}>{label}</div>
+                  <div style={{ borderRadius: 15, padding: '12px 10px 4px', background: '#0b0b0b', border: '1px solid #1d1d1d' }}>
+                    {weightLogs.length >= 2 ? <MiniChart /> : (
+                      <div style={{ height: 80, display: 'grid', placeItems: 'center', color: '#555', fontSize: 11.5 }}>
+                        Encore un check-in pour afficher ta courbe
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  borderRadius: 22, border: `1px solid ${BORDER}`, background: SURFACE, padding: '42px 22px',
+                  textAlign: 'center', marginBottom: 14
+                }}>
+                  <div style={{ width: 52, height: 52, margin: '0 auto 16px', borderRadius: 16, background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.16)', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 22 }}>+</div>
+                  <div style={{ fontSize: 18, fontWeight: 950 }}>COMMENCE TON SUIVI</div>
+                  <div style={{ color: '#777', fontSize: 12.5, lineHeight: 1.55, margin: '8px auto 18px', maxWidth: 300 }}>
+                    Ajoute ton premier check-in pour construire ta courbe de progression.
+                  </div>
+                  <button onClick={() => setShowAdd(true)} style={{ border: 0, borderRadius: 12, background: ACCENT, color: '#050505', padding: '12px 17px', fontWeight: 950, cursor: 'pointer' }}>
+                    AJOUTER MON POIDS
+                  </button>
+                </div>
+              )}
+
+              {logs.filter(l => l.weight).length > 0 && (
+                <>
+                  <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '21px 2px 10px' }}>HISTORIQUE</div>
+                  {logs.filter(l => l.weight).slice(0, 10).map(log => (
+                    <div key={log.id} style={{
+                      background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 15, padding: '14px 15px',
+                      marginBottom: 8, display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'center'
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 18, fontWeight: 950 }}>{log.weight} <span style={{ fontSize: 11, color: '#666' }}>kg</span></div>
+                        <div style={{ fontSize: 10.5, color: '#666', marginTop: 4 }}>
+                          {new Date(log.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </div>
+                      </div>
+                      {log.notes && <div style={{ fontSize: 11, color: '#777', maxWidth: 150, textAlign: 'right', lineHeight: 1.4 }}>{log.notes}</div>}
                     </div>
                   ))}
+                </>
+              )}
+            </>
+          )}
+
+          {tab === 'measurements' && (
+            <>
+              {logs.filter(l => l.waist_cm || l.chest_cm).length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '55px 20px', borderRadius: 22, background: SURFACE, border: `1px solid ${BORDER}` }}>
+                  <div style={{ fontSize: 18, fontWeight: 950 }}>MESURE TON ÉVOLUTION</div>
+                  <div style={{ fontSize: 12.5, color: '#777', lineHeight: 1.55, margin: '9px auto 20px', maxWidth: 310 }}>
+                    Le poids ne raconte pas tout. Ajoute tes mensurations pour mieux suivre ta transformation.
+                  </div>
+                  <button onClick={() => setShowAdd(true)} style={{ border: 0, borderRadius: 12, background: ACCENT, color: '#050505', padding: '12px 17px', fontWeight: 950, cursor: 'pointer' }}>AJOUTER DES MESURES</button>
                 </div>
-              </div>
-            ))}
-          </>
-        )}
-
-        {tab === 'photos' && (
-          <div style={{ textAlign: 'center', padding: '60px 0' }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>🔮</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Photos de progression</div>
-            <div style={{ fontSize: 14, color: '#555', marginBottom: 24, lineHeight: 1.5 }}>
-              Utilise NOX FUTURE pour ajouter tes photos et générer ta projection IA
-            </div>
-            <button onClick={() => window.location.href = '/future'}
-              style={{ padding: '14px 28px', background: ACCENT, border: 'none', borderRadius: 14, color: '#000', fontWeight: 900, fontSize: 14, cursor: 'pointer' }}>
-              🔮 OUVRIR NOX FUTURE
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Add Modal */}
-      {showAdd && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.9)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ width: '100%', background: '#0d0d0d', borderRadius: '20px 20px 0 0', padding: 24, maxHeight: '85vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>CHECK-IN BODY</div>
-              <button onClick={() => setShowAdd(false)} style={{ background: 'none', border: 'none', color: '#555', fontSize: 24, cursor: 'pointer' }}>×</button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {[
-                { key: 'weight', label: '⚖️ Poids (kg)', placeholder: 'ex: 80.5' },
-                { key: 'chest_cm', label: '📏 Poitrine (cm)', placeholder: 'optionnel' },
-                { key: 'waist_cm', label: '📏 Tour de taille (cm)', placeholder: 'optionnel' },
-                { key: 'hips_cm', label: '📏 Hanches (cm)', placeholder: 'optionnel' },
-                { key: 'arms_cm', label: '📏 Bras (cm)', placeholder: 'optionnel' },
-                { key: 'thighs_cm', label: '📏 Cuisses (cm)', placeholder: 'optionnel' },
-                { key: 'notes', label: '💬 Note', placeholder: 'Comment tu te sens ?' },
-              ].map(({ key, label, placeholder }) => (
-                <div key={key}>
-                  <label style={{ fontSize: 12, color: '#555', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</label>
-                  <input
-                    value={(form as any)[key]}
-                    onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
-                    placeholder={placeholder} type={key === 'notes' ? 'text' : 'number'}
-                    style={{ width: '100%', padding: '12px 16px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontSize: 14, boxSizing: 'border-box', marginTop: 6 }} />
+              ) : logs.filter(l => l.waist_cm || l.chest_cm).slice(0, 5).map(log => (
+                <div key={log.id} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: 16, marginBottom: 11 }}>
+                  <div style={{ fontSize: 10.5, color: '#666', fontWeight: 850, marginBottom: 12 }}>
+                    {new Date(log.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
+                    {[
+                      { key: 'chest_cm', label: 'Poitrine' },
+                      { key: 'waist_cm', label: 'Taille' },
+                      { key: 'hips_cm', label: 'Hanches' },
+                      { key: 'arms_cm', label: 'Bras' },
+                      { key: 'thighs_cm', label: 'Cuisses' },
+                    ].filter(m => log[m.key]).map(({ key, label }) => (
+                      <div key={key} style={{ background: '#0b0b0b', border: '1px solid #1d1d1d', borderRadius: 13, padding: 13 }}>
+                        <div style={{ fontSize: 18, fontWeight: 950 }}>{log[key]} <span style={{ fontSize: 10, color: '#666' }}>cm</span></div>
+                        <div style={{ fontSize: 9.5, color: '#777', marginTop: 4, textTransform: 'uppercase', fontWeight: 800 }}>{label}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
-              <button onClick={save} style={{ width: '100%', padding: 16, background: ACCENT, border: 'none', borderRadius: 14, color: '#000', fontWeight: 900, fontSize: 15, cursor: 'pointer', marginTop: 8 }}>
-                ENREGISTRER LE CHECK-IN
-              </button>
+            </>
+          )}
+
+          {tab === 'photos' && (
+            <div style={{
+              minHeight: 330, borderRadius: 22, border: '1px solid rgba(200,255,0,.16)',
+              background: 'radial-gradient(circle at 50% 20%, rgba(200,255,0,.10), transparent 28%), linear-gradient(145deg,#151515,#0d0d0d)',
+              padding: '44px 22px', textAlign: 'center'
+            }}>
+              <div style={{ display: 'inline-block', color: ACCENT, fontSize: 10, fontWeight: 950, letterSpacing: '.12em', marginBottom: 13 }}>NOX FUTURE</div>
+              <div style={{ fontSize: 22, fontWeight: 950, letterSpacing: '-.03em' }}>TA TRANSFORMATION EN IMAGES</div>
+              <div style={{ fontSize: 12.5, color: '#858585', lineHeight: 1.6, maxWidth: 330, margin: '10px auto 23px' }}>
+                Ajoute tes photos de progression et accède à ta timeline NOX FUTURE. Tes photos restent privées.
+              </div>
+              <button onClick={() => window.location.href = '/future'} style={{
+                border: 0, borderRadius: 13, background: ACCENT, color: '#050505', padding: '13px 19px',
+                fontSize: 11.5, fontWeight: 950, cursor: 'pointer'
+              }}>OUVRIR NOX FUTURE</button>
+              <div style={{ fontSize: 9.5, color: '#555', lineHeight: 1.5, marginTop: 16 }}>
+                Les projections IA sont indicatives et ne garantissent pas un résultat physique.
+              </div>
             </div>
+          )}
+        </section>
+      </main>
+
+      {showAdd && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.82)', backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 560, background: '#0d0d0d', border: `1px solid ${BORDER}`, borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px max(24px, env(safe-area-inset-bottom))', maxHeight: '88vh', overflowY: 'auto' }}>
+            <div style={{ width: 38, height: 4, background: '#2b2b2b', borderRadius: 999, margin: '2px auto 17px' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 10, color: ACCENT, fontWeight: 900, letterSpacing: '.1em' }}>BODY</div>
+                <div style={{ fontSize: 19, fontWeight: 950, marginTop: 3 }}>NOUVEAU CHECK-IN</div>
+              </div>
+              <button onClick={() => setShowAdd(false)} style={{ width: 36, height: 36, borderRadius: 12, border: `1px solid ${BORDER}`, background: '#151515', color: '#888', fontSize: 21, cursor: 'pointer' }}>×</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>
+              {[
+                { key: 'weight', label: 'Poids', unit: 'kg', placeholder: '80.5' },
+                { key: 'chest_cm', label: 'Poitrine', unit: 'cm', placeholder: '—' },
+                { key: 'waist_cm', label: 'Taille', unit: 'cm', placeholder: '—' },
+                { key: 'hips_cm', label: 'Hanches', unit: 'cm', placeholder: '—' },
+                { key: 'arms_cm', label: 'Bras', unit: 'cm', placeholder: '—' },
+                { key: 'thighs_cm', label: 'Cuisses', unit: 'cm', placeholder: '—' },
+              ].map(({ key, label, unit, placeholder }) => (
+                <label key={key} style={{ display: 'block', background: '#111', border: `1px solid ${BORDER}`, borderRadius: 14, padding: 12 }}>
+                  <div style={{ fontSize: 9.5, color: '#777', fontWeight: 850, textTransform: 'uppercase' }}>{label}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', marginTop: 5 }}>
+                    <input
+                      value={(form as any)[key]}
+                      onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
+                      placeholder={placeholder}
+                      type="number"
+                      inputMode="decimal"
+                      style={{ width: '100%', minWidth: 0, border: 0, outline: 0, background: 'transparent', color: '#fff', fontSize: 18, fontWeight: 900 }}
+                    />
+                    <span style={{ color: '#555', fontSize: 10 }}>{unit}</span>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <label style={{ display: 'block', marginTop: 10 }}>
+              <div style={{ fontSize: 9.5, color: '#777', fontWeight: 850, textTransform: 'uppercase', marginBottom: 6 }}>Note</div>
+              <input
+                value={form.notes}
+                onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                placeholder="Comment tu te sens aujourd'hui ?"
+                type="text"
+                style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${BORDER}`, outline: 0, background: '#111', color: '#fff', borderRadius: 14, padding: '13px 14px', fontSize: 13 }}
+              />
+            </label>
+
+            <button onClick={save} style={{ width: '100%', border: 0, borderRadius: 14, background: ACCENT, color: '#050505', padding: 15, marginTop: 16, fontSize: 12, fontWeight: 950, letterSpacing: '.04em', cursor: 'pointer' }}>
+              ENREGISTRER LE CHECK-IN
+            </button>
           </div>
         </div>
       )}
