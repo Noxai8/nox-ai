@@ -217,342 +217,334 @@ export default function Fuel() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, paddingBottom: 80 }}>
+    <div style={{ minHeight: '100vh', background: '#070707', color: '#fff', paddingBottom: 100 }}>
       <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhotoSelect} />
 
-      {/* Header */}
-      <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid ' + BORDER }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Nutrition</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>FUEL</div>
+      <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
+        <header style={{
+          padding: '24px 20px 18px',
+          background: 'radial-gradient(circle at 88% 0%, rgba(200,255,0,.06), transparent 30%), #090909',
+          borderBottom: '1px solid ' + BORDER
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 10, color: '#777', textTransform: 'uppercase', letterSpacing: '.14em', fontWeight: 850 }}>Nutrition quotidienne</div>
+              <div style={{ fontSize: 27, fontWeight: 950, letterSpacing: '-.04em', marginTop: 4 }}>FUEL</div>
+            </div>
+            <button onClick={() => setShowAdd(true)} style={{
+              border: 0, borderRadius: 13, background: ACCENT, color: '#050505', padding: '11px 15px',
+              fontSize: 11, fontWeight: 950, letterSpacing: '.04em', cursor: 'pointer'
+            }}>+ AJOUTER</button>
           </div>
-          <button onClick={() => setShowAdd(true)}
-            style={{ background: ACCENT, color: '#000', border: 'none', borderRadius: 12, padding: '10px 18px', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
-            + AJOUTER
-          </button>
-        </div>
-      </div>
+        </header>
 
-      {/* Calories ring */}
-      <div style={{ padding: '20px 20px 0' }}>
-        <div style={{ background: SURFACE, borderRadius: 16, border: '1px solid ' + BORDER, padding: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <div style={{ position: 'relative', width: 90, height: 90, flexShrink: 0 }}>
-              <svg width="90" height="90" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="45" cy="45" r="38" fill="none" stroke="#1a1a1a" strokeWidth="8" />
-                <circle cx="45" cy="45" r="38" fill="none" stroke={ACCENT} strokeWidth="8"
-                  strokeDasharray={`${2 * Math.PI * 38}`}
-                  strokeDashoffset={`${2 * Math.PI * 38 * (1 - pct(totals.kcal, targets.kcal) / 100)}`}
-                  strokeLinecap="round" style={{ transition: 'stroke-dashoffset .5s' }} />
-              </svg>
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ fontSize: 17, fontWeight: 900, color: '#fff' }}>{Math.round(totals.kcal)}</div>
-                <div style={{ fontSize: 9, color: '#555' }}>kcal</div>
+        <section style={{ padding: 20 }}>
+          <div style={{
+            background: 'linear-gradient(145deg,#151515,#0e0e0e)',
+            border: '1px solid #232323', borderRadius: 22, padding: 20
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ position: 'relative', width: 104, height: 104, flexShrink: 0 }}>
+                <svg width="104" height="104" style={{ transform: 'rotate(-90deg)' }}>
+                  <circle cx="52" cy="52" r="43" fill="none" stroke="#242424" strokeWidth="8" />
+                  <circle cx="52" cy="52" r="43" fill="none" stroke={ACCENT} strokeWidth="8"
+                    strokeDasharray={`${2 * Math.PI * 43}`}
+                    strokeDashoffset={`${2 * Math.PI * 43 * (1 - pct(totals.kcal, targets.kcal) / 100)}`}
+                    strokeLinecap="round" style={{ transition: 'stroke-dashoffset .5s' }} />
+                </svg>
+                <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 22, lineHeight: 1, fontWeight: 950 }}>{Math.round(totals.kcal)}</div>
+                    <div style={{ fontSize: 9, color: '#666', marginTop: 5, fontWeight: 800 }}>KCAL</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, color: '#777', fontWeight: 850, letterSpacing: '.08em' }}>OBJECTIF DU JOUR</div>
+                <div style={{ fontSize: 27, fontWeight: 950, letterSpacing: '-.04em', marginTop: 4 }}>{targets.kcal} <span style={{ fontSize: 12, color: '#666' }}>kcal</span></div>
+                <div style={{ fontSize: 12, color: '#888', marginTop: 7 }}>
+                  {Math.max(0, targets.kcal - Math.round(totals.kcal))} kcal restantes
+                </div>
               </div>
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ marginBottom: 4 }}>
-                <span style={{ fontSize: 26, fontWeight: 900, color: ACCENT }}>{Math.round(totals.kcal)}</span>
-                <span style={{ fontSize: 13, color: '#333' }}> / {targets.kcal}</span>
-              </div>
-              <div style={{ fontSize: 12, color: '#555' }}>{Math.max(0, targets.kcal - Math.round(totals.kcal))} kcal restantes</div>
+
+            <div style={{ display: 'grid', gap: 13, marginTop: 22 }}>
+              <MacroBar label="Protéines" val={totals.protein} max={targets.protein} color={ACCENT} />
+              <MacroBar label="Glucides" val={totals.carbs} max={targets.carbs} color="#6f8cff" />
+              <MacroBar label="Lipides" val={totals.fat} max={targets.fat} color="#ff775e" />
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
-            <MacroBar label="Protéines" val={totals.protein} max={targets.protein} color={ACCENT} />
-            <MacroBar label="Glucides" val={totals.carbs} max={targets.carbs} color="#4488ff" />
-            <MacroBar label="Lipides" val={totals.fat} max={targets.fat} color="#ff6644" />
-          </div>
-        </div>
-      </div>
 
-      {/* Meals */}
-      <div style={{ padding: '16px 20px' }}>
-        {mealGroups.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: '#333' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🥗</div>
-            <div style={{ fontWeight: 700, color: '#444' }}>Aucun repas enregistré</div>
-            <div style={{ fontSize: 13, marginTop: 8, marginBottom: 20 }}>Prends une photo de ton repas ou ajoute manuellement</div>
-            <button onClick={() => { setShowAdd(true); setAddMode('photo'); }}
-              style={{ padding: '12px 24px', background: ACCENT, border: 'none', borderRadius: 12, color: '#000', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
-              📸 SCANNER UN REPAS
+          <div style={{ display: 'grid', gridTemplateColumns: '1.25fr .75fr', gap: 10, marginTop: 12 }}>
+            <button onClick={() => { setShowAdd(true); setAddMode('photo'); }} style={{
+              minHeight: 84, borderRadius: 18, border: '1px solid rgba(200,255,0,.22)',
+              background: 'linear-gradient(135deg,rgba(200,255,0,.12),rgba(200,255,0,.035))',
+              color: '#fff', textAlign: 'left', padding: 15, cursor: 'pointer'
+            }}>
+              <div style={{ color: ACCENT, fontSize: 10, fontWeight: 950, letterSpacing: '.09em' }}>SCAN IA</div>
+              <div style={{ fontSize: 14, fontWeight: 900, marginTop: 6 }}>Scanner mon repas</div>
+              <div style={{ fontSize: 10.5, color: '#777', marginTop: 4 }}>Photo → calories + macros</div>
+            </button>
+            <button onClick={() => setShowAdd(true)} style={{
+              minHeight: 84, borderRadius: 18, border: '1px solid #232323',
+              background: '#111', color: '#fff', textAlign: 'left', padding: 15, cursor: 'pointer'
+            }}>
+              <div style={{ color: '#777', fontSize: 10, fontWeight: 900, letterSpacing: '.08em' }}>RAPIDE</div>
+              <div style={{ fontSize: 14, fontWeight: 900, marginTop: 6 }}>Ajouter</div>
+              <div style={{ fontSize: 10.5, color: '#666', marginTop: 4 }}>Recherche ou manuel</div>
             </button>
           </div>
-        ) : mealGroups.map(({ meal, items }) => (
-          <div key={meal} style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>{meal}</div>
-            {items.map((item: any) => (
-              <div key={item.id} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '12px 16px', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.food_name}</div>
-                  <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>P:{item.protein}g · G:{item.carbs}g · L:{item.fat}g</div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: ACCENT }}>{item.calories} kcal</div>
-                  <button onClick={() => deleteEntry(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#333', fontSize: 18, lineHeight: 1 }}>×</button>
-                </div>
-              </div>
-            ))}
+
+          <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', margin: '24px 2px 11px' }}>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 950 }}>Repas du jour</div>
+              <div style={{ color: '#666', fontSize: 10.5, marginTop: 3 }}>{entries.length} élément{entries.length > 1 ? 's' : ''} enregistré{entries.length > 1 ? 's' : ''}</div>
+            </div>
           </div>
-        ))}
-      </div>
 
-      {/* ─── ADD MODAL ─── */}
-      {showAdd && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ width: '100%', background: '#0d0d0d', borderRadius: '20px 20px 0 0', padding: 24, maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
-
-            {/* Header modal */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: 17, fontWeight: 900, color: '#fff' }}>
-                {addMode === 'choose' ? 'AJOUTER UN REPAS' : addMode === 'photo' ? '📸 SCAN IA' : addMode === 'search' ? '🔍 RECHERCHER' : '✏️ SAISIE MANUELLE'}
+          {mealGroups.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '42px 22px', borderRadius: 22, background: '#111', border: '1px solid #232323' }}>
+              <div style={{ width: 52, height: 52, margin: '0 auto 16px', borderRadius: 16, background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.16)', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 23, fontWeight: 300 }}>+</div>
+              <div style={{ fontSize: 17, fontWeight: 950 }}>TON JOURNAL EST PRÊT</div>
+              <div style={{ fontSize: 12.5, color: '#777', lineHeight: 1.55, margin: '8px auto 19px', maxWidth: 300 }}>
+                Scanne ton repas ou ajoute un aliment pour commencer ton suivi nutrition.
               </div>
-              <button onClick={closeAdd} style={{ background: 'none', border: 'none', color: '#555', fontSize: 26, cursor: 'pointer', lineHeight: 1 }}>×</button>
+              <button onClick={() => { setShowAdd(true); setAddMode('photo'); }} style={{ border: 0, borderRadius: 12, background: ACCENT, color: '#050505', padding: '12px 17px', fontWeight: 950, cursor: 'pointer' }}>
+                SCANNER UN REPAS
+              </button>
+            </div>
+          ) : mealGroups.map(({ meal, items }) => (
+            <div key={meal} style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 10, fontWeight: 900, color: '#777', textTransform: 'uppercase', letterSpacing: '.09em', margin: '0 2px 8px' }}>{meal}</div>
+              {items.map((item: any) => (
+                <div key={item.id} style={{ background: '#111', border: '1px solid #232323', borderRadius: 16, padding: '14px 15px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 12, background: '#181818', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 12, fontWeight: 950, flexShrink: 0 }}>
+                    {Math.round(item.calories || 0)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 850, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.food_name}</div>
+                    <div style={{ fontSize: 10.5, color: '#666', marginTop: 4 }}>P {item.protein}g · G {item.carbs}g · L {item.fat}g</div>
+                  </div>
+                  <button onClick={() => deleteEntry(item.id)} aria-label="Supprimer" style={{ width: 32, height: 32, borderRadius: 10, background: '#151515', border: '1px solid #232323', color: '#666', cursor: 'pointer', fontSize: 18 }}>×</button>
+                </div>
+              ))}
+            </div>
+          ))}
+        </section>
+      </main>
+
+      {showAdd && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.84)', backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 560, background: '#0d0d0d', border: '1px solid #242424', borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px max(24px, env(safe-area-inset-bottom))', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+            <div style={{ width: 38, height: 4, background: '#2c2c2c', borderRadius: 999, margin: '2px auto 17px' }} />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+              <div>
+                <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 950, letterSpacing: '.11em' }}>NOX FUEL</div>
+                <div style={{ fontSize: 18, fontWeight: 950, marginTop: 3 }}>
+                  {addMode === 'choose' ? 'AJOUTER UN REPAS' : addMode === 'photo' ? 'SCAN IA' : addMode === 'search' ? 'RECHERCHER' : 'SAISIE MANUELLE'}
+                </div>
+              </div>
+              <button onClick={closeAdd} style={{ width: 36, height: 36, borderRadius: 12, border: '1px solid #242424', background: '#151515', color: '#888', fontSize: 21, cursor: 'pointer' }}>×</button>
             </div>
 
-            {/* Meal selector */}
             {addMode !== 'choose' && (
-              <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto' }}>
                 {MEALS.map(m => (
-                  <button key={m} onClick={() => setSelectedMeal(m)}
-                    style={{ padding: '6px 12px', borderRadius: 20, border: '1px solid ' + (selectedMeal === m ? ACCENT : BORDER), background: selectedMeal === m ? ACCENT + '22' : 'transparent', color: selectedMeal === m ? ACCENT : '#555', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                    {m}
-                  </button>
+                  <button key={m} onClick={() => setSelectedMeal(m)} style={{
+                    flexShrink: 0, padding: '7px 11px', borderRadius: 999,
+                    border: '1px solid ' + (selectedMeal === m ? 'rgba(200,255,0,.34)' : '#242424'),
+                    background: selectedMeal === m ? 'rgba(200,255,0,.09)' : '#111',
+                    color: selectedMeal === m ? ACCENT : '#777', fontSize: 10.5, fontWeight: 850, cursor: 'pointer'
+                  }}>{m}</button>
                 ))}
               </div>
             )}
 
-            {/* ── CHOOSE MODE ── */}
             {addMode === 'choose' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {/* Meal selector */}
-                <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: 10, color: '#666', fontWeight: 850, marginBottom: 8 }}>AJOUTER À</div>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto' }}>
                   {MEALS.map(m => (
-                    <button key={m} onClick={() => setSelectedMeal(m)}
-                      style={{ padding: '6px 12px', borderRadius: 20, border: '1px solid ' + (selectedMeal === m ? ACCENT : BORDER), background: selectedMeal === m ? ACCENT + '22' : 'transparent', color: selectedMeal === m ? ACCENT : '#555', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                      {m}
-                    </button>
+                    <button key={m} onClick={() => setSelectedMeal(m)} style={{
+                      flexShrink: 0, padding: '7px 11px', borderRadius: 999,
+                      border: '1px solid ' + (selectedMeal === m ? 'rgba(200,255,0,.34)' : '#242424'),
+                      background: selectedMeal === m ? 'rgba(200,255,0,.09)' : '#111',
+                      color: selectedMeal === m ? ACCENT : '#777', fontSize: 10.5, fontWeight: 850, cursor: 'pointer'
+                    }}>{m}</button>
                   ))}
                 </div>
 
-                {/* 📸 Photo scan — CTA principal */}
-                <button onClick={() => { setAddMode('photo'); fileRef.current?.click(); }}
-                  style={{ padding: '20px', background: 'linear-gradient(135deg, ' + ACCENT + '22 0%, ' + ACCENT + '11 100%)', border: '1.5px solid ' + ACCENT + '66', borderRadius: 16, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div style={{ fontSize: 40, flexShrink: 0 }}>📸</div>
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: ACCENT, marginBottom: 4 }}>SCANNER MON REPAS</div>
-                    <div style={{ fontSize: 13, color: '#888', lineHeight: 1.4 }}>Prends une photo — NOX détecte les aliments et calcule les macros automatiquement</div>
-                  </div>
-                </button>
+                <div style={{ display: 'grid', gap: 9 }}>
+                  <button onClick={() => { setAddMode('photo'); fileRef.current?.click(); }} style={{
+                    minHeight: 96, padding: 17, borderRadius: 17, cursor: 'pointer', textAlign: 'left',
+                    background: 'linear-gradient(135deg,rgba(200,255,0,.13),rgba(200,255,0,.035))',
+                    border: '1px solid rgba(200,255,0,.25)', color: '#fff'
+                  }}>
+                    <div style={{ color: ACCENT, fontSize: 10, fontWeight: 950, letterSpacing: '.09em' }}>RECOMMANDÉ</div>
+                    <div style={{ fontSize: 16, fontWeight: 950, marginTop: 7 }}>Scanner avec NOX IA</div>
+                    <div style={{ fontSize: 11.5, color: '#888', lineHeight: 1.45, marginTop: 4 }}>Prends une photo. NOX estime les aliments, calories et macros.</div>
+                  </button>
 
-                <button onClick={() => setAddMode('search')}
-                  style={{ padding: '16px 20px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ fontSize: 28 }}>🔍</div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Rechercher un aliment</div>
-                    <div style={{ fontSize: 12, color: '#555' }}>Base de 20 aliments courants</div>
-                  </div>
-                </button>
+                  <button onClick={() => setAddMode('search')} style={{ padding: 15, background: '#111', border: '1px solid #242424', borderRadius: 15, cursor: 'pointer', textAlign: 'left', color: '#fff' }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 900 }}>Rechercher un aliment</div>
+                    <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>Choisir dans ta base d'aliments courants</div>
+                  </button>
 
-                <button onClick={() => setAddMode('custom')}
-                  style={{ padding: '16px 20px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ fontSize: 28 }}>✏️</div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Saisie manuelle</div>
-                    <div style={{ fontSize: 12, color: '#555' }}>Entre les valeurs toi-même</div>
-                  </div>
-                </button>
+                  <button onClick={() => setAddMode('custom')} style={{ padding: 15, background: '#111', border: '1px solid #242424', borderRadius: 15, cursor: 'pointer', textAlign: 'left', color: '#fff' }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 900 }}>Saisie manuelle</div>
+                    <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>Entrer directement calories et macros</div>
+                  </button>
+                </div>
               </div>
             )}
 
-            {/* ── PHOTO MODE ── */}
             {addMode === 'photo' && (
               <div>
-                {/* Photo preview */}
                 {photoBase64 && (
-                  <div style={{ marginBottom: 16, borderRadius: 14, overflow: 'hidden', maxHeight: 250, background: '#000' }}>
-                    <img src={photoBase64} style={{ width: '100%', height: 250, objectFit: 'cover' }} alt="repas" />
+                  <div style={{ marginBottom: 15, borderRadius: 17, overflow: 'hidden', height: 230, background: '#050505', border: '1px solid #242424' }}>
+                    <img src={photoBase64} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Repas à analyser" />
                   </div>
                 )}
 
-                {/* Scanning */}
                 {scanning && (
-                  <div style={{ textAlign: 'center', padding: '32px 0' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 8 }}>NOX ANALYSE TON REPAS...</div>
-                    <div style={{ fontSize: 13, color: '#555' }}>Détection des aliments en cours</div>
+                  <div style={{ padding: '34px 18px', textAlign: 'center', borderRadius: 18, background: '#111', border: '1px solid #242424' }}>
+                    <div style={{ width: 42, height: 42, margin: '0 auto 15px', borderRadius: 14, border: '1px solid rgba(200,255,0,.25)', background: 'rgba(200,255,0,.08)', display: 'grid', placeItems: 'center', color: ACCENT, fontWeight: 950 }}>AI</div>
+                    <div style={{ fontSize: 15, fontWeight: 950 }}>NOX ANALYSE TON REPAS</div>
+                    <div style={{ fontSize: 11.5, color: '#666', marginTop: 7 }}>Détection des aliments et estimation nutritionnelle…</div>
                   </div>
                 )}
 
-                {/* Error */}
                 {scanError && !scanning && (
-                  <div style={{ background: '#ff444422', border: '1px solid #ff4444', borderRadius: 12, padding: 16, marginBottom: 16, fontSize: 13, color: '#ff8888' }}>
+                  <div style={{ background: 'rgba(255,90,80,.08)', border: '1px solid rgba(255,90,80,.28)', borderRadius: 14, padding: 14, marginBottom: 14, fontSize: 12, lineHeight: 1.5, color: '#ff8c82' }}>
                     {scanError}
                   </div>
                 )}
 
-                {/* Scan result */}
                 {scanResult && !scanning && (
                   <div>
-                    {/* Description */}
-                    <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '44', borderRadius: 14, padding: 16, marginBottom: 16 }}>
-                      <div style={{ fontSize: 11, color: ACCENT, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
-                        REPAS DÉTECTÉ · Fiabilité : {scanResult.fiabilite}
-                      </div>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{scanResult.description}</div>
-                      {scanResult.note && <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>{scanResult.note}</div>}
+                    <div style={{ background: 'rgba(200,255,0,.055)', border: '1px solid rgba(200,255,0,.20)', borderRadius: 16, padding: 15, marginBottom: 11 }}>
+                      <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 900, letterSpacing: '.08em' }}>REPAS DÉTECTÉ · FIABILITÉ {scanResult.fiabilite}</div>
+                      <div style={{ fontSize: 15, fontWeight: 900, marginTop: 6 }}>{scanResult.description}</div>
+                      {scanResult.note && <div style={{ fontSize: 11, color: '#777', lineHeight: 1.45, marginTop: 5 }}>{scanResult.note}</div>}
                     </div>
 
-                    {/* Total macros */}
-                    <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: 16, marginBottom: 16 }}>
-                      <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>TOTAL ESTIMÉ</div>
-                      <div style={{ display: 'flex', gap: 0, textAlign: 'center' }}>
-                        {[
-                          { label: 'Calories', val: Math.round(scanResult.total.kcal), unit: 'kcal', color: ACCENT },
-                          { label: 'Protéines', val: Math.round(scanResult.total.protein), unit: 'g', color: '#fff' },
-                          { label: 'Glucides', val: Math.round(scanResult.total.carbs), unit: 'g', color: '#4488ff' },
-                          { label: 'Lipides', val: Math.round(scanResult.total.fat), unit: 'g', color: '#ff6644' },
-                        ].map(({ label, val, unit, color }) => (
-                          <div key={label} style={{ flex: 1 }}>
-                            <div style={{ fontSize: 22, fontWeight: 900, color }}>{val}</div>
-                            <div style={{ fontSize: 10, color: '#555' }}>{unit}</div>
-                            <div style={{ fontSize: 10, color: '#444', marginTop: 2 }}>{label}</div>
-                          </div>
-                        ))}
-                      </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, marginBottom: 14 }}>
+                      {[
+                        ['KCAL', Math.round(scanResult.total.kcal), ACCENT],
+                        ['PROT.', Math.round(scanResult.total.protein) + 'g', '#fff'],
+                        ['GLUC.', Math.round(scanResult.total.carbs) + 'g', '#8da0ff'],
+                        ['LIP.', Math.round(scanResult.total.fat) + 'g', '#ff806b'],
+                      ].map(([label, value, color]) => (
+                        <div key={String(label)} style={{ background: '#111', border: '1px solid #242424', borderRadius: 13, padding: '11px 5px', textAlign: 'center' }}>
+                          <div style={{ color: String(color), fontSize: 16, fontWeight: 950 }}>{value}</div>
+                          <div style={{ color: '#555', fontSize: 8.5, fontWeight: 850, marginTop: 4 }}>{label}</div>
+                        </div>
+                      ))}
                     </div>
 
-                    {/* Aliments détectés */}
                     {scanResult.aliments?.length > 0 && (
-                      <div style={{ marginBottom: 16 }}>
-                        <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>ALIMENTS DÉTECTÉS</div>
+                      <div style={{ marginBottom: 14 }}>
+                        <div style={{ fontSize: 9.5, color: '#666', fontWeight: 900, letterSpacing: '.08em', marginBottom: 7 }}>ALIMENTS DÉTECTÉS</div>
                         {scanResult.aliments.map((a: any, i: number) => (
-                          <div key={i} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 10, padding: '10px 14px', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{a.nom}</div>
-                              <div style={{ fontSize: 11, color: '#555' }}>{a.quantite} · P:{a.protein}g G:{a.carbs}g L:{a.fat}g</div>
+                          <div key={i} style={{ background: '#111', border: '1px solid #242424', borderRadius: 13, padding: 12, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 12.5, fontWeight: 850 }}>{a.nom}</div>
+                              <div style={{ fontSize: 10, color: '#666', marginTop: 3 }}>{a.quantite} · P {a.protein}g · G {a.carbs}g · L {a.fat}g</div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <div style={{ fontSize: 14, fontWeight: 900, color: ACCENT }}>{a.kcal} kcal</div>
-                              <button onClick={() => addSingleFood(a)}
-                                style={{ background: ACCENT + '22', border: '1px solid ' + ACCENT + '44', borderRadius: 8, padding: '4px 10px', color: ACCENT, fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
-                                + Ajouter
-                              </button>
-                            </div>
+                            <div style={{ color: ACCENT, fontSize: 11.5, fontWeight: 900 }}>{a.kcal} kcal</div>
+                            <button onClick={() => addSingleFood(a)} style={{ border: '1px solid rgba(200,255,0,.22)', background: 'rgba(200,255,0,.07)', color: ACCENT, borderRadius: 9, padding: '6px 8px', fontSize: 9.5, fontWeight: 900, cursor: 'pointer' }}>+</button>
                           </div>
                         ))}
                       </div>
                     )}
 
-                    {/* Actions */}
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button onClick={() => { setPhotoBase64(null); setScanResult(null); fileRef.current?.click(); }}
-                        style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-                        📸 Nouvelle photo
-                      </button>
-                      <button onClick={addScanResult}
-                        style={{ flex: 2, padding: 14, background: ACCENT, border: 'none', borderRadius: 12, color: '#000', fontWeight: 900, fontSize: 14, cursor: 'pointer' }}>
-                        AJOUTER TOUT ({Math.round(scanResult.total.kcal)} kcal)
-                      </button>
+                    <div style={{ display: 'grid', gridTemplateColumns: '.8fr 1.2fr', gap: 8 }}>
+                      <button onClick={() => { setPhotoBase64(null); setScanResult(null); fileRef.current?.click(); }} style={{ padding: 13, background: '#111', border: '1px solid #242424', borderRadius: 12, color: '#aaa', fontWeight: 850, cursor: 'pointer' }}>NOUVELLE PHOTO</button>
+                      <button onClick={addScanResult} style={{ padding: 13, background: ACCENT, border: 0, borderRadius: 12, color: '#050505', fontWeight: 950, cursor: 'pointer' }}>AJOUTER TOUT · {Math.round(scanResult.total.kcal)} KCAL</button>
                     </div>
                   </div>
                 )}
 
-                {/* No photo yet — bouton prendre photo */}
                 {!photoBase64 && !scanning && !scanResult && (
-                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                    <div style={{ fontSize: 60, marginBottom: 16 }}>📸</div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Prends une photo de ton repas</div>
-                    <div style={{ fontSize: 13, color: '#555', marginBottom: 24, lineHeight: 1.5 }}>NOX identifie les aliments et calcule les calories + macros automatiquement</div>
-                    <button onClick={() => fileRef.current?.click()}
-                      style={{ padding: '16px 32px', background: ACCENT, border: 'none', borderRadius: 14, color: '#000', fontWeight: 900, fontSize: 15, cursor: 'pointer', marginBottom: 12, display: 'block', width: '100%' }}>
-                      OUVRIR L'APPAREIL PHOTO
-                    </button>
-                    <button onClick={() => setAddMode('choose')}
-                      style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 13 }}>
-                      ← Retour
-                    </button>
+                  <div style={{ padding: '34px 18px', textAlign: 'center', borderRadius: 18, background: '#111', border: '1px solid #242424' }}>
+                    <div style={{ width: 56, height: 56, margin: '0 auto 16px', borderRadius: 18, background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.18)', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 11, fontWeight: 950 }}>SCAN</div>
+                    <div style={{ fontSize: 16, fontWeight: 950 }}>PHOTOGRAPHIE TON REPAS</div>
+                    <div style={{ fontSize: 11.5, color: '#777', lineHeight: 1.5, margin: '7px auto 18px', maxWidth: 300 }}>NOX identifiera les aliments et estimera automatiquement les calories et macros.</div>
+                    <button onClick={() => fileRef.current?.click()} style={{ width: '100%', padding: 14, background: ACCENT, border: 0, borderRadius: 13, color: '#050505', fontWeight: 950, cursor: 'pointer' }}>OUVRIR L'APPAREIL PHOTO</button>
+                    <button onClick={() => setAddMode('choose')} style={{ marginTop: 12, background: 'none', border: 0, color: '#666', cursor: 'pointer', fontSize: 11 }}>← Retour</button>
                   </div>
-                )}
-
-                {/* Back while scanning or result */}
-                {(scanResult || (!photoBase64 && !scanning)) && addMode === 'photo' && !scanResult && (
-                  <button onClick={() => setAddMode('choose')} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 13, marginTop: 12 }}>← Retour</button>
                 )}
               </div>
             )}
 
-            {/* ── SEARCH MODE ── */}
             {addMode === 'search' && !selectedFood && (
               <>
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un aliment..."
-                  style={{ width: '100%', padding: '12px 16px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontSize: 14, boxSizing: 'border-box', marginBottom: 12, outline: 'none' }} autoFocus />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un aliment…" autoFocus
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', background: '#111', border: '1px solid #242424', borderRadius: 13, color: '#fff', fontSize: 13, outline: 'none', marginBottom: 10 }} />
+                <div style={{ display: 'grid', gap: 7 }}>
                   {filtered.map(f => (
-                    <button key={f.name} onClick={() => setSelectedFood(f)}
-                      style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '12px 16px', cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <button key={f.name} onClick={() => setSelectedFood(f)} style={{ background: '#111', border: '1px solid #242424', borderRadius: 13, padding: 13, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', gap: 10, color: '#fff' }}>
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{f.name}</div>
-                        <div style={{ fontSize: 11, color: '#555' }}>P:{f.protein}g · G:{f.carbs}g · L:{f.fat}g</div>
+                        <div style={{ fontSize: 12.5, fontWeight: 850 }}>{f.name}</div>
+                        <div style={{ fontSize: 10, color: '#666', marginTop: 3 }}>P {f.protein}g · G {f.carbs}g · L {f.fat}g</div>
                       </div>
-                      <div style={{ fontSize: 15, fontWeight: 900, color: ACCENT, flexShrink: 0, marginLeft: 10 }}>{f.kcal} kcal</div>
+                      <div style={{ color: ACCENT, fontSize: 11.5, fontWeight: 900, flexShrink: 0 }}>{f.kcal} kcal</div>
                     </button>
                   ))}
                 </div>
-                <button onClick={() => setAddMode('choose')} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 13, marginTop: 16 }}>← Retour</button>
+                <button onClick={() => setAddMode('choose')} style={{ marginTop: 14, background: 'none', border: 0, color: '#666', cursor: 'pointer', fontSize: 11 }}>← Retour</button>
               </>
             )}
 
             {addMode === 'search' && selectedFood && (
               <div>
-                <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: 16, marginBottom: 16 }}>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 12 }}>{selectedFood.name}</div>
-                  <div style={{ display: 'flex', gap: 0, textAlign: 'center' }}>
+                <div style={{ background: '#111', border: '1px solid #242424', borderRadius: 16, padding: 16, marginBottom: 13 }}>
+                  <div style={{ fontSize: 15, fontWeight: 900 }}>{selectedFood.name}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, marginTop: 14 }}>
                     {[
-                      { label: 'Calories', val: Math.round(selectedFood.kcal * (parseFloat(qty) || 1)), unit: 'kcal', color: ACCENT },
-                      { label: 'Protéines', val: Math.round(selectedFood.protein * (parseFloat(qty) || 1) * 10) / 10, unit: 'g', color: '#fff' },
-                      { label: 'Glucides', val: Math.round(selectedFood.carbs * (parseFloat(qty) || 1) * 10) / 10, unit: 'g', color: '#4488ff' },
-                      { label: 'Lipides', val: Math.round(selectedFood.fat * (parseFloat(qty) || 1) * 10) / 10, unit: 'g', color: '#ff6644' },
-                    ].map(({ label, val, unit, color }) => (
-                      <div key={label} style={{ flex: 1 }}>
-                        <div style={{ fontSize: 20, fontWeight: 900, color }}>{val}</div>
-                        <div style={{ fontSize: 10, color: '#555' }}>{unit}</div>
-                        <div style={{ fontSize: 10, color: '#444' }}>{label}</div>
+                      ['KCAL', Math.round(selectedFood.kcal * (parseFloat(qty) || 1)), ACCENT],
+                      ['PROT.', Math.round(selectedFood.protein * (parseFloat(qty) || 1) * 10) / 10 + 'g', '#fff'],
+                      ['GLUC.', Math.round(selectedFood.carbs * (parseFloat(qty) || 1) * 10) / 10 + 'g', '#8da0ff'],
+                      ['LIP.', Math.round(selectedFood.fat * (parseFloat(qty) || 1) * 10) / 10 + 'g', '#ff806b'],
+                    ].map(([label, value, color]) => (
+                      <div key={String(label)} style={{ background: '#0b0b0b', borderRadius: 11, padding: '10px 4px', textAlign: 'center' }}>
+                        <div style={{ color: String(color), fontSize: 15, fontWeight: 950 }}>{value}</div>
+                        <div style={{ color: '#555', fontSize: 8, marginTop: 3 }}>{label}</div>
                       </div>
                     ))}
                   </div>
                 </div>
-                <label style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.05em' }}>Quantité (portions)</label>
+
+                <label style={{ fontSize: 9.5, color: '#666', fontWeight: 850 }}>QUANTITÉ · PORTIONS</label>
                 <input value={qty} onChange={e => setQty(e.target.value)} type="number" min="0.1" step="0.1"
-                  style={{ width: '100%', padding: '12px 16px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontSize: 16, boxSizing: 'border-box', margin: '8px 0 16px', outline: 'none' }} />
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => setSelectedFood(null)} style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontWeight: 700, cursor: 'pointer' }}>RETOUR</button>
-                  <button onClick={() => addEntry(selectedFood)} style={{ flex: 2, padding: 14, background: ACCENT, border: 'none', borderRadius: 12, color: '#000', fontWeight: 900, fontSize: 14, cursor: 'pointer' }}>AJOUTER</button>
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', background: '#111', border: '1px solid #242424', borderRadius: 13, color: '#fff', fontSize: 14, outline: 'none', margin: '7px 0 13px' }} />
+                <div style={{ display: 'grid', gridTemplateColumns: '.8fr 1.2fr', gap: 8 }}>
+                  <button onClick={() => setSelectedFood(null)} style={{ padding: 13, background: '#111', border: '1px solid #242424', borderRadius: 12, color: '#aaa', fontWeight: 850, cursor: 'pointer' }}>RETOUR</button>
+                  <button onClick={() => addEntry(selectedFood)} style={{ padding: 13, background: ACCENT, border: 0, borderRadius: 12, color: '#050505', fontWeight: 950, cursor: 'pointer' }}>AJOUTER</button>
                 </div>
               </div>
             )}
 
-            {/* ── CUSTOM MODE ── */}
             {addMode === 'custom' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'grid', gap: 10 }}>
                 {[
-                  { key: 'name', label: "Nom de l'aliment", type: 'text', placeholder: 'ex: Bol de riz au poulet' },
+                  { key: 'name', label: "Nom de l'aliment", type: 'text', placeholder: 'Ex. Bol de riz au poulet' },
                   { key: 'kcal', label: 'Calories (kcal)', type: 'number', placeholder: '0' },
                   { key: 'protein', label: 'Protéines (g)', type: 'number', placeholder: '0' },
                   { key: 'carbs', label: 'Glucides (g)', type: 'number', placeholder: '0' },
                   { key: 'fat', label: 'Lipides (g)', type: 'number', placeholder: '0' },
                 ].map(({ key, label, type, placeholder }) => (
-                  <div key={key}>
-                    <label style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</label>
-                    <input value={(custom as any)[key]} onChange={e => setCustom(p => ({ ...p, [key]: e.target.value }))}
-                      type={type} placeholder={placeholder}
-                      style={{ width: '100%', padding: '12px 16px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontSize: 14, boxSizing: 'border-box', marginTop: 6, outline: 'none' }} />
-                  </div>
+                  <label key={key} style={{ display: 'block' }}>
+                    <div style={{ fontSize: 9.5, color: '#666', fontWeight: 850, marginBottom: 5 }}>{label.toUpperCase()}</div>
+                    <input value={(custom as any)[key]} onChange={e => setCustom(p => ({ ...p, [key]: e.target.value }))} type={type} placeholder={placeholder}
+                      style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', background: '#111', border: '1px solid #242424', borderRadius: 13, color: '#fff', fontSize: 13, outline: 'none' }} />
+                  </label>
                 ))}
-                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <button onClick={() => setAddMode('choose')} style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontWeight: 700, cursor: 'pointer' }}>RETOUR</button>
-                  <button onClick={addCustom} style={{ flex: 2, padding: 14, background: ACCENT, border: 'none', borderRadius: 12, color: '#000', fontWeight: 900, fontSize: 14, cursor: 'pointer' }}>AJOUTER</button>
+                <div style={{ display: 'grid', gridTemplateColumns: '.8fr 1.2fr', gap: 8, marginTop: 4 }}>
+                  <button onClick={() => setAddMode('choose')} style={{ padding: 13, background: '#111', border: '1px solid #242424', borderRadius: 12, color: '#aaa', fontWeight: 850, cursor: 'pointer' }}>RETOUR</button>
+                  <button onClick={addCustom} style={{ padding: 13, background: ACCENT, border: 0, borderRadius: 12, color: '#050505', fontWeight: 950, cursor: 'pointer' }}>AJOUTER</button>
                 </div>
               </div>
             )}
