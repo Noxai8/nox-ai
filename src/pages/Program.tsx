@@ -10,22 +10,77 @@ const SURFACE = '#101010';
 const BORDER = '#242424';
 const MUTED = '#8a8a8a';
 
-type VisualKey = 'bench' | 'squat' | 'row' | 'overhead' | 'pullup' | 'deadlift';
+type VisualKey = 'bench' | 'squat' | 'row' | 'overhead' | 'pullup' | 'rdl' | 'plank';
 type Filter = 'Tous' | 'Pectoraux' | 'Dos' | 'Jambes' | 'Épaules' | 'Bras';
 
-function exerciseVisualKey(name: string): VisualKey {
-  const n = String(name || '').toLowerCase();
+type ExerciseMedia = {
+  key: VisualKey;
+  image: string;
+  videoEmbed: string | null;
+};
 
-  if (n.includes('développé couché') || n.includes('developpe couche') || n.includes('bench')) return 'bench';
-  if (n.includes('squat') || n.includes('fente') || n.includes('leg press') || n.includes('presse')) return 'squat';
-  if (n.includes('rowing') || n.includes('row') || n.includes('tirage')) return 'row';
-  if (n.includes('militaire') || n.includes('overhead') || n.includes('épaule') || n.includes('epaule')) return 'overhead';
-  if (n.includes('traction') || n.includes('pull-up') || n.includes('pullup')) return 'pullup';
-  if (n.includes('soulevé') || n.includes('souleve') || n.includes('deadlift') || n.includes('roumain') || n.includes('romanian') || n.includes('rdl')) return 'deadlift';
-  if (n.includes('pompe') || n.includes('dips') || n.includes('pec') || n.includes('chest')) return 'bench';
-  if (n.includes('curl') || n.includes('biceps')) return 'row';
+const EXERCISE_MEDIA: Record<VisualKey, ExerciseMedia> = {
+  squat: {
+    key: 'squat',
+    image: 'https://images.pexels.com/photos/17840/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=1200',
+    videoEmbed: 'https://player.vimeo.com/video/919708638?h=8e305290c4&title=0&byline=0&portrait=0',
+  },
+  bench: {
+    key: 'bench',
+    image: 'https://images.pexels.com/photos/13967665/pexels-photo-13967665.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    videoEmbed: 'https://player.vimeo.com/video/919705993?h=2583e706aa&title=0&byline=0&portrait=0',
+  },
+  row: {
+    key: 'row',
+    image: 'https://images.pexels.com/photos/17210045/pexels-photo-17210045.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    videoEmbed: 'https://player.vimeo.com/video/919708991?h=dfda1026a9&title=0&byline=0&portrait=0',
+  },
+  plank: {
+    key: 'plank',
+    image: 'https://images.pexels.com/photos/4944959/pexels-photo-4944959.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    videoEmbed: null,
+  },
+  rdl: {
+    key: 'rdl',
+    image: 'https://images.pexels.com/photos/15596431/pexels-photo-15596431.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    videoEmbed: 'https://player.vimeo.com/video/919712383?h=12a5576d3c&title=0&byline=0&portrait=0',
+  },
+  pullup: {
+    key: 'pullup',
+    image: 'https://images.pexels.com/photos/7671462/pexels-photo-7671462.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    videoEmbed: null,
+  },
+  overhead: {
+    key: 'overhead',
+    image: 'https://images.pexels.com/photos/13106583/pexels-photo-13106583.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    videoEmbed: 'https://player.vimeo.com/video/919710922?h=e1d5aac320&title=0&byline=0&portrait=0',
+  },
+};
 
-  return 'overhead';
+function normalizeExerciseName(name: string) {
+  return String(name || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function exerciseVisualKey(name: string): VisualKey | null {
+  const n = normalizeExerciseName(name);
+
+  if (n.includes('developpe couche') || n.includes('bench press')) return 'bench';
+  if (n.includes('squat')) return 'squat';
+  if (n.includes('rowing') || n.includes('bent-over row') || n.includes('bent over row')) return 'row';
+  if (n.includes('gainage') || n.includes('plank')) return 'plank';
+  if (n.includes('souleve de terre roumain') || n.includes('romanian deadlift') || n.includes('rdl')) return 'rdl';
+  if (n.includes('traction') || n.includes('pull-up') || n.includes('pull up')) return 'pullup';
+  if (n.includes('developpe militaire') || n.includes('overhead press') || n.includes('shoulder press')) return 'overhead';
+
+  return null;
+}
+
+function resolveExerciseMedia(exercise: any): ExerciseMedia | null {
+  const key = exerciseVisualKey(exercise?.name || '');
+  return key ? EXERCISE_MEDIA[key] : null;
 }
 
 function exerciseFilterGroup(name: string, muscles = ''): Exclude<Filter, 'Tous'> {
@@ -37,10 +92,6 @@ function exerciseFilterGroup(name: string, muscles = ''): Exclude<Filter, 'Tous'
   if (text.includes('épaule') || text.includes('epaule') || text.includes('delto')) return 'Épaules';
 
   return 'Bras';
-}
-
-function assetForExercise(exercise: any) {
-  return `/exercise-demos/${exerciseVisualKey(exercise?.name || '')}.jpg`;
 }
 
 function muscleTags(exercise: any): string[] {
@@ -68,76 +119,57 @@ function muscleTags(exercise: any): string[] {
 function defaultTechnique(exercise: any) {
   const key = exerciseVisualKey(exercise?.name || '');
 
-  const map: Record<VisualKey, { description: string; steps: string[]; tip: string }> = {
+  const generic = {
+    description: 'Consulte les consignes de ton programme et privilégie une exécution lente, stable et contrôlée.',
+    steps: [
+      'Prépare une position stable.',
+      'Choisis une charge adaptée à ton niveau.',
+      'Exécute le mouvement sans élan.',
+      'Garde une amplitude confortable.',
+      'Arrête la série si la technique se dégrade.',
+    ],
+    tip: 'La qualité d’exécution passe avant la charge.',
+  };
+
+  const map: Partial<Record<VisualKey, { description: string; steps: string[]; tip: string }>> = {
     bench: {
       description: 'Mouvement de poussée horizontal. Garde les omoplates stables et contrôle la trajectoire sur toute l’amplitude.',
-      steps: [
-        'Allonge-toi avec les pieds bien ancrés au sol.',
-        'Place les mains légèrement plus larges que les épaules.',
-        'Descends la charge de façon contrôlée vers la poitrine.',
-        'Pousse sans perdre la position des épaules.',
-        'Garde une trajectoire régulière à chaque répétition.',
-      ],
+      steps: ['Allonge-toi avec les pieds bien ancrés au sol.', 'Place les mains légèrement plus larges que les épaules.', 'Descends la charge de façon contrôlée vers la poitrine.', 'Pousse sans perdre la position des épaules.', 'Garde une trajectoire régulière à chaque répétition.'],
       tip: 'Contrôle la descente 2 à 3 secondes et garde une tension continue.',
     },
     squat: {
       description: 'Mouvement dominant genoux et hanches. Cherche une descente stable avec les genoux dans l’axe des pieds.',
-      steps: [
-        'Place les pieds de façon stable.',
-        'Gainage fort avant de descendre.',
-        'Descends les hanches en gardant les genoux dans l’axe.',
-        'Atteins une profondeur confortable et contrôlée.',
-        'Remonte en poussant le sol.',
-      ],
+      steps: ['Place les pieds de façon stable.', 'Gaine le tronc avant de descendre.', 'Descends les hanches en gardant les genoux dans l’axe.', 'Atteins une profondeur confortable et contrôlée.', 'Remonte en poussant le sol.'],
       tip: 'Garde le pied entier au sol et évite de laisser les genoux rentrer vers l’intérieur.',
     },
     row: {
       description: 'Tirage horizontal orienté dos. Le coude se déplace vers la hanche sans rotation excessive du buste.',
-      steps: [
-        'Stabilise le tronc.',
-        'Laisse le bras s’allonger sans perdre la posture.',
-        'Tire le coude vers l’arrière.',
-        'Marque une courte contraction.',
-        'Reviens lentement à la position de départ.',
-      ],
+      steps: ['Stabilise le tronc.', 'Laisse le bras s’allonger sans perdre la posture.', 'Tire le coude vers l’arrière.', 'Marque une courte contraction.', 'Reviens lentement à la position de départ.'],
       tip: 'Pense à tirer avec le coude plutôt qu’avec la main.',
     },
     overhead: {
       description: 'Poussée verticale pour les épaules et les triceps. Le tronc reste gainé pendant toute la répétition.',
-      steps: [
-        'Place la charge au niveau des épaules.',
-        'Serre les abdominaux et les fessiers.',
-        'Pousse verticalement.',
-        'Termine bras au-dessus de la tête.',
-        'Redescends sous contrôle.',
-      ],
+      steps: ['Place la charge au niveau des épaules.', 'Serre les abdominaux et les fessiers.', 'Pousse verticalement.', 'Termine bras au-dessus de la tête.', 'Redescends sous contrôle.'],
       tip: 'Évite de compenser en cambrant fortement le bas du dos.',
     },
     pullup: {
       description: 'Tirage vertical pour le dos et les bras. Démarre chaque répétition depuis une position stable.',
-      steps: [
-        'Saisis la barre avec une prise confortable.',
-        'Place les épaules basses et stables.',
-        'Tire la poitrine vers la barre.',
-        'Garde le corps sous contrôle.',
-        'Redescends lentement.',
-      ],
+      steps: ['Saisis la barre avec une prise confortable.', 'Place les épaules basses et stables.', 'Tire la poitrine vers la barre.', 'Garde le corps sous contrôle.', 'Redescends lentement.'],
       tip: 'Évite le balancement et garde la descente aussi propre que la montée.',
     },
-    deadlift: {
-      description: 'Mouvement de charnière de hanches. Le dos reste neutre pendant que les hanches reculent puis reviennent.',
-      steps: [
-        'Place les pieds de façon stable.',
-        'Recule les hanches en gardant le dos neutre.',
-        'Garde la charge proche du corps.',
-        'Pousse le sol et étends les hanches.',
-        'Termine debout sans hyperextension.',
-      ],
-      tip: 'Le mouvement vient surtout des hanches, pas d’un arrondi du dos.',
+    rdl: {
+      description: 'Charnière de hanches ciblant surtout les ischio-jambiers et les fessiers. Garde le dos neutre et la charge proche du corps.',
+      steps: ['Place les pieds de façon stable.', 'Déverrouille légèrement les genoux.', 'Recule les hanches avec le dos neutre.', 'Garde la charge près des jambes.', 'Reviens debout en contractant les fessiers.'],
+      tip: 'Le mouvement vient des hanches, pas d’un arrondi du bas du dos.',
+    },
+    plank: {
+      description: 'Exercice de gainage anti-extension. Le corps reste aligné des épaules aux chevilles.',
+      steps: ['Place les coudes sous les épaules.', 'Tends les jambes et serre les fessiers.', 'Rentre légèrement les côtes.', 'Garde la nuque neutre.', 'Maintiens la position sans laisser tomber le bassin.'],
+      tip: 'Cherche une ligne droite et une respiration contrôlée plutôt qu’un temps maximal.',
     },
   };
 
-  return map[key];
+  return key && map[key] ? map[key]! : generic;
 }
 
 function searchIcon() {
@@ -553,18 +585,40 @@ function ExerciseListRow({
         cursor: 'pointer',
       }}
     >
-      <img
-        src={assetForExercise(exercise)}
-        alt=""
-        style={{
-          width: '100%',
-          height: compact ? 66 : 90,
-          objectFit: 'cover',
-          borderRadius: compact ? 11 : 12,
-          border: '1px solid rgba(255,255,255,.07)',
-          background: '#0a0a0a',
-        }}
-      />
+      {resolveExerciseMedia(exercise) ? (
+        <img
+          src={resolveExerciseMedia(exercise)!.image}
+          alt={`Aperçu ${exercise.name}`}
+          loading="lazy"
+          style={{
+            width: '100%',
+            height: compact ? 66 : 90,
+            objectFit: 'cover',
+            borderRadius: compact ? 11 : 12,
+            border: '1px solid rgba(255,255,255,.07)',
+            background: '#0a0a0a',
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            width: '100%',
+            height: compact ? 66 : 90,
+            borderRadius: compact ? 11 : 12,
+            border: '1px solid rgba(255,255,255,.07)',
+            background: 'linear-gradient(135deg,#171717,#0a0a0a)',
+            display: 'grid',
+            placeItems: 'center',
+            color: ACCENT,
+            fontSize: 10,
+            fontWeight: 950,
+            textAlign: 'center',
+            padding: 8,
+          }}
+        >
+          VISUEL À AJOUTER
+        </div>
+      )}
 
       <div style={{ minWidth: 0, padding: compact ? '0 2px' : '2px 0' }}>
         <div
@@ -684,85 +738,93 @@ function ExerciseDetail({
           ))}
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0,1fr) 112px',
-            gap: 10,
-            alignItems: 'stretch',
-          }}
-        >
-          <div
-            style={{
-              minHeight: 330,
-              position: 'relative',
-              overflow: 'hidden',
-              borderRadius: 17,
-              border: `1px solid ${BORDER}`,
-              background: '#0b0b0b',
-            }}
-          >
-            <img
-              src={isBench ? '/exercise-demos/bench-main.jpg' : assetForExercise(exercise)}
-              alt={`Démonstration ${exercise.name}`}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
+        {(() => {
+          const media = resolveExerciseMedia(exercise);
 
+          return (
             <div
               style={{
-                position: 'absolute',
-                inset: 0,
-                background: 'linear-gradient(to bottom, transparent 55%, rgba(0,0,0,.68))',
-              }}
-            />
-
-            <div
-              style={{
-                position: 'absolute',
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%,-50%)',
-                width: 58,
-                height: 58,
-                borderRadius: '50%',
-                border: '3px solid #fff',
-                background: 'rgba(0,0,0,.28)',
-                display: 'grid',
-                placeItems: 'center',
-                fontSize: 23,
+                borderRadius: 18,
+                overflow: 'hidden',
+                border: `1px solid ${BORDER}`,
+                background: '#0b0b0b',
               }}
             >
-              ▶
-            </div>
+              {media?.videoEmbed ? (
+                <div style={{ position: 'relative', aspectRatio: '16 / 9', background: '#000' }}>
+                  <iframe
+                    src={media.videoEmbed}
+                    title={`Vidéo technique ${exercise.name}`}
+                    allow="autoplay; fullscreen; picture-in-picture"
+                    allowFullScreen
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      border: 0,
+                    }}
+                  />
+                </div>
+              ) : media?.image ? (
+                <img
+                  src={media.image}
+                  alt={`Démonstration ${exercise.name}`}
+                  style={{
+                    width: '100%',
+                    aspectRatio: '16 / 9',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    aspectRatio: '16 / 9',
+                    display: 'grid',
+                    placeItems: 'center',
+                    textAlign: 'center',
+                    padding: 24,
+                    color: '#8f8f8f',
+                    background: 'linear-gradient(135deg,#151515,#090909)',
+                  }}
+                >
+                  <div>
+                    <div style={{ color: ACCENT, fontSize: 12, fontWeight: 950, letterSpacing: '.08em' }}>
+                      MÉDIA NON DISPONIBLE
+                    </div>
+                    <div style={{ marginTop: 7, fontSize: 11.5, lineHeight: 1.5 }}>
+                      NOX n’affiche pas une autre démonstration à la place de cet exercice.
+                    </div>
+                  </div>
+                </div>
+              )}
 
-            <div style={{ position: 'absolute', left: 14, right: 14, bottom: 12 }}>
-              <div style={{ height: 3, borderRadius: 99, background: 'rgba(255,255,255,.35)' }}>
-                <div style={{ width: '38%', height: '100%', borderRadius: 99, background: '#fff' }} />
-              </div>
-              <div style={{ marginTop: 7, display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#fff' }}>
-                <span>0:00 / 0:15</span>
-                <span>◧</span>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  padding: '11px 13px',
+                  borderTop: `1px solid ${BORDER}`,
+                }}
+              >
+                <div>
+                  <div style={{ color: '#fff', fontSize: 12, fontWeight: 900 }}>
+                    {media?.videoEmbed ? 'Vidéo technique' : 'Démonstration'}
+                  </div>
+                  <div style={{ color: '#777', fontSize: 10, marginTop: 2 }}>
+                    {media?.videoEmbed ? 'Lecteur réel — commandes actives' : 'Image HD — aucun faux bouton vidéo'}
+                  </div>
+                </div>
+                <div style={{ color: ACCENT, fontSize: 10.5, fontWeight: 900 }}>
+                  {media ? 'NOX MEDIA' : 'À COMPLÉTER'}
+                </div>
               </div>
             </div>
-          </div>
-
-          <div style={{ display: 'grid', gap: 9 }}>
-            <MiniVisual
-              src={isBench ? '/exercise-demos/bench-high.jpg' : assetForExercise(exercise)}
-              label="Position haute"
-              active
-            />
-            <MiniVisual
-              src={isBench ? '/exercise-demos/bench-low.jpg' : assetForExercise(exercise)}
-              label="Position basse"
-            />
-            <MiniVisual
-              src={isBench ? '/exercise-demos/bench-muscles.jpg' : assetForExercise(exercise)}
-              label="Muscles ciblés"
-              muscle
-            />
-          </div>
-        </div>
+          );
+        })()}
 
         <section style={{ marginTop: 20 }}>
           <h2 style={{ margin: '0 0 10px', fontSize: 15, fontWeight: 950 }}>Séries et répétitions</h2>
@@ -827,54 +889,6 @@ function ExerciseDetail({
           </div>
         </div>
       </main>
-    </div>
-  );
-}
-
-function MiniVisual({
-  src,
-  label,
-  active = false,
-  muscle = false,
-}: {
-  src: string;
-  label: string;
-  active?: boolean;
-  muscle?: boolean;
-}) {
-  return (
-    <div>
-      <div
-        style={{
-          height: 88,
-          borderRadius: 12,
-          overflow: 'hidden',
-          border: active ? `2px solid ${ACCENT}` : `1px solid ${BORDER}`,
-          background: '#111',
-        }}
-      >
-        <img
-          src={src}
-          alt=""
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            filter: muscle ? 'saturate(.8) contrast(1.05)' : undefined,
-          }}
-        />
-      </div>
-      <div
-        style={{
-          marginTop: 5,
-          fontSize: 9.5,
-          textAlign: 'center',
-          color: active || muscle ? ACCENT : '#b6b6b6',
-          fontWeight: active || muscle ? 900 : 700,
-        }}
-      >
-        {label}
-      </div>
     </div>
   );
 }
