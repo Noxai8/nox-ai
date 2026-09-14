@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
@@ -44,6 +45,7 @@ function getNextLevel(xp: number) {
 
 export default function Play() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [xp, setXp] = useState(0);
   const [streak, setStreak] = useState(0);
   const [totalWorkouts, setTotalWorkouts] = useState(0);
@@ -226,6 +228,19 @@ export default function Play() {
           </div>
         </section>
       </main>
+
+      {/* Mode Partenaire */}
+      <div style={{ padding: '16px 20px 0' }}>
+        <button onClick={() => navigate('/partner')}
+          style={{ width: '100%', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left' }}>
+          <div style={{ fontSize: 28 }}>👥</div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>MODE PARTENAIRE</div>
+            <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>Compare ta progression avec un ami</div>
+          </div>
+          <div style={{ marginLeft: 'auto', color: '#333', fontSize: 16 }}>→</div>
+        </button>
+      </div>
 
       <BottomNav active="play" />
     </div>

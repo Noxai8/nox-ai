@@ -16,21 +16,28 @@ export default function NoxFuture() {
   const [photos, setPhotos] = useState<{ face?: string; side?: string; back?: string }>({});
   const [currentAngle, setCurrentAngle] = useState<'face' | 'side' | 'back'>('face');
   const [goalDesc, setGoalDesc] = useState('');
-  const [projection, setProjection] = useState<string | null>(null);
   const [projectionText, setProjectionText] = useState('');
+  const [originalProjection, setOriginalProjection] = useState<any>(null); // première projection ever
+  const [latestProjection, setLatestProjection] = useState<any>(null); // la plus récente
+  const [allProjections, setAllProjections] = useState<any[]>([]); // historique
   const [profile, setProfile] = useState<any>(null);
+  const [bodyLogs, setBodyLogs] = useState<any[]>([]);
   const [error, setError] = useState('');
+  const [showComparison, setShowComparison] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
     supabase.from('profiles').select('*').eq('id', user.id).maybeSingle().then(({ data }) => setProfile(data));
-    // Load existing projection
-    supabase.from('future_you_generations').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle()
+    supabase.from('body_logs').select('weight, created_at').eq('user_id', user.id).order('created_at').then(({ data }) => setBodyLogs(data || []));
+    // Charger TOUTES les projections — la première = originale, la dernière = actuelle
+    supabase.from('future_you_generations').select('*').eq('user_id', user.id).order('created_at', { ascending: true })
       .then(({ data }) => {
-        if (data?.result_text) {
-          setProjectionText(data.result_text);
-          if (data.result_image_url) setProjection(data.result_image_url);
+        if (data && data.length > 0) {
+          setAllProjections(data);
+          setOriginalProjection(data[0]); // La toute première
+          setLatestProjection(data[data.length - 1]); // La plus récente
+          setProjectionText(data[data.length - 1]?.result_text || '');
         }
       });
   }, [user]);
@@ -153,27 +160,123 @@ Réponds UNIQUEMENT en JSON valide :
 
       {/* INTRO */}
       {step === 'intro' && (
-        <div style={{ padding: '60px 24px', textAlign: 'center' }}>
-          <div style={{ fontSize: 64, marginBottom: 24 }}>🔮</div>
-          <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.15em', marginBottom: 12 }}>Intelligence NOX</div>
-          <div style={{ fontSize: 32, fontWeight: 900, color: '#fff', letterSpacing: '-.02em', lineHeight: 1.1, marginBottom: 16 }}>
-            NOX<br />FUTURE
-          </div>
-          <div style={{ fontSize: 16, color: '#555', lineHeight: 1.6, marginBottom: 40, maxWidth: 300, margin: '0 auto 40px' }}>
-            Découvre ce que tu peux devenir si tu restes constants. NOX projette ta transformation sur 90 jours.
+        <div style={{ padding: '40px 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>🔮</div>
+          <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.15em', marginBottom: 8 }}>Intelligence NOX</div>
+          <div style={{ fontSize: 32, fontWeight: 900, color: '#fff', letterSpacing: '-.02em', lineHeight: 1.1, marginBottom: 12 }}>NOX FUTURE</div>
+          <div style={{ fontSize: 15, color: '#555', lineHeight: 1.6, marginBottom: 28, maxWidth: 300, margin: '0 auto 28px' }}>
+            NOX projette ta transformation et compare la projection originale à ta réalité.
           </div>
 
-          {projectionText && (
-            <div style={{ background: SURFACE, border: '1px solid ' + ACCENT + '44', borderRadius: 16, padding: 16, marginBottom: 24, textAlign: 'left' }}>
-              <div style={{ fontSize: 12, color: ACCENT, fontWeight: 800, marginBottom: 8 }}>✓ Projection existante</div>
-              <div style={{ fontSize: 13, color: '#fff' }}>{proj.tagline || 'Ta projection est prête.'}</div>
-              <button onClick={() => setStep('result')} style={{ marginTop: 12, background: ACCENT, color: '#000', border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>VOIR MA PROJECTION →</button>
-            </div>
+          {/* Projection existante */}
+          {latestProjection && (
+            <>
+              <div style={{ background: SURFACE, border: '1px solid ' + ACCENT + '33', borderRadius: 16, padding: 16, marginBottom: 12, textAlign: 'left' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, color: ACCENT, fontWeight: 800, textTransform: 'uppercase' }}>PROJECTION ACTUELLE</div>
+                  <div style={{ fontSize: 11, color: '#555' }}>{new Date(latestProjection.created_at).toLocaleDateString('fr-FR')}</div>
+                </div>
+                <div style={{ fontSize: 13, color: '#ccc' }}>
+                  {(() => { try { return JSON.parse(latestProjection.result_text).tagline; } catch { return 'Ta projection est prête'; } })()}
+                </div>
+                <button onClick={() => setStep('result')} style={{ marginTop: 12, background: ACCENT, color: '#000', border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 800, fontSize: 13, cursor: 'pointer', width: '100%' }}>
+                  VOIR MA PROJECTION →
+                </button>
+              </div>
+
+              {/* Comparaison originale vs réel si 2+ projections */}
+              {allProjections.length > 1 && originalProjection && (
+                <div style={{ background: '#4488ff11', border: '1px solid #4488ff33', borderRadius: 16, padding: 16, marginBottom: 12, textAlign: 'left' }}>
+                  <div style={{ fontSize: 11, color: '#4488ff', fontWeight: 800, textTransform: 'uppercase', marginBottom: 8 }}>
+                    📈 PROJECTION ORIGINALE VS RÉEL
+                  </div>
+                  <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>
+                    Générée le {new Date(originalProjection.created_at).toLocaleDateString('fr-FR')} — {allProjections.length} projections au total
+                  </div>
+                  {bodyLogs.length >= 2 && (
+                    <div style={{ fontSize: 13, color: '#ccc', marginTop: 8 }}>
+                      Poids J1 : <span style={{ color: '#fff', fontWeight: 700 }}>{bodyLogs[0]?.weight}kg</span>
+                      {' → '}
+                      Actuel : <span style={{ color: ACCENT, fontWeight: 700 }}>{bodyLogs[bodyLogs.length - 1]?.weight}kg</span>
+                      {' '}
+                      <span style={{ color: bodyLogs[bodyLogs.length-1]?.weight < bodyLogs[0]?.weight ? ACCENT : '#ff6644' }}>
+                        ({bodyLogs[bodyLogs.length-1]?.weight < bodyLogs[0]?.weight ? '' : '+'}{(bodyLogs[bodyLogs.length-1]?.weight - bodyLogs[0]?.weight).toFixed(1)}kg)
+                      </span>
+                    </div>
+                  )}
+                  <button onClick={() => setShowComparison(true)} style={{ marginTop: 12, background: 'transparent', color: '#4488ff', border: '1px solid #4488ff44', borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                    VOIR LA COMPARAISON →
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
-          <button onClick={() => setStep('consent')} style={{ width: '100%', padding: 18, background: ACCENT, border: 'none', borderRadius: 16, color: '#000', fontWeight: 900, fontSize: 16, cursor: 'pointer', maxWidth: 320 }}>
-            CRÉER MA PROJECTION
+          <button onClick={() => setStep('consent')} style={{ width: '100%', padding: 18, background: latestProjection ? SURFACE : ACCENT, border: '1px solid ' + (latestProjection ? BORDER : ACCENT), borderRadius: 16, color: latestProjection ? '#fff' : '#000', fontWeight: 900, fontSize: 15, cursor: 'pointer', maxWidth: 400 }}>
+            {latestProjection ? '↻ NOUVELLE PROJECTION' : 'CRÉER MA PROJECTION'}
           </button>
+        </div>
+      )}
+
+      {/* MODAL COMPARAISON ORIGINALE VS RÉEL */}
+      {showComparison && originalProjection && latestProjection && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.96)', zIndex: 400, overflowY: 'auto' }}>
+          <div style={{ padding: '24px 20px 100px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>PROJECTION VS RÉALITÉ</div>
+              <button onClick={() => setShowComparison(false)} style={{ background: 'none', border: 'none', color: '#555', fontSize: 28, cursor: 'pointer' }}>×</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+              {[
+                { label: 'PROJECTION ORIGINALE', data: originalProjection, color: '#4488ff' },
+                { label: 'PROJECTION ACTUELLE', data: latestProjection, color: ACCENT },
+              ].map(({ label, data, color }) => {
+                let parsed: any = {};
+                try { parsed = JSON.parse(data.result_text); } catch {}
+                return (
+                  <div key={label} style={{ background: SURFACE, border: '1px solid ' + color + '44', borderRadius: 14, padding: 14 }}>
+                    <div style={{ fontSize: 10, color, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>{label}</div>
+                    <div style={{ fontSize: 11, color: '#555', marginBottom: 8 }}>{new Date(data.created_at).toLocaleDateString('fr-FR')}</div>
+                    <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.5 }}>{parsed.tagline || '—'}</div>
+                    {parsed.en_90_jours && (
+                      <div style={{ marginTop: 8, fontSize: 11, color: '#888', lineHeight: 1.4 }}>
+                        <span style={{ color: '#555' }}>J+90 : </span>{parsed.en_90_jours.slice(0, 100)}...
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Évolution réelle */}
+            {bodyLogs.length >= 2 && (
+              <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 14, padding: 16, marginBottom: 16 }}>
+                <div style={{ fontSize: 11, color: ACCENT, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>TA RÉALITÉ</div>
+                <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>{bodyLogs[0]?.weight}kg</div>
+                    <div style={{ fontSize: 11, color: '#555' }}>Départ</div>
+                  </div>
+                  <div style={{ fontSize: 24, color: '#333', alignSelf: 'center' }}>→</div>
+                  <div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: ACCENT }}>{bodyLogs[bodyLogs.length-1]?.weight}kg</div>
+                    <div style={{ fontSize: 11, color: '#555' }}>Aujourd'hui</div>
+                  </div>
+                  <div style={{ fontSize: 24, color: '#333', alignSelf: 'center' }}>→</div>
+                  <div>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>{(bodyLogs[bodyLogs.length-1]?.weight < bodyLogs[0]?.weight ? '' : '+')}{(bodyLogs[bodyLogs.length-1]?.weight - bodyLogs[0]?.weight).toFixed(1)}kg</div>
+                    <div style={{ fontSize: 11, color: '#555' }}>Évolution</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <button onClick={() => setShowComparison(false)}
+              style={{ width: '100%', padding: 16, background: ACCENT, border: 'none', borderRadius: 14, color: '#000', fontWeight: 900, cursor: 'pointer' }}>
+              FERMER
+            </button>
+          </div>
         </div>
       )}
 

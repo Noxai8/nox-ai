@@ -62,6 +62,8 @@ export default function Settings() {
 
         <Section title="Données">
           <Row icon="📊" label="Mon bilan hebdo" onClick={() => navigate('/weekly-review')} />
+          <Row icon="🌙" label="Recovery & Wearables" onClick={() => navigate('/recovery')} />
+          <Row icon="👥" label="Mode Partenaire" onClick={() => navigate('/partner')} />
           <Row icon="🏆" label="Mes achievements" onClick={() => navigate('/play')} />
         </Section>
 

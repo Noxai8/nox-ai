@@ -32,13 +32,14 @@ export default function Coach() {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const loadContext = async () => {
-    const [{ data: profile }, { data: program }, { data: recentWorkouts }, { data: prs }, { data: bodyLogs }, { data: fuelToday }] = await Promise.all([
+    const [{ data: profile }, { data: program }, { data: recentWorkouts }, { data: prs }, { data: bodyLogs }, { data: fuelToday }, { data: history }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user!.id).maybeSingle(),
       supabase.from('workout_programs').select('*').eq('user_id', user!.id).eq('is_active', true).maybeSingle(),
       supabase.from('workouts').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(5),
       supabase.from('personal_records').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(10),
       supabase.from('body_logs').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(5),
       supabase.from('food_entries').select('*').eq('user_id', user!.id).gte('created_at', new Date().toISOString().split('T')[0] + 'T00:00:00'),
+      supabase.from('coach_messages').select('role, content, created_at').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(20),
     ]);
 
     const totalKcal = fuelToday?.reduce((s: number, f: any) => s + (f.calories || 0), 0) || 0;
@@ -61,8 +62,14 @@ export default function Coach() {
       latest_weight: bodyLogs?.[0]?.weight,
     });
 
-    // Message de bienvenue
-    if (messages.length === 0) {
+    // Charger l'historique des conversations précédentes
+    if (history && history.length > 0) {
+      const sorted = [...history].reverse();
+      setMessages([
+        { role: 'assistant', content: `Yo ${profile?.display_name?.split(' ')[0] || ''} 👊 Content de te revoir. On reprend où on s'est arrêtés.` },
+        ...sorted.map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+      ]);
+    } else {
       setMessages([{
         role: 'assistant',
         content: `Yo ${profile?.display_name?.split(' ')[0] || ''} 👊 Qu'est-ce qui se passe ?`,
@@ -80,16 +87,24 @@ export default function Coach() {
     setMessages(newMessages);
 
     try {
+      // Résumé des 5 derniers échanges pour la mémoire
+      const recentExchanges = newMessages.slice(-10)
+        .map(m => `${m.role === 'user' ? 'Lui' : 'NOX'}: ${m.content.slice(0, 150)}`)
+        .join('\n');
+
       const systemPrompt = `Tu es NOX, le coach de ${context?.profile?.name?.split(' ')[0] || 'l\'utilisateur'}.
 
-DONNÉES :
+DONNÉES ACTUELLES :
 ${JSON.stringify(context, null, 2)}
+
+HISTORIQUE RÉCENT :
+${recentExchanges}
 
 STYLE :
 - Parle comme un pote qui maîtrise le sport — pas un robot, pas un prof
+- Tu te souviens des échanges précédents — référence-les naturellement si pertinent
 - Naturel, direct, sans bullshit. Pas de "Excellente question !" jamais
 - Tutoie, sois concis (3-5 phrases), utilise les vraies données
-- Pas de listes à puces partout — parle normalement
 - Si blessure grave → conseille un pro
 - Pas de diagnostic médical`;
 
