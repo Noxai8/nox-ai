@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-import { parseAndValidateProgram } from '../lib/validateProgram';
 
 const ACCENT = '#c8ff00';
 const BG = '#0a0a0a';
@@ -150,7 +149,12 @@ RÈGLES :
       }
 
       // Important : aucune donnée existante n'est modifiée avant cette validation.
-      const prog = parseAndValidateProgram(text, sessionCount, sessionLength);
+      const clean = text.replace(/```json|```/g, '').trim();
+      const start = clean.indexOf('{');
+      const end = clean.lastIndexOf('}');
+      if (start === -1) throw new Error('Format invalide');
+      const prog = JSON.parse(clean.slice(start, end + 1));
+      if (!prog.sessions || !Array.isArray(prog.sessions)) throw new Error('Programme invalide');
 
       // Sauvegarder d'abord le nouveau programme.
       // Si cette insertion échoue, l'ancien programme reste intact.
