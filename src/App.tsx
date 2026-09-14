@@ -16,10 +16,15 @@ const Coach = lazy(() => import('./pages/Coach'));
 const Fuel = lazy(() => import('./pages/Fuel'));
 const Play = lazy(() => import('./pages/Play'));
 const NoxFuture = lazy(() => import('./pages/NoxFuture'));
+const WeeklyReview = lazy(() => import('./pages/WeeklyReview'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Subscribe = lazy(() => import('./pages/Subscribe'));
+
+const Loader = () => <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#c8ff00', fontWeight: 900, letterSpacing: '.15em', fontSize: 18 }}>NOX</div></div>;
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return <div style={{ minHeight: '100vh', background: '#0a0a0a' }} />;
+  if (loading) return <Loader />;
   if (!user) return <Navigate to="/" />;
   return <>{children}</>;
 }
@@ -27,7 +32,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   const { user } = useAuth();
   return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#0a0a0a' }} />}>
+    <Suspense fallback={<Loader />}>
       <Routes>
         <Route path="/" element={user ? <Navigate to="/home" /> : <Landing />} />
         <Route path="/register" element={<Register />} />
@@ -42,6 +47,9 @@ function AppRoutes() {
         <Route path="/fuel" element={<ProtectedRoute><Fuel /></ProtectedRoute>} />
         <Route path="/play" element={<ProtectedRoute><Play /></ProtectedRoute>} />
         <Route path="/future" element={<ProtectedRoute><NoxFuture /></ProtectedRoute>} />
+        <Route path="/weekly-review" element={<ProtectedRoute><WeeklyReview /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/subscribe" element={<ProtectedRoute><Subscribe /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Suspense>

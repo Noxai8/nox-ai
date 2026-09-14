@@ -226,3 +226,4 @@ export default function Home() {
     </div>
   );
 }
+// settings accessible via /settings
