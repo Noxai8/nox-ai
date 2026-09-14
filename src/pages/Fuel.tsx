@@ -238,12 +238,10 @@ export default function Fuel() {
     const entry = {
       user_id: user!.id,
       meal_type: selectedMeal,
-      food_name: scanResult.description || scanResult.nom || 'Repas scanné',
       calories: Math.round(kcal),
       protein: Math.round(protein * 10) / 10,
       carbs: Math.round(carbs * 10) / 10,
       fat: Math.round(fat * 10) / 10,
-      quantity: 1,
       created_at: new Date().toISOString(),
     };
     
@@ -260,12 +258,10 @@ export default function Fuel() {
     await supabase.from('food_entries').insert({
       user_id: user!.id,
       meal_type: selectedMeal,
-      food_name: food.nom || food.name || 'Aliment',
       calories: Math.round(food.kcal || food.calories || 0),
-      protein: Math.round(food.protein * 10) / 10,
-      carbs: Math.round(food.carbs * 10) / 10,
-      fat: Math.round(food.fat * 10) / 10,
-      quantity: 1,
+      protein: Math.round((food.protein || 0) * 10) / 10,
+      carbs: Math.round((food.carbs || 0) * 10) / 10,
+      fat: Math.round((food.fat || 0) * 10) / 10,
       created_at: new Date().toISOString(),
     });
     await loadData();
@@ -278,12 +274,10 @@ export default function Fuel() {
     await supabase.from('food_entries').insert({
       user_id: user!.id,
       meal_type: selectedMeal,
-      food_name: food.name,
       calories: Math.round(food.kcal * q),
       protein: Math.round(food.protein * q * 10) / 10,
       carbs: Math.round(food.carbs * q * 10) / 10,
       fat: Math.round(food.fat * q * 10) / 10,
-      quantity: q,
       created_at: new Date().toISOString(),
     });
     await loadData();
@@ -294,12 +288,10 @@ export default function Fuel() {
     await supabase.from('food_entries').insert({
       user_id: user!.id,
       meal_type: selectedMeal,
-      food_name: custom.name || 'Aliment',
       calories: parseFloat(custom.kcal) || 0,
       protein: parseFloat(custom.protein) || 0,
       carbs: parseFloat(custom.carbs) || 0,
       fat: parseFloat(custom.fat) || 0,
-      quantity: 1,
       created_at: new Date().toISOString(),
     });
     await loadData();
