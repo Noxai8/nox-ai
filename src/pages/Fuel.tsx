@@ -109,13 +109,21 @@ export default function Fuel() {
     setScanError('');
     setScanResult(null);
     try {
-      // Appel via Supabase Edge Function (clé API sécurisée côté serveur)
-      const { data: fnData, error: fnError } = await supabase.functions.invoke('analyze-meal', {
-        body: { base64, mime },
-      });
+      // Appel direct à la Edge Function Supabase
+      const fnResponse = await fetch(
+        'https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/analyze-meal',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4',
+          },
+          body: JSON.stringify({ base64, mime }),
+        }
+      );
 
-      if (fnError) throw new Error(fnError.message || 'Erreur serveur');
-      if (fnData?.error) throw new Error(fnData.error);
+      const fnData = await fnResponse.json();
+      if (!fnResponse.ok) throw new Error(fnData?.error || 'Erreur serveur ' + fnResponse.status);
       if (!fnData?.total) throw new Error('Réponse invalide');
 
       setScanResult(fnData);
