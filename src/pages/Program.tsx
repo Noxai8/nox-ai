@@ -5,9 +5,10 @@ import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 
 const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
+const BG = '#070707';
 const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const BORDER = '#232323';
+const MUTED = '#858585';
 
 export default function Program() {
   const { user } = useAuth();
@@ -28,185 +29,201 @@ export default function Program() {
   };
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ color: ACCENT, fontWeight: 900, letterSpacing: '.15em' }}>CHARGEMENT...</div>
+    <div style={{ minHeight: '100vh', background: BG, display: 'grid', placeItems: 'center' }}>
+      <div style={{ color: ACCENT, fontWeight: 900, letterSpacing: '.16em' }}>NOX TRAINING</div>
     </div>
   );
 
   const sessions: any[] = program?.program_json?.sessions || [];
   const allExercises: any[] = sessions.flatMap((s: any) => s.exercises || []);
   const uniqueExercises = allExercises.filter((e, i, arr) => arr.findIndex(x => x.name === e.name) === i);
+  const sessionLength = program?.program_json?.session_length_min || 60;
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, paddingBottom: 80 }}>
-      {/* Header */}
-      <div style={{ padding: '24px 20px 0', borderBottom: '1px solid ' + BORDER }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-          <div>
-            <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Programme actif</div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-.02em' }}>
-              {program?.name || 'MON PROGRAMME'}
-            </div>
-            {program && (
-              <div style={{ fontSize: 12, color: '#555', marginTop: 4 }}>
-                {program.days_per_week}j/semaine · {program.program_json?.session_length_min || 60}min · {sessions.length} séances
-              </div>
-            )}
+    <div style={{ minHeight: '100vh', background: BG, color: '#fff', paddingBottom: 100 }}>
+      <main style={{ maxWidth: 560, margin: '0 auto' }}>
+        <header style={{
+          padding: '24px 20px 18px',
+          background: 'radial-gradient(circle at 90% 0%, rgba(200,255,0,.07), transparent 30%), #090909',
+          borderBottom: '1px solid rgba(255,255,255,.06)'
+        }}>
+          <div style={{ fontSize: 10, color: '#777', textTransform: 'uppercase', letterSpacing: '.14em', fontWeight: 800 }}>
+            NOX Training
           </div>
-          <button onClick={() => navigate('/generate-program')}
-            style={{ background: ACCENT + '22', border: '1px solid ' + ACCENT + '44', borderRadius: 12, padding: '8px 14px', color: ACCENT, fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
-            ↻ Nouveau
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 0 }}>
-          {[{ id: 'plan', label: '📋 Plan' }, { id: 'exercises', label: '🏋️ Exercices' }].map(t => (
-            <button key={t.id} onClick={() => setTab(t.id as any)}
-              style={{ flex: 1, padding: '10px 0', background: 'none', border: 'none', borderBottom: '2px solid ' + (tab === t.id ? ACCENT : 'transparent'), color: tab === t.id ? ACCENT : '#555', fontWeight: 800, fontSize: 13, cursor: 'pointer', transition: 'all .2s' }}>
-              {t.label}
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginTop: 6 }}>
+            <div style={{ minWidth: 0 }}>
+              <h1 style={{ margin: 0, fontSize: 25, lineHeight: 1.05, fontWeight: 950, letterSpacing: '-.04em' }}>
+                {program?.name || 'MON PROGRAMME'}
+              </h1>
+              {program && (
+                <div style={{ marginTop: 8, fontSize: 12, color: MUTED }}>
+                  {program.days_per_week || sessions.length}j / semaine · {sessionLength} min · {sessions.length} séances
+                </div>
+              )}
+            </div>
+            <button onClick={() => navigate('/generate-program')} style={{
+              alignSelf: 'flex-start', border: '1px solid rgba(200,255,0,.22)', background: 'rgba(200,255,0,.08)',
+              color: ACCENT, borderRadius: 12, padding: '9px 12px', fontSize: 11, fontWeight: 900, cursor: 'pointer'
+            }}>
+              NOUVEAU
             </button>
-          ))}
-        </div>
-      </div>
-
-      {!program ? (
-        <div style={{ padding: '60px 24px', textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 20 }}>📋</div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 12 }}>Pas encore de programme</div>
-          <div style={{ fontSize: 14, color: '#555', marginBottom: 32, lineHeight: 1.5 }}>
-            NOX va créer un programme personnalisé selon ton objectif, ton niveau et ton matériel
           </div>
-          <button onClick={() => navigate('/generate-program')}
-            style={{ padding: '16px 32px', background: ACCENT, border: 'none', borderRadius: 14, color: '#000', fontWeight: 900, fontSize: 15, cursor: 'pointer' }}>
-            CRÉER MON PROGRAMME
-          </button>
-        </div>
-      ) : (
-        <div style={{ padding: '20px 20px 0' }}>
 
-          {/* ── TAB PLAN ── */}
-          {tab === 'plan' && (
-            <>
-              {/* Goal card */}
-              {program.goal && (
-                <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 14, padding: '14px 16px', marginBottom: 16 }}>
-                  <div style={{ fontSize: 11, color: ACCENT, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>Objectif du programme</div>
-                  <div style={{ fontSize: 14, color: '#ccc', lineHeight: 1.5 }}>{program.goal}</div>
-                </div>
-              )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', background: '#111', padding: 4, borderRadius: 14, marginTop: 20 }}>
+            {[
+              { id: 'plan', label: 'PLAN' },
+              { id: 'exercises', label: 'EXERCICES' },
+            ].map(t => (
+              <button key={t.id} onClick={() => setTab(t.id as any)} style={{
+                border: 'none', borderRadius: 11, padding: '10px 0', cursor: 'pointer',
+                background: tab === t.id ? '#202020' : 'transparent',
+                color: tab === t.id ? '#fff' : '#666', fontSize: 11, fontWeight: 900, letterSpacing: '.06em'
+              }}>{t.label}</button>
+            ))}
+          </div>
+        </header>
 
-              {/* Progression notes */}
-              {program.program_json?.progression_notes && (
-                <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: '14px 16px', marginBottom: 16 }}>
-                  <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>⚡ Logique de progression</div>
-                  <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6 }}>{program.program_json.progression_notes}</div>
-                </div>
-              )}
-
-              {/* Sessions */}
-              <div style={{ fontSize: 11, fontWeight: 800, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>
-                SÉANCES — {sessions.length} par semaine
-              </div>
-              {sessions.map((session: any, si: number) => (
-                <div key={si} style={{ marginBottom: 12 }}>
-                  <button onClick={() => setSelectedSession(selectedSession?.name === session.name ? null : session)}
-                    style={{ width: '100%', background: SURFACE, border: '1px solid ' + (selectedSession?.name === session.name ? ACCENT + '66' : BORDER), borderRadius: 16, padding: '16px 18px', textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                        <div style={{ background: ACCENT + '22', border: '1px solid ' + ACCENT + '44', borderRadius: 8, padding: '3px 10px', fontSize: 11, fontWeight: 900, color: ACCENT }}>
-                          {session.day || `J${si + 1}`}
-                        </div>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{session.name}</div>
-                      </div>
-                      <div style={{ fontSize: 12, color: '#555' }}>
-                        {session.exercises?.length || 0} exercices · {session.duration || program.program_json?.session_length_min || 60} min
-                      </div>
-                      {session.focus && <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>{session.focus}</div>}
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <button onClick={e => { e.stopPropagation(); navigate('/training/' + (session.id || si)); }}
-                        style={{ background: ACCENT, border: 'none', borderRadius: 10, padding: '8px 14px', color: '#000', fontWeight: 900, fontSize: 12, cursor: 'pointer' }}>
-                        ▶ START
-                      </button>
-                      <span style={{ color: '#333', fontSize: 18 }}>{selectedSession?.name === session.name ? '▲' : '▼'}</span>
-                    </div>
-                  </button>
-
-                  {/* Expanded session */}
-                  {selectedSession?.name === session.name && (
-                    <div style={{ background: '#0d0d0d', border: '1px solid ' + BORDER, borderRadius: '0 0 16px 16px', borderTop: 'none', padding: '0 16px 16px' }}>
-                      {(session.exercises || []).map((ex: any, ei: number) => (
-                        <div key={ei} style={{ borderTop: ei === 0 ? '1px solid ' + BORDER : 'none', padding: '14px 0', borderBottom: '1px solid ' + BORDER }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                <div style={{ fontSize: 11, fontWeight: 900, color: '#333', width: 20 }}>{ei + 1}.</div>
-                                <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{ex.name}</div>
-                              </div>
-                              <div style={{ display: 'flex', gap: 8, marginLeft: 28, flexWrap: 'wrap' }}>
-                                <span style={{ background: '#1a1a1a', borderRadius: 6, padding: '3px 10px', fontSize: 12, color: '#ccc', fontWeight: 700 }}>
-                                  {ex.sets} × {ex.reps}
-                                </span>
-                                {ex.rest && <span style={{ background: '#1a1a1a', borderRadius: 6, padding: '3px 10px', fontSize: 12, color: '#555' }}>repos {ex.rest}</span>}
-                                {ex.weight_suggestion && <span style={{ background: ACCENT + '22', borderRadius: 6, padding: '3px 10px', fontSize: 12, color: ACCENT }}>~{ex.weight_suggestion}</span>}
-                              </div>
-                              {ex.muscles && <div style={{ fontSize: 11, color: '#444', marginTop: 6, marginLeft: 28 }}>🎯 {ex.muscles}</div>}
-                            </div>
-                            <button onClick={() => setSelectedExercise(ex)}
-                              style={{ background: 'transparent', border: '1px solid #1a1a1a', borderRadius: 8, padding: '6px 12px', color: '#555', fontSize: 11, cursor: 'pointer', flexShrink: 0, marginLeft: 8 }}>
-                              DEMO →
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* Nutrition notes */}
-              {program.program_json?.nutrition_notes && (
-                <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: '14px 16px', marginBottom: 16 }}>
-                  <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>🥗 Nutrition recommandée</div>
-                  <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6 }}>{program.program_json.nutrition_notes}</div>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* ── TAB EXERCICES ── */}
-          {tab === 'exercises' && (
-            <div>
-              <div style={{ fontSize: 13, color: '#555', marginBottom: 16, lineHeight: 1.5 }}>
-                Tous les exercices de ton programme avec descriptions détaillées et schémas.
-              </div>
-              {uniqueExercises.map((ex: any, i: number) => (
-                <button key={i} onClick={() => setSelectedExercise(selectedExercise?.name === ex.name ? null : ex)}
-                  style={{ width: '100%', background: SURFACE, border: '1px solid ' + (selectedExercise?.name === ex.name ? ACCENT + '44' : BORDER), borderRadius: 14, padding: '14px 16px', marginBottom: 10, textAlign: 'left', cursor: 'pointer' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{ex.name}</div>
-                      {ex.muscles && <div style={{ fontSize: 12, color: '#555', marginTop: 3 }}>🎯 {ex.muscles}</div>}
-                    </div>
-                    <span style={{ color: '#333', fontSize: 16 }}>{selectedExercise?.name === ex.name ? '▲' : '▼'}</span>
+        {!program ? (
+          <section style={{ padding: '70px 24px', textAlign: 'center' }}>
+            <div style={{ width: 58, height: 58, margin: '0 auto 20px', borderRadius: 18, background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.18)', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 24 }}>+</div>
+            <div style={{ fontSize: 21, fontWeight: 950 }}>TON PLAN COMMENCE ICI</div>
+            <p style={{ color: MUTED, lineHeight: 1.6, fontSize: 13, maxWidth: 330, margin: '10px auto 26px' }}>
+              NOX construit un programme selon ton objectif, ton niveau, ton matériel et tes disponibilités.
+            </p>
+            <button onClick={() => navigate('/generate-program')} style={{
+              border: 'none', background: ACCENT, color: '#050505', borderRadius: 14, padding: '15px 22px',
+              fontWeight: 950, cursor: 'pointer'
+            }}>CRÉER MON PROGRAMME</button>
+          </section>
+        ) : (
+          <section style={{ padding: 20 }}>
+            {tab === 'plan' && (
+              <>
+                <div style={{
+                  borderRadius: 22, border: '1px solid rgba(200,255,0,.18)',
+                  background: 'linear-gradient(135deg,#151515,#0e0e0e)', padding: 20, marginBottom: 18
+                }}>
+                  <div style={{ fontSize: 10, color: ACCENT, fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase' }}>Plan actif</div>
+                  <div style={{ fontSize: 20, fontWeight: 950, marginTop: 7 }}>{sessions.length} séances pour progresser cette semaine</div>
+                  <div style={{ color: MUTED, fontSize: 12.5, lineHeight: 1.55, marginTop: 8 }}>
+                    {program.program_json?.progression_notes || 'Valide tes séries, progresse régulièrement et laisse NOX suivre ta trajectoire.'}
                   </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginTop: 17 }}>
+                    {[
+                      ['FRÉQUENCE', `${program.days_per_week || sessions.length}j`],
+                      ['DURÉE', `${sessionLength}m`],
+                      ['EXERCICES', `${uniqueExercises.length}`],
+                    ].map(([label, value]) => (
+                      <div key={label} style={{ background: '#0c0c0c', border: `1px solid ${BORDER}`, borderRadius: 13, padding: '11px 8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 17, fontWeight: 950 }}>{value}</div>
+                        <div style={{ fontSize: 8.5, color: '#666', marginTop: 4, fontWeight: 800 }}>{label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-                  {selectedExercise?.name === ex.name && (
-                    <ExerciseDemo exercise={ex} />
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                {program.goal && (
+                  <div style={{ marginBottom: 20, padding: '13px 15px', borderRadius: 14, background: '#101010', border: `1px solid ${BORDER}` }}>
+                    <div style={{ fontSize: 9.5, color: '#6f6f6f', fontWeight: 900, letterSpacing: '.09em' }}>OBJECTIF</div>
+                    <div style={{ marginTop: 5, fontSize: 13, color: '#d0d0d0' }}>{String(program.goal)}</div>
+                  </div>
+                )}
 
-      {/* Exercise demo modal */}
+                <div style={{ fontSize: 11, color: '#777', fontWeight: 900, letterSpacing: '.09em', marginBottom: 11 }}>TES SÉANCES</div>
+                {sessions.map((session: any, si: number) => {
+                  const open = selectedSession?.name === session.name;
+                  return (
+                    <div key={si} style={{ marginBottom: 11 }}>
+                      <div style={{
+                        borderRadius: open ? '18px 18px 0 0' : 18, border: `1px solid ${open ? 'rgba(200,255,0,.25)' : BORDER}`,
+                        background: SURFACE, padding: 16
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                          <button onClick={() => setSelectedSession(open ? null : session)} style={{ flex: 1, border: 0, background: 'transparent', color: '#fff', padding: 0, textAlign: 'left', cursor: 'pointer' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                              <span style={{ color: ACCENT, fontSize: 10, fontWeight: 950, background: 'rgba(200,255,0,.09)', padding: '5px 8px', borderRadius: 8 }}>
+                                {session.day || `J${si + 1}`}
+                              </span>
+                              <span style={{ fontSize: 15, fontWeight: 900 }}>{session.name}</span>
+                            </div>
+                            <div style={{ marginTop: 8, fontSize: 11.5, color: MUTED }}>
+                              {session.exercises?.length || 0} exercices · {session.duration || sessionLength} min
+                              {session.focus ? ` · ${session.focus}` : ''}
+                            </div>
+                          </button>
+                          <button onClick={() => navigate('/training/' + (session.id || si))} style={{
+                            border: 0, borderRadius: 11, background: ACCENT, color: '#050505', padding: '10px 13px',
+                            fontSize: 10.5, fontWeight: 950, cursor: 'pointer'
+                          }}>START</button>
+                          <button onClick={() => setSelectedSession(open ? null : session)} aria-label="Déplier" style={{ border: 0, background: 'transparent', color: '#777', cursor: 'pointer', fontSize: 17 }}>
+                            {open ? '−' : '+'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {open && (
+                        <div style={{ border: '1px solid rgba(200,255,0,.18)', borderTop: 0, background: '#0c0c0c', borderRadius: '0 0 18px 18px', padding: '2px 15px 10px' }}>
+                          {(session.exercises || []).map((ex: any, ei: number) => (
+                            <div key={ei} style={{ padding: '14px 0', borderBottom: ei === session.exercises.length - 1 ? 'none' : `1px solid ${BORDER}`, display: 'flex', gap: 11 }}>
+                              <div style={{ width: 25, height: 25, borderRadius: 8, background: '#171717', display: 'grid', placeItems: 'center', color: '#777', fontSize: 10, fontWeight: 900, flexShrink: 0 }}>{ei + 1}</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 13.5, fontWeight: 850 }}>{ex.name}</div>
+                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 7 }}>
+                                  <span style={{ background: '#171717', borderRadius: 7, padding: '4px 8px', fontSize: 10.5, color: '#bbb' }}>{ex.sets} × {ex.reps}</span>
+                                  {ex.rest && <span style={{ background: '#171717', borderRadius: 7, padding: '4px 8px', fontSize: 10.5, color: '#777' }}>Repos {ex.rest}</span>}
+                                  {ex.weight_suggestion && <span style={{ background: 'rgba(200,255,0,.08)', borderRadius: 7, padding: '4px 8px', fontSize: 10.5, color: ACCENT }}>~{ex.weight_suggestion}</span>}
+                                </div>
+                              </div>
+                              <button onClick={() => setSelectedExercise(ex)} style={{ border: `1px solid ${BORDER}`, background: '#121212', color: '#999', borderRadius: 9, padding: '6px 9px', fontSize: 9.5, cursor: 'pointer', alignSelf: 'center' }}>DÉTAILS</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {program.program_json?.nutrition_notes && (
+                  <div style={{ marginTop: 18, borderRadius: 17, border: `1px solid ${BORDER}`, background: SURFACE, padding: 16 }}>
+                    <div style={{ fontSize: 10, color: ACCENT, fontWeight: 900, letterSpacing: '.08em' }}>FUEL · RECOMMANDATION</div>
+                    <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.6, marginTop: 7 }}>{program.program_json.nutrition_notes}</div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {tab === 'exercises' && (
+              <>
+                <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.55, marginBottom: 16 }}>
+                  Ta bibliothèque actuelle : {uniqueExercises.length} exercices utilisés dans ton programme.
+                </div>
+                {uniqueExercises.map((ex: any, i: number) => {
+                  const open = selectedExercise?.name === ex.name;
+                  return (
+                    <button key={i} onClick={() => setSelectedExercise(open ? null : ex)} style={{
+                      width: '100%', border: `1px solid ${open ? 'rgba(200,255,0,.24)' : BORDER}`,
+                      background: SURFACE, color: '#fff', borderRadius: 16, padding: 15, marginBottom: 9, textAlign: 'left', cursor: 'pointer'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 900 }}>{ex.name}</div>
+                          {ex.muscles && <div style={{ color: '#777', fontSize: 11, marginTop: 4 }}>{ex.muscles}</div>}
+                        </div>
+                        <span style={{ color: open ? ACCENT : '#555' }}>{open ? '−' : '+'}</span>
+                      </div>
+                      {open && <ExerciseDemo exercise={ex} />}
+                    </button>
+                  );
+                })}
+              </>
+            )}
+          </section>
+        )}
+      </main>
+
       {selectedExercise && tab === 'plan' && (
         <ExerciseDemoModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} />
       )}
-
       <BottomNav active="training" />
     </div>
   );
