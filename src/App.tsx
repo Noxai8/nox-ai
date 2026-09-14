@@ -22,6 +22,9 @@ const Subscribe = lazy(() => import('./pages/Subscribe'));
 const RestDay = lazy(() => import('./pages/RestDay'));
 const Partner = lazy(() => import('./pages/Partner'));
 const Recovery = lazy(() => import('./pages/Recovery'));
+const ShareTimeline = lazy(() => import('./pages/ShareTimeline'));
+const BeginnerCalibration = lazy(() => import('./pages/BeginnerCalibration'));
+const NotificationSettings = lazy(() => import('./pages/NotificationSettings'));
 const Reschedule = lazy(() => import('./pages/Reschedule'));
 
 const Loader = () => <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#c8ff00', fontWeight: 900, letterSpacing: '.15em', fontSize: 18 }}>NOX</div></div>;
@@ -58,6 +61,9 @@ function AppRoutes() {
         <Route path="/partner" element={<ProtectedRoute><Partner /></ProtectedRoute>} />
         <Route path="/recovery" element={<ProtectedRoute><Recovery /></ProtectedRoute>} />
         <Route path="/reschedule" element={<ProtectedRoute><Reschedule /></ProtectedRoute>} />
+        <Route path="/share-timeline" element={<ProtectedRoute><ShareTimeline /></ProtectedRoute>} />
+        <Route path="/calibration" element={<ProtectedRoute><BeginnerCalibration /></ProtectedRoute>} />
+        <Route path="/notification-settings" element={<ProtectedRoute><NotificationSettings /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Suspense>

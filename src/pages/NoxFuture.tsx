@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
@@ -12,6 +13,7 @@ type Step = 'intro' | 'consent' | 'photo' | 'goal_desc' | 'generating' | 'result
 
 export default function NoxFuture() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>('intro');
   const [photos, setPhotos] = useState<{ face?: string; side?: string; back?: string }>({});
   const [currentAngle, setCurrentAngle] = useState<'face' | 'side' | 'back'>('face');
@@ -26,9 +28,24 @@ export default function NoxFuture() {
   const [showComparison, setShowComparison] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [futureCredits, setFutureCredits] = useState<{ used: number; max: number; canGenerate: boolean }>({ used: 0, max: 1, canGenerate: true });
+
   useEffect(() => {
     if (!user) return;
-    supabase.from('profiles').select('*').eq('id', user.id).maybeSingle().then(({ data }) => setProfile(data));
+    supabase.from('profiles').select('*').eq('id', user.id).maybeSingle().then(({ data }) => {
+      setProfile(data);
+      // Calculer crédits FUTURE selon le plan
+      const plan = data?.subscription_plan || 'free';
+      const maxByPlan: Record<string, number> = { free: 1, nox: 1, pro: 999, ultra: 999 };
+      const max = maxByPlan[plan] || 1;
+      // Compter les générations du mois
+      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+      supabase.from('future_you_generations').select('id').eq('user_id', user!.id).gte('created_at', monthStart)
+        .then(({ data: gens }) => {
+          const used = gens?.length || 0;
+          setFutureCredits({ used, max, canGenerate: used < max || plan === 'pro' || plan === 'ultra' });
+        });
+    });
     supabase.from('body_logs').select('weight, created_at').eq('user_id', user.id).order('created_at').then(({ data }) => setBodyLogs(data || []));
     // Charger TOUTES les projections — la première = originale, la dernière = actuelle
     supabase.from('future_you_generations').select('*').eq('user_id', user.id).order('created_at', { ascending: true })
@@ -212,9 +229,27 @@ Réponds UNIQUEMENT en JSON valide :
             </>
           )}
 
-          <button onClick={() => setStep('consent')} style={{ width: '100%', padding: 18, background: latestProjection ? SURFACE : ACCENT, border: '1px solid ' + (latestProjection ? BORDER : ACCENT), borderRadius: 16, color: latestProjection ? '#fff' : '#000', fontWeight: 900, fontSize: 15, cursor: 'pointer', maxWidth: 400 }}>
-            {latestProjection ? '↻ NOUVELLE PROJECTION' : 'CRÉER MA PROJECTION'}
-          </button>
+          {!futureCredits.canGenerate ? (
+            <div style={{ background: '#ff444411', border: '1px solid #ff444433', borderRadius: 16, padding: 20, textAlign: 'center' }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#ff6666', marginBottom: 8 }}>
+                {futureCredits.used}/{futureCredits.max} projections utilisées ce mois
+              </div>
+              <div style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>Passe à NOX PRO pour des projections illimitées</div>
+              <button onClick={() => navigate('/subscribe')}
+                style={{ padding: '12px 24px', background: '#c8ff00', border: 'none', borderRadius: 12, color: '#000', fontWeight: 900, fontSize: 13, cursor: 'pointer' }}>
+                PASSER À NOX PRO →
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setStep('consent')} style={{ width: '100%', padding: 18, background: latestProjection ? SURFACE : ACCENT, border: '1px solid ' + (latestProjection ? BORDER : ACCENT), borderRadius: 16, color: latestProjection ? '#fff' : '#000', fontWeight: 900, fontSize: 15, cursor: 'pointer', maxWidth: 400 }}>
+              {latestProjection ? '↻ NOUVELLE PROJECTION' : 'CRÉER MA PROJECTION'}
+            </button>
+          )}
+          {futureCredits.max < 999 && (
+            <div style={{ textAlign: 'center', marginTop: 8, fontSize: 11, color: '#333' }}>
+              {futureCredits.used}/{futureCredits.max} projection(s) utilisée(s) ce mois · Plan {profile?.subscription_plan || 'free'}
+            </div>
+          )}
         </div>
       )}
 
@@ -449,6 +484,10 @@ Réponds UNIQUEMENT en JSON valide :
 
           {/* Actions */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button onClick={() => navigate('/share-timeline')}
+              style={{ width: '100%', padding: 14, background: '#4488ff22', border: '1px solid #4488ff44', borderRadius: 14, color: '#4488ff', fontWeight: 800, fontSize: 13, cursor: 'pointer', marginBottom: 8 }}>
+              📤 EXPORTER MA TIMELINE
+            </button>
             <button onClick={() => { setPhotos({}); setGoalDesc(''); setStep('consent'); }}
               style={{ width: '100%', padding: 16, background: ACCENT, border: 'none', borderRadius: 14, color: '#000', fontWeight: 900, fontSize: 14, cursor: 'pointer' }}>
               NOUVELLE PROJECTION
