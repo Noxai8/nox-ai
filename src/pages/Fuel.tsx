@@ -220,29 +220,48 @@ export default function Fuel() {
   };
 
   const addScanResult = async () => {
-    if (!scanResult?.total) return;
+    if (!scanResult) return;
+    
+    // Gérer les différentes structures possibles retournées par Claude
+    const total = scanResult.total || scanResult;
+    const kcal = total.kcal ?? total.calories ?? total.cal ?? 0;
+    const protein = total.protein ?? total.proteines ?? total.proteins ?? 0;
+    const carbs = total.carbs ?? total.glucides ?? total.carbohydrates ?? 0;
+    const fat = total.fat ?? total.lipides ?? total.fats ?? 0;
+    
+    if (!kcal && !protein) {
+      // Rien à ajouter
+      closeAdd();
+      return;
+    }
+    
     const entry = {
       user_id: user!.id,
       meal_type: selectedMeal,
-      food_name: scanResult.description || 'Repas scanné',
-      calories: Math.round(scanResult.total.kcal),
-      protein: Math.round(scanResult.total.protein * 10) / 10,
-      carbs: Math.round(scanResult.total.carbs * 10) / 10,
-      fat: Math.round(scanResult.total.fat * 10) / 10,
+      food_name: scanResult.description || scanResult.nom || 'Repas scanné',
+      calories: Math.round(kcal),
+      protein: Math.round(protein * 10) / 10,
+      carbs: Math.round(carbs * 10) / 10,
+      fat: Math.round(fat * 10) / 10,
       quantity: 1,
       created_at: new Date().toISOString(),
     };
-    await supabase.from('food_entries').insert(entry);
-    await loadData();
-    closeAdd();
+    
+    const { error } = await supabase.from('food_entries').insert(entry);
+    if (!error) {
+      await loadData();
+      closeAdd();
+    } else {
+      console.error('Insert error:', error);
+    }
   };
 
   const addSingleFood = async (food: any) => {
     await supabase.from('food_entries').insert({
       user_id: user!.id,
       meal_type: selectedMeal,
-      food_name: food.nom,
-      calories: Math.round(food.kcal),
+      food_name: food.nom || food.name || 'Aliment',
+      calories: Math.round(food.kcal || food.calories || 0),
       protein: Math.round(food.protein * 10) / 10,
       carbs: Math.round(food.carbs * 10) / 10,
       fat: Math.round(food.fat * 10) / 10,
@@ -562,10 +581,10 @@ export default function Fuel() {
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, marginBottom: 14 }}>
                       {[
-                        ['KCAL', Math.round(scanResult.total.kcal), ACCENT],
-                        ['PROT.', Math.round(scanResult.total.protein) + 'g', '#fff'],
-                        ['GLUC.', Math.round(scanResult.total.carbs) + 'g', '#8da0ff'],
-                        ['LIP.', Math.round(scanResult.total.fat) + 'g', '#ff806b'],
+                        ['KCAL', Math.round(scanResult.total?.kcal ?? scanResult.total?.calories ?? 0), ACCENT],
+                        ['PROT.', Math.round(scanResult.total?.protein ?? scanResult.total?.proteines ?? 0) + 'g', '#fff'],
+                        ['GLUC.', Math.round(scanResult.total?.carbs ?? scanResult.total?.glucides ?? 0) + 'g', '#8da0ff'],
+                        ['LIP.', Math.round(scanResult.total?.fat ?? scanResult.total?.lipides ?? 0) + 'g', '#ff806b'],
                       ].map(([label, value, color]) => (
                         <div key={String(label)} style={{ background: '#111', border: '1px solid #242424', borderRadius: 13, padding: '11px 5px', textAlign: 'center' }}>
                           <div style={{ color: String(color), fontSize: 16, fontWeight: 950 }}>{value}</div>
@@ -592,7 +611,7 @@ export default function Fuel() {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '.8fr 1.2fr', gap: 8 }}>
                       <button onClick={() => { setPhotoBase64(null); setScanResult(null); fileRef.current?.click(); }} style={{ padding: 13, background: '#111', border: '1px solid #242424', borderRadius: 12, color: '#aaa', fontWeight: 850, cursor: 'pointer' }}>NOUVELLE PHOTO</button>
-                      <button onClick={addScanResult} style={{ padding: 13, background: ACCENT, border: 0, borderRadius: 12, color: '#050505', fontWeight: 950, cursor: 'pointer' }}>AJOUTER TOUT · {Math.round(scanResult.total.kcal)} KCAL</button>
+                      <button onClick={addScanResult} style={{ padding: 13, background: ACCENT, border: 0, borderRadius: 12, color: '#050505', fontWeight: 950, cursor: 'pointer' }}>AJOUTER TOUT · {Math.round(scanResult.total?.kcal ?? scanResult.total?.calories ?? 0)} KCAL</button>
                     </div>
                   </div>
                 )}
