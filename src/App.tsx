@@ -13,6 +13,9 @@ const Training = lazy(() => import('./pages/Training'));
 const Program = lazy(() => import('./pages/Program'));
 const Body = lazy(() => import('./pages/Body'));
 const Coach = lazy(() => import('./pages/Coach'));
+const Fuel = lazy(() => import('./pages/Fuel'));
+const Play = lazy(() => import('./pages/Play'));
+const NoxFuture = lazy(() => import('./pages/NoxFuture'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -23,7 +26,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   const { user } = useAuth();
-
   return (
     <Suspense fallback={<div style={{ minHeight: '100vh', background: '#0a0a0a' }} />}>
       <Routes>
@@ -37,6 +39,9 @@ function AppRoutes() {
         <Route path="/program" element={<ProtectedRoute><Program /></ProtectedRoute>} />
         <Route path="/body" element={<ProtectedRoute><Body /></ProtectedRoute>} />
         <Route path="/coach" element={<ProtectedRoute><Coach /></ProtectedRoute>} />
+        <Route path="/fuel" element={<ProtectedRoute><Fuel /></ProtectedRoute>} />
+        <Route path="/play" element={<ProtectedRoute><Play /></ProtectedRoute>} />
+        <Route path="/future" element={<ProtectedRoute><NoxFuture /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Suspense>
