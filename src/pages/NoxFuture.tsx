@@ -67,16 +67,40 @@ export default function NoxFuture() {
         has_photos: Object.keys(photos).length > 0,
       };
 
-      // Call Claude API to generate projection text
+      // Construire le prompt
+      const futurPrompt = `Tu es NOX. Génère une projection de transformation physique personnalisée sur 90 jours.
+
+PROFIL :
+- Objectif : ${ctx.profile.objective}
+- Poids actuel : ${ctx.profile.current_weight || '?'} kg
+- Niveau : ${ctx.profile.experience || 'débutant'}
+- Activité : ${ctx.profile.activity || 'modérée'}
+- Description objectif : ${goalDesc}
+- Photos fournies : ${ctx.has_photos ? 'oui' : 'non'}
+
+Réponds UNIQUEMENT en JSON valide :
+{
+  "titre": "TON NOX FUTURE",
+  "tagline": "Phrase courte et percutante",
+  "en_30_jours": "Changements visibles et concrets à 30 jours",
+  "en_60_jours": "Changements à 60 jours",
+  "en_90_jours": "Résultat à 90 jours si constants",
+  "chiffres_cles": ["Résultat chiffré 1", "Résultat chiffré 2", "Résultat chiffré 3"],
+  "message_coach": "Message motivant, ton naturel, 2-3 phrases",
+  "avertissement": "Projection indicative basée sur ta trajectoire. Résultats variables selon régularité et génétique."
+}`;
+
       const { data, error: fnErr } = await supabase.functions.invoke('nox-future', {
-        body: { prompt: messages?.[0]?.content || prompt },
+        body: { prompt: futurPrompt },
       });
       if (fnErr) throw new Error(fnErr.message);
-      const text = data.content?.[0]?.text || '{}';
+      if (!data) throw new Error('Réponse vide');
+      const text = data.content?.[0]?.text || '';
       let parsed: any = {};
       try {
-        const clean = text.replace(/```json|```/g, '').trim();
-        parsed = JSON.parse(clean);
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('No JSON');
+        parsed = JSON.parse(match[0]);
       } catch {
         parsed = { titre: 'TON NOX FUTURE', tagline: 'Ta transformation commence maintenant.', message_coach: text };
       }

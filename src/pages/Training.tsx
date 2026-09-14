@@ -1,3 +1,4 @@
+import { calculateProgressiveOverload, detectStagnation } from '../lib/noxBrain';
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -69,6 +70,7 @@ export default function Training() {
   const [restMax, setRestMax] = useState(90);
   const [completedSets, setCompletedSets] = useState<any[]>([]);
   const [newPR, setNewPR] = useState<any>(null);
+  const [overloadSuggestion, setOverloadSuggestion] = useState<any>(null);
   const [done, setDone] = useState(false);
   const [workoutId, setWorkoutId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -385,6 +387,17 @@ export default function Training() {
         <div style={{ margin: '0 20px 12px', background: ACCENT, borderRadius: 14, padding: '12px 16px', textAlign: 'center', animation: 'fadeIn .3s' }}>
           <div style={{ fontSize: 18, fontWeight: 900, color: '#000' }}>🏆 NOUVEAU RECORD !</div>
           <div style={{ fontSize: 14, color: '#000', marginTop: 4 }}>{newPR.name} — {newPR.weight}kg × {newPR.reps}</div>
+        </div>
+      )}
+
+      {/* Progressive Overload suggestion */}
+      {overloadSuggestion && !resting && (
+        <div style={{ margin: '0 20px 12px', background: '#c8ff0011', border: '1px solid #c8ff0033', borderRadius: 14, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 11, color: '#c8ff00', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.06em' }}>⚡ NOX SUGGÈRE</div>
+            <div style={{ fontSize: 13, color: '#ccc', marginTop: 4 }}>{overloadSuggestion.reason}</div>
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#c8ff00', flexShrink: 0, marginLeft: 12 }}>{overloadSuggestion.suggestedWeight}kg</div>
         </div>
       )}
 

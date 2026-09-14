@@ -1,3 +1,4 @@
+import { calculateNoxScore, calculateRealTDEE } from '../lib/noxBrain';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -254,6 +255,7 @@ export default function Home() {
   const [profile, setProfile] = useState<any>(null);
   const [program, setProgram] = useState<any>(null);
   const [todaySession, setTodaySession] = useState<any>(null);
+  const [todaySessionIdx, setTodaySessionIdx] = useState<number>(0);
   const [workoutCount, setWorkoutCount] = useState(0);
   const [prCount, setPrCount] = useState(0);
   const [weekWorkouts, setWeekWorkouts] = useState(0);
@@ -337,14 +339,18 @@ export default function Home() {
   };
 
   const getNoxScore = () => {
-    let score = 0;
-    if (workoutCount > 0) score += Math.min(30, workoutCount * 3);
-    if (weekWorkouts >= 3) score += 20;
-    if (prCount > 0) score += Math.min(20, prCount * 4);
-    if (latestWeight) score += 10;
-    if (todayKcal > 0) score += 10;
-    if (xp > 0) score += Math.min(10, Math.floor(xp / 100));
-    return Math.min(100, score);
+    return calculateNoxScore({
+      workoutCount,
+      weekWorkouts,
+      weekPlanned: profile?.available_days?.length || 4,
+      prCount,
+      hasWeight: !!latestWeight,
+      hasFuel: todayKcal > 0,
+      todayKcal,
+      targetKcal: 2200,
+      streak: profile?.streak_days || 0,
+      xp,
+    });
   };
 
   if (loading) {
@@ -566,7 +572,7 @@ export default function Home() {
                 </div>
               ) : (
                 <button
-                  onClick={() => navigate('/training/' + (todaySession?.id || 'today'))}
+                  onClick={() => navigate('/training/' + (todaySessionIdx ?? 0))}
                   style={{
                     width: '100%',
                     minHeight: 50,

@@ -1,3 +1,4 @@
+import { calculateRealTDEE } from '../lib/noxBrain';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -51,6 +52,7 @@ export default function Fuel() {
   // Photo scan state
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [tdee, setTdee] = useState<any>(null);
   const [scanResult, setScanResult] = useState<any>(null);
   const [scanError, setScanError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
@@ -69,6 +71,24 @@ export default function Fuel() {
     ]);
     if (t) setTargets({ kcal: t.calories || 2200, protein: t.protein || 160, carbs: t.carbs || 220, fat: t.fat || 70 });
     setEntries(e || []);
+
+    // Calculer TDEE réel
+    const [{ data: profile }, { data: allBodyLogs }, { data: allFuel }] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', user!.id).maybeSingle(),
+      supabase.from('body_logs').select('weight, created_at').eq('user_id', user!.id).order('created_at'),
+      supabase.from('food_entries').select('calories, created_at').eq('user_id', user!.id).order('created_at'),
+    ]);
+    if (allBodyLogs && allFuel && profile) {
+      const tdeeResult = calculateRealTDEE(allBodyLogs, allFuel, profile);
+      setTdee(tdeeResult);
+      // Mettre à jour les objectifs si TDEE réel dispo et objectif perte de poids
+      if (tdeeResult.tdeeReal && tdeeResult.confidence !== 'insuffisant' && !t) {
+        const targetKcal = profile.goal_type?.includes('gras') || profile.goal_type?.includes('poids')
+          ? tdeeResult.tdeeReal - 400
+          : tdeeResult.tdeeReal + 200;
+        setTargets(prev => ({ ...prev, kcal: Math.round(targetKcal) }));
+      }
+    }
   };
 
   const totals = entries.reduce((acc, e) => ({
@@ -325,6 +345,20 @@ export default function Fuel() {
               <div style={{ color: '#666', fontSize: 10.5, marginTop: 3 }}>{entries.length} élément{entries.length > 1 ? 's' : ''} enregistré{entries.length > 1 ? 's' : ''}</div>
             </div>
           </div>
+
+          {/* TDEE réel */}
+          {tdee && tdee.tdeeReal && tdee.confidence !== 'insuffisant' && (
+            <div style={{ margin: '0 0 14px', background: '#131313', border: '1px solid #222', borderRadius: 14, padding: '14px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em' }}>MÉTABOLISME RÉEL · confiance {tdee.confidence}</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#c8ff00' }}>{tdee.tdeeReal} kcal</div>
+              </div>
+              {tdee.insight
+                ? <div style={{ fontSize: 12, color: '#ffaa00', lineHeight: 1.5 }}>{tdee.insight}</div>
+                : <div style={{ fontSize: 12, color: '#555' }}>Formule standard : {tdee.tdeeFormula} kcal · {tdee.weeksOfData} sem. de données</div>
+              }
+            </div>
+          )}
 
           {mealGroups.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '42px 22px', borderRadius: 22, background: '#111', border: '1px solid #232323' }}>

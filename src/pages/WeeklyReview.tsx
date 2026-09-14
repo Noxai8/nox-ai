@@ -13,7 +13,7 @@ export default function WeeklyReview() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [data, setData] = useState<any>(null);
-  const [analysis, setAnalysis] = useState('');
+  const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
@@ -22,28 +22,41 @@ export default function WeeklyReview() {
   const loadWeekData = async () => {
     const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    const [{ data: profile }, { data: workouts }, { data: prs }, { data: bodyLogs }, { data: fuel }] = await Promise.all([
+    const [{ data: profile }, { data: workouts }, { data: prs }, { data: bodyLogs }, { data: fuel }, { data: program }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user!.id).maybeSingle(),
       supabase.from('workouts').select('*').eq('user_id', user!.id).eq('status', 'completed').gte('created_at', weekStart),
       supabase.from('personal_records').select('*').eq('user_id', user!.id).gte('created_at', weekStart),
       supabase.from('body_logs').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(2),
       supabase.from('food_entries').select('calories, protein').eq('user_id', user!.id).gte('created_at', weekStart),
+      supabase.from('workout_programs').select('*').eq('user_id', user!.id).eq('is_active', true).maybeSingle(),
     ]);
 
-    const weightDelta = bodyLogs && bodyLogs.length >= 2 ? (bodyLogs[0].weight - bodyLogs[1].weight).toFixed(1) : null;
-    const avgKcal = fuel && fuel.length > 0 ? Math.round(fuel.reduce((s: number, f: any) => s + f.calories, 0) / 7) : 0;
-    const avgProtein = fuel && fuel.length > 0 ? Math.round(fuel.reduce((s: number, f: any) => s + f.protein, 0) / 7) : 0;
+    const weightDelta = bodyLogs && bodyLogs.length >= 2
+      ? parseFloat((bodyLogs[0].weight - bodyLogs[1].weight).toFixed(1))
+      : null;
+    const avgKcal = fuel && fuel.length > 0
+      ? Math.round(fuel.reduce((s: number, f: any) => s + (f.calories || 0), 0) / 7)
+      : 0;
+    const avgProtein = fuel && fuel.length > 0
+      ? Math.round(fuel.reduce((s: number, f: any) => s + (f.protein || 0), 0) / 7)
+      : 0;
 
     const weekData = {
       profile,
+      program,
       workouts_done: workouts?.length || 0,
       workouts_planned: profile?.available_days?.length || 4,
       prs: prs?.length || 0,
+      pr_details: prs?.slice(0, 3).map((p: any) => `${p.exercise_name} ${p.weight}kg×${p.reps}`),
       weight_delta: weightDelta,
+      current_weight: bodyLogs?.[0]?.weight,
       avg_kcal: avgKcal,
       avg_protein: avgProtein,
       streak: profile?.streak_days || 0,
+      xp: profile?.xp || 0,
+      goal: profile?.goal_type || 'transformation',
     };
+
     setData(weekData);
     setLoading(false);
     generateAnalysis(weekData);
@@ -52,82 +65,95 @@ export default function WeeklyReview() {
   const generateAnalysis = async (weekData: any) => {
     setGenerating(true);
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 600,
-          messages: [{
-            role: 'user',
-            content: `Tu es NOX Coach. Analyse la semaine de l'utilisateur et donne une décision claire.
+      const prompt = `Tu es NOX. Analyse cette semaine d'entraînement et génère un bilan structuré.
 
-Données de la semaine :
-- Séances réalisées : ${weekData.workouts_done}/${weekData.workouts_planned}
-- Records battus : ${weekData.prs}
-- Évolution du poids : ${weekData.weight_delta ? weekData.weight_delta + ' kg' : 'Non renseigné'}
-- Calories moyennes/jour : ${weekData.avg_kcal} kcal
-- Protéines moyennes/jour : ${weekData.avg_protein}g
-- Streak actuel : ${weekData.streak} jours
+DONNÉES :
+- Objectif : ${weekData.goal}
+- Séances : ${weekData.workouts_done}/${weekData.workouts_planned}
+- PR cette semaine : ${weekData.prs} (${weekData.pr_details?.join(', ') || 'aucun'})
+- Poids : ${weekData.current_weight ? weekData.current_weight + 'kg' : 'non renseigné'} (évolution : ${weekData.weight_delta !== null ? (weekData.weight_delta > 0 ? '+' : '') + weekData.weight_delta + 'kg' : 'inconnue'})
+- Calories moy/jour : ${weekData.avg_kcal} kcal
+- Protéines moy/jour : ${weekData.avg_protein}g
+- Streak : ${weekData.streak} jours
+- XP total : ${weekData.xp}
 
-Réponds en JSON uniquement :
+Réponds UNIQUEMENT en JSON :
 {
-  "note": "Chiffre de 1 à 10 pour évaluer la semaine",
-  "titre": "Titre court et percutant (ex: SEMAINE SOLIDE)",
-  "points_forts": ["Point fort 1", "Point fort 2"],
-  "points_ameliorer": ["Point à améliorer 1"],
-  "decision": "CONSERVER LA STRATÉGIE ou ADAPTER LA STRATÉGIE",
-  "message": "Message motivant personnel court (2-3 phrases max)",
-  "conseil_semaine": "Un conseil actionnable concret pour la semaine prochaine"
-}`
-          }]
-        })
+  "note": 8,
+  "titre": "SEMAINE SOLIDE",
+  "decision": "PROGRAMME MAINTENU",
+  "raison_decision": "3 séances sur 4, performances en hausse — on garde le cap",
+  "adaptation": null,
+  "points_forts": ["Point fort concret 1", "Point fort concret 2"],
+  "points_ameliorer": ["Point actionnable 1"],
+  "contrefactuel": "À ce rythme, objectif dans X semaines. Si tu fais 4/4 la semaine prochaine : X jours d'avance.",
+  "conseil": "Un conseil très concret pour la semaine prochaine",
+  "message": "Message direct comme un pote, 2 phrases max"
+}
+
+RÈGLES :
+- decision = "PROGRAMME MAINTENU" ou "ADAPTATION RECOMMANDÉE"
+- Si adaptation : adaptation = "+2.5kg sur les compound" ou "volume réduit semaine prochaine"
+- contrefactuel toujours présent, basé sur les données réelles
+- Ton naturel, pas corporate`;
+
+      const { data: fnData, error: fnErr } = await supabase.functions.invoke('generate-program', {
+        body: { prompt },
       });
 
-      const res = await response.json();
-      const text = res.content?.[0]?.text || '{}';
-      const clean = text.replace(/```json|```/g, '').trim();
-      setAnalysis(clean);
-    } catch { setAnalysis(''); }
+      if (fnErr) throw new Error(fnErr.message);
+      const text = fnData?.content?.[0]?.text || '';
+      const match = text.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error('Format invalide');
+      setAnalysis(JSON.parse(match[0]));
+    } catch (err) {
+      console.error('WeeklyReview error:', err);
+      setAnalysis(null);
+    }
     setGenerating(false);
   };
 
-  if (loading) return <div style={{ minHeight: '100vh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: ACCENT, fontWeight: 900 }}>ANALYSE...</div></div>;
-
-  let parsed: any = {};
-  try { parsed = JSON.parse(analysis); } catch {}
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ color: ACCENT, fontWeight: 900 }}>ANALYSE...</div>
+    </div>
+  );
 
   const adherence = data ? Math.round((data.workouts_done / Math.max(data.workouts_planned, 1)) * 100) : 0;
+  const noteColor = analysis?.note >= 7 ? ACCENT : analysis?.note >= 5 ? '#ffaa00' : '#ff4444';
 
   return (
     <div style={{ minHeight: '100vh', background: BG, paddingBottom: 80 }}>
       <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid ' + BORDER }}>
-        <button onClick={() => navigate('/home')} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 14, marginBottom: 16 }}>← Retour</button>
+        <button onClick={() => navigate('/home')} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 14, marginBottom: 12 }}>← Retour</button>
         <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Bilan</div>
         <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>TA SEMAINE NOX</div>
       </div>
 
       <div style={{ padding: '20px 20px 0' }}>
-        {/* Score */}
-        {parsed.note && (
-          <div style={{ background: SURFACE, border: '1px solid ' + (parseInt(parsed.note) >= 7 ? ACCENT + '44' : BORDER), borderRadius: 20, padding: 24, marginBottom: 16, textAlign: 'center' }}>
-            <div style={{ fontSize: 64, fontWeight: 900, color: parseInt(parsed.note) >= 7 ? ACCENT : parseInt(parsed.note) >= 5 ? '#ffaa00' : '#ff4444' }}>
-              {parsed.note}<span style={{ fontSize: 24, color: '#555' }}>/10</span>
+
+        {/* Score + titre */}
+        {analysis && (
+          <div style={{ background: SURFACE, border: '1px solid ' + noteColor + '44', borderRadius: 20, padding: 24, marginBottom: 16, textAlign: 'center' }}>
+            <div style={{ fontSize: 72, fontWeight: 900, color: noteColor, lineHeight: 1 }}>
+              {analysis.note}<span style={{ fontSize: 24, color: '#333' }}>/10</span>
             </div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginTop: 8 }}>{parsed.titre || 'BILAN SEMAINE'}</div>
-            {parsed.message && <div style={{ fontSize: 14, color: '#888', marginTop: 12, lineHeight: 1.6 }}>{parsed.message}</div>}
+            <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginTop: 8 }}>{analysis.titre}</div>
+            {analysis.message && (
+              <div style={{ fontSize: 14, color: '#888', marginTop: 12, lineHeight: 1.6, fontStyle: 'italic' }}>"{analysis.message}"</div>
+            )}
           </div>
         )}
 
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }}>
           {[
-            { label: 'Séances', value: `${data.workouts_done}/${data.workouts_planned}`, icon: '🏋️', good: data.workouts_done >= data.workouts_planned },
-            { label: 'Adhérence', value: adherence + '%', icon: '📊', good: adherence >= 75 },
-            { label: 'Records', value: data.prs, icon: '🏆', good: data.prs > 0 },
-            { label: 'Évolution', value: data.weight_delta ? (parseFloat(data.weight_delta) > 0 ? '+' : '') + data.weight_delta + ' kg' : '—', icon: '⚖️', good: true },
-          ].map(({ label, value, icon, good }) => (
-            <div key={label} style={{ background: SURFACE, border: '1px solid ' + (good ? ACCENT + '33' : BORDER), borderRadius: 14, padding: '16px 14px' }}>
+            { label: 'Séances', value: `${data.workouts_done}/${data.workouts_planned}`, icon: '🏋️', ok: data.workouts_done >= data.workouts_planned },
+            { label: 'Adhérence', value: adherence + '%', icon: '📊', ok: adherence >= 75 },
+            { label: 'Records', value: data.prs, icon: '🏆', ok: data.prs > 0 },
+            { label: 'Poids', value: data.weight_delta !== null ? (data.weight_delta > 0 ? '+' : '') + data.weight_delta + ' kg' : '—', icon: '⚖️', ok: true },
+          ].map(({ label, value, icon, ok }) => (
+            <div key={label} style={{ background: SURFACE, border: '1px solid ' + (ok ? ACCENT + '33' : BORDER), borderRadius: 14, padding: '16px 14px' }}>
               <div style={{ fontSize: 20, marginBottom: 6 }}>{icon}</div>
               <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>{value}</div>
               <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{label}</div>
@@ -135,26 +161,52 @@ Réponds en JSON uniquement :
           ))}
         </div>
 
+        {/* DÉCISION NOX */}
+        {analysis?.decision && (
+          <div style={{ background: analysis.decision.includes('ADAPTATION') ? '#ffaa0011' : ACCENT + '11', border: '1px solid ' + (analysis.decision.includes('ADAPTATION') ? '#ffaa0044' : ACCENT + '44'), borderRadius: 16, padding: 20, marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>DÉCISION NOX</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: analysis.decision.includes('ADAPTATION') ? '#ffaa00' : ACCENT }}>
+              {analysis.decision}
+            </div>
+            {analysis.raison_decision && (
+              <div style={{ fontSize: 13, color: '#888', marginTop: 8, lineHeight: 1.5 }}>{analysis.raison_decision}</div>
+            )}
+            {analysis.adaptation && (
+              <div style={{ marginTop: 12, background: '#ffaa0022', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#ffaa00', fontWeight: 700 }}>
+                ⚡ {analysis.adaptation}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CONTRE-FACTUEL */}
+        {analysis?.contrefactuel && (
+          <div style={{ background: '#4488ff11', border: '1px solid #4488ff33', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: '#4488ff', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>📈 TRAJECTOIRE</div>
+            <div style={{ fontSize: 14, color: '#ccc', lineHeight: 1.6 }}>{analysis.contrefactuel}</div>
+          </div>
+        )}
+
         {/* Points forts */}
-        {parsed.points_forts?.length > 0 && (
-          <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 16, padding: 16, marginBottom: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: ACCENT, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>✓ POINTS FORTS</div>
-            {parsed.points_forts.map((p: string) => (
-              <div key={p} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 6 }}>
-                <span style={{ color: ACCENT, flexShrink: 0 }}>•</span>
+        {analysis?.points_forts?.length > 0 && (
+          <div style={{ background: ACCENT + '0a', border: '1px solid ' + ACCENT + '22', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: ACCENT, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>✅ POINTS FORTS</div>
+            {analysis.points_forts.map((p: string) => (
+              <div key={p} style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                <span style={{ color: ACCENT }}>•</span>
                 <span style={{ fontSize: 14, color: '#ccc' }}>{p}</span>
               </div>
             ))}
           </div>
         )}
 
-        {/* Améliorer */}
-        {parsed.points_ameliorer?.length > 0 && (
-          <div style={{ background: '#ff660011', border: '1px solid #ff660033', borderRadius: 16, padding: 16, marginBottom: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#ff6600', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>⚡ À AMÉLIORER</div>
-            {parsed.points_ameliorer.map((p: string) => (
-              <div key={p} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 6 }}>
-                <span style={{ color: '#ff6600', flexShrink: 0 }}>•</span>
+        {/* À améliorer */}
+        {analysis?.points_ameliorer?.length > 0 && (
+          <div style={{ background: '#ff660008', border: '1px solid #ff660022', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: '#ff6600', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>⚡ À TRAVAILLER</div>
+            {analysis.points_ameliorer.map((p: string) => (
+              <div key={p} style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                <span style={{ color: '#ff6600' }}>•</span>
                 <span style={{ fontSize: 14, color: '#ccc' }}>{p}</span>
               </div>
             ))}
@@ -162,30 +214,21 @@ Réponds en JSON uniquement :
         )}
 
         {/* Conseil */}
-        {parsed.conseil_semaine && (
-          <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>CONSEIL SEMAINE PROCHAINE</div>
-            <div style={{ fontSize: 14, color: '#ccc', lineHeight: 1.6 }}>{parsed.conseil_semaine}</div>
+        {analysis?.conseil && (
+          <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 16, marginBottom: 20 }}>
+            <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>SEMAINE PROCHAINE</div>
+            <div style={{ fontSize: 14, color: '#ccc', lineHeight: 1.6 }}>{analysis.conseil}</div>
           </div>
         )}
 
-        {/* Décision */}
-        {parsed.decision && (
-          <div style={{ background: parsed.decision.includes('ADAPTER') ? '#ffaa0011' : ACCENT + '11', border: '1px solid ' + (parsed.decision.includes('ADAPTER') ? '#ffaa0044' : ACCENT + '44'), borderRadius: 16, padding: 20, marginBottom: 20 }}>
-            <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>DÉCISION NOX</div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: parsed.decision.includes('ADAPTER') ? '#ffaa00' : ACCENT }}>
-              {parsed.decision}
-            </div>
+        {generating && !analysis && (
+          <div style={{ textAlign: 'center', padding: '32px 0', color: '#555' }}>
+            <div style={{ fontSize: 13 }}>NOX analyse ta semaine...</div>
           </div>
         )}
 
-        {generating && (
-          <div style={{ textAlign: 'center', padding: '20px 0', color: '#555' }}>
-            <div style={{ fontSize: 14 }}>Analyse en cours...</div>
-          </div>
-        )}
-
-        <button onClick={() => navigate('/home')} style={{ width: '100%', padding: 16, background: ACCENT, border: 'none', borderRadius: 14, color: '#000', fontWeight: 900, fontSize: 14, cursor: 'pointer' }}>
+        <button onClick={() => navigate('/home')}
+          style={{ width: '100%', padding: 16, background: ACCENT, border: 'none', borderRadius: 14, color: '#000', fontWeight: 900, fontSize: 14, cursor: 'pointer' }}>
           RETOUR À L'ACCUEIL
         </button>
       </div>
