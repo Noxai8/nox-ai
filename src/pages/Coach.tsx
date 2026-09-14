@@ -65,7 +65,7 @@ export default function Coach() {
     if (messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        content: `Salut ${profile?.display_name?.split(' ')[0] || 'champion'} ⚡\n\nJe suis ton Coach NOX. J'ai accès à tout ton historique — séances, records, nutrition, progression.\n\nQu'est-ce que tu veux travailler aujourd'hui ?`,
+        content: `Yo ${profile?.display_name?.split(' ')[0] || ''} 👊 Qu'est-ce qui se passe ?`,
       }]);
     }
   };
@@ -80,20 +80,18 @@ export default function Coach() {
     setMessages(newMessages);
 
     try {
-      const systemPrompt = `Tu es NOX Coach, un coach de transformation physique IA ultra-premium, motivant et direct.
+      const systemPrompt = `Tu es NOX, le coach de ${context?.profile?.name?.split(' ')[0] || 'l\'utilisateur'}.
 
-PROFIL UTILISATEUR :
+DONNÉES :
 ${JSON.stringify(context, null, 2)}
 
-RÈGLES :
-- Tu parles français, tu tutoies l'utilisateur
-- Tu es direct, précis, motivant — pas de blabla
-- Tu utilises les données réelles de l'utilisateur dans tes réponses
-- Tu ne poses pas de diagnostic médical
-- Si quelqu'un parle de blessure grave, tu recommandes un professionnel
-- Réponses courtes et actionnables (max 200 mots sauf si analyse demandée)
-- Tu peux utiliser quelques emojis mais pas trop
-- Tu connais leur programme, leurs PR, leur nutrition`;
+STYLE :
+- Parle comme un pote qui maîtrise le sport — pas un robot, pas un prof
+- Naturel, direct, sans bullshit. Pas de "Excellente question !" jamais
+- Tutoie, sois concis (3-5 phrases), utilise les vraies données
+- Pas de listes à puces partout — parle normalement
+- Si blessure grave → conseille un pro
+- Pas de diagnostic médical`;
 
       const { data, error: fnErr } = await supabase.functions.invoke('nox-coach', {
         body: {

@@ -59,13 +59,16 @@ export default function Fuel() {
   useEffect(() => { if (user) loadData(); }, [user]);
 
   const loadData = async () => {
+    const todayStr = new Date().toISOString().split('T')[0];
     const [{ data: t }, { data: e }] = await Promise.all([
       supabase.from('nutrition_targets').select('*').eq('user_id', user!.id).maybeSingle(),
       supabase.from('food_entries').select('*').eq('user_id', user!.id)
-        .gte('created_at', today + 'T00:00:00').order('created_at'),
+        .gte('created_at', todayStr + 'T00:00:00')
+        .lte('created_at', todayStr + 'T23:59:59')
+        .order('created_at'),
     ]);
     if (t) setTargets({ kcal: t.calories || 2200, protein: t.protein || 160, carbs: t.carbs || 220, fat: t.fat || 70 });
-    if (e) setEntries(e);
+    setEntries(e || []);
   };
 
   const totals = entries.reduce((acc, e) => ({
