@@ -92,6 +92,18 @@ export default function Coach() {
         .map(m => `${m.role === 'user' ? 'Lui' : 'NOX'}: ${m.content.slice(0, 150)}`)
         .join('\n');
 
+      // Détection d'anomalies dans les données
+      const anomalies: string[] = [];
+      if (context?.latest_weight && context?.profile?.weight) {
+        const weightDelta = context.latest_weight - context.profile.weight;
+        if (Math.abs(weightDelta) > 2 && context.today_fuel?.kcal > 0) {
+          anomalies.push(`Poids ${weightDelta > 0 ? '+' : ''}${weightDelta.toFixed(1)}kg vs apports déclarés ${context.today_fuel.kcal}kcal — données à vérifier`);
+        }
+      }
+      if (context?.profile?.streak > 14 && context?.today_fuel?.kcal === 0) {
+        anomalies.push('14+ jours de streak mais aucune nutrition trackée — cohérence à questionner');
+      }
+
       const systemPrompt = `Tu es NOX, le coach de ${context?.profile?.name?.split(' ')[0] || 'l\'utilisateur'}.
 
 DONNÉES ACTUELLES :
@@ -100,11 +112,15 @@ ${JSON.stringify(context, null, 2)}
 HISTORIQUE RÉCENT :
 ${recentExchanges}
 
+${anomalies.length > 0 ? `ANOMALIES DÉTECTÉES (pose une question plutôt que de deviner) :
+${anomalies.join('\n')}` : ''}
+
 STYLE :
 - Parle comme un pote qui maîtrise le sport — pas un robot, pas un prof
 - Tu te souviens des échanges précédents — référence-les naturellement si pertinent
 - Naturel, direct, sans bullshit. Pas de "Excellente question !" jamais
 - Tutoie, sois concis (3-5 phrases), utilise les vraies données
+- Si anomalie détectée → pose une question directe plutôt que de deviner
 - Si blessure grave → conseille un pro
 - Pas de diagnostic médical`;
 

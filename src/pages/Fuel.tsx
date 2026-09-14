@@ -11,26 +11,58 @@ const SURFACE = '#111';
 const BORDER = '#1a1a1a';
 
 const COMMON_FOODS = [
-  { name: 'Poulet grillé (100g)', kcal: 165, protein: 31, carbs: 0, fat: 4 },
-  { name: 'Riz blanc cuit (100g)', kcal: 130, protein: 2.7, carbs: 28, fat: 0.3 },
-  { name: 'Œuf entier', kcal: 78, protein: 6, carbs: 0.6, fat: 5 },
-  { name: 'Blanc de dinde (100g)', kcal: 104, protein: 22, carbs: 0, fat: 1.7 },
-  { name: "Flocons d'avoine (100g)", kcal: 379, protein: 13, carbs: 68, fat: 6.9 },
-  { name: 'Thon en boîte (100g)', kcal: 116, protein: 26, carbs: 0, fat: 1 },
-  { name: 'Fromage blanc 0% (100g)', kcal: 57, protein: 10, carbs: 4, fat: 0.2 },
-  { name: 'Banane', kcal: 89, protein: 1.1, carbs: 23, fat: 0.3 },
-  { name: 'Patate douce (100g)', kcal: 86, protein: 1.6, carbs: 20, fat: 0.1 },
-  { name: 'Saumon (100g)', kcal: 208, protein: 20, carbs: 0, fat: 13 },
-  { name: 'Lentilles cuites (100g)', kcal: 116, protein: 9, carbs: 20, fat: 0.4 },
-  { name: 'Amandes (30g)', kcal: 174, protein: 6, carbs: 5, fat: 15 },
-  { name: 'Yaourt grec 0% (100g)', kcal: 57, protein: 10, carbs: 4, fat: 0.4 },
-  { name: 'Pain complet (1 tranche)', kcal: 80, protein: 3.5, carbs: 15, fat: 1 },
-  { name: 'Whey protéine (30g)', kcal: 115, protein: 24, carbs: 2, fat: 1.5 },
-  { name: 'Avocat (100g)', kcal: 160, protein: 2, carbs: 9, fat: 15 },
-  { name: 'Quinoa cuit (100g)', kcal: 120, protein: 4.4, carbs: 21, fat: 1.9 },
-  { name: 'Brocoli (100g)', kcal: 34, protein: 2.8, carbs: 7, fat: 0.4 },
-  { name: 'Fromage (30g)', kcal: 110, protein: 7, carbs: 0.5, fat: 9 },
-  { name: 'Pasta cuite (100g)', kcal: 158, protein: 5.5, carbs: 31, fat: 0.9 },
+  // Protéines animales
+  { name: 'Poulet grillé (100g)', kcal: 165, protein: 31, carbs: 0, fat: 4, category: 'Protéines' },
+  { name: 'Blanc de poulet cru (100g)', kcal: 110, protein: 23, carbs: 0, fat: 1.2, category: 'Protéines' },
+  { name: 'Blanc de dinde (100g)', kcal: 104, protein: 22, carbs: 0, fat: 1.7, category: 'Protéines' },
+  { name: 'Steak haché 5% (100g)', kcal: 120, protein: 20, carbs: 0, fat: 5, category: 'Protéines' },
+  { name: 'Saumon (100g)', kcal: 208, protein: 20, carbs: 0, fat: 13, category: 'Protéines' },
+  { name: 'Thon en boîte (100g)', kcal: 116, protein: 26, carbs: 0, fat: 1, category: 'Protéines' },
+  { name: 'Cabillaud (100g)', kcal: 82, protein: 18, carbs: 0, fat: 0.7, category: 'Protéines' },
+  { name: 'Crevettes cuites (100g)', kcal: 99, protein: 21, carbs: 0.5, fat: 1, category: 'Protéines' },
+  { name: 'Œuf entier (1)', kcal: 78, protein: 6, carbs: 0.6, fat: 5, category: 'Protéines' },
+  { name: "Blanc d'oeuf (1)", kcal: 17, protein: 3.6, carbs: 0.2, fat: 0.1, category: 'Protéines' },
+  { name: 'Jambon blanc (100g)', kcal: 107, protein: 17, carbs: 1, fat: 4, category: 'Protéines' },
+  // Produits laitiers
+  { name: 'Fromage blanc 0% (100g)', kcal: 57, protein: 10, carbs: 4, fat: 0.2, category: 'Laitiers' },
+  { name: 'Yaourt grec 0% (100g)', kcal: 57, protein: 10, carbs: 4, fat: 0.4, category: 'Laitiers' },
+  { name: 'Skyr nature (100g)', kcal: 65, protein: 11, carbs: 4, fat: 0.2, category: 'Laitiers' },
+  { name: 'Lait demi-écrémé (100ml)', kcal: 46, protein: 3.2, carbs: 4.7, fat: 1.6, category: 'Laitiers' },
+  { name: 'Fromage (30g)', kcal: 110, protein: 7, carbs: 0.5, fat: 9, category: 'Laitiers' },
+  { name: 'Cottage cheese (100g)', kcal: 90, protein: 12, carbs: 3, fat: 3, category: 'Laitiers' },
+  // Glucides
+  { name: 'Riz blanc cuit (100g)', kcal: 130, protein: 2.7, carbs: 28, fat: 0.3, category: 'Glucides' },
+  { name: 'Riz basmati cuit (100g)', kcal: 121, protein: 2.5, carbs: 25, fat: 0.3, category: 'Glucides' },
+  { name: "Flocons d'avoine (100g)", kcal: 379, protein: 13, carbs: 68, fat: 6.9, category: 'Glucides' },
+  { name: 'Pâtes cuites (100g)', kcal: 158, protein: 5.5, carbs: 31, fat: 0.9, category: 'Glucides' },
+  { name: 'Patate douce (100g)', kcal: 86, protein: 1.6, carbs: 20, fat: 0.1, category: 'Glucides' },
+  { name: 'Pomme de terre cuite (100g)', kcal: 87, protein: 1.9, carbs: 20, fat: 0.1, category: 'Glucides' },
+  { name: 'Quinoa cuit (100g)', kcal: 120, protein: 4.4, carbs: 21, fat: 1.9, category: 'Glucides' },
+  { name: 'Pain complet (1 tranche)', kcal: 80, protein: 3.5, carbs: 15, fat: 1, category: 'Glucides' },
+  { name: 'Tortilla blé (1)', kcal: 146, protein: 3.8, carbs: 24, fat: 3.5, category: 'Glucides' },
+  { name: 'Banane (1 moyenne)', kcal: 89, protein: 1.1, carbs: 23, fat: 0.3, category: 'Fruits' },
+  { name: 'Pomme (1)', kcal: 52, protein: 0.3, carbs: 14, fat: 0.2, category: 'Fruits' },
+  { name: 'Myrtilles (100g)', kcal: 57, protein: 0.7, carbs: 14, fat: 0.3, category: 'Fruits' },
+  // Légumes
+  { name: 'Brocoli cuit (100g)', kcal: 34, protein: 2.8, carbs: 7, fat: 0.4, category: 'Légumes' },
+  { name: 'Épinards (100g)', kcal: 23, protein: 2.9, carbs: 3.6, fat: 0.4, category: 'Légumes' },
+  { name: 'Haricots verts (100g)', kcal: 35, protein: 1.8, carbs: 7, fat: 0.1, category: 'Légumes' },
+  { name: 'Courgette (100g)', kcal: 17, protein: 1.2, carbs: 3.1, fat: 0.3, category: 'Légumes' },
+  { name: 'Tomate (100g)', kcal: 18, protein: 0.9, carbs: 3.9, fat: 0.2, category: 'Légumes' },
+  { name: 'Concombre (100g)', kcal: 15, protein: 0.7, carbs: 3.6, fat: 0.1, category: 'Légumes' },
+  // Lipides & légumineuses
+  { name: 'Avocat (100g)', kcal: 160, protein: 2, carbs: 9, fat: 15, category: 'Lipides' },
+  { name: 'Amandes (30g)', kcal: 174, protein: 6, carbs: 5, fat: 15, category: 'Lipides' },
+  { name: 'Noix (30g)', kcal: 196, protein: 4.6, carbs: 3.9, fat: 19, category: 'Lipides' },
+  { name: "Huile d'olive (1 c.s)", kcal: 119, protein: 0, carbs: 0, fat: 14, category: 'Lipides' },
+  { name: "Beurre de cacahuete (30g)", kcal: 188, protein: 8, carbs: 6, fat: 16, category: 'Lipides' },
+  { name: 'Lentilles cuites (100g)', kcal: 116, protein: 9, carbs: 20, fat: 0.4, category: 'Légumineuses' },
+  { name: 'Pois chiches cuits (100g)', kcal: 164, protein: 8.9, carbs: 27, fat: 2.6, category: 'Légumineuses' },
+  { name: 'Haricots rouges cuits (100g)', kcal: 127, protein: 8.7, carbs: 22, fat: 0.5, category: 'Légumineuses' },
+  // Suppléments & convenience
+  { name: 'Whey protéine (30g)', kcal: 115, protein: 24, carbs: 2, fat: 1.5, category: 'Suppléments' },
+  { name: 'Creatine (5g)', kcal: 0, protein: 0, carbs: 0, fat: 0, category: 'Suppléments' },
+  { name: 'Barre protéinée (1)', kcal: 200, protein: 20, carbs: 22, fat: 6, category: 'Suppléments' },
 ];
 
 const MEALS = ['Petit-déjeuner', 'Déjeuner', 'Dîner', 'Snacks'];
@@ -45,6 +77,8 @@ export default function Fuel() {
   const [addMode, setAddMode] = useState<AddMode>('choose');
   const [selectedMeal, setSelectedMeal] = useState('Déjeuner');
   const [search, setSearch] = useState('');
+  const [category, setCategory] = useState<string>('Tous');
+  const [favorites, setFavorites] = useState<string[]>([]);
   const [custom, setCustom] = useState({ name: '', kcal: '', protein: '', carbs: '', fat: '' });
   const [selectedFood, setSelectedFood] = useState<any>(null);
   const [qty, setQty] = useState('1');
@@ -242,7 +276,18 @@ export default function Fuel() {
     setQty('1');
   };
 
-  const filtered = COMMON_FOODS.filter(f => f.name.toLowerCase().includes(search.toLowerCase()));
+  const categories = ['Tous', 'Protéines', 'Glucides', 'Laitiers', 'Légumes', 'Fruits', 'Lipides', 'Suppléments'];
+  const filtered = COMMON_FOODS.filter(f =>
+    f.name.toLowerCase().includes(search.toLowerCase()) &&
+    (category === 'Tous' || (f as any).category === category)
+  ).sort((a, b) => {
+    // Favoris en premier
+    const aFav = favorites.includes(a.name);
+    const bFav = favorites.includes(b.name);
+    if (aFav && !bFav) return -1;
+    if (!aFav && bFav) return 1;
+    return 0;
+  });
   const mealGroups = MEALS.map(m => ({ meal: m, items: entries.filter(e => e.meal_type === m) })).filter(g => g.items.length > 0);
   const pct = (val: number, max: number) => Math.min(100, Math.round((val / max) * 100));
 
@@ -539,7 +584,15 @@ export default function Fuel() {
             {addMode === 'search' && !selectedFood && (
               <>
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un aliment…" autoFocus
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', background: '#111', border: '1px solid #242424', borderRadius: 13, color: '#fff', fontSize: 13, outline: 'none', marginBottom: 10 }} />
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', background: '#111', border: '1px solid #242424', borderRadius: 13, color: '#fff', fontSize: 13, outline: 'none', marginBottom: 8 }} />
+                <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: 6 }}>
+                  {categories.map(cat => (
+                    <button key={cat} onClick={() => setCategory(cat)}
+                      style={{ padding: '5px 12px', borderRadius: 20, border: '1px solid ' + (category === cat ? '#c8ff00' : '#1a1a1a'), background: category === cat ? '#c8ff0022' : 'transparent', color: category === cat ? '#c8ff00' : '#555', fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      {cat}
+                    </button>
+                  ))}
+                </div>
                 <div style={{ display: 'grid', gap: 7 }}>
                   {filtered.map(f => (
                     <button key={f.name} onClick={() => setSelectedFood(f)} style={{ background: '#111', border: '1px solid #242424', borderRadius: 13, padding: 13, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', gap: 10, color: '#fff' }}>

@@ -65,37 +65,48 @@ export default function WeeklyReview() {
   const generateAnalysis = async (weekData: any) => {
     setGenerating(true);
     try {
-      const prompt = `Tu es NOX. Analyse cette semaine d'entraînement et génère un bilan structuré.
+      const programSessions = weekData.program?.program_json?.sessions || [];
+      const prompt = `Tu es NOX. Analyse cette semaine et génère un bilan avec adaptation réelle du programme si nécessaire.
 
-DONNÉES :
+DONNÉES SEMAINE :
 - Objectif : ${weekData.goal}
-- Séances : ${weekData.workouts_done}/${weekData.workouts_planned}
+- Séances réalisées : ${weekData.workouts_done}/${weekData.workouts_planned}
 - PR cette semaine : ${weekData.prs} (${weekData.pr_details?.join(', ') || 'aucun'})
-- Poids : ${weekData.current_weight ? weekData.current_weight + 'kg' : 'non renseigné'} (évolution : ${weekData.weight_delta !== null ? (weekData.weight_delta > 0 ? '+' : '') + weekData.weight_delta + 'kg' : 'inconnue'})
+- Poids : ${weekData.current_weight ? weekData.current_weight + 'kg' : '?'} (évolution : ${weekData.weight_delta !== null ? (weekData.weight_delta > 0 ? '+' : '') + weekData.weight_delta + 'kg' : 'inconnue'})
 - Calories moy/jour : ${weekData.avg_kcal} kcal
 - Protéines moy/jour : ${weekData.avg_protein}g
 - Streak : ${weekData.streak} jours
-- XP total : ${weekData.xp}
+- Programme actif : ${weekData.program?.name || 'aucun'}
+- Nombre de séances programme : ${programSessions.length}
 
-Réponds UNIQUEMENT en JSON :
+PROGRAMME ACTUEL (sessions) :
+${JSON.stringify(programSessions.map((s: any) => ({ name: s.name, day: s.day, exercises: s.exercises?.map((e: any) => ({ name: e.name, sets: e.sets, reps: e.reps, rest: e.rest })) })), null, 2)}
+
+Réponds UNIQUEMENT en JSON valide :
 {
   "note": 8,
   "titre": "SEMAINE SOLIDE",
   "decision": "PROGRAMME MAINTENU",
   "raison_decision": "3 séances sur 4, performances en hausse — on garde le cap",
-  "adaptation": null,
-  "points_forts": ["Point fort concret 1", "Point fort concret 2"],
-  "points_ameliorer": ["Point actionnable 1"],
-  "contrefactuel": "À ce rythme, objectif dans X semaines. Si tu fais 4/4 la semaine prochaine : X jours d'avance.",
-  "conseil": "Un conseil très concret pour la semaine prochaine",
+  "programme_modifie": false,
+  "adaptations_programme": null,
+  "sessions_mises_a_jour": null,
+  "points_forts": ["Point fort concret basé sur les données"],
+  "points_ameliorer": ["Point actionnable concret"],
+  "contrefactuel": "À ce rythme, objectif dans X semaines. Si tu avais fait 4/4 : X jours d'avance.",
+  "conseil": "Conseil très concret pour la semaine prochaine",
   "message": "Message direct comme un pote, 2 phrases max"
 }
 
-RÈGLES :
+RÈGLES CRITIQUES :
 - decision = "PROGRAMME MAINTENU" ou "ADAPTATION RECOMMANDÉE"
-- Si adaptation : adaptation = "+2.5kg sur les compound" ou "volume réduit semaine prochaine"
-- contrefactuel toujours présent, basé sur les données réelles
-- Ton naturel, pas corporate`;
+- Si moins de 75% adhérence OU stagnation OU surcharge → decision = "ADAPTATION RECOMMANDÉE"
+- Si adaptation recommandée : programme_modifie = true ET sessions_mises_a_jour = tableau complet des sessions MODIFIÉES (même structure que le programme actuel, avec les exercices ajustés)
+- Adaptations possibles : augmenter charges (+2.5kg compound si PR réguliers), réduire volume (si fatigue), changer exercice (si stagnation), ajouter/supprimer séance
+- adaptations_programme = description lisible des changements faits (ex: "+2.5kg développé couché, volume squat réduit d'1 série")
+- Si programme_modifie = true, sessions_mises_a_jour doit être le tableau complet des sessions avec les mêmes champs
+- contrefactuel toujours basé sur les données réelles
+- Ton direct, naturel, pas corporate`;
 
       const { data: fnData, error: fnErr } = await supabase.functions.invoke('generate-program', {
         body: { prompt },
@@ -105,7 +116,22 @@ RÈGLES :
       const text = fnData?.content?.[0]?.text || '';
       const match = text.match(/\{[\s\S]*\}/);
       if (!match) throw new Error('Format invalide');
-      setAnalysis(JSON.parse(match[0]));
+      const parsed = JSON.parse(match[0]);
+      setAnalysis(parsed);
+
+      // APPLIQUER L'ADAPTATION AU PROGRAMME SI NÉCESSAIRE
+      if (parsed.programme_modifie && parsed.sessions_mises_a_jour && weekData.program?.id) {
+        const updatedProgramJson = {
+          ...weekData.program.program_json,
+          sessions: parsed.sessions_mises_a_jour,
+          last_adapted: new Date().toISOString(),
+          last_adaptation_reason: parsed.adaptations_programme,
+        };
+        await supabase.from('workout_programs').update({
+          program_json: updatedProgramJson,
+          updated_at: new Date().toISOString(),
+        }).eq('id', weekData.program.id);
+      }
     } catch (err) {
       console.error('WeeklyReview error:', err);
       setAnalysis(null);
@@ -171,9 +197,10 @@ RÈGLES :
             {analysis.raison_decision && (
               <div style={{ fontSize: 13, color: '#888', marginTop: 8, lineHeight: 1.5 }}>{analysis.raison_decision}</div>
             )}
-            {analysis.adaptation && (
-              <div style={{ marginTop: 12, background: '#ffaa0022', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#ffaa00', fontWeight: 700 }}>
-                ⚡ {analysis.adaptation}
+            {analysis.programme_modifie && analysis.adaptations_programme && (
+              <div style={{ marginTop: 12, background: '#ffaa0022', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ fontSize: 11, color: '#ffaa00', fontWeight: 800, marginBottom: 4 }}>✓ PROGRAMME MIS À JOUR</div>
+                <div style={{ fontSize: 13, color: '#ffaa00' }}>{analysis.adaptations_programme}</div>
               </div>
             )}
           </div>
