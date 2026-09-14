@@ -1,40 +1,256 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  Activity,
+  Apple,
+  ArrowRight,
+  BarChart3,
+  Bot,
+  CalendarDays,
+  ChevronRight,
+  Dumbbell,
+  Flame,
+  House,
+  Medal,
+  MoonStar,
+  Play,
+  ScanLine,
+  Sparkles,
+  Trophy,
+  UserRound,
+  WandSparkles,
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
 const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const BG = '#070707';
+const SURFACE = '#111111';
+const SURFACE_2 = '#151515';
+const BORDER = '#232323';
+const MUTED = '#8b8b8b';
+const TEXT = '#f7f7f7';
+
+const cardStyle: React.CSSProperties = {
+  background: 'linear-gradient(180deg, rgba(22,22,22,.98) 0%, rgba(15,15,15,.98) 100%)',
+  border: `1px solid ${BORDER}`,
+  borderRadius: 22,
+  boxShadow: '0 12px 36px rgba(0,0,0,.22)',
+};
 
 export function BottomNav({ active }: { active: string }) {
   const navigate = useNavigate();
+
   const items = [
-    { id: 'home', label: 'Home', icon: '⚡', path: '/home' },
-    { id: 'training', label: 'Train', icon: '🏋️', path: '/program' },
-    { id: 'body', label: 'Body', icon: '📊', path: '/body' },
-    { id: 'fuel', label: 'Fuel', icon: '🥗', path: '/fuel' },
-    { id: 'future', label: 'Future', icon: '🔮', path: '/future' },
-    { id: 'play', label: 'Play', icon: '🏅', path: '/play' },
-    { id: 'coach', label: 'Coach', icon: '🤖', path: '/coach' },
+    { id: 'home', label: 'Home', icon: House, path: '/home' },
+    { id: 'training', label: 'Train', icon: Dumbbell, path: '/program' },
+    { id: 'body', label: 'Body', icon: BarChart3, path: '/body' },
+    { id: 'future', label: 'Future', icon: WandSparkles, path: '/future', signature: true },
+    { id: 'fuel', label: 'Fuel', icon: Apple, path: '/fuel' },
+    { id: 'play', label: 'Play', icon: Medal, path: '/play' },
+    { id: 'coach', label: 'Coach', icon: Bot, path: '/coach' },
   ];
+
   return (
-    <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#0d0d0d', borderTop: '1px solid #1a1a1a', display: 'flex', zIndex: 100, overflowX: 'auto' }}>
-      {items.map(item => (
-        <button key={item.id} onClick={() => navigate(item.path)}
-          style={{ flex: 1, minWidth: 48, padding: '10px 0 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-          <span style={{ fontSize: 18 }}>{item.icon}</span>
-          <span style={{ fontSize: 9, fontWeight: 700, color: active === item.id ? ACCENT : '#333', textTransform: 'uppercase', letterSpacing: '.04em' }}>{item.label}</span>
-        </button>
-      ))}
+    <div
+      style={{
+        position: 'fixed',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        bottom: 0,
+        width: '100%',
+        maxWidth: 560,
+        zIndex: 100,
+        padding: '8px 10px max(10px, env(safe-area-inset-bottom))',
+        background: 'rgba(7,7,7,.94)',
+        backdropFilter: 'blur(18px)',
+        borderTop: '1px solid rgba(255,255,255,.07)',
+      }}
+    >
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+          gap: 2,
+          alignItems: 'end',
+        }}
+      >
+        {items.map((item) => {
+          const Icon = item.icon;
+          const selected = active === item.id;
+
+          return (
+            <button
+              key={item.id}
+              onClick={() => navigate(item.path)}
+              aria-label={item.label}
+              style={{
+                position: 'relative',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                padding: item.signature ? '0 0 3px' : '8px 0 3px',
+                color: selected ? ACCENT : '#6f6f6f',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 4,
+                minWidth: 0,
+              }}
+            >
+              <div
+                style={{
+                  width: item.signature ? 42 : 28,
+                  height: item.signature ? 42 : 28,
+                  marginTop: item.signature ? -17 : 0,
+                  borderRadius: item.signature ? 14 : 10,
+                  display: 'grid',
+                  placeItems: 'center',
+                  background: item.signature
+                    ? selected
+                      ? ACCENT
+                      : '#151515'
+                    : selected
+                      ? 'rgba(200,255,0,.11)'
+                      : 'transparent',
+                  border: item.signature
+                    ? `1px solid ${selected ? ACCENT : '#2a2a2a'}`
+                    : '1px solid transparent',
+                  boxShadow: item.signature && selected ? '0 8px 26px rgba(200,255,0,.18)' : 'none',
+                  color: item.signature && selected ? '#050505' : selected ? ACCENT : '#767676',
+                }}
+              >
+                <Icon size={item.signature ? 20 : 18} strokeWidth={selected ? 2.4 : 1.9} />
+              </div>
+
+              <span
+                style={{
+                  fontSize: 8.5,
+                  lineHeight: 1,
+                  fontWeight: 800,
+                  letterSpacing: '.05em',
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
+  );
+}
+
+function NoxScore({ score }: { score: number }) {
+  const safe = Math.max(0, Math.min(100, score));
+  const degrees = safe * 3.6;
+
+  return (
+    <div
+      style={{
+        width: 82,
+        height: 82,
+        borderRadius: '50%',
+        padding: 5,
+        background: `conic-gradient(${ACCENT} 0deg ${degrees}deg, #242424 ${degrees}deg 360deg)`,
+        boxShadow: '0 0 28px rgba(200,255,0,.08)',
+        flexShrink: 0,
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          borderRadius: '50%',
+          background: '#0b0b0b',
+          display: 'grid',
+          placeItems: 'center',
+          textAlign: 'center',
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 24, lineHeight: 1, fontWeight: 950, color: TEXT }}>{safe}</div>
+          <div
+            style={{
+              marginTop: 5,
+              color: '#777',
+              fontSize: 8.5,
+              fontWeight: 850,
+              textTransform: 'uppercase',
+              letterSpacing: '.1em',
+            }}
+          >
+            NOX Score
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({
+  icon: Icon,
+  eyebrow,
+  value,
+  detail,
+  onClick,
+}: {
+  icon: React.ElementType;
+  eyebrow: string;
+  value: string;
+  detail: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        ...cardStyle,
+        minHeight: 132,
+        padding: 16,
+        textAlign: 'left',
+        cursor: 'pointer',
+        color: TEXT,
+      }}
+    >
+      <div
+        style={{
+          width: 34,
+          height: 34,
+          display: 'grid',
+          placeItems: 'center',
+          borderRadius: 11,
+          background: 'rgba(200,255,0,.09)',
+          color: ACCENT,
+          marginBottom: 18,
+        }}
+      >
+        <Icon size={17} strokeWidth={2.2} />
+      </div>
+
+      <div
+        style={{
+          fontSize: 10,
+          color: '#777',
+          textTransform: 'uppercase',
+          letterSpacing: '.08em',
+          fontWeight: 800,
+        }}
+      >
+        {eyebrow}
+      </div>
+      <div style={{ fontSize: 22, color: TEXT, fontWeight: 950, marginTop: 3, letterSpacing: '-.03em' }}>{value}</div>
+      <div style={{ fontSize: 11.5, color: MUTED, marginTop: 5 }}>{detail}</div>
+    </button>
   );
 }
 
 export default function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
   const [profile, setProfile] = useState<any>(null);
   const [program, setProgram] = useState<any>(null);
   const [todaySession, setTodaySession] = useState<any>(null);
@@ -53,6 +269,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!user) return;
+
     const load = async () => {
       const [
         { data: prof },
@@ -67,9 +284,23 @@ export default function Home() {
         supabase.from('workout_programs').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
         supabase.from('workouts').select('id').eq('user_id', user.id).eq('status', 'completed'),
         supabase.from('personal_records').select('id').eq('user_id', user.id),
-        supabase.from('workouts').select('id').eq('user_id', user.id).eq('status', 'completed').gte('created_at', weekStart),
-        supabase.from('food_entries').select('calories').eq('user_id', user.id).gte('created_at', today + 'T00:00:00'),
-        supabase.from('body_logs').select('weight').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
+        supabase
+          .from('workouts')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .gte('created_at', weekStart),
+        supabase
+          .from('food_entries')
+          .select('calories')
+          .eq('user_id', user.id)
+          .gte('created_at', today + 'T00:00:00'),
+        supabase
+          .from('body_logs')
+          .select('weight')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1),
       ]);
 
       setProfile(prof);
@@ -77,27 +308,31 @@ export default function Home() {
       setWorkoutCount(logs?.length || 0);
       setPrCount(prs?.length || 0);
       setWeekWorkouts(weekLogs?.length || 0);
-      setTodayKcal(fuel?.reduce((s: number, f: any) => s + (f.calories || 0), 0) || 0);
+      setTodayKcal(fuel?.reduce((sum: number, item: any) => sum + (item.calories || 0), 0) || 0);
       setLatestWeight(bodyLogs?.[0]?.weight || null);
       setXp(prof?.xp || 0);
 
       if (prog?.program_json) {
         const sessions = prog.program_json.sessions || [];
-        const found = sessions.find((s: any) =>
-          s.day === todayDay || (s.days && s.days.includes(todayDay))
+        const found = sessions.find(
+          (session: any) =>
+            session.day === todayDay || (session.days && session.days.includes(todayDay)),
         );
         setTodaySession(found || null);
       }
+
       setLoading(false);
     };
+
     load();
   }, [user]);
 
   const isRestDay = !todaySession;
+
   const greet = () => {
-    const h = new Date().getHours();
-    if (h < 12) return 'BONJOUR';
-    if (h < 18) return 'BONNE APRÈS-MIDI';
+    const hour = new Date().getHours();
+    if (hour < 12) return 'BONJOUR';
+    if (hour < 18) return 'BONNE APRÈS-MIDI';
     return 'BONSOIR';
   };
 
@@ -112,118 +347,422 @@ export default function Home() {
     return Math.min(100, score);
   };
 
-  if (loading) return <div style={{ minHeight: '100vh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: ACCENT, fontWeight: 900, letterSpacing: '.15em' }}>NOX...</div></div>;
+  if (loading) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: BG,
+          display: 'grid',
+          placeItems: 'center',
+        }}
+      >
+        <div style={{ textAlign: 'center' }}>
+          <Sparkles size={24} color={ACCENT} style={{ marginBottom: 10 }} />
+          <div style={{ color: ACCENT, fontWeight: 950, letterSpacing: '.18em', fontSize: 14 }}>NOX</div>
+        </div>
+      </div>
+    );
+  }
 
   const noxScore = getNoxScore();
+  const firstName = profile?.display_name?.split(' ')[0] || 'ATHLÈTE';
+  const sessionGoal = program?.days_per_week || program?.program_json?.days_per_week || 3;
+  const remainingKcal = Math.max(0, 2200 - todayKcal);
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, paddingBottom: 90 }}>
-      {/* Header */}
-      <div style={{ padding: '24px 20px 20px', background: 'linear-gradient(180deg, #0d0d0d 0%, #0a0a0a 100%)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.12em' }}>{greet()}</div>
-            <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-.02em' }}>
-              {profile?.display_name?.split(' ')[0] || 'ATHLÈTE'} <span style={{ color: ACCENT }}>⚡</span>
+    <div style={{ minHeight: '100vh', background: BG, color: TEXT, paddingBottom: 104 }}>
+      <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
+        <header
+          style={{
+            padding: '22px 20px 18px',
+            background:
+              'radial-gradient(circle at 90% 0%, rgba(200,255,0,.065), transparent 32%), linear-gradient(180deg,#0b0b0b 0%,#070707 100%)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 18 }}>
+            <div style={{ minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: '#747474',
+                  textTransform: 'uppercase',
+                  letterSpacing: '.14em',
+                  fontWeight: 800,
+                }}
+              >
+                {greet()}
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 9,
+                  marginTop: 5,
+                  fontSize: 26,
+                  lineHeight: 1.02,
+                  fontWeight: 950,
+                  letterSpacing: '-.035em',
+                }}
+              >
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{firstName}</span>
+                <Sparkles size={20} color={ACCENT} fill="rgba(200,255,0,.13)" />
+              </div>
+
+              {profile?.streak_days > 0 && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    border: '1px solid rgba(255,138,55,.2)',
+                    background: 'rgba(255,138,55,.07)',
+                    borderRadius: 999,
+                    padding: '7px 10px',
+                    color: '#ff9b4a',
+                    fontSize: 11,
+                    fontWeight: 850,
+                  }}
+                >
+                  <Flame size={14} fill="rgba(255,155,74,.25)" />
+                  {profile.streak_days} jours de régularité
+                </div>
+              )}
+            </div>
+
+            <NoxScore score={noxScore} />
+          </div>
+        </header>
+
+        <section style={{ padding: '0 20px 22px' }}>
+          <div
+            style={{
+              ...cardStyle,
+              overflow: 'hidden',
+              position: 'relative',
+              padding: 22,
+              marginBottom: 14,
+              borderColor: isRestDay ? BORDER : 'rgba(200,255,0,.22)',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                width: 180,
+                height: 180,
+                borderRadius: '50%',
+                right: -85,
+                top: -90,
+                background: isRestDay ? 'rgba(255,255,255,.025)' : 'rgba(200,255,0,.055)',
+                filter: 'blur(4px)',
+              }}
+            />
+
+            <div style={{ position: 'relative' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 12,
+                  marginBottom: 16,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    fontSize: 10,
+                    color: '#7c7c7c',
+                    textTransform: 'uppercase',
+                    letterSpacing: '.11em',
+                    fontWeight: 850,
+                  }}
+                >
+                  {isRestDay ? <MoonStar size={14} /> : <Activity size={14} color={ACCENT} />}
+                  Aujourd'hui {isRestDay ? '' : `· ${todayDay}`}
+                </div>
+
+                {!isRestDay && (
+                  <div
+                    style={{
+                      fontSize: 9,
+                      textTransform: 'uppercase',
+                      letterSpacing: '.08em',
+                      fontWeight: 900,
+                      color: ACCENT,
+                      padding: '5px 8px',
+                      border: '1px solid rgba(200,255,0,.22)',
+                      background: 'rgba(200,255,0,.07)',
+                      borderRadius: 999,
+                    }}
+                  >
+                    Plan actif
+                  </div>
+                )}
+              </div>
+
+              <div style={{ fontSize: 24, fontWeight: 950, letterSpacing: '-.035em', lineHeight: 1.05 }}>
+                {isRestDay ? 'JOUR DE RÉCUPÉRATION' : todaySession?.name || 'SÉANCE DU JOUR'}
+              </div>
+
+              <div style={{ color: MUTED, fontSize: 13, lineHeight: 1.55, marginTop: 9 }}>
+                {isRestDay
+                  ? 'Aujourd’hui, priorité à la récupération. Mobilité légère, hydratation et sommeil pour repartir plus fort.'
+                  : `${todaySession?.exercises?.length || 0} exercices · ${
+                      todaySession?.duration || program?.program_json?.session_length_min || 60
+                    } min · séance adaptée à ton plan.`}
+              </div>
+
+              {isRestDay ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9, marginTop: 20 }}>
+                  <button
+                    onClick={() => navigate('/body')}
+                    style={{
+                      minHeight: 46,
+                      borderRadius: 13,
+                      border: '1px solid rgba(200,255,0,.2)',
+                      background: 'rgba(200,255,0,.07)',
+                      color: ACCENT,
+                      fontWeight: 900,
+                      fontSize: 11,
+                      textTransform: 'uppercase',
+                      letterSpacing: '.05em',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 7,
+                    }}
+                  >
+                    <ScanLine size={16} />
+                    Body check
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/fuel')}
+                    style={{
+                      minHeight: 46,
+                      borderRadius: 13,
+                      border: `1px solid ${BORDER}`,
+                      background: '#121212',
+                      color: TEXT,
+                      fontWeight: 900,
+                      fontSize: 11,
+                      textTransform: 'uppercase',
+                      letterSpacing: '.05em',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 7,
+                    }}
+                  >
+                    <Apple size={16} />
+                    Nutrition
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => navigate('/training/' + (todaySession?.id || 'today'))}
+                  style={{
+                    width: '100%',
+                    minHeight: 50,
+                    marginTop: 20,
+                    border: 'none',
+                    borderRadius: 14,
+                    background: ACCENT,
+                    color: '#050505',
+                    fontSize: 12,
+                    fontWeight: 950,
+                    textTransform: 'uppercase',
+                    letterSpacing: '.06em',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 9,
+                    boxShadow: '0 10px 28px rgba(200,255,0,.14)',
+                  }}
+                >
+                  <Play size={16} fill="#050505" />
+                  Commencer la séance
+                </button>
+              )}
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 28, fontWeight: 900, color: ACCENT }}>{noxScore}</div>
-            <div style={{ fontSize: 10, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em' }}>NOX Score</div>
-          </div>
-        </div>
 
-        {/* Streak */}
-        {profile?.streak_days > 0 && (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#ff660011', border: '1px solid #ff660033', borderRadius: 20, padding: '6px 14px', marginTop: 12 }}>
-            <span style={{ fontSize: 16 }}>🔥</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#ff6600' }}>{profile.streak_days} jours de suite</span>
-          </div>
-        )}
-      </div>
-
-      <div style={{ padding: '0 20px' }}>
-        {/* TODAY CARD */}
-        {isRestDay ? (
-          <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 20, padding: 24, marginBottom: 16 }}>
-            <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Aujourd'hui</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 8 }}>JOUR DE RÉCUPÉRATION</div>
-            <div style={{ fontSize: 14, color: '#555', lineHeight: 1.5, marginBottom: 20 }}>
-              Le repos fait partie du plan. Ton corps se reconstruit et progresse pendant la récupération.
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              margin: '20px 2px 11px',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 900, letterSpacing: '-.02em' }}>Vue d'ensemble</div>
+              <div style={{ marginTop: 3, fontSize: 11, color: '#727272' }}>Tes indicateurs utiles aujourd'hui</div>
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => navigate('/body')} style={{ flex: 1, padding: '12px 0', background: ACCENT + '11', border: '1px solid ' + ACCENT + '44', borderRadius: 12, color: ACCENT, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
-                📊 BODY CHECK
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>
+            <MetricCard
+              icon={Dumbbell}
+              eyebrow="Training"
+              value={`${weekWorkouts}/${sessionGoal}`}
+              detail={`${workoutCount} séances au total`}
+              onClick={() => navigate('/program')}
+            />
+            <MetricCard
+              icon={BarChart3}
+              eyebrow="Body"
+              value={latestWeight ? `${latestWeight} kg` : '—'}
+              detail={latestWeight ? 'Dernier check-in' : 'Ajoute ton premier check-in'}
+              onClick={() => navigate('/body')}
+            />
+            <MetricCard
+              icon={Apple}
+              eyebrow="Fuel"
+              value={todayKcal ? `${todayKcal}` : '0'}
+              detail={todayKcal ? `${remainingKcal} kcal restantes` : 'Commence ton suivi nutrition'}
+              onClick={() => navigate('/fuel')}
+            />
+            <MetricCard
+              icon={Trophy}
+              eyebrow="Play"
+              value={`${prCount} PR`}
+              detail={`${xp} XP · progression NOX`}
+              onClick={() => navigate('/play')}
+            />
+          </div>
+
+          <button
+            onClick={() => navigate('/future')}
+            style={{
+              ...cardStyle,
+              width: '100%',
+              marginTop: 12,
+              padding: 0,
+              overflow: 'hidden',
+              textAlign: 'left',
+              cursor: 'pointer',
+              color: TEXT,
+            }}
+          >
+            <div
+              style={{
+                minHeight: 150,
+                position: 'relative',
+                padding: 20,
+                display: 'flex',
+                alignItems: 'flex-end',
+                background:
+                  'radial-gradient(circle at 82% 35%, rgba(200,255,0,.16), transparent 24%), linear-gradient(135deg,#121212 0%,#0b0b0b 100%)',
+              }}
+            >
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 18,
+                  left: 20,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  color: ACCENT,
+                  fontSize: 9.5,
+                  fontWeight: 900,
+                  letterSpacing: '.11em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                <WandSparkles size={14} />
+                Signature NOX
+              </div>
+
+              <div style={{ maxWidth: '78%' }}>
+                <div style={{ fontSize: 21, fontWeight: 950, letterSpacing: '-.03em' }}>NOX FUTURE</div>
+                <div style={{ fontSize: 12.5, color: '#969696', lineHeight: 1.5, marginTop: 6 }}>
+                  Visualise une projection indicative de ta trajectoire et suis l’écart entre ton plan et ta réalité.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 18,
+                  bottom: 18,
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  background: ACCENT,
+                  color: '#050505',
+                  display: 'grid',
+                  placeItems: 'center',
+                }}
+              >
+                <ArrowRight size={18} />
+              </div>
+            </div>
+          </button>
+
+          <div style={{ margin: '22px 2px 10px', fontSize: 11, fontWeight: 900, color: '#777', letterSpacing: '.09em', textTransform: 'uppercase' }}>
+            Accès rapide
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 9 }}>
+            {[
+              { label: 'Programme', icon: CalendarDays, path: '/program' },
+              { label: 'Coach IA', icon: Bot, path: '/coach' },
+              { label: 'Profil', icon: UserRound, path: '/settings' },
+            ].map(({ label, icon: Icon, path }) => (
+              <button
+                key={label}
+                onClick={() => navigate(path)}
+                style={{
+                  minHeight: 82,
+                  borderRadius: 17,
+                  border: `1px solid ${BORDER}`,
+                  background: SURFACE,
+                  color: TEXT,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 9,
+                }}
+              >
+                <Icon size={18} color={ACCENT} />
+                <span style={{ fontSize: 10.5, fontWeight: 850, color: '#b7b7b7' }}>{label}</span>
               </button>
-              <button onClick={() => navigate('/fuel')} style={{ flex: 1, padding: '12px 0', background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-                🥗 NUTRITION
-              </button>
-            </div>
+            ))}
           </div>
-        ) : (
-          <div style={{ background: 'linear-gradient(135deg, #111 0%, #141414 100%)', border: '1px solid ' + ACCENT + '33', borderRadius: 20, padding: 24, marginBottom: 16, position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: -10, right: -10, width: 120, height: 120, background: ACCENT, opacity: .03, borderRadius: '50%' }} />
-            <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>Aujourd'hui — {todayDay}</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-.02em', marginBottom: 4 }}>
-              {todaySession?.name || 'SÉANCE DU JOUR'}
+
+          <div
+            style={{
+              marginTop: 16,
+              padding: '14px 16px',
+              borderRadius: 16,
+              border: '1px solid rgba(255,255,255,.055)',
+              background: 'rgba(255,255,255,.018)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+            }}
+          >
+            <Sparkles size={15} color={ACCENT} />
+            <div style={{ flex: 1, fontSize: 11.5, lineHeight: 1.45, color: '#777' }}>
+              Chaque donnée améliore les recommandations de NOX.
             </div>
-            <div style={{ fontSize: 14, color: '#555', marginBottom: 20 }}>
-              {todaySession?.exercises?.length || 0} exercices · {todaySession?.duration || program?.program_json?.session_length_min || 60} min
-            </div>
-            <button onClick={() => navigate('/training/' + (todaySession?.id || 'today'))}
-              style={{ width: '100%', padding: 16, background: ACCENT, border: 'none', borderRadius: 14, color: '#000', fontWeight: 900, fontSize: 15, cursor: 'pointer', letterSpacing: '.05em' }}>
-              COMMENCER LA SÉANCE ▶
-            </button>
+            <ChevronRight size={16} color="#4a4a4a" />
           </div>
-        )}
-
-        {/* STATS ROW */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }}>
-          {[
-            { label: 'Séances totales', value: workoutCount, icon: '🏋️', path: '/program' },
-            { label: 'Records (PR)', value: prCount, icon: '🏆', path: '/program' },
-            { label: 'Cette semaine', value: weekWorkouts + ' séances', icon: '📅', path: '/program' },
-            { label: 'Calories today', value: todayKcal ? todayKcal + ' kcal' : '—', icon: '🥗', path: '/fuel' },
-          ].map(({ label, value, icon, path }) => (
-            <button key={label} onClick={() => navigate(path)}
-              style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: '16px 14px', textAlign: 'left', cursor: 'pointer' }}>
-              <div style={{ fontSize: 20, marginBottom: 8 }}>{icon}</div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>{value}</div>
-              <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{label}</div>
-            </button>
-          ))}
-        </div>
-
-        {/* NOX FUTURE promo */}
-        <button onClick={() => navigate('/future')}
-          style={{ width: '100%', background: 'linear-gradient(135deg, #111 0%, #0d0d0d 100%)', border: '1px solid #ffffff11', borderRadius: 20, padding: 20, marginBottom: 16, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ fontSize: 40, flexShrink: 0 }}>🔮</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 900, color: '#fff', marginBottom: 4 }}>NOX FUTURE</div>
-            <div style={{ fontSize: 12, color: '#555', lineHeight: 1.4 }}>Visualise ta transformation sur 90 jours grâce à l'IA</div>
-          </div>
-          <div style={{ fontSize: 18, color: '#333' }}>→</div>
-        </button>
-
-        {/* QUICK ACTIONS */}
-        <div style={{ fontSize: 11, fontWeight: 800, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>ACCÈS RAPIDE</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
-          {[
-            { label: 'Programme', icon: '📋', path: '/program' },
-            { label: 'BODY', icon: '📊', path: '/body' },
-            { label: 'Coach IA', icon: '🤖', path: '/coach' },
-          ].map(({ label, icon, path }) => (
-            <button key={label} onClick={() => navigate(path)}
-              style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: '14px 8px', textAlign: 'center', cursor: 'pointer' }}>
-              <div style={{ fontSize: 24, marginBottom: 6 }}>{icon}</div>
-              <div style={{ fontSize: 11, color: '#888', fontWeight: 700 }}>{label}</div>
-            </button>
-          ))}
-        </div>
-      </div>
+        </section>
+      </main>
 
       <BottomNav active="home" />
     </div>
   );
 }
-// settings accessible via /settings
