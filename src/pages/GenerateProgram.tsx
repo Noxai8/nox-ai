@@ -5,195 +5,201 @@ import { useAuth } from '../lib/AuthContext';
 
 const ACCENT = '#c8ff00';
 const BG = '#0a0a0a';
+const SURFACE = '#111';
+const BORDER = '#1a1a1a';
 
 const STEPS = [
-  'Analyse de ton objectif...',
-  'Construction de ton entraînement...',
+  'Analyse de ton profil...',
+  'Définition de la stratégie...',
   'Sélection des exercices...',
-  'Calcul de ta progression...',
-  'Estimation de tes besoins nutritionnels...',
+  'Calcul du volume optimal...',
+  'Logique de progression...',
+  'Recommandations nutrition...',
+  'Finalisation du programme...',
 ];
-
-const PROGRAMS: Record<string, any> = {
-  'Perdre du gras': {
-    name: 'Programme Perte de Gras — Phase 1',
-    splits: {
-      3: [
-        { name: 'Full Body A', exercises: [
-          { name: 'Squat', muscle: 'Quadriceps', sets: 3, reps: '10-12', rest: 90 },
-          { name: 'Développé couché', muscle: 'Pectoraux', sets: 3, reps: '10-12', rest: 90 },
-          { name: 'Rowing haltère', muscle: 'Dos', sets: 3, reps: '10-12', rest: 60 },
-          { name: 'Gainage', muscle: 'Abdominaux', sets: 3, reps: '30-45s', rest: 45 },
-        ]},
-        { name: 'Full Body B', exercises: [
-          { name: 'Soulevé de terre roumain', muscle: 'Ischio-jambiers', sets: 3, reps: '10-12', rest: 90 },
-          { name: 'Tractions assistées', muscle: 'Dos', sets: 3, reps: '8-10', rest: 90 },
-          { name: 'Dips', muscle: 'Triceps', sets: 3, reps: '10-12', rest: 60 },
-          { name: 'Fentes', muscle: 'Quadriceps', sets: 3, reps: '10-12', rest: 60 },
-        ]},
-        { name: 'Full Body C', exercises: [
-          { name: 'Hip thrust', muscle: 'Fessiers', sets: 4, reps: '12-15', rest: 90 },
-          { name: 'Développé militaire', muscle: 'Épaules', sets: 3, reps: '10-12', rest: 90 },
-          { name: 'Curl haltères', muscle: 'Biceps', sets: 3, reps: '12-15', rest: 60 },
-          { name: 'Crunch', muscle: 'Abdominaux', sets: 3, reps: '15-20', rest: 45 },
-        ]},
-      ],
-      4: [
-        { name: 'Haut du corps A', exercises: [
-          { name: 'Développé couché', muscle: 'Pectoraux', sets: 4, reps: '10-12', rest: 90 },
-          { name: 'Rowing barre', muscle: 'Dos', sets: 4, reps: '10-12', rest: 90 },
-          { name: 'Développé militaire', muscle: 'Épaules', sets: 3, reps: '10-12', rest: 60 },
-          { name: 'Curl haltères', muscle: 'Biceps', sets: 3, reps: '12-15', rest: 60 },
-          { name: 'Triceps poulie', muscle: 'Triceps', sets: 3, reps: '12-15', rest: 60 },
-        ]},
-        { name: 'Bas du corps A', exercises: [
-          { name: 'Squat', muscle: 'Quadriceps', sets: 4, reps: '10-12', rest: 90 },
-          { name: 'Soulevé de terre roumain', muscle: 'Ischio-jambiers', sets: 3, reps: '10-12', rest: 90 },
-          { name: 'Leg press', muscle: 'Quadriceps', sets: 3, reps: '12-15', rest: 75 },
-          { name: 'Mollets debout', muscle: 'Mollets', sets: 4, reps: '15-20', rest: 45 },
-        ]},
-        { name: 'Haut du corps B', exercises: [
-          { name: 'Tractions', muscle: 'Dos', sets: 4, reps: '6-10', rest: 90 },
-          { name: 'Écarté haltères', muscle: 'Pectoraux', sets: 3, reps: '12-15', rest: 60 },
-          { name: 'Élévations latérales', muscle: 'Épaules', sets: 4, reps: '15-20', rest: 45 },
-          { name: 'Dips', muscle: 'Triceps', sets: 3, reps: '10-12', rest: 60 },
-        ]},
-        { name: 'Bas du corps B', exercises: [
-          { name: 'Hip thrust', muscle: 'Fessiers', sets: 4, reps: '12-15', rest: 90 },
-          { name: 'Fentes marchées', muscle: 'Quadriceps', sets: 3, reps: '12-15', rest: 75 },
-          { name: 'Leg curl couché', muscle: 'Ischio-jambiers', sets: 3, reps: '12-15', rest: 60 },
-          { name: 'Gainage latéral', muscle: 'Abdominaux', sets: 3, reps: '30s', rest: 45 },
-        ]},
-      ],
-    },
-  },
-  'Prendre du muscle': {
-    name: 'Programme Prise de Muscle — Phase 1',
-    splits: {
-      3: [
-        { name: 'Full Body A', exercises: [
-          { name: 'Squat', muscle: 'Quadriceps', sets: 4, reps: '6-8', rest: 120 },
-          { name: 'Développé couché', muscle: 'Pectoraux', sets: 4, reps: '6-8', rest: 120 },
-          { name: 'Tractions lestées', muscle: 'Dos', sets: 4, reps: '6-8', rest: 120 },
-          { name: 'Développé militaire', muscle: 'Épaules', sets: 3, reps: '8-10', rest: 90 },
-        ]},
-        { name: 'Full Body B', exercises: [
-          { name: 'Soulevé de terre', muscle: 'Dos', sets: 4, reps: '4-6', rest: 180 },
-          { name: 'Dips lestés', muscle: 'Triceps', sets: 4, reps: '6-8', rest: 120 },
-          { name: 'Rowing haltère', muscle: 'Dos', sets: 4, reps: '8-10', rest: 90 },
-          { name: 'Leg press', muscle: 'Quadriceps', sets: 4, reps: '8-10', rest: 90 },
-        ]},
-        { name: 'Full Body C', exercises: [
-          { name: 'Hip thrust', muscle: 'Fessiers', sets: 4, reps: '8-10', rest: 90 },
-          { name: 'Curl haltères', muscle: 'Biceps', sets: 4, reps: '8-10', rest: 75 },
-          { name: 'Écarté incliné', muscle: 'Pectoraux', sets: 3, reps: '10-12', rest: 75 },
-          { name: 'Extension triceps', muscle: 'Triceps', sets: 3, reps: '10-12', rest: 60 },
-        ]},
-      ],
-    },
-  },
-};
 
 export default function GenerateProgram() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(0);
+  const [profile, setProfile] = useState<any>(null);
+  const [stepIdx, setStepIdx] = useState(0);
+  const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState('');
+  const [programName, setProgramName] = useState('');
 
   useEffect(() => {
-    const generate = async () => {
-      if (!user) return;
+    if (!user) return;
+    supabase.from('profiles').select('*').eq('id', user.id).maybeSingle().then(({ data }) => setProfile(data));
+  }, [user]);
 
-      for (let i = 0; i < STEPS.length; i++) {
-        setCurrentStep(i);
-        await new Promise(r => setTimeout(r, 900));
-      }
+  useEffect(() => {
+    if (generating) {
+      const interval = setInterval(() => {
+        setStepIdx(i => (i < STEPS.length - 1 ? i + 1 : i));
+      }, 1200);
+      return () => clearInterval(interval);
+    }
+  }, [generating]);
 
-      const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-      if (!profile) { navigate('/home'); return; }
+  const generate = async () => {
+    setGenerating(true);
+    setError('');
+    try {
+      const prompt = `Tu es NOX, un coach IA expert en programmation sportive. Crée un programme d'entraînement COMPLET et DÉTAILLÉ.
 
-      const goal = profile.level || 'Perdre du gras';
-      const sessionsPerWeek = profile.session_length_min ? (profile.available_days?.length || 3) : 3;
-      const splitKey = sessionsPerWeek >= 4 ? 4 : 3;
+PROFIL :
+- Objectif : ${profile?.goal_type || 'transformation physique'}
+- Niveau : ${profile?.experience_level || 'débutant'}
+- Séances/semaine : ${profile?.available_days?.length || 4}
+- Durée séance : ${profile?.session_length_min || 60} min
+- Jours dispo : ${Array.isArray(profile?.available_days) ? profile.available_days.join(', ') : 'LUN, MER, VEN, SAM'}
+- Équipement : ${profile?.equipment || 'salle complète'}
+- Blessures : ${profile?.injuries || 'aucune'}
+- Poids actuel : ${profile?.starting_weight_kg || '?'} kg
+- Activité quotidienne : ${profile?.activity_level || 'modérée'}
+- Motivation : ${profile?.motivation || 'améliorer mon physique'}
 
-      const programTemplate = PROGRAMS[goal] || PROGRAMS['Perdre du gras'];
-      const splits = programTemplate.splits[splitKey] || programTemplate.splits[3];
+G�nère un programme structuré. Réponds UNIQUEMENT en JSON valide :
 
-      // Construire le program_json
-      const programJson = {
-        goal,
-        sessions_per_week: sessionsPerWeek,
-        available_days: profile.available_days || [],
-        sessions: splits.map((split: any, i: number) => ({
-          ...split,
-          day: (profile.available_days || [])[i] || null,
-        })),
-      };
+{
+  "name": "Nom du programme (ex: PROGRAMME FORCE & MASSE 4J)",
+  "goal": "Description détaillée de l'objectif et de la stratégie (2-3 phrases)",
+  "duration_weeks": 8,
+  "session_length_min": ${profile?.session_length_min || 60},
+  "progression_notes": "Explication de la logique de progression (quand augmenter les charges, comment progresser)",
+  "nutrition_notes": "Recommandations nutrition adaptées à l'objectif (calories, protéines, timing)",
+  "sessions": [
+    {
+      "name": "NOM SÉANCE (ex: HAUT DU CORPS A - PUSH)",
+      "day": "LUN",
+      "focus": "Description courte du focus de la séance",
+      "duration": 60,
+      "exercises": [
+        {
+          "name": "Nom exact de l'exercice",
+          "muscles": "Muscles ciblés (ex: Pectoraux, Deltoïdes, Triceps)",
+          "sets": "4",
+          "reps": "6-8",
+          "rest": "2-3 min",
+          "weight_suggestion": "Charge suggérée ou % du max (ex: 70-80% 1RM)",
+          "description": "Description technique complète du mouvement en 2-3 phrases",
+          "instructions": "Étapes précises d'exécution",
+          "order_index": 1
+        }
+      ]
+    }
+  ]
+}
 
-      // Désactiver les anciens programmes
-      await supabase.from('workout_programs').update({ is_active: false }).eq('user_id', user.id);
+RÈGLES :
+- ${profile?.available_days?.length || 4} séances par semaine exactement
+- Adapte tous les exercices au matériel disponible
+- Exercices polyarticulaires en premier (composés avant isolation)
+- Volume adapté au niveau (débutant: 2-3 séries, intermédiaire: 3-4, avancé: 4-5)
+- Inclus du cardio si objectif perte de poids
+- Séances équilibrées push/pull/legs si possible
+- Plages de reps adaptées à l'objectif (force: 3-6, hypertrophie: 8-12, endurance: 15-20)`;
 
-      // Créer le nouveau programme
-      await supabase.from('workout_programs').insert({
-        user_id: user.id,
-        name: programTemplate.name,
-        description: `Programme personnalisé NOX — ${goal}`,
-        goal,
-        days_per_week: sessionsPerWeek,
-        duration_weeks: 8,
-        program_json: programJson,
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4000,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+
+      const data = await response.json();
+      const text = data.content?.[0]?.text || '';
+      const clean = text.replace(/```json|```/g, '').trim();
+      const prog = JSON.parse(clean);
+
+      // Désactiver l'ancien programme
+      await supabase.from('workout_programs').update({ is_active: false }).eq('user_id', user!.id);
+
+      // Sauvegarder le nouveau
+      const { error: insertError } = await supabase.from('workout_programs').insert({
+        user_id: user!.id,
+        name: prog.name,
+        description: prog.goal,
+        goal: prog.goal,
+        days_per_week: profile?.available_days?.length || 4,
+        duration_weeks: prog.duration_weeks || 8,
         is_active: true,
+        program_json: prog,
         created_at: new Date().toISOString(),
       });
 
-      // Calculer TDEE
-      const weight = Number(profile.starting_weight_kg) || 75;
-      const heightCm = Number(profile.height_cm) || 175;
-      const dob = profile.date_of_birth ? new Date(profile.date_of_birth) : null;
-      const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000)) : 25;
-      const bmr = 10 * weight + 6.25 * heightCm - 5 * age + 5;
-      const multipliers: Record<string, number> = { sedentary: 1.2, lightly_active: 1.375, active: 1.55, very_active: 1.725 };
-      const tdee = Math.round(bmr * (multipliers[profile.activity_level] || 1.375));
-      const protein = Math.round(weight * 1.8);
-      const targetCalories = goal === 'Perdre du gras' ? tdee - 400 : goal === 'Prendre du muscle' ? tdee + 300 : tdee;
+      if (insertError) throw insertError;
 
-      await supabase.from('nutrition_targets').upsert({
-        user_id: user.id,
-        calories: targetCalories,
-        protein,
-        carbs: Math.round((targetCalories * 0.4) / 4),
-        fat: Math.round((targetCalories * 0.25) / 9),
-      }, { onConflict: 'user_id' });
-
+      setProgramName(prog.name);
       setDone(true);
-    };
-    generate();
-  }, [user]);
+    } catch (err: any) {
+      setError('Erreur lors de la génération. Réessaie.');
+      console.error(err);
+    }
+    setGenerating(false);
+  };
+
+  // Auto-start
+  useEffect(() => {
+    if (profile && !generating && !done && !error) {
+      const timer = setTimeout(generate, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [profile]);
+
+  if (done) return (
+    <div style={{ minHeight: '100vh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center' }}>
+      <div style={{ fontSize: 72, marginBottom: 24 }}>⚡</div>
+      <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.15em', marginBottom: 12 }}>Prêt</div>
+      <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-.02em', marginBottom: 8 }}>TON PLAN EST PRÊT</div>
+      <div style={{ fontSize: 15, color: ACCENT, fontWeight: 700, marginBottom: 32 }}>{programName}</div>
+      <div style={{ fontSize: 14, color: '#555', marginBottom: 40, lineHeight: 1.6, maxWidth: 300 }}>
+        Programme complet avec descriptions détaillées et schémas pour chaque exercice.
+      </div>
+      <button onClick={() => navigate('/program')}
+        style={{ width: '100%', maxWidth: 320, padding: 18, background: ACCENT, border: 'none', borderRadius: 16, color: '#000', fontWeight: 900, fontSize: 16, cursor: 'pointer', marginBottom: 12 }}>
+        VOIR MON PROGRAMME →
+      </button>
+      <button onClick={() => navigate('/home')}
+        style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 14 }}>
+        Retour à l'accueil
+      </button>
+    </div>
+  );
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center' }}>
-      {!done ? (
-        <>
-          <div style={{ width: 60, height: 60, borderRadius: '50%', border: `3px solid ${ACCENT}`, borderTopColor: 'transparent', animation: 'spin 1s linear infinite', marginBottom: 40 }} />
-          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {STEPS.map((s, i) => (
-              <div key={s} style={{ fontSize: 14, color: i === currentStep ? ACCENT : i < currentStep ? '#333' : '#1a1a1a', fontWeight: i === currentStep ? 700 : 400, transition: 'all .3s' }}>
-                {i < currentStep ? '✓ ' : i === currentStep ? '→ ' : '  '}{s}
-              </div>
-            ))}
+    <div style={{ minHeight: '100vh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center' }}>
+      <div style={{ fontSize: 56, marginBottom: 32, animation: 'pulse 1.5s ease-in-out infinite' }}>🧠</div>
+      <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.15em', marginBottom: 12 }}>NOX Intelligence</div>
+      <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '-.02em', marginBottom: 40 }}>
+        CONSTRUCTION DU PROGRAMME...
+      </div>
+
+      <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 48 }}>
+        {STEPS.map((step, i) => (
+          <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 12, opacity: i <= stepIdx ? 1 : 0.2, transition: 'opacity .4s' }}>
+            <div style={{ width: 24, height: 24, borderRadius: '50%', background: i < stepIdx ? ACCENT : i === stepIdx ? ACCENT + '44' : '#1a1a1a', border: '2px solid ' + (i <= stepIdx ? ACCENT : '#1a1a1a'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .4s' }}>
+              {i < stepIdx ? <span style={{ fontSize: 12 }}>✓</span> : i === stepIdx ? <div style={{ width: 8, height: 8, borderRadius: '50%', background: ACCENT, animation: 'pulse 1s infinite' }} /> : null}
+            </div>
+            <div style={{ fontSize: 13, color: i === stepIdx ? '#fff' : i < stepIdx ? ACCENT : '#333', fontWeight: i === stepIdx ? 700 : 400, textAlign: 'left' }}>{step}</div>
           </div>
-        </>
-      ) : (
-        <div>
-          <div style={{ fontSize: 56, marginBottom: 20 }}>⚡</div>
-          <h2 style={{ fontSize: 28, fontWeight: 900, color: '#fff', marginBottom: 8, letterSpacing: '-.025em' }}>TON PLAN EST PRÊT</h2>
-          <p style={{ fontSize: 15, color: '#555', marginBottom: 40 }}>NOX a construit ton programme personnalisé.</p>
-          <button onClick={() => navigate('/home')} style={{ background: ACCENT, color: BG, border: 'none', borderRadius: 14, padding: '18px 40px', fontSize: 15, fontWeight: 900, cursor: 'pointer' }}>
-            DÉCOUVRIR MON PROGRAMME
-          </button>
+        ))}
+      </div>
+
+      {error && (
+        <div style={{ background: '#ff444422', border: '1px solid #ff4444', borderRadius: 14, padding: 16, color: '#ff8888', fontSize: 13, marginBottom: 16, maxWidth: 320 }}>
+          {error}
+          <button onClick={generate} style={{ display: 'block', margin: '12px auto 0', padding: '8px 20px', background: '#ff4444', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 800, cursor: 'pointer' }}>RÉESSAYER</button>
         </div>
       )}
+
+      <style>{`
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .6; transform: scale(0.95); } }
+      `}</style>
     </div>
   );
 }
