@@ -101,77 +101,131 @@ export default function Play() {
   const nextLevel = getNextLevel(xp);
   const xpPct = nextLevel ? Math.round(((xp - level.minXp) / (nextLevel.minXp - level.minXp)) * 100) : 100;
 
-  if (loading) return <div style={{ minHeight: '100vh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: ACCENT, fontWeight: 900 }}>CHARGEMENT...</div></div>;
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: BG, display: 'grid', placeItems: 'center' }}>
+      <div style={{ color: ACCENT, fontWeight: 900, letterSpacing: '.14em' }}>NOX PLAY</div>
+    </div>
+  );
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, paddingBottom: 80 }}>
-      <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid ' + BORDER }}>
-        <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Progression</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-.02em' }}>PLAY</div>
-      </div>
+    <div style={{ minHeight: '100vh', background: '#070707', color: '#fff', paddingBottom: 100 }}>
+      <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
+        <header style={{
+          padding: '24px 20px 18px',
+          background: 'radial-gradient(circle at 88% 0%, rgba(200,255,0,.07), transparent 30%), #090909',
+          borderBottom: '1px solid #202020'
+        }}>
+          <div style={{ fontSize: 10, color: '#777', textTransform: 'uppercase', letterSpacing: '.14em', fontWeight: 850 }}>Progression & récompenses</div>
+          <div style={{ fontSize: 27, fontWeight: 950, letterSpacing: '-.04em', marginTop: 4 }}>PLAY</div>
+        </header>
 
-      <div style={{ padding: '20px 20px 0' }}>
-        {/* Level card */}
-        <div style={{ background: SURFACE, borderRadius: 16, border: '1px solid ' + level.color + '44', padding: 24, marginBottom: 16, position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: -20, right: -20, fontSize: 80, opacity: .05 }}>⚡</div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-            <div>
-              <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>Niveau {level.level}</div>
-              <div style={{ fontSize: 28, fontWeight: 900, color: level.color }}>{level.name}</div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 32, fontWeight: 900, color: '#fff' }}>{xp}</div>
-              <div style={{ fontSize: 11, color: '#555' }}>XP TOTAL</div>
+        <section style={{ padding: 20 }}>
+          <div style={{
+            position: 'relative', overflow: 'hidden',
+            background: 'linear-gradient(145deg,#151515,#0e0e0e)',
+            border: '1px solid ' + level.color + '44',
+            borderRadius: 22, padding: 20, marginBottom: 12
+          }}>
+            <div style={{
+              position: 'absolute', width: 160, height: 160, borderRadius: '50%',
+              right: -70, top: -80, background: level.color, opacity: .06, filter: 'blur(8px)'
+            }} />
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: 10, color: '#777', fontWeight: 850, letterSpacing: '.09em' }}>NIVEAU {level.level}</div>
+                  <div style={{ fontSize: 28, fontWeight: 950, color: level.color, marginTop: 4, letterSpacing: '-.035em' }}>{level.name}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 31, fontWeight: 950, letterSpacing: '-.04em' }}>{xp}</div>
+                  <div style={{ fontSize: 9.5, color: '#666', fontWeight: 850, marginTop: 2 }}>XP TOTAL</div>
+                </div>
+              </div>
+
+              {nextLevel ? (
+                <div style={{ marginTop: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 7 }}>
+                    <span style={{ fontSize: 10.5, color: '#777' }}>Prochain niveau · {nextLevel.name}</span>
+                    <span style={{ fontSize: 10.5, color: '#aaa', fontWeight: 850 }}>{xp} / {nextLevel.minXp} XP</span>
+                  </div>
+                  <div style={{ height: 7, borderRadius: 999, background: '#202020', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: xpPct + '%', background: level.color, borderRadius: 999, transition: 'width .5s' }} />
+                  </div>
+                  <div style={{ fontSize: 9.5, color: '#555', marginTop: 7 }}>
+                    {Math.max(0, nextLevel.minXp - xp)} XP avant le niveau suivant
+                  </div>
+                </div>
+              ) : (
+                <div style={{ marginTop: 18, color: ACCENT, fontSize: 11, fontWeight: 900 }}>NIVEAU MAXIMUM ATTEINT</div>
+              )}
             </div>
           </div>
-          {nextLevel && (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, color: '#555' }}>Prochain : {nextLevel.name}</span>
-                <span style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>{xp} / {nextLevel.minXp} XP</span>
-              </div>
-              <div style={{ height: 6, background: '#1a1a1a', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: xpPct + '%', background: level.color, borderRadius: 3, transition: 'width .5s' }} />
-              </div>
-            </>
-          )}
-        </div>
 
-        {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 16 }}>
-          {[
-            { label: 'Séances', value: totalWorkouts, icon: '🏋️' },
-            { label: 'Records', value: totalPRs, icon: '🏆' },
-            { label: 'Streak', value: streak + 'j', icon: '🔥' },
-          ].map(({ label, value, icon }) => (
-            <div key={label} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '14px 10px', textAlign: 'center' }}>
-              <div style={{ fontSize: 24 }}>{icon}</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginTop: 4 }}>{value}</div>
-              <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 9, marginBottom: 22 }}>
+            {[
+              { label: 'Séances', value: totalWorkouts },
+              { label: 'Records', value: totalPRs },
+              { label: 'Streak', value: streak + 'j' },
+            ].map(({ label, value }) => (
+              <div key={label} style={{
+                background: '#111', border: '1px solid #232323', borderRadius: 16,
+                padding: '15px 8px', textAlign: 'center'
+              }}>
+                <div style={{ fontSize: 21, fontWeight: 950 }}>{value}</div>
+                <div style={{ fontSize: 9.5, color: '#666', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: 5, fontWeight: 850 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', margin: '0 2px 10px' }}>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 950 }}>Achievements</div>
+              <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>{earned.length} débloqué{earned.length > 1 ? 's' : ''} sur {ACHIEVEMENTS.length}</div>
             </div>
-          ))}
-        </div>
+            <div style={{ color: ACCENT, fontSize: 11, fontWeight: 950 }}>{Math.round((earned.length / ACHIEVEMENTS.length) * 100)}%</div>
+          </div>
 
-        {/* Achievements */}
-        <div style={{ fontSize: 13, fontWeight: 800, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>
-          ACHIEVEMENTS — {earned.length}/{ACHIEVEMENTS.length}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {ACHIEVEMENTS.map(a => {
-            const done = earned.includes(a.id);
-            return (
-              <div key={a.id} style={{ background: SURFACE, border: '1px solid ' + (done ? ACCENT + '44' : BORDER), borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, opacity: done ? 1 : 0.4 }}>
-                <div style={{ fontSize: 28, filter: done ? 'none' : 'grayscale(1)' }}>{a.icon}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: done ? '#fff' : '#555' }}>{a.title}</div>
-                  <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>{a.desc}</div>
+          <div style={{ height: 5, background: '#171717', borderRadius: 999, overflow: 'hidden', marginBottom: 14 }}>
+            <div style={{ height: '100%', width: `${(earned.length / ACHIEVEMENTS.length) * 100}%`, background: ACCENT, borderRadius: 999 }} />
+          </div>
+
+          <div style={{ display: 'grid', gap: 9 }}>
+            {ACHIEVEMENTS.map(a => {
+              const done = earned.includes(a.id);
+              return (
+                <div key={a.id} style={{
+                  background: '#111',
+                  border: '1px solid ' + (done ? 'rgba(200,255,0,.22)' : '#222'),
+                  borderRadius: 16, padding: 14,
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  opacity: done ? 1 : .46
+                }}>
+                  <div style={{
+                    width: 42, height: 42, borderRadius: 13, flexShrink: 0,
+                    background: done ? 'rgba(200,255,0,.08)' : '#171717',
+                    border: '1px solid ' + (done ? 'rgba(200,255,0,.18)' : '#222'),
+                    display: 'grid', placeItems: 'center',
+                    fontSize: 20, filter: done ? 'none' : 'grayscale(1)'
+                  }}>
+                    {a.icon}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 900, color: done ? '#fff' : '#777' }}>{a.title}</div>
+                    <div style={{ fontSize: 10.5, lineHeight: 1.4, color: '#666', marginTop: 4 }}>{a.desc}</div>
+                  </div>
+                  <div style={{
+                    flexShrink: 0, borderRadius: 9, padding: '6px 8px',
+                    background: done ? 'rgba(200,255,0,.07)' : '#151515',
+                    color: done ? ACCENT : '#555', fontSize: 10.5, fontWeight: 950
+                  }}>
+                    +{a.xp} XP
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 900, color: done ? ACCENT : '#333' }}>+{a.xp} XP</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+              );
+            })}
+          </div>
+        </section>
+      </main>
 
       <BottomNav active="play" />
     </div>
