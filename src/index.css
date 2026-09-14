@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+:root {
+  --nox-bg: #0b0b12;
+  --nox-surface: #14141f;
+  --nox-border: #262636;
+  --nox-violet: #7c5cff;
+  --nox-cyan: #2fd9ff;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--nox-bg);
+  color: #f2f2f7;
+  font-family: "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: "Space Grotesk", "Inter", sans-serif;
+}
+
+/* Dégradé de marque violet -> cyan */
+.nox-gradient {
+  background: linear-gradient(135deg, var(--nox-violet), var(--nox-cyan));
+}
+
+.nox-gradient-text {
+  background: linear-gradient(135deg, var(--nox-violet), var(--nox-cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.nox-card {
+  background: var(--nox-surface);
+  border: 1px solid var(--nox-border);
+  border-radius: 1rem;
+}
+
+.nox-input {
+  background: #0f0f18;
+  border: 1px solid var(--nox-border);
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  color: #f2f2f7;
+  width: 100%;
+  outline: none;
+}
+
+.nox-input:focus {
+  border-color: var(--nox-violet);
+}
+
+.nox-btn {
+  border-radius: 0.75rem;
+  padding: 0.7rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  color: white;
+  transition: opacity 0.15s ease;
+}
+
+.nox-btn:hover {
+  opacity: 0.9;
+}
+
+.nox-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
