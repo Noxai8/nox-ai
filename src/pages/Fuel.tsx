@@ -89,6 +89,7 @@ export default function Fuel() {
   const [tdee, setTdee] = useState<any>(null);
   const [scanResult, setScanResult] = useState<any>(null);
   const [scanError, setScanError] = useState('');
+  const [lastScanPhoto, setLastScanPhoto] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const today = new Date().toISOString().split('T')[0];
 
@@ -238,6 +239,7 @@ export default function Fuel() {
     const entry = {
       user_id: user!.id,
       meal_type: selectedMeal,
+      food_name: scanResult.description || 'Repas scanné',
       calories: Math.round(kcal),
       protein: Math.round(protein * 10) / 10,
       carbs: Math.round(carbs * 10) / 10,
@@ -274,6 +276,7 @@ export default function Fuel() {
     await supabase.from('food_entries').insert({
       user_id: user!.id,
       meal_type: selectedMeal,
+      food_name: food.name,
       calories: Math.round(food.kcal * q),
       protein: Math.round(food.protein * q * 10) / 10,
       carbs: Math.round(food.carbs * q * 10) / 10,
@@ -288,6 +291,7 @@ export default function Fuel() {
     await supabase.from('food_entries').insert({
       user_id: user!.id,
       meal_type: selectedMeal,
+      food_name: custom.name || 'Aliment',
       calories: parseFloat(custom.kcal) || 0,
       protein: parseFloat(custom.protein) || 0,
       carbs: parseFloat(custom.carbs) || 0,
@@ -459,15 +463,25 @@ export default function Fuel() {
             <div key={meal} style={{ marginBottom: 18 }}>
               <div style={{ fontSize: 10, fontWeight: 900, color: '#777', textTransform: 'uppercase', letterSpacing: '.09em', margin: '0 2px 8px' }}>{meal}</div>
               {items.map((item: any) => (
-                <div key={item.id} style={{ background: '#111', border: '1px solid #232323', borderRadius: 16, padding: '14px 15px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 12, background: '#181818', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 12, fontWeight: 950, flexShrink: 0 }}>
-                    {Math.round(item.calories || 0)}
-                  </div>
+                <div key={item.id} style={{ background: '#111', border: '1px solid #232323', borderRadius: 16, padding: '12px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {/* Thumbnail photo si scan, sinon icône */}
+                  {item.photo_url ? (
+                    <img src={item.photo_url} style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} alt="" />
+                  ) : (
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: '#181818', border: '1px solid #232323', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <div style={{ fontSize: 11, fontWeight: 900, color: ACCENT, lineHeight: 1 }}>{Math.round(item.calories || 0)}</div>
+                      <div style={{ fontSize: 8, color: '#555', marginTop: 1 }}>kcal</div>
+                    </div>
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 850, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.food_name}</div>
-                    <div style={{ fontSize: 10.5, color: '#666', marginTop: 4 }}>P {item.protein}g · G {item.carbs}g · L {item.fat}g</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 850, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#fff' }}>
+                      {item.food_name || 'Aliment'}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>
+                      {Math.round(item.calories || 0)} kcal · P {item.protein || 0}g · G {item.carbs || 0}g · L {item.fat || 0}g
+                    </div>
                   </div>
-                  <button onClick={() => deleteEntry(item.id)} aria-label="Supprimer" style={{ width: 32, height: 32, borderRadius: 10, background: '#151515', border: '1px solid #232323', color: '#666', cursor: 'pointer', fontSize: 18 }}>×</button>
+                  <button onClick={() => deleteEntry(item.id)} aria-label="Supprimer" style={{ width: 32, height: 32, borderRadius: 10, background: '#151515', border: '1px solid #232323', color: '#666', cursor: 'pointer', fontSize: 18, flexShrink: 0 }}>×</button>
                 </div>
               ))}
             </div>
