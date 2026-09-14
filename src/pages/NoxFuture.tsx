@@ -68,41 +68,10 @@ export default function NoxFuture() {
       };
 
       // Call Claude API to generate projection text
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1000,
-          messages: [{
-            role: 'user',
-            content: `Tu es NOX, un coach IA de transformation physique ultra-premium et motivant.
-
-Profil utilisateur :
-- Objectif : ${ctx.profile.objective}
-- Poids actuel : ${ctx.profile.current_weight || '?'} kg
-- Niveau : ${ctx.profile.experience || 'débutant'}
-- Activité : ${ctx.profile.activity || 'modérée'}
-- Description de l'objectif : ${goalDesc}
-
-Génère une projection personnalisée, motivante et réaliste de leur transformation physique si ils restent constants pendant 90 jours. 
-
-Réponds en JSON uniquement avec ce format exact :
-{
-  "titre": "TON NOX FUTURE",
-  "tagline": "Une phrase courte et percutante",
-  "en_30_jours": "Description des changements visibles à 30 jours",
-  "en_60_jours": "Description des changements à 60 jours",
-  "en_90_jours": "Description des changements à 90 jours (objectif)",
-  "chiffres_cles": ["Résultat 1", "Résultat 2", "Résultat 3"],
-  "message_coach": "Message motivant personnalisé du Coach NOX",
-  "avertissement": "Projection indicative. Les résultats varient selon la régularité et la génétique."
-}`
-          }]
-        })
+      const { data, error: fnErr } = await supabase.functions.invoke('nox-future', {
+        body: { prompt: messages?.[0]?.content || prompt },
       });
-
-      const data = await response.json();
+      if (fnErr) throw new Error(fnErr.message);
       const text = data.content?.[0]?.text || '{}';
       let parsed: any = {};
       try {

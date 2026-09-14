@@ -95,19 +95,15 @@ RÈGLES :
 - Tu peux utiliser quelques emojis mais pas trop
 - Tu connais leur programme, leurs PR, leur nutrition`;
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1000,
+      const { data, error: fnErr } = await supabase.functions.invoke('nox-coach', {
+        body: {
           system: systemPrompt,
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-        }),
+        },
       });
 
-      const data = await response.json();
-      const reply = data.content?.[0]?.text || 'Désolé, je n\'ai pas pu répondre. Réessaie.';
+      if (fnErr) throw fnErr;
+      const reply = data?.content?.[0]?.text || 'Désolé, je n\'ai pas pu répondre. Réessaie.';
 
       const finalMessages = [...newMessages, { role: 'assistant' as const, content: reply }];
       setMessages(finalMessages);

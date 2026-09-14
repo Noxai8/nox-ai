@@ -97,74 +97,16 @@ export default function Fuel() {
     setScanError('');
     setScanResult(null);
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1000,
-          messages: [{
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: { type: 'base64', media_type: mime as any, data: base64 },
-              },
-              {
-                type: 'text',
-                text: `Tu es un nutritionniste expert. Analyse cette photo de repas et identifie tous les aliments visibles.
-
-Estime les quantités de façon réaliste (portion normale d'une personne).
-
-Réponds UNIQUEMENT en JSON valide, sans texte avant ou après :
-{
-  "description": "Description courte du repas en français",
-  "aliments": [
-    {
-      "nom": "Nom de l'aliment",
-      "quantite": "ex: 150g ou 1 portion",
-      "kcal": 000,
-      "protein": 00,
-      "carbs": 00,
-      "fat": 00
-    }
-  ],
-  "total": {
-    "kcal": 000,
-    "protein": 00,
-    "carbs": 00,
-    "fat": 00
-  },
-  "fiabilite": "haute / moyenne / faible",
-  "note": "Remarque courte si besoin (ex: difficile à estimer les quantités exactes)"
-}`,
-              },
-            ],
-          }],
-        }),
+      // Appel via Supabase Edge Function (clé API sécurisée côté serveur)
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('analyze-meal', {
+        body: { base64, mime },
       });
 
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error.message || 'Erreur API');
-      }
-      
-      const text = data.content?.[0]?.text || '';
-      if (!text) throw new Error('Réponse vide');
-      
-      // Extraire le JSON de la réponse
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('Format invalide');
-      
-      const parsed = JSON.parse(jsonMatch[0]);
-      
-      // Valider la structure minimale
-      if (!parsed.total || parsed.total.kcal === undefined) {
-        throw new Error('Structure invalide');
-      }
-      
-      setScanResult(parsed);
+      if (fnError) throw new Error(fnError.message || 'Erreur serveur');
+      if (fnData?.error) throw new Error(fnData.error);
+      if (!fnData?.total) throw new Error('Réponse invalide');
+
+      setScanResult(fnData);
     } catch (err: any) {
       console.error('Scan error:', err);
       setScanError(`Analyse impossible : ${err.message || 'erreur inconnue'}. Essaie une photo plus nette ou saisis manuellement.`);
