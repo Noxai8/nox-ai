@@ -10,6 +10,244 @@ const SURFACE = '#111';
 const BORDER = '#232323';
 const MUTED = '#858585';
 
+
+type VisualKind =
+  | 'bench'
+  | 'squat'
+  | 'hinge'
+  | 'pullup'
+  | 'curl'
+  | 'row'
+  | 'overhead'
+  | 'legpress'
+  | 'plank'
+  | 'dips'
+  | 'pushup'
+  | 'generic';
+
+function classifyExerciseVisual(name: string): VisualKind {
+  const n = String(name || '').toLowerCase();
+
+  if (n.includes('développé couché') || n.includes('developpe couche') || n.includes('bench press') || n.includes('bench')) return 'bench';
+  if (n.includes('squat')) return 'squat';
+  if (n.includes('soulevé') || n.includes('souleve') || n.includes('deadlift') || n.includes('romanian') || n.includes('rdl')) return 'hinge';
+  if (n.includes('tractions') || n.includes('traction') || n.includes('pull-up') || n.includes('pullup')) return 'pullup';
+  if (n.includes('curl') || n.includes('bicep') || n.includes('biceps')) return 'curl';
+  if (n.includes('rowing') || n.includes('tirage') || n.includes('row')) return 'row';
+  if (n.includes('overhead') || n.includes('militaire') || n.includes('press épaule') || n.includes('press epaule') || n.includes('shoulder')) return 'overhead';
+  if (n.includes('leg press') || n.includes('presse')) return 'legpress';
+  if (n.includes('planche') || n.includes('gainage') || n.includes('plank')) return 'plank';
+  if (n.includes('dips') || n.includes('barre parallèle') || n.includes('barre parallele')) return 'dips';
+  if (n.includes('pompe') || n.includes('push-up') || n.includes('pushup')) return 'pushup';
+
+  return 'generic';
+}
+
+function ExerciseVisual({ exercise, compact = false }: { exercise: any; compact?: boolean }) {
+  const kind = classifyExerciseVisual(exercise?.name || '');
+  const width = compact ? 76 : 360;
+  const height = compact ? 62 : 220;
+
+  const preset: Record<VisualKind, {
+    label: string;
+    cue: string;
+    target: { x: number; y: number; rx: number; ry: number };
+    body: { head: [number, number]; shoulder: [number, number]; hip: [number, number]; hand: [number, number]; foot: [number, number] };
+    body2: { head: [number, number]; shoulder: [number, number]; hip: [number, number]; hand: [number, number]; foot: [number, number] };
+    equipment?: 'bar' | 'bench' | 'pullbar' | 'platform';
+  }> = {
+    bench: {
+      label: 'Poussée horizontale',
+      cue: 'Descends contrôlé · pousse fort',
+      target: { x: 176, y: 112, rx: 34, ry: 18 },
+      body: { head: [108, 118], shoulder: [145, 118], hip: [215, 138], hand: [165, 75], foot: [275, 160] },
+      body2: { head: [108, 118], shoulder: [145, 118], hip: [215, 138], hand: [165, 102], foot: [275, 160] },
+      equipment: 'bench',
+    },
+    squat: {
+      label: 'Squat',
+      cue: 'Hanches bas · genoux dans l’axe',
+      target: { x: 184, y: 118, rx: 26, ry: 38 },
+      body: { head: [180, 58], shoulder: [180, 86], hip: [180, 122], hand: [145, 82], foot: [145, 182] },
+      body2: { head: [188, 82], shoulder: [186, 108], hip: [175, 143], hand: [145, 104], foot: [145, 182] },
+      equipment: 'bar',
+    },
+    hinge: {
+      label: 'Charnière de hanches',
+      cue: 'Dos neutre · hanches en arrière',
+      target: { x: 182, y: 126, rx: 28, ry: 30 },
+      body: { head: [175, 58], shoulder: [176, 88], hip: [180, 126], hand: [155, 138], foot: [160, 185] },
+      body2: { head: [235, 90], shoulder: [207, 108], hip: [175, 130], hand: [205, 155], foot: [160, 185] },
+      equipment: 'bar',
+    },
+    pullup: {
+      label: 'Traction verticale',
+      cue: 'Poitrine vers la barre',
+      target: { x: 180, y: 118, rx: 34, ry: 42 },
+      body: { head: [180, 92], shoulder: [180, 118], hip: [180, 155], hand: [135, 52], foot: [180, 196] },
+      body2: { head: [180, 68], shoulder: [180, 96], hip: [180, 133], hand: [135, 52], foot: [180, 175] },
+      equipment: 'pullbar',
+    },
+    curl: {
+      label: 'Flexion du coude',
+      cue: 'Coudes fixes · contrôle le retour',
+      target: { x: 168, y: 116, rx: 18, ry: 28 },
+      body: { head: [180, 52], shoulder: [180, 82], hip: [180, 128], hand: [145, 142], foot: [165, 190] },
+      body2: { head: [180, 52], shoulder: [180, 82], hip: [180, 128], hand: [150, 95], foot: [165, 190] },
+    },
+    row: {
+      label: 'Tirage horizontal',
+      cue: 'Coude vers la hanche',
+      target: { x: 198, y: 108, rx: 34, ry: 25 },
+      body: { head: [230, 82], shoulder: [205, 98], hip: [170, 130], hand: [230, 145], foot: [145, 186] },
+      body2: { head: [230, 82], shoulder: [205, 98], hip: [170, 130], hand: [195, 118], foot: [145, 186] },
+    },
+    overhead: {
+      label: 'Poussée verticale',
+      cue: 'Gainage fort · barre au-dessus',
+      target: { x: 180, y: 92, rx: 33, ry: 24 },
+      body: { head: [180, 72], shoulder: [180, 102], hip: [180, 145], hand: [145, 98], foot: [165, 194] },
+      body2: { head: [180, 72], shoulder: [180, 102], hip: [180, 145], hand: [150, 45], foot: [165, 194] },
+      equipment: 'bar',
+    },
+    legpress: {
+      label: 'Presse à cuisses',
+      cue: 'Pieds stables · genoux alignés',
+      target: { x: 182, y: 138, rx: 34, ry: 30 },
+      body: { head: [112, 118], shoulder: [138, 130], hip: [172, 150], hand: [142, 145], foot: [245, 116] },
+      body2: { head: [112, 118], shoulder: [138, 130], hip: [172, 150], hand: [142, 145], foot: [280, 92] },
+      equipment: 'platform',
+    },
+    plank: {
+      label: 'Gainage',
+      cue: 'Corps aligné · respiration calme',
+      target: { x: 186, y: 126, rx: 60, ry: 20 },
+      body: { head: [95, 120], shoulder: [128, 124], hip: [205, 132], hand: [115, 158], foot: [285, 150] },
+      body2: { head: [95, 120], shoulder: [128, 124], hip: [205, 132], hand: [115, 158], foot: [285, 150] },
+    },
+    dips: {
+      label: 'Dips',
+      cue: 'Épaules basses · descente contrôlée',
+      target: { x: 180, y: 110, rx: 35, ry: 30 },
+      body: { head: [180, 68], shoulder: [180, 98], hip: [180, 138], hand: [140, 112], foot: [180, 185] },
+      body2: { head: [180, 92], shoulder: [180, 120], hip: [180, 160], hand: [140, 112], foot: [180, 198] },
+    },
+    pushup: {
+      label: 'Pompe',
+      cue: 'Corps gainé · poitrine vers le sol',
+      target: { x: 176, y: 120, rx: 44, ry: 22 },
+      body: { head: [95, 112], shoulder: [128, 120], hip: [205, 134], hand: [120, 160], foot: [288, 152] },
+      body2: { head: [95, 137], shoulder: [128, 145], hip: [205, 150], hand: [120, 160], foot: [288, 152] },
+    },
+    generic: {
+      label: 'Démo du mouvement',
+      cue: 'Amplitude contrôlée · posture stable',
+      target: { x: 180, y: 112, rx: 32, ry: 38 },
+      body: { head: [180, 58], shoulder: [180, 88], hip: [180, 132], hand: [145, 115], foot: [165, 190] },
+      body2: { head: [180, 58], shoulder: [180, 88], hip: [180, 132], hand: [215, 100], foot: [165, 190] },
+    },
+  };
+
+  const p = preset[kind];
+
+  const Figure = ({ state, ghost = false }: { state: typeof p.body; ghost?: boolean }) => {
+    const stroke = ghost ? 'rgba(255,255,255,.20)' : '#f5f5f5';
+    const joint = ghost ? 'rgba(255,255,255,.25)' : '#c8ff00';
+    const [hx, hy] = state.head;
+    const [sx, sy] = state.shoulder;
+    const [px, py] = state.hip;
+    const [handX, handY] = state.hand;
+    const [footX, footY] = state.foot;
+
+    return (
+      <g opacity={ghost ? .7 : 1}>
+        <circle cx={hx} cy={hy} r="11" fill="none" stroke={stroke} strokeWidth="5" />
+        <line x1={sx} y1={sy} x2={px} y2={py} stroke={stroke} strokeWidth="7" strokeLinecap="round" />
+        <line x1={sx} y1={sy} x2={handX} y2={handY} stroke={stroke} strokeWidth="6" strokeLinecap="round" />
+        <line x1={sx} y1={sy} x2={360 - handX} y2={handY} stroke={stroke} strokeWidth="6" strokeLinecap="round" />
+        <line x1={px} y1={py} x2={footX} y2={footY} stroke={stroke} strokeWidth="7" strokeLinecap="round" />
+        <line x1={px} y1={py} x2={360 - footX} y2={footY} stroke={stroke} strokeWidth="7" strokeLinecap="round" />
+        <circle cx={sx} cy={sy} r="5" fill={joint} />
+        <circle cx={px} cy={py} r="5" fill={joint} />
+      </g>
+    );
+  };
+
+  return (
+    <div style={{
+      width: compact ? width : '100%',
+      height,
+      maxWidth: compact ? width : 420,
+      borderRadius: compact ? 12 : 18,
+      overflow: 'hidden',
+      position: 'relative',
+      background: 'radial-gradient(circle at 50% 38%, rgba(200,255,0,.12), transparent 30%), linear-gradient(160deg,#171717,#080808 70%)',
+      border: `1px solid ${compact ? '#242424' : 'rgba(200,255,0,.16)'}`,
+      flexShrink: 0,
+    }}>
+      <svg viewBox="0 0 360 220" width="100%" height="100%" role="img" aria-label={`Démo visuelle ${exercise?.name || 'exercice'}`}>
+        <defs>
+          <linearGradient id={`noxGlow-${kind}`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#c8ff00" stopOpacity=".35" />
+            <stop offset="100%" stopColor="#c8ff00" stopOpacity=".03" />
+          </linearGradient>
+          <marker id={`arrow-${kind}`} markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L6,3 z" fill="#c8ff00" />
+          </marker>
+        </defs>
+
+        <rect x="0" y="0" width="360" height="220" fill="transparent" />
+        <ellipse cx={p.target.x} cy={p.target.y} rx={p.target.rx} ry={p.target.ry} fill={`url(#noxGlow-${kind})`} />
+
+        {p.equipment === 'bench' && <>
+          <rect x="78" y="151" width="205" height="12" rx="6" fill="#3c3c3c" />
+          <line x1="105" y1="163" x2="95" y2="196" stroke="#3c3c3c" strokeWidth="8" />
+          <line x1="258" y1="163" x2="270" y2="196" stroke="#3c3c3c" strokeWidth="8" />
+          <line x1="108" y1="74" x2="252" y2="74" stroke="#777" strokeWidth="6" />
+        </>}
+        {p.equipment === 'bar' && <line x1="116" y1="82" x2="244" y2="82" stroke="#777" strokeWidth="6" />}
+        {p.equipment === 'pullbar' && <line x1="102" y1="48" x2="258" y2="48" stroke="#777" strokeWidth="8" />}
+        {p.equipment === 'platform' && <line x1="270" y1="54" x2="318" y2="154" stroke="#555" strokeWidth="12" strokeLinecap="round" />}
+
+        <Figure state={p.body2} ghost />
+        <Figure state={p.body} />
+
+        <line
+          x1="286"
+          y1="90"
+          x2="286"
+          y2="135"
+          stroke="#c8ff00"
+          strokeWidth="3"
+          strokeLinecap="round"
+          markerEnd={`url(#arrow-${kind})`}
+          opacity=".9"
+        />
+      </svg>
+
+      {!compact && (
+        <>
+          <div style={{ position: 'absolute', top: 13, left: 14, right: 14, display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+            <div style={{ background: 'rgba(0,0,0,.66)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 9, padding: '6px 9px', fontSize: 9, fontWeight: 900, letterSpacing: '.08em', color: '#fff' }}>
+              DÉMO VISUELLE
+            </div>
+            <div style={{ background: 'rgba(200,255,0,.12)', border: '1px solid rgba(200,255,0,.2)', borderRadius: 9, padding: '6px 9px', fontSize: 9, fontWeight: 900, color: ACCENT }}>
+              {p.label.toUpperCase()}
+            </div>
+          </div>
+          <div style={{ position: 'absolute', left: 14, right: 14, bottom: 12, display: 'flex', alignItems: 'center', gap: 9 }}>
+            <div style={{ width: 30, height: 30, borderRadius: '50%', background: ACCENT, color: '#050505', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 950 }}>▶</div>
+            <div>
+              <div style={{ fontSize: 10.5, color: '#fff', fontWeight: 850 }}>{p.cue}</div>
+              <div style={{ fontSize: 9, color: '#777', marginTop: 2 }}>Position claire · trajectoire indiquée</div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function Program() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -164,8 +402,8 @@ export default function Program() {
                       {open && (
                         <div style={{ border: '1px solid rgba(200,255,0,.18)', borderTop: 0, background: '#0c0c0c', borderRadius: '0 0 18px 18px', padding: '2px 15px 10px' }}>
                           {(session.exercises || []).map((ex: any, ei: number) => (
-                            <div key={ei} style={{ padding: '14px 0', borderBottom: ei === session.exercises.length - 1 ? 'none' : `1px solid ${BORDER}`, display: 'flex', gap: 11 }}>
-                              <div style={{ width: 25, height: 25, borderRadius: 8, background: '#171717', display: 'grid', placeItems: 'center', color: '#777', fontSize: 10, fontWeight: 900, flexShrink: 0 }}>{ei + 1}</div>
+                            <div key={ei} style={{ padding: '14px 0', borderBottom: ei === session.exercises.length - 1 ? 'none' : `1px solid ${BORDER}`, display: 'flex', gap: 11, alignItems: 'center' }}>
+                              <ExerciseVisual exercise={ex} compact />
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: 13.5, fontWeight: 850 }}>{ex.name}</div>
                                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 7 }}>
@@ -204,12 +442,15 @@ export default function Program() {
                       width: '100%', border: `1px solid ${open ? 'rgba(200,255,0,.24)' : BORDER}`,
                       background: SURFACE, color: '#fff', borderRadius: 16, padding: 15, marginBottom: 9, textAlign: 'left', cursor: 'pointer'
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 900 }}>{ex.name}</div>
-                          {ex.muscles && <div style={{ color: '#777', fontSize: 11, marginTop: 4 }}>{ex.muscles}</div>}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
+                          <ExerciseVisual exercise={ex} compact />
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 900 }}>{ex.name}</div>
+                            {ex.muscles && <div style={{ color: '#777', fontSize: 11, marginTop: 4 }}>{ex.muscles}</div>}
+                          </div>
                         </div>
-                        <span style={{ color: open ? ACCENT : '#555' }}>{open ? '−' : '+'}</span>
+                        <span style={{ color: open ? ACCENT : '#555', flexShrink: 0 }}>{open ? '−' : '+'}</span>
                       </div>
                       {open && <ExerciseDemo exercise={ex} />}
                     </button>
@@ -242,7 +483,7 @@ function ExerciseDemo({ exercise }: { exercise: any }) {
 function ExerciseDemoModal({ exercise, onClose }: { exercise: any; onClose: () => void }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.95)', zIndex: 300, overflowY: 'auto' }}>
-      <div style={{ padding: '24px 20px 100px' }}>
+      <div style={{ padding: '20px 18px 100px', maxWidth: 560, margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>{exercise.name}</div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#555', fontSize: 28, cursor: 'pointer', lineHeight: 1 }}>×</button>
@@ -551,9 +792,9 @@ function ExerciseContent({ exercise }: { exercise: any }) {
         ))}
       </div>
 
-      {/* Schéma ASCII */}
-      <div style={{ background: '#050505', border: '1px solid #1a1a1a', borderRadius: 12, padding: '14px 16px', marginBottom: 16, fontFamily: 'monospace', fontSize: 12, color: ACCENT, lineHeight: 1.5, overflowX: 'auto', whiteSpace: 'pre' }}>
-        {data.schema}
+      {/* Démo visuelle NOX */}
+      <div style={{ marginBottom: 16 }}>
+        <ExerciseVisual exercise={exercise} />
       </div>
 
       {/* Muscles */}
