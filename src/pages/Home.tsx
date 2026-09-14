@@ -266,7 +266,8 @@ export default function Home() {
 
   const days = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'];
   const todayDay = days[new Date().getDay()];
-  const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
   const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   useEffect(() => {

@@ -95,27 +95,55 @@ export default function Fuel() {
   useEffect(() => { if (user) loadData(); }, [user]);
 
   const loadData = async () => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const [{ data: t }, { data: e }] = await Promise.all([
+    // Utiliser la date locale (pas UTC) pour éviter le décalage de fuseau horaire
+    const now = new Date();
+    const localDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    // Début et fin de journée en UTC depuis la date locale
+    const startOfDay = new Date(localDate + 'T00:00:00');
+    const endOfDay = new Date(localDate + 'T23:59:59');
+
+    const [{ data: t }, { data: e }, { data: profile }] = await Promise.all([
       supabase.from('nutrition_targets').select('*').eq('user_id', user!.id).maybeSingle(),
       supabase.from('food_entries').select('*').eq('user_id', user!.id)
-        .gte('created_at', todayStr + 'T00:00:00')
-        .lte('created_at', todayStr + 'T23:59:59')
+        .gte('created_at', startOfDay.toISOString())
+        .lte('created_at', endOfDay.toISOString())
         .order('created_at'),
+      supabase.from('profiles').select('*').eq('id', user!.id).maybeSingle(),
     ]);
-    if (t) setTargets({ kcal: t.calories || 2200, protein: t.protein || 160, carbs: t.carbs || 220, fat: t.fat || 70 });
+
+    // Objectifs nutritionnels — créer des défauts si pas encore configurés
+    if (t) {
+      setTargets({ kcal: t.calories || 2200, protein: t.protein || 160, carbs: t.carbs || 220, fat: t.fat || 70 });
+    } else if (profile) {
+      // Calculer des objectifs par défaut selon le profil
+      const weight = profile.starting_weight_kg || 75;
+      const goal = profile.goal_type || '';
+      const defaultProtein = Math.round(weight * 2); // 2g/kg
+      const defaultKcal = goal.includes('gras') ? 2000 : goal.includes('muscle') ? 2800 : 2400;
+      const defaultCarbs = Math.round((defaultKcal * 0.45) / 4);
+      const defaultFat = Math.round((defaultKcal * 0.25) / 9);
+      setTargets({ kcal: defaultKcal, protein: defaultProtein, carbs: defaultCarbs, fat: defaultFat });
+      // Sauvegarder en DB pour la prochaine fois
+      await supabase.from('nutrition_targets').insert({
+        user_id: user!.id,
+        calories: defaultKcal,
+        protein: defaultProtein,
+        carbs: defaultCarbs,
+        fat: defaultFat,
+        created_at: new Date().toISOString(),
+      }).onConflict('user_id').ignore();
+    }
+
     setEntries(e || []);
 
-    // Calculer TDEE réel
-    const [{ data: profile }, { data: allBodyLogs }, { data: allFuel }] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', user!.id).maybeSingle(),
+    // TDEE réel (en arrière-plan, ne bloque pas l'affichage)
+    const [{ data: allBodyLogs }, { data: allFuel }] = await Promise.all([
       supabase.from('body_logs').select('weight, created_at').eq('user_id', user!.id).order('created_at'),
       supabase.from('food_entries').select('calories, created_at').eq('user_id', user!.id).order('created_at'),
     ]);
     if (allBodyLogs && allFuel && profile) {
       const tdeeResult = calculateRealTDEE(allBodyLogs, allFuel, profile);
       setTdee(tdeeResult);
-      // Mettre à jour les objectifs si TDEE réel dispo et objectif perte de poids
       if (tdeeResult.tdeeReal && tdeeResult.confidence !== 'insuffisant' && !t) {
         const targetKcal = profile.goal_type?.includes('gras') || profile.goal_type?.includes('poids')
           ? tdeeResult.tdeeReal - 400
