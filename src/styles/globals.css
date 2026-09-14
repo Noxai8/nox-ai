@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+:root {
+  --nox-bg: #0a0a0a;
+  --nox-surface: #111111;
+  --nox-surface-2: #1a1a1a;
+  --nox-border: #222222;
+  --nox-accent: #c8ff00;
+  --nox-accent-dim: rgba(200, 255, 0, 0.1);
+  --nox-red: #ff3b30;
+  --nox-text: #ffffff;
+  --nox-muted: #666666;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--nox-bg);
+  color: var(--nox-text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+input, textarea, select {
+  font-family: inherit;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
