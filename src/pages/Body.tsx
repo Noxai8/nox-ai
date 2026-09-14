@@ -71,6 +71,26 @@ export default function Body() {
       return `${x},${y}`;
     }).join(' ');
     return (
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 80 }}>
+        <polyline points={points} fill="none" stroke={ACCENT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        {weightLogs.map((l, i) => {
+          const x = (i / (weightLogs.length - 1)) * W;
+          const y = H - ((l.weight - min) / (max - min)) * H;
+          return <circle key={i} cx={x} cy={y} r="3" fill={ACCENT} />;
+        })}
+      </svg>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: BG, display: 'grid', placeItems: 'center' }}>
+        <div style={{ color: ACCENT, fontWeight: 900, letterSpacing: '.14em' }}>NOX BODY</div>
+      </div>
+    );
+  }
+
+  return (
     <div style={{ minHeight: '100vh', background: BG, color: '#fff', paddingBottom: 100 }}>
       <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
         <header style={{
