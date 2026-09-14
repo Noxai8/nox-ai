@@ -81,15 +81,18 @@ export default function Fuel() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      setPhotoBase64(reader.result as string);
-      analyzePhoto(base64);
+      const dataUrl = reader.result as string;
+      const parts = dataUrl.split(';base64,');
+      const mime = parts[0].replace('data:', '') || 'image/jpeg';
+      const base64 = parts[1];
+      setPhotoBase64(dataUrl);
+      analyzePhoto(base64, mime);
     };
     reader.readAsDataURL(file);
     e.target.value = '';
   };
 
-  const analyzePhoto = async (base64: string) => {
+  const analyzePhoto = async (base64: string, mime = 'image/jpeg') => {
     setScanning(true);
     setScanError('');
     setScanResult(null);
@@ -105,7 +108,7 @@ export default function Fuel() {
             content: [
               {
                 type: 'image',
-                source: { type: 'base64', media_type: 'image/jpeg', data: base64 },
+                source: { type: 'base64', media_type: mime as any, data: base64 },
               },
               {
                 type: 'text',
@@ -142,12 +145,29 @@ Réponds UNIQUEMENT en JSON valide, sans texte avant ou après :
       });
 
       const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error.message || 'Erreur API');
+      }
+      
       const text = data.content?.[0]?.text || '';
-      const clean = text.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(clean);
+      if (!text) throw new Error('Réponse vide');
+      
+      // Extraire le JSON de la réponse
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('Format invalide');
+      
+      const parsed = JSON.parse(jsonMatch[0]);
+      
+      // Valider la structure minimale
+      if (!parsed.total || parsed.total.kcal === undefined) {
+        throw new Error('Structure invalide');
+      }
+      
       setScanResult(parsed);
-    } catch (err) {
-      setScanError("Impossible d'analyser cette image. Essaie avec une photo plus nette ou saisis manuellement.");
+    } catch (err: any) {
+      console.error('Scan error:', err);
+      setScanError(`Analyse impossible : ${err.message || 'erreur inconnue'}. Essaie une photo plus nette ou saisis manuellement.`);
     }
     setScanning(false);
   };
