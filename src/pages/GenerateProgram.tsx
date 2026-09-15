@@ -127,21 +127,55 @@ Génère un programme structuré. Réponds UNIQUEMENT en JSON valide :
 }
 
 RÈGLES :
-- ${sessionCount} séances par semaine exactement
-- Adapte tous les exercices au matériel disponible
-- Exercices polyarticulaires en premier (composés avant isolation)
-- Volume adapté au niveau (débutant: 2-3 séries, intermédiaire: 3-4, avancé: 4-5)
-- Inclus du cardio si objectif perte de poids
-- Séances équilibrées push/pull/legs si possible
-- Plages de reps adaptées à l'objectif (force: 3-6, hypertrophie: 8-12, endurance: 15-20)`;
+- ${sessionCount} séances par semaine exactement.
+- Crée une vraie stratégie de progression, pas une simple liste d'exercices.
+- Adapte les exercices au matériel, au niveau, au temps disponible et aux blessures/contraintes déclarées.
+- Ne force pas automatiquement un split push/pull/legs : choisis la structure la plus pertinente pour ${sessionCount} jours.
+- Place les mouvements les plus techniques et exigeants avant les isolations, sauf justification.
+- Le volume doit rester récupérable : débutant plutôt 2-3 séries de travail par exercice, intermédiaire 3-4 lorsque pertinent, avancé selon le besoin réel.
+- Répartis volume et fréquence musculaire selon l'objectif et le niveau.
+- Hypertrophie : ne limite pas tout à 8-12 reps ; adapte la plage à l'exercice.
+- Force : reps plus basses surtout sur les mouvements principaux, plages modérées sur les accessoires.
+- Perte de gras : la musculation reste prioritaire ; ajoute seulement un cardio raisonnable compatible avec la récupération.
+- N'impose pas l'échec musculaire sur toutes les séries.
+- La première semaine sert de calibration lorsque les charges réelles sont inconnues.
+- Si aucune performance fiable n'est fournie, N'INVENTE PAS de charge en kg dans weight_suggestion. Indique une calibration permettant de terminer avec environ 2-3 répétitions en réserve.
+- Dans progression_notes, impose une double progression : atteindre le haut de la plage de reps sur toutes les séries avec technique propre et environ 1-2 reps en réserve, puis augmenter légèrement la charge.
+- Une seule mauvaise séance ne signifie pas stagnation.
+- En cas de baisse répétée : vérifier récupération, sommeil, technique et adhérence avant d'ajuster charge, reps ou volume.
+- progression_notes doit aussi expliquer quand réduire temporairement le volume/intensité si fatigue persistante ou performances durablement en baisse.
+- Les descriptions techniques doivent être courtes, concrètes et sûres.
+- Ne garantis aucun résultat physique ni délai.
+- nutrition_notes reste général et n'invente pas une cible calorique précise si elle n'est pas fournie.`;
 
-      const { data: apiData, error: fnErr } = (await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/generate-program', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4' }, body: JSON.stringify({ prompt }) })).json();
+      const response = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/generate-program', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4',
+        },
+        body: JSON.stringify({ prompt }),
+      });
 
-      if (fnErr) {
-        throw new Error(fnErr.message || 'Erreur serveur pendant la génération.');
+      let apiData: any;
+      try {
+        apiData = await response.json();
+      } catch {
+        throw new Error(`Réponse serveur illisible (${response.status})`);
       }
 
-      const text = apiData?.content?.[0]?.text;
+      if (!response.ok) {
+        const serverMessage =
+          apiData?.error?.message ||
+          (typeof apiData?.error === 'string' ? apiData.error : '') ||
+          `Erreur serveur (${response.status})`;
+        throw new Error(serverMessage);
+      }
+
+      const text =
+        apiData?.content?.[0]?.text ||
+        apiData?.data?.content?.[0]?.text ||
+        apiData?.text;
       if (typeof text !== 'string' || !text.trim()) {
         throw new Error('Le serveur a renvoyé une réponse vide.');
       }
@@ -151,8 +185,49 @@ RÈGLES :
       const start = clean.indexOf('{');
       const end = clean.lastIndexOf('}');
       if (start === -1) throw new Error('Format invalide');
+      if (end <= start) throw new Error('Format JSON incomplet');
       const prog = JSON.parse(clean.slice(start, end + 1));
-      if (!prog.sessions || !Array.isArray(prog.sessions)) throw new Error('Programme invalide');
+
+      if (!prog || typeof prog !== 'object') throw new Error('Programme invalide');
+      if (!Array.isArray(prog.sessions)) throw new Error('Programme sans séances');
+      if (prog.sessions.length !== sessionCount) {
+        throw new Error(`Le programme contient ${prog.sessions.length} séances au lieu de ${sessionCount}`);
+      }
+
+      prog.name = typeof prog.name === 'string' && prog.name.trim() ? prog.name.trim() : 'PROGRAMME NOX';
+      prog.goal = typeof prog.goal === 'string' && prog.goal.trim() ? prog.goal.trim() : 'Progression personnalisée';
+      prog.duration_weeks = Number.isFinite(Number(prog.duration_weeks))
+        ? Math.min(12, Math.max(4, Number(prog.duration_weeks)))
+        : 8;
+      prog.session_length_min = sessionLength;
+
+      prog.sessions.forEach((session: any, sessionIndex: number) => {
+        if (!session?.name || typeof session.name !== 'string') {
+          throw new Error(`Nom manquant pour la séance ${sessionIndex + 1}`);
+        }
+        if (!Array.isArray(session.exercises) || session.exercises.length < 3) {
+          throw new Error(`La séance "${session.name}" contient trop peu d'exercices`);
+        }
+
+        session.duration = Number(session.duration) > 0 ? Number(session.duration) : sessionLength;
+
+        session.exercises.forEach((exercise: any, exerciseIndex: number) => {
+          if (!exercise?.name || typeof exercise.name !== 'string') {
+            throw new Error(`Exercice invalide dans "${session.name}"`);
+          }
+
+          const sets = Number(exercise.sets);
+          if (!Number.isFinite(sets) || sets < 1 || sets > 6) {
+            throw new Error(`Nombre de séries invalide pour "${exercise.name}"`);
+          }
+
+          if (exercise.reps === undefined || exercise.reps === null || !String(exercise.reps).trim()) {
+            throw new Error(`Répétitions manquantes pour "${exercise.name}"`);
+          }
+
+          exercise.order_index = exerciseIndex + 1;
+        });
+      });
 
       // Sauvegarder d'abord le nouveau programme.
       // Si cette insertion échoue, l'ancien programme reste intact.
@@ -194,13 +269,11 @@ RÈGLES :
       setDone(true);
     } catch (err: any) {
       console.error(err);
-      setError(
-        err?.message?.includes('séances') ||
-        err?.message?.includes('exercice') ||
-        err?.message?.includes('JSON')
-          ? `Le programme généré n'était pas exploitable : ${err.message} Réessaie.`
-          : 'Erreur lors de la génération. Réessaie.',
-      );
+      const message =
+        typeof err?.message === 'string' && err.message.trim()
+          ? err.message.trim()
+          : 'Erreur inconnue';
+      setError(`Impossible de générer un programme exploitable : ${message}. Réessaie.`);
     } finally {
       setGenerating(false);
     }
@@ -224,7 +297,7 @@ RÈGLES :
         <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-.02em', marginBottom: 8 }}>TON PLAN EST PRÊT</div>
         <div style={{ fontSize: 15, color: ACCENT, fontWeight: 700, marginBottom: 32 }}>{programName}</div>
         <div style={{ fontSize: 14, color: '#555', marginBottom: 40, lineHeight: 1.6, maxWidth: 300 }}>
-          Programme complet avec descriptions détaillées et schémas pour chaque exercice.
+          Programme structuré avec progression, volume et consignes adaptés à ton profil.
         </div>
         <button
           onClick={() => navigate('/program')}
