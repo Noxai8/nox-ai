@@ -8,16 +8,19 @@ const BG = '#0a0a0a';
 const SURFACE = '#111';
 const BORDER = '#1a1a1a';
 
-type Tab = 'weight' | 'measurements' | 'photos';
+type Tab = 'progress' | 'photos';
 
 export default function Body() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<Tab>('weight');
+  const [tab, setTab] = useState<Tab>('progress');
   const [logs, setLogs] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ weight: '', chest_cm: '', waist_cm: '', hips_cm: '', arms_cm: '', thighs_cm: '', notes: '' });
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<'7d' | '30d' | '90d'>('30d');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => { if (user) load(); }, [user]);
 
@@ -28,21 +31,56 @@ export default function Body() {
   };
 
   const save = async () => {
-    if (!form.weight && !form.waist_cm) return;
-    await supabase.from('body_logs').insert({
-      user_id: user!.id,
-      weight: form.weight ? parseFloat(form.weight) : null,
-      chest_cm: form.chest_cm ? parseFloat(form.chest_cm) : null,
-      waist_cm: form.waist_cm ? parseFloat(form.waist_cm) : null,
-      hips_cm: form.hips_cm ? parseFloat(form.hips_cm) : null,
-      arms_cm: form.arms_cm ? parseFloat(form.arms_cm) : null,
-      thighs_cm: form.thighs_cm ? parseFloat(form.thighs_cm) : null,
-      notes: form.notes || null,
-      created_at: new Date().toISOString(),
-    });
-    setForm({ weight: '', chest_cm: '', waist_cm: '', hips_cm: '', arms_cm: '', thighs_cm: '', notes: '' });
-    setShowAdd(false);
-    load();
+    if (!user || saving) return;
+    setSaveError('');
+    setSaveSuccess(false);
+
+    const keys = ['weight', 'chest_cm', 'waist_cm', 'hips_cm', 'arms_cm', 'thighs_cm'] as const;
+    if (!keys.some(key => form[key].trim() !== '')) {
+      setSaveError('Ajoute au moins ton poids ou une mesure.');
+      return;
+    }
+
+    const parsed: Record<string, number | null> = {};
+    for (const key of keys) {
+      const raw = form[key].trim().replace(',', '.');
+      if (!raw) { parsed[key] = null; continue; }
+      const value = Number(raw);
+      if (!Number.isFinite(value) || value <= 0) {
+        setSaveError('Vérifie les valeurs saisies : elles doivent être supérieures à 0.');
+        return;
+      }
+      parsed[key] = value;
+    }
+
+    try {
+      setSaving(true);
+      const { error } = await supabase.from('body_logs').insert({
+        user_id: user.id,
+        weight: parsed.weight,
+        chest_cm: parsed.chest_cm,
+        waist_cm: parsed.waist_cm,
+        hips_cm: parsed.hips_cm,
+        arms_cm: parsed.arms_cm,
+        thighs_cm: parsed.thighs_cm,
+        notes: form.notes.trim() || null,
+        created_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+
+      await load();
+      setSaveSuccess(true);
+      setForm({ weight: '', chest_cm: '', waist_cm: '', hips_cm: '', arms_cm: '', thighs_cm: '', notes: '' });
+      window.setTimeout(() => {
+        setShowAdd(false);
+        setSaveSuccess(false);
+      }, 650);
+    } catch (error: any) {
+      console.error('BODY_CHECKIN_SAVE_ERROR', error);
+      setSaveError(error?.message || "Impossible d'enregistrer le check-in. Réessaie.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const getRangeData = () => {
@@ -109,10 +147,9 @@ export default function Body() {
             }}>+ CHECK-IN</button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', background: '#111', padding: 4, borderRadius: 14, marginTop: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', background: '#111', padding: 4, borderRadius: 14, marginTop: 20 }}>
             {([
-              ['weight', 'POIDS'],
-              ['measurements', 'MESURES'],
+              ['progress', 'PROGRESSION'],
               ['photos', 'PHOTOS'],
             ] as [Tab, string][]).map(([id, label]) => (
               <button key={id} onClick={() => setTab(id)} style={{
@@ -125,7 +162,7 @@ export default function Body() {
         </header>
 
         <section style={{ padding: 20 }}>
-          {tab === 'weight' && (
+          {tab === 'progress' && (
             <>
               {latest ? (
                 <div style={{
@@ -206,8 +243,9 @@ export default function Body() {
             </>
           )}
 
-          {tab === 'measurements' && (
+          {tab === 'progress' && (
             <>
+              <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>MENSURATIONS</div>
               {logs.filter(l => l.waist_cm || l.chest_cm).length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '55px 20px', borderRadius: 22, background: SURFACE, border: `1px solid ${BORDER}` }}>
                   <div style={{ fontSize: 18, fontWeight: 950 }}>MESURE TON ÉVOLUTION</div>
@@ -312,8 +350,18 @@ export default function Body() {
               />
             </label>
 
-            <button onClick={save} style={{ width: '100%', border: 0, borderRadius: 14, background: ACCENT, color: '#050505', padding: 15, marginTop: 16, fontSize: 12, fontWeight: 950, letterSpacing: '.04em', cursor: 'pointer' }}>
-              ENREGISTRER LE CHECK-IN
+            {saveError && (
+              <div role="alert" style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(255,95,95,.08)', border: '1px solid rgba(255,95,95,.22)', color: '#ff8a8a', fontSize: 11.5, lineHeight: 1.45 }}>
+                {saveError}
+              </div>
+            )}
+            {saveSuccess && (
+              <div style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.22)', color: ACCENT, fontSize: 11.5, fontWeight: 850 }}>
+                Check-in enregistré ✓
+              </div>
+            )}
+            <button onClick={save} disabled={saving} style={{ width: '100%', border: 0, borderRadius: 14, background: saving ? '#2a2a2a' : ACCENT, color: saving ? '#777' : '#050505', padding: 15, marginTop: 16, fontSize: 12, fontWeight: 950, letterSpacing: '.04em', cursor: saving ? 'wait' : 'pointer' }}>
+              {saving ? 'ENREGISTREMENT...' : 'ENREGISTRER LE CHECK-IN'}
             </button>
           </div>
         </div>
