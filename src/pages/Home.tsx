@@ -42,108 +42,87 @@ const cardStyle: React.CSSProperties = {
 
 export function BottomNav({ active }: { active: string }) {
   const navigate = useNavigate();
+  const [showMore, setShowMore] = useState(false);
 
   const items = [
     { id: 'home', label: 'Home', icon: House, path: '/home' },
     { id: 'training', label: 'Train', icon: Dumbbell, path: '/program' },
-    { id: 'body', label: 'Body', icon: BarChart3, path: '/body' },
-    { id: 'future', label: 'Future', icon: WandSparkles, path: '/future', signature: true },
     { id: 'fuel', label: 'Fuel', icon: Apple, path: '/fuel' },
-    { id: 'play', label: 'Play', icon: Medal, path: '/play' },
     { id: 'coach', label: 'Coach', icon: Bot, path: '/coach' },
+    { id: 'more', label: 'Plus', icon: null, path: '' },
+  ];
+
+  const moreItems = [
+    { icon: BarChart3, label: 'Body', path: '/body' },
+    { icon: WandSparkles, label: 'Future', path: '/future' },
+    { icon: Medal, label: 'Play', path: '/play' },
+    { icon: '🏆', label: 'Classement', path: '/leaderboard' },
+    { icon: '🧊', label: 'Fuel IA', path: '/fuel-ai' },
+    { icon: '👨‍🍳', label: 'Recettes', path: '/recipes' },
+    { icon: '📅', label: 'Planifier', path: '/meal-planner' },
+    { icon: '⏱️', label: 'Jeûne', path: '/fasting' },
+    { icon: '😊', label: 'Humeur', path: '/mood' },
+    { icon: '🌙', label: 'Recovery', path: '/recovery' },
+    { icon: '📋', label: 'Bilan', path: '/weekly-review' },
+    { icon: '👥', label: 'Partenaire', path: '/partner' },
+    { icon: '📤', label: 'Timeline', path: '/share-timeline' },
+    { icon: '⚙️', label: 'Réglages', path: '/settings' },
   ];
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        bottom: 0,
-        width: '100%',
-        maxWidth: 560,
-        zIndex: 100,
-        padding: '8px 10px max(10px, env(safe-area-inset-bottom))',
-        background: 'rgba(7,7,7,.94)',
-        backdropFilter: 'blur(18px)',
-        borderTop: '1px solid rgba(255,255,255,.07)',
-      }}
-    >
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-          gap: 2,
-          alignItems: 'end',
-        }}
-      >
-        {items.map((item) => {
-          const Icon = item.icon;
-          const selected = active === item.id;
+    <>
+      {showMore && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.93)', zIndex: 200, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+          onClick={() => setShowMore(false)}>
+          <div style={{ background: '#0d0d0d', borderRadius: '20px 20px 0 0', padding: '20px 20px 90px', maxHeight: '75vh', overflowY: 'auto' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 16, fontWeight: 800 }}>TOUTES LES FONCTIONNALITÉS</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+              {moreItems.map(item => {
+                const isString = typeof item.icon === 'string';
+                return (
+                  <button key={item.path} onClick={() => { navigate(item.path); setShowMore(false); }}
+                    style={{ background: '#111', border: '1px solid #1a1a1a', borderRadius: 14, padding: '14px 8px', textAlign: 'center', cursor: 'pointer', touchAction: 'manipulation' }}>
+                    {isString
+                      ? <div style={{ fontSize: 24, marginBottom: 6 }}>{item.icon as string}</div>
+                      : (() => { const I = item.icon as any; return <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}><I size={24} color={ACCENT} /></div>; })()
+                    }
+                    <div style={{ fontSize: 10, color: '#888', fontWeight: 700 }}>{item.label}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
-          return (
-            <button
-              key={item.id}
-              onClick={() => navigate(item.path)}
-              aria-label={item.label}
-              style={{
-                position: 'relative',
-                border: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-                padding: item.signature ? '0 0 3px' : '8px 0 3px',
-                color: selected ? ACCENT : '#6f6f6f',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 4,
-                minWidth: 0,
-              }}
-            >
-              <div
-                style={{
-                  width: item.signature ? 42 : 28,
-                  height: item.signature ? 42 : 28,
-                  marginTop: item.signature ? -17 : 0,
-                  borderRadius: item.signature ? 14 : 10,
-                  display: 'grid',
-                  placeItems: 'center',
-                  background: item.signature
-                    ? selected
-                      ? ACCENT
-                      : '#151515'
-                    : selected
-                      ? 'rgba(200,255,0,.11)'
-                      : 'transparent',
-                  border: item.signature
-                    ? `1px solid ${selected ? ACCENT : '#2a2a2a'}`
-                    : '1px solid transparent',
-                  boxShadow: item.signature && selected ? '0 8px 26px rgba(200,255,0,.18)' : 'none',
-                  color: item.signature && selected ? '#050505' : selected ? ACCENT : '#767676',
-                }}
-              >
-                <Icon size={item.signature ? 20 : 18} strokeWidth={selected ? 2.4 : 1.9} />
-              </div>
-
-              <span
-                style={{
-                  fontSize: 8.5,
-                  lineHeight: 1,
-                  fontWeight: 800,
-                  letterSpacing: '.05em',
-                  textTransform: 'uppercase',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
+      <div style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 0, width: '100%', maxWidth: 560, zIndex: 100, padding: '8px 10px max(10px, env(safe-area-inset-bottom))', background: 'rgba(7,7,7,.94)', backdropFilter: 'blur(18px)', borderTop: '1px solid rgba(255,255,255,.07)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 2, alignItems: 'end' }}>
+          {items.map(item => {
+            const selected = active === item.id || (item.id === 'more' && showMore);
+            const Icon = item.icon;
+            return (
+              <button key={item.id}
+                onClick={() => item.id === 'more' ? setShowMore(s => !s) : navigate(item.path)}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '8px 0 3px', color: selected ? ACCENT : '#6f6f6f', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0, touchAction: 'manipulation' }}>
+                <div style={{ width: 28, height: 28, borderRadius: 10, display: 'grid', placeItems: 'center', background: selected ? 'rgba(200,255,0,.11)' : 'transparent', border: '1px solid transparent' }}>
+                  {Icon
+                    ? <Icon size={18} strokeWidth={selected ? 2.4 : 1.9} />
+                    : <span style={{ fontSize: 18 }}>☰</span>
+                  }
+                </div>
+                <span style={{ fontSize: 8.5, lineHeight: 1, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', whiteSpace: 'nowrap', color: selected ? ACCENT : '#6f6f6f' }}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
+
 
 function NoxScore({ score }: { score: number }) {
   const safe = Math.max(0, Math.min(100, score));
