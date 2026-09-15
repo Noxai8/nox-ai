@@ -4,11 +4,11 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 
-const ACCENT = '#c8ff00';
-const BG = '#050505';
-const SURFACE = '#101010';
-const BORDER = '#242424';
-const MUTED = '#8a8a8a';
+const ACCENT = '#B7FF00';
+const BG = '#F7F7F5';
+const SURFACE = '#FFFFFF';
+const BORDER = '#E7E7E2';
+const MUTED = '#77776F';
 
 type VisualKey = 'bench' | 'squat' | 'row' | 'overhead' | 'pullup' | 'rdl' | 'plank';
 type Filter = 'Tous' | 'Pectoraux' | 'Dos' | 'Jambes' | 'Épaules' | 'Bras';
@@ -243,20 +243,24 @@ export default function Program() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, color: '#fff', paddingBottom: 112 }}>
+    <div style={{ minHeight: '100vh', background: BG, color: '#111111', paddingBottom: 112 }}>
       <main style={{ maxWidth: 560, margin: '0 auto' }}>
         <header
           style={{
             padding: '24px 20px 18px',
-            background: 'radial-gradient(circle at 88% 0%, rgba(200,255,0,.08), transparent 30%), #070707',
-            borderBottom: '1px solid rgba(255,255,255,.06)',
+            background: '#FFFFFF',
+            borderBottom: '1px solid #ECECE7',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ fontSize: 31, fontWeight: 1000, letterSpacing: '-.07em', lineHeight: .9 }}>NOX</div>
-              <div style={{ fontSize: 8, letterSpacing: '.42em', marginTop: 7, color: '#bdbdbd', fontWeight: 800 }}>
-                TRAINING
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <div style={{ position: 'relative', width: 28, height: 22, flexShrink: 0 }}>
+                <span style={{ position: 'absolute', width: 13, height: 7, left: 1, top: 2, borderRadius: 999, background: ACCENT, transform: 'rotate(27deg)' }} />
+                <span style={{ position: 'absolute', width: 22, height: 8, left: 7, top: 11, borderRadius: 999, background: ACCENT, transform: 'rotate(8deg)' }} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                <span style={{ fontSize: 18, fontWeight: 1000, letterSpacing: '-.04em', color: '#111111' }}>NOX</span>
+                <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.12em', color: '#77776F' }}>AI</span>
               </div>
             </div>
 
@@ -279,10 +283,10 @@ export default function Program() {
           </div>
 
           <div style={{ marginTop: 27 }}>
-            <h1 style={{ margin: 0, fontSize: 29, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.045em' }}>
+            <h1 style={{ margin: 0, fontSize: 32, lineHeight: .95, fontWeight: 1000, letterSpacing: '-.055em', color: '#111111' }}>
               PROGRAMME
             </h1>
-            <div style={{ marginTop: 7, color: '#a6a6a6', fontSize: 14 }}>
+            <div style={{ marginTop: 7, color: '#77776F', fontSize: 14 }}>
               {program?.name || 'Ton programme'} · {program?.days_per_week || sessions.length || 0} jours
             </div>
           </div>
@@ -291,7 +295,7 @@ export default function Program() {
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              background: '#111',
+              background: '#FFFFFF',
               padding: 4,
               borderRadius: 999,
               marginTop: 22,
@@ -354,8 +358,8 @@ export default function Program() {
                 <div
                   style={{
                     borderRadius: 20,
-                    border: '1px solid rgba(200,255,0,.17)',
-                    background: 'linear-gradient(135deg,#151515,#0c0c0c)',
+                    border: '1px solid rgba(183,255,0,.75)',
+                    background: '#FFFFFF',
                     padding: 18,
                     marginBottom: 18,
                   }}
@@ -377,7 +381,7 @@ export default function Program() {
                       <div
                         style={{
                           borderRadius: open ? '18px 18px 0 0' : 18,
-                          border: `1px solid ${open ? 'rgba(200,255,0,.24)' : BORDER}`,
+                          border: `1px solid ${open ? ACCENT : BORDER}`,
                           background: SURFACE,
                           padding: 16,
                         }}
@@ -389,7 +393,7 @@ export default function Program() {
                               flex: 1,
                               border: 0,
                               background: 'transparent',
-                              color: '#fff',
+                              color: '#111111',
                               padding: 0,
                               textAlign: 'left',
                               cursor: 'pointer',
@@ -446,7 +450,7 @@ export default function Program() {
                           style={{
                             border: '1px solid rgba(200,255,0,.15)',
                             borderTop: 0,
-                            background: '#0a0a0a',
+                            background: '#F7F7F5',
                             borderRadius: '0 0 18px 18px',
                             overflow: 'hidden',
                           }}
@@ -474,7 +478,7 @@ export default function Program() {
                     height: 46,
                     borderRadius: 15,
                     border: `1px solid ${BORDER}`,
-                    background: '#101010',
+                    background: '#FFFFFF',
                     display: 'flex',
                     alignItems: 'center',
                     padding: '0 14px',
@@ -492,7 +496,7 @@ export default function Program() {
                       border: 0,
                       outline: 0,
                       background: 'transparent',
-                      color: '#fff',
+                      color: '#111111',
                       fontSize: 13,
                     }}
                   />
@@ -579,7 +583,7 @@ function ExerciseListRow({
         border: compact ? 'none' : `1px solid ${BORDER}`,
         borderBottom: compact ? `1px solid ${BORDER}` : undefined,
         background: compact ? '#0a0a0a' : '#101010',
-        color: '#fff',
+        color: '#111111',
         borderRadius: compact ? 0 : 16,
         padding: compact ? '12px 14px' : 7,
         cursor: 'pointer',
@@ -595,8 +599,8 @@ function ExerciseListRow({
             height: compact ? 66 : 90,
             objectFit: 'cover',
             borderRadius: compact ? 11 : 12,
-            border: '1px solid rgba(255,255,255,.07)',
-            background: '#0a0a0a',
+            border: '1px solid #E7E7E2',
+            background: '#F7F7F5',
           }}
         />
       ) : (
@@ -605,8 +609,8 @@ function ExerciseListRow({
             width: '100%',
             height: compact ? 66 : 90,
             borderRadius: compact ? 11 : 12,
-            border: '1px solid rgba(255,255,255,.07)',
-            background: 'linear-gradient(135deg,#171717,#0a0a0a)',
+            border: '1px solid #E7E7E2',
+            background: 'linear-gradient(135deg,#FFFFFF,#F1F1ED)',
             display: 'grid',
             placeItems: 'center',
             color: ACCENT,
@@ -643,7 +647,7 @@ function ExerciseListRow({
                 borderRadius: 7,
                 padding: '3px 7px',
                 fontSize: 9.5,
-                color: '#b6b6b6',
+                color: '#66665F',
               }}
             >
               {tag}
@@ -651,12 +655,12 @@ function ExerciseListRow({
           ))}
         </div>
 
-        <div style={{ marginTop: 7, color: '#9b9b9b', fontSize: 10.5 }}>
+        <div style={{ marginTop: 7, color: '#77776F', fontSize: 10.5 }}>
           {exercise.sets || '3-4'} séries · {exercise.reps || '8-12'} reps · {exercise.rest || '90 sec'}
         </div>
       </div>
 
-      <span style={{ fontSize: 27, color: '#efefef', paddingRight: 7, lineHeight: 1 }}>›</span>
+      <span style={{ fontSize: 27, color: '#111111', paddingRight: 7, lineHeight: 1 }}>›</span>
     </button>
   );
 }
@@ -687,14 +691,14 @@ function ExerciseDetail({
       : technique.steps;
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, color: '#fff', paddingBottom: 32 }}>
+    <div style={{ minHeight: '100vh', background: BG, color: '#111111', paddingBottom: 32 }}>
       <main style={{ maxWidth: 560, margin: '0 auto', padding: '18px 18px 36px' }}>
         <button
           onClick={onBack}
           style={{
             border: 0,
             background: 'transparent',
-            color: '#d5d5d5',
+            color: '#222222',
             padding: '6px 0',
             fontSize: 13,
             cursor: 'pointer',
@@ -747,7 +751,7 @@ function ExerciseDetail({
                 borderRadius: 18,
                 overflow: 'hidden',
                 border: `1px solid ${BORDER}`,
-                background: '#0b0b0b',
+                background: '#F4F4F1',
               }}
             >
               {media?.videoEmbed ? (
@@ -786,7 +790,7 @@ function ExerciseDetail({
                     textAlign: 'center',
                     padding: 24,
                     color: '#8f8f8f',
-                    background: 'linear-gradient(135deg,#151515,#090909)',
+                    background: 'linear-gradient(135deg,#FFFFFF,#F1F1ED)',
                   }}
                 >
                   <div>
@@ -811,7 +815,7 @@ function ExerciseDetail({
                 }}
               >
                 <div>
-                  <div style={{ color: '#fff', fontSize: 12, fontWeight: 900 }}>
+                  <div style={{ color: '#111111', fontSize: 12, fontWeight: 900 }}>
                     {media?.videoEmbed ? 'Vidéo technique' : 'Démonstration'}
                   </div>
                   <div style={{ color: '#777', fontSize: 10, marginTop: 2 }}>
@@ -836,7 +840,7 @@ function ExerciseDetail({
         </section>
 
         <InfoCard title="Description technique">
-          <div style={{ color: '#d3d3d3', fontSize: 12.5, lineHeight: 1.6 }}>
+          <div style={{ color: '#333333', fontSize: 12.5, lineHeight: 1.6 }}>
             {description}
           </div>
         </InfoCard>
@@ -860,7 +864,7 @@ function ExerciseDetail({
                 >
                   {index + 1}
                 </div>
-                <div style={{ color: '#d7d7d7', fontSize: 12.5, lineHeight: 1.5 }}>
+                <div style={{ color: '#333333', fontSize: 12.5, lineHeight: 1.5 }}>
                   {step}
                 </div>
               </div>
@@ -880,10 +884,10 @@ function ExerciseDetail({
             background: 'linear-gradient(135deg, rgba(200,255,0,.045), rgba(200,255,0,.01))',
           }}
         >
-          <div style={{ fontSize: 24, color: ACCENT }}>💡</div>
+          <div style={{ width: 28, height: 28, borderRadius: 9, background: ACCENT, color: '#111111', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 1000 }}>N</div>
           <div>
             <div style={{ fontSize: 12.5, fontWeight: 950, color: ACCENT }}>Conseil NOX</div>
-            <div style={{ marginTop: 4, color: '#d4d4d4', fontSize: 11.5, lineHeight: 1.5 }}>
+            <div style={{ marginTop: 4, color: '#333333', fontSize: 11.5, lineHeight: 1.5 }}>
               {technique.tip}
             </div>
           </div>
@@ -900,7 +904,7 @@ function Metric({ value, label }: { value: string; label: string }) {
         minHeight: 76,
         borderRadius: 13,
         border: `1px solid ${BORDER}`,
-        background: '#111',
+        background: '#FFFFFF',
         display: 'grid',
         placeItems: 'center',
         textAlign: 'center',
@@ -922,13 +926,13 @@ function InfoCard({ title, children }: { title: string; children: any }) {
         marginTop: 11,
         borderRadius: 15,
         border: `1px solid ${BORDER}`,
-        background: '#101010',
+        background: '#FFFFFF',
         padding: 15,
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
         <h3 style={{ margin: 0, fontSize: 13, fontWeight: 950 }}>{title}</h3>
-        <span style={{ color: '#fff', fontSize: 14 }}>⌃</span>
+        <span style={{ color: '#111111', fontSize: 14 }}>⌃</span>
       </div>
       <div style={{ marginTop: 10 }}>{children}</div>
     </section>
