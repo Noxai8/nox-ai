@@ -191,6 +191,56 @@ export default function Training() {
 
       if (existingWorkout?.id) {
         setWorkoutId(existingWorkout.id);
+
+        // Reprendre réellement la séance après un refresh : recharge les séries
+        // déjà persistées et replace le curseur sur la prochaine série à faire.
+        const { data: resumedSets, error: resumedSetsError } = await supabase
+          .from('workout_sets')
+          .select('exercise_name, set_number, weight, reps, created_at')
+          .eq('user_id', user!.id)
+          .eq('workout_id', existingWorkout.id)
+          .order('created_at', { ascending: true });
+
+        if (resumedSetsError) throw resumedSetsError;
+
+        const restored = resumedSets || [];
+        setCompletedSets(restored);
+
+        if (restored.length > 0) {
+          let nextExerciseIdx = 0;
+          let nextSetNumber = 1;
+          let foundNext = false;
+
+          for (let exerciseIdx = 0; exerciseIdx < (session.exercises || []).length; exerciseIdx += 1) {
+            const exercise = session.exercises[exerciseIdx];
+            const expectedSets = Math.max(1, parseInt(exercise?.sets) || 3);
+            const exerciseSets = restored.filter((row: any) => row.exercise_name === exercise?.name);
+            const completedNumbers = new Set(exerciseSets.map((row: any) => Number(row.set_number)));
+
+            for (let setNumber = 1; setNumber <= expectedSets; setNumber += 1) {
+              if (!completedNumbers.has(setNumber)) {
+                nextExerciseIdx = exerciseIdx;
+                nextSetNumber = setNumber;
+                foundNext = true;
+                break;
+              }
+            }
+
+            if (foundNext) break;
+          }
+
+          if (foundNext) {
+            setCurrentIdx(nextExerciseIdx);
+            setCurrentSet(nextSetNumber);
+          } else {
+            // Toutes les séries existent déjà. On reste sur la dernière série
+            // sans en créer une en double ; l'utilisateur peut terminer proprement.
+            const lastExerciseIdx = Math.max(0, (session.exercises || []).length - 1);
+            const lastExercise = session.exercises?.[lastExerciseIdx];
+            setCurrentIdx(lastExerciseIdx);
+            setCurrentSet(Math.max(1, parseInt(lastExercise?.sets) || 3));
+          }
+        }
       } else {
         const { data: wk, error: workoutError } = await supabase
           .from('workouts')
@@ -230,11 +280,17 @@ export default function Training() {
     const loadExerciseIntelligence = async () => {
       let historicalSets: any[] = [];
 
-      const { data: setRows, error: setRowsError } = await supabase
+      let historyQuery = supabase
         .from('workout_sets')
-        .select('weight, reps, set_number, created_at')
+        .select('workout_id, weight, reps, set_number, created_at')
         .eq('user_id', user.id)
-        .eq('exercise_name', exercise.name)
+        .eq('exercise_name', exercise.name);
+
+      // Les séries de la séance en cours ne doivent jamais servir à décider
+      // de la charge de cette même séance.
+      if (workoutId) historyQuery = historyQuery.neq('workout_id', workoutId);
+
+      const { data: setRows, error: setRowsError } = await historyQuery
         .order('created_at', { ascending: false })
         .limit(40);
 
@@ -281,7 +337,7 @@ export default function Training() {
     return () => {
       cancelled = true;
     };
-  }, [user, exercises, currentIdx]);
+  }, [user, exercises, currentIdx, workoutId]);
 
 
   const startRest = (seconds: number) => {
@@ -342,9 +398,7 @@ export default function Training() {
       };
 
       // Persistance indispensable au moteur de progression.
-      // Si workout_sets n'existe pas encore dans la base, on garde la séance
-      // fonctionnelle et NOX utilisera les PRs, mais la progression détaillée
-      // restera indisponible jusqu'à création de cette table.
+      // La série doit être écrite avant toute progression de l'interface.
       const { error: setInsertError } = await supabase
         .from('workout_sets')
         .insert({
@@ -358,7 +412,9 @@ export default function Training() {
         });
 
       if (setInsertError) {
-        console.warn('workout_sets non persisté:', setInsertError.message);
+        // workout_sets alimente directement noxBrain. Avancer malgré cet échec
+        // donnerait l'impression que NOX apprend alors que la série est perdue.
+        throw new Error(`Série non enregistrée : ${setInsertError.message}`);
       }
 
       const { data: best, error: bestError } = await supabase
@@ -493,17 +549,27 @@ export default function Training() {
   };
 
   const abandonWorkout = async () => {
-    if (workoutId) {
-      // Aucun détail de série n'est encore persisté dans cette version.
-      // Supprimer le workout in_progress évite qu'il pollue l'historique.
-      await supabase
-        .from('workouts')
-        .delete()
-        .eq('id', workoutId)
-        .eq('user_id', user!.id)
-        .eq('status', 'in_progress');
+    setTrainingError('');
+
+    try {
+      if (workoutId) {
+        // workout_sets est lié au workout avec ON DELETE CASCADE :
+        // abandonner supprime aussi les séries de cette séance incomplète.
+        const { error: abandonError } = await supabase
+          .from('workouts')
+          .delete()
+          .eq('id', workoutId)
+          .eq('user_id', user!.id)
+          .eq('status', 'in_progress');
+
+        if (abandonError) throw abandonError;
+      }
+
+      navigate('/home');
+    } catch (err: any) {
+      console.error('Training abandonWorkout:', err);
+      setTrainingError(err?.message || "Impossible d'abandonner la séance proprement.");
     }
-    navigate('/home');
   };
 
   // ─── LOADING ────────────────────────────────────────────────
@@ -712,6 +778,7 @@ export default function Training() {
             <LastPerformances
               exerciseName={ex?.name}
               userId={user?.id}
+              workoutId={workoutId}
               completedSets={completedSets.filter(s => s.exercise_name === ex?.name)}
             />
 
@@ -919,7 +986,7 @@ function DoneMetric({ label, value, symbol }: { label: string; value: string; sy
 }
 
 // ─── LAST PERFORMANCES ──────────────────────────────────────────
-function LastPerformances({ exerciseName, userId, completedSets }: any) {
+function LastPerformances({ exerciseName, userId, workoutId, completedSets }: any) {
   const [history, setHistory] = useState<any[]>([]);
   const [lastSets, setLastSets] = useState<any[]>([]);
 
@@ -937,13 +1004,19 @@ function LastPerformances({ exerciseName, userId, completedSets }: any) {
           .eq('exercise_name', exerciseName)
           .order('created_at', { ascending: false })
           .limit(1),
-        supabase
-          .from('workout_sets')
-          .select('weight, reps, set_number, created_at')
-          .eq('user_id', userId)
-          .eq('exercise_name', exerciseName)
-          .order('created_at', { ascending: false })
-          .limit(12),
+        (() => {
+          let query = supabase
+            .from('workout_sets')
+            .select('workout_id, weight, reps, set_number, created_at')
+            .eq('user_id', userId)
+            .eq('exercise_name', exerciseName);
+
+          if (workoutId) query = query.neq('workout_id', workoutId);
+
+          return query
+            .order('created_at', { ascending: false })
+            .limit(20);
+        })(),
       ]);
 
       if (cancelled) return;
@@ -952,11 +1025,11 @@ function LastPerformances({ exerciseName, userId, completedSets }: any) {
 
       if (!setsResult.error && Array.isArray(setsResult.data)) {
         const rows = setsResult.data;
-        const latestDay = rows[0]?.created_at?.split('T')[0];
+        const latestWorkoutId = rows[0]?.workout_id;
         setLastSets(
-          latestDay
+          latestWorkoutId
             ? rows
-                .filter((row: any) => row.created_at?.split('T')[0] === latestDay)
+                .filter((row: any) => row.workout_id === latestWorkoutId)
                 .sort((a: any, b: any) => Number(a.set_number) - Number(b.set_number))
             : [],
         );
@@ -970,7 +1043,7 @@ function LastPerformances({ exerciseName, userId, completedSets }: any) {
     return () => {
       cancelled = true;
     };
-  }, [exerciseName, userId]);
+  }, [exerciseName, userId, workoutId]);
 
   if (history.length === 0 && lastSets.length === 0 && completedSets.length === 0) return null;
 
@@ -1013,4 +1086,3 @@ function LastPerformances({ exerciseName, userId, completedSets }: any) {
     </div>
   );
 }
-
