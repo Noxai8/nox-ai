@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
@@ -8,12 +8,52 @@ const BG = '#0a0a0a';
 const SURFACE = '#111';
 const BORDER = '#1a1a1a';
 
-type Tab = 'progress' | 'photos';
+type Tab = 'progress' | 'activity' | 'photos';
+type ActivityMode = 'manual' | 'scan' | 'confirm';
+
+type ActivityForm = {
+  activity_type: string;
+  duration_minutes: string;
+  calories_burned: string;
+  distance_km: string;
+  notes: string;
+};
+
+const EMPTY_ACTIVITY: ActivityForm = {
+  activity_type: '',
+  duration_minutes: '',
+  calories_burned: '',
+  distance_km: '',
+  notes: '',
+};
+
+function parseOptionalNumber(value: string): number | null {
+  const raw = String(value || '').trim().replace(',', '.');
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseJsonObject(raw: string): any | null {
+  const cleaned = String(raw || '')
+    .replace(/```json/gi, '')
+    .replace(/```/g, '')
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try { return JSON.parse(match[0]); } catch { return null; }
+  }
+}
 
 export default function Body() {
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>('progress');
   const [logs, setLogs] = useState<any[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ weight: '', chest_cm: '', waist_cm: '', hips_cm: '', arms_cm: '', thighs_cm: '', notes: '' });
   const [loading, setLoading] = useState(true);
@@ -22,11 +62,46 @@ export default function Body() {
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  useEffect(() => { if (user) load(); }, [user]);
+  const [showActivity, setShowActivity] = useState(false);
+  const [activityMode, setActivityMode] = useState<ActivityMode>('manual');
+  const [activityForm, setActivityForm] = useState<ActivityForm>(EMPTY_ACTIVITY);
+  const [activitySource, setActivitySource] = useState<'manual' | 'scan'>('manual');
+  const [activityError, setActivityError] = useState('');
+  const [activitySuccess, setActivitySuccess] = useState(false);
+  const [activitySaving, setActivitySaving] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanPreview, setScanPreview] = useState<string | null>(null);
+  const scanInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { if (user) void load(); }, [user]);
 
   const load = async () => {
-    const { data } = await supabase.from('body_logs').select('*').eq('user_id', user!.id).order('created_at', { ascending: false });
-    setLogs(data || []);
+    if (!user) return;
+    setLoading(true);
+
+    const [bodyResult, activityResult] = await Promise.all([
+      supabase.from('body_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('activity_logs').select('*').eq('user_id', user.id).order('performed_at', { ascending: false }).limit(50),
+    ]);
+
+    if (bodyResult.error) {
+      console.error('BODY_LOAD_ERROR', bodyResult.error);
+      setSaveError(bodyResult.error.message);
+    } else {
+      setLogs(bodyResult.data || []);
+    }
+
+    if (activityResult.error) {
+      console.error('ACTIVITY_LOAD_ERROR', activityResult.error);
+      setActivityError(
+        activityResult.error.message.includes('activity_logs')
+          ? "Le suivi d'activité n'est pas encore initialisé dans Supabase."
+          : activityResult.error.message,
+      );
+    } else {
+      setActivities(activityResult.data || []);
+    }
+
     setLoading(false);
   };
 
@@ -83,6 +158,173 @@ export default function Body() {
     }
   };
 
+  const openManualActivity = () => {
+    setActivityForm(EMPTY_ACTIVITY);
+    setActivitySource('manual');
+    setActivityMode('manual');
+    setActivityError('');
+    setActivitySuccess(false);
+    setScanPreview(null);
+    setShowActivity(true);
+  };
+
+  const openScanActivity = () => {
+    setActivityForm(EMPTY_ACTIVITY);
+    setActivitySource('scan');
+    setActivityMode('scan');
+    setActivityError('');
+    setActivitySuccess(false);
+    setScanPreview(null);
+    setShowActivity(true);
+  };
+
+  const scanMachine = async (file: File) => {
+    if (!user || scanning) return;
+    setActivityError('');
+    setScanning(true);
+
+    try {
+      if (!file.type.startsWith('image/')) throw new Error('Sélectionne une photo de l’écran de la machine.');
+      if (file.size > 8 * 1024 * 1024) throw new Error('La photo est trop lourde. Maximum 8 Mo.');
+
+      const preview = URL.createObjectURL(file);
+      setScanPreview(previous => {
+        if (previous?.startsWith('blob:')) URL.revokeObjectURL(previous);
+        return preview;
+      });
+
+      const reader = new FileReader();
+      const imageBase64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Impossible de lire la photo.'));
+        reader.readAsDataURL(file);
+      });
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error('Session expirée. Reconnecte-toi puis réessaie.');
+
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-activity`;
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ image: imageBase64 }),
+      });
+
+      const raw = await response.text();
+      let payload: any = null;
+      try { payload = JSON.parse(raw); } catch { payload = null; }
+
+      if (!response.ok) {
+        throw new Error(payload?.error || `Analyse impossible (${response.status}).`);
+      }
+
+      const extracted = payload?.activity || parseJsonObject(payload?.text || payload?.content || raw);
+      if (!extracted || typeof extracted !== 'object') {
+        throw new Error("NOX n'a pas pu lire les données de la machine. Tu peux les saisir manuellement.");
+      }
+
+      setActivityForm({
+        activity_type: String(extracted.activity_type || extracted.type || ''),
+        duration_minutes: extracted.duration_minutes != null ? String(extracted.duration_minutes) : '',
+        calories_burned: extracted.calories_burned != null ? String(extracted.calories_burned) : '',
+        distance_km: extracted.distance_km != null ? String(extracted.distance_km) : '',
+        notes: String(extracted.notes || ''),
+      });
+      setActivitySource('scan');
+      setActivityMode('confirm');
+    } catch (error: any) {
+      console.error('ACTIVITY_SCAN_ERROR', error);
+      setActivityError(error?.message || "Impossible d'analyser la machine.");
+    } finally {
+      setScanning(false);
+      if (scanInputRef.current) scanInputRef.current.value = '';
+    }
+  };
+
+  const validateActivity = () => {
+    setActivityError('');
+    const duration = parseOptionalNumber(activityForm.duration_minutes);
+    const calories = parseOptionalNumber(activityForm.calories_burned);
+    const distance = parseOptionalNumber(activityForm.distance_km);
+
+    if (!activityForm.activity_type.trim()) {
+      setActivityError("Indique le type d'activité.");
+      return false;
+    }
+    if (duration === null || duration <= 0 || duration > 1440) {
+      setActivityError('Entre une durée valide entre 1 et 1440 minutes.');
+      return false;
+    }
+    if (calories !== null && (calories < 0 || calories > 10000)) {
+      setActivityError('Vérifie les calories affichées.');
+      return false;
+    }
+    if (distance !== null && (distance < 0 || distance > 1000)) {
+      setActivityError('Vérifie la distance affichée.');
+      return false;
+    }
+    return true;
+  };
+
+  const saveActivity = async () => {
+    if (!user || activitySaving || !validateActivity()) return;
+
+    const duration = parseOptionalNumber(activityForm.duration_minutes)!;
+    const calories = parseOptionalNumber(activityForm.calories_burned);
+    const distance = parseOptionalNumber(activityForm.distance_km);
+
+    try {
+      setActivitySaving(true);
+      setActivityError('');
+
+      const { error } = await supabase.from('activity_logs').insert({
+        user_id: user.id,
+        activity_type: activityForm.activity_type.trim(),
+        duration_minutes: Math.round(duration),
+        calories_burned: calories === null ? null : Math.round(calories),
+        distance_km: distance,
+        source: activitySource,
+        notes: activityForm.notes.trim() || null,
+        performed_at: new Date().toISOString(),
+      });
+
+      if (error) throw error;
+
+      await load();
+      setActivitySuccess(true);
+      window.setTimeout(() => {
+        setShowActivity(false);
+        setActivitySuccess(false);
+        setActivityForm(EMPTY_ACTIVITY);
+        setScanPreview(previous => {
+          if (previous?.startsWith('blob:')) URL.revokeObjectURL(previous);
+          return null;
+        });
+      }, 650);
+    } catch (error: any) {
+      console.error('ACTIVITY_SAVE_ERROR', error);
+      setActivityError(error?.message || "Impossible d'enregistrer l'activité.");
+    } finally {
+      setActivitySaving(false);
+    }
+  };
+
+  const deleteActivity = async (id: string) => {
+    if (!user) return;
+    setActivityError('');
+    const { error } = await supabase.from('activity_logs').delete().eq('id', id).eq('user_id', user.id);
+    if (error) {
+      setActivityError(error.message);
+      return;
+    }
+    await load();
+  };
+
   const getRangeData = () => {
     const now = Date.now();
     const days = range === '7d' ? 7 : range === '30d' ? 30 : 90;
@@ -96,7 +338,13 @@ export default function Body() {
   const oldest = weightLogs[0];
   const delta = latest && oldest && latest.id !== oldest.id ? (latest.weight - oldest.weight).toFixed(1) : null;
 
-  // Mini chart
+  const todayKey = new Date().toLocaleDateString('en-CA');
+  const todayActivities = activities.filter(activity =>
+    new Date(activity.performed_at).toLocaleDateString('en-CA') === todayKey,
+  );
+  const todayCalories = todayActivities.reduce((sum, activity) => sum + (Number(activity.calories_burned) || 0), 0);
+  const todayMinutes = todayActivities.reduce((sum, activity) => sum + (Number(activity.duration_minutes) || 0), 0);
+
   const MiniChart = () => {
     if (weightLogs.length < 2) return null;
     const weights = weightLogs.map(l => l.weight);
@@ -108,6 +356,7 @@ export default function Body() {
       const y = H - ((l.weight - min) / (max - min)) * H;
       return `${x},${y}`;
     }).join(' ');
+
     return (
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 80 }}>
         <polyline points={points} fill="none" stroke={ACCENT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -120,6 +369,23 @@ export default function Body() {
     );
   };
 
+  const activityInput = (key: keyof ActivityForm, label: string, unit?: string, placeholder = '') => (
+    <label style={{ display: 'block', background: '#111', border: `1px solid ${BORDER}`, borderRadius: 14, padding: 12 }}>
+      <div style={{ fontSize: 9.5, color: '#777', fontWeight: 850, textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'center', marginTop: 5 }}>
+        <input
+          value={activityForm[key]}
+          onChange={e => setActivityForm(p => ({ ...p, [key]: e.target.value }))}
+          placeholder={placeholder}
+          type={key === 'activity_type' || key === 'notes' ? 'text' : 'number'}
+          inputMode={key === 'activity_type' || key === 'notes' ? undefined : 'decimal'}
+          style={{ width: '100%', minWidth: 0, border: 0, outline: 0, background: 'transparent', color: '#fff', fontSize: 16, fontWeight: 850 }}
+        />
+        {unit && <span style={{ color: '#555', fontSize: 10 }}>{unit}</span>}
+      </div>
+    </label>
+  );
+
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: BG, display: 'grid', placeItems: 'center' }}>
@@ -131,31 +397,25 @@ export default function Body() {
   return (
     <div style={{ minHeight: '100vh', background: BG, color: '#fff', paddingBottom: 100 }}>
       <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
-        <header style={{
-          padding: '24px 20px 18px',
-          background: 'radial-gradient(circle at 88% 0%, rgba(200,255,0,.06), transparent 30%), #090909',
-          borderBottom: `1px solid ${BORDER}`
-        }}>
+        <header style={{ padding: '24px 20px 18px', background: 'radial-gradient(circle at 88% 0%, rgba(200,255,0,.06), transparent 30%), #090909', borderBottom: `1px solid ${BORDER}` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
             <div>
               <div style={{ fontSize: 10, color: '#777', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '.14em' }}>Progression physique</div>
               <div style={{ fontSize: 27, fontWeight: 950, letterSpacing: '-.04em', marginTop: 4 }}>BODY</div>
             </div>
-            <button onClick={() => setShowAdd(true)} style={{
-              border: 0, borderRadius: 13, background: ACCENT, color: '#050505', padding: '11px 15px',
-              fontSize: 11, fontWeight: 950, letterSpacing: '.04em', cursor: 'pointer'
-            }}>+ CHECK-IN</button>
+            <button onClick={() => setShowAdd(true)} style={{ border: 0, borderRadius: 13, background: ACCENT, color: '#050505', padding: '11px 15px', fontSize: 11, fontWeight: 950, letterSpacing: '.04em', cursor: 'pointer' }}>+ CHECK-IN</button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', background: '#111', padding: 4, borderRadius: 14, marginTop: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', background: '#111', padding: 4, borderRadius: 14, marginTop: 20 }}>
             {([
               ['progress', 'PROGRESSION'],
+              ['activity', 'ACTIVITÉ'],
               ['photos', 'PHOTOS'],
             ] as [Tab, string][]).map(([id, label]) => (
               <button key={id} onClick={() => setTab(id)} style={{
-                border: 0, borderRadius: 11, padding: '10px 4px', cursor: 'pointer',
+                border: 0, borderRadius: 11, padding: '10px 3px', cursor: 'pointer',
                 background: tab === id ? '#202020' : 'transparent',
-                color: tab === id ? '#fff' : '#666', fontSize: 10, fontWeight: 900, letterSpacing: '.05em'
+                color: tab === id ? '#fff' : '#666', fontSize: 9.5, fontWeight: 900, letterSpacing: '.035em'
               }}>{label}</button>
             ))}
           </div>
@@ -165,10 +425,7 @@ export default function Body() {
           {tab === 'progress' && (
             <>
               {latest ? (
-                <div style={{
-                  background: 'linear-gradient(145deg,#151515,#0e0e0e)', border: `1px solid ${BORDER}`,
-                  borderRadius: 22, padding: 20, marginBottom: 14
-                }}>
+                <div style={{ background: 'linear-gradient(145deg,#151515,#0e0e0e)', border: `1px solid ${BORDER}`, borderRadius: 22, padding: 20, marginBottom: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ fontSize: 10, color: '#777', fontWeight: 850, letterSpacing: '.09em' }}>POIDS ACTUEL</div>
@@ -199,25 +456,16 @@ export default function Body() {
 
                   <div style={{ borderRadius: 15, padding: '12px 10px 4px', background: '#0b0b0b', border: '1px solid #1d1d1d' }}>
                     {weightLogs.length >= 2 ? <MiniChart /> : (
-                      <div style={{ height: 80, display: 'grid', placeItems: 'center', color: '#555', fontSize: 11.5 }}>
-                        Encore un check-in pour afficher ta courbe
-                      </div>
+                      <div style={{ height: 80, display: 'grid', placeItems: 'center', color: '#555', fontSize: 11.5 }}>Encore un check-in pour afficher ta courbe</div>
                     )}
                   </div>
                 </div>
               ) : (
-                <div style={{
-                  borderRadius: 22, border: `1px solid ${BORDER}`, background: SURFACE, padding: '42px 22px',
-                  textAlign: 'center', marginBottom: 14
-                }}>
+                <div style={{ borderRadius: 22, border: `1px solid ${BORDER}`, background: SURFACE, padding: '42px 22px', textAlign: 'center', marginBottom: 14 }}>
                   <div style={{ width: 52, height: 52, margin: '0 auto 16px', borderRadius: 16, background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.16)', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 22 }}>+</div>
                   <div style={{ fontSize: 18, fontWeight: 950 }}>COMMENCE TON SUIVI</div>
-                  <div style={{ color: '#777', fontSize: 12.5, lineHeight: 1.55, margin: '8px auto 18px', maxWidth: 300 }}>
-                    Ajoute ton premier check-in pour construire ta courbe de progression.
-                  </div>
-                  <button onClick={() => setShowAdd(true)} style={{ border: 0, borderRadius: 12, background: ACCENT, color: '#050505', padding: '12px 17px', fontWeight: 950, cursor: 'pointer' }}>
-                    AJOUTER MON POIDS
-                  </button>
+                  <div style={{ color: '#777', fontSize: 12.5, lineHeight: 1.55, margin: '8px auto 18px', maxWidth: 300 }}>Ajoute ton premier check-in pour construire ta courbe de progression.</div>
+                  <button onClick={() => setShowAdd(true)} style={{ border: 0, borderRadius: 12, background: ACCENT, color: '#050505', padding: '12px 17px', fontWeight: 950, cursor: 'pointer' }}>AJOUTER MON POIDS</button>
                 </div>
               )}
 
@@ -225,40 +473,27 @@ export default function Body() {
                 <>
                   <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '21px 2px 10px' }}>HISTORIQUE</div>
                   {logs.filter(l => l.weight).slice(0, 10).map(log => (
-                    <div key={log.id} style={{
-                      background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 15, padding: '14px 15px',
-                      marginBottom: 8, display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'center'
-                    }}>
+                    <div key={log.id} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 15, padding: '14px 15px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'center' }}>
                       <div>
                         <div style={{ fontSize: 18, fontWeight: 950 }}>{log.weight} <span style={{ fontSize: 11, color: '#666' }}>kg</span></div>
-                        <div style={{ fontSize: 10.5, color: '#666', marginTop: 4 }}>
-                          {new Date(log.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </div>
+                        <div style={{ fontSize: 10.5, color: '#666', marginTop: 4 }}>{new Date(log.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                       </div>
                       {log.notes && <div style={{ fontSize: 11, color: '#777', maxWidth: 150, textAlign: 'right', lineHeight: 1.4 }}>{log.notes}</div>}
                     </div>
                   ))}
                 </>
               )}
-            </>
-          )}
 
-          {tab === 'progress' && (
-            <>
               <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>MENSURATIONS</div>
               {logs.filter(l => l.waist_cm || l.chest_cm).length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '55px 20px', borderRadius: 22, background: SURFACE, border: `1px solid ${BORDER}` }}>
                   <div style={{ fontSize: 18, fontWeight: 950 }}>MESURE TON ÉVOLUTION</div>
-                  <div style={{ fontSize: 12.5, color: '#777', lineHeight: 1.55, margin: '9px auto 20px', maxWidth: 310 }}>
-                    Le poids ne raconte pas tout. Ajoute tes mensurations pour mieux suivre ta transformation.
-                  </div>
+                  <div style={{ fontSize: 12.5, color: '#777', lineHeight: 1.55, margin: '9px auto 20px', maxWidth: 310 }}>Le poids ne raconte pas tout. Ajoute tes mensurations pour mieux suivre ta transformation.</div>
                   <button onClick={() => setShowAdd(true)} style={{ border: 0, borderRadius: 12, background: ACCENT, color: '#050505', padding: '12px 17px', fontWeight: 950, cursor: 'pointer' }}>AJOUTER DES MESURES</button>
                 </div>
               ) : logs.filter(l => l.waist_cm || l.chest_cm).slice(0, 5).map(log => (
                 <div key={log.id} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: 16, marginBottom: 11 }}>
-                  <div style={{ fontSize: 10.5, color: '#666', fontWeight: 850, marginBottom: 12 }}>
-                    {new Date(log.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                  </div>
+                  <div style={{ fontSize: 10.5, color: '#666', fontWeight: 850, marginBottom: 12 }}>{new Date(log.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
                     {[
                       { key: 'chest_cm', label: 'Poitrine' },
@@ -278,24 +513,64 @@ export default function Body() {
             </>
           )}
 
+          {tab === 'activity' && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10, marginBottom: 12 }}>
+                <div style={{ borderRadius: 18, padding: 17, background: SURFACE, border: `1px solid ${BORDER}` }}>
+                  <div style={{ fontSize: 9.5, color: '#666', fontWeight: 900, letterSpacing: '.08em' }}>AUJOURD'HUI</div>
+                  <div style={{ fontSize: 28, fontWeight: 950, marginTop: 6 }}>{Math.round(todayMinutes)} <span style={{ fontSize: 11, color: '#666' }}>min</span></div>
+                </div>
+                <div style={{ borderRadius: 18, padding: 17, background: SURFACE, border: `1px solid ${BORDER}` }}>
+                  <div style={{ fontSize: 9.5, color: '#666', fontWeight: 900, letterSpacing: '.08em' }}>MACHINE / EST.</div>
+                  <div style={{ fontSize: 28, fontWeight: 950, marginTop: 6, color: ACCENT }}>{Math.round(todayCalories)} <span style={{ fontSize: 11, color: '#666' }}>kcal</span></div>
+                </div>
+              </div>
+
+              <div style={{ borderRadius: 18, padding: 15, background: 'rgba(200,255,0,.05)', border: '1px solid rgba(200,255,0,.16)', color: '#aaa', fontSize: 11.5, lineHeight: 1.55, marginBottom: 16 }}>
+                Les calories d’activité sont des estimations de machine ou de saisie. NOX les suit séparément et <strong style={{ color: '#fff' }}>ne les rajoute pas automatiquement à ta cible Fuel</strong>.
+              </div>
+
+              <div style={{ display: 'grid', gap: 10 }}>
+                <button onClick={openManualActivity} style={{ border: 0, borderRadius: 16, background: ACCENT, color: '#050505', padding: 15, fontSize: 11.5, fontWeight: 950, cursor: 'pointer' }}>+ SAISIR UNE ACTIVITÉ</button>
+                <button onClick={openScanActivity} style={{ borderRadius: 16, border: `1px solid ${BORDER}`, background: SURFACE, color: '#fff', padding: 15, fontSize: 11.5, fontWeight: 950, cursor: 'pointer' }}>SCANNER L'ÉCRAN D'UNE MACHINE</button>
+              </div>
+
+              {activityError && !showActivity && (
+                <div role="alert" style={{ marginTop: 14, borderRadius: 12, padding: '10px 12px', background: 'rgba(255,95,95,.08)', border: '1px solid rgba(255,95,95,.22)', color: '#ff8a8a', fontSize: 11.5 }}>{activityError}</div>
+              )}
+
+              <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '24px 2px 10px' }}>HISTORIQUE ACTIVITÉ</div>
+              {activities.length === 0 ? (
+                <div style={{ borderRadius: 18, padding: '35px 20px', background: SURFACE, border: `1px solid ${BORDER}`, textAlign: 'center', color: '#666', fontSize: 12 }}>Aucune activité enregistrée.</div>
+              ) : activities.slice(0, 20).map(activity => (
+                <div key={activity.id} style={{ borderRadius: 16, padding: 15, background: SURFACE, border: `1px solid ${BORDER}`, marginBottom: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                    <div>
+                      <div style={{ fontWeight: 950, fontSize: 15 }}>{activity.activity_type}</div>
+                      <div style={{ color: '#666', fontSize: 10.5, marginTop: 4 }}>
+                        {new Date(activity.performed_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} · {activity.source === 'scan' ? 'scan machine' : 'saisie manuelle'}
+                      </div>
+                    </div>
+                    <button onClick={() => void deleteActivity(activity.id)} aria-label="Supprimer l'activité" style={{ border: 0, background: 'transparent', color: '#555', cursor: 'pointer', fontSize: 18 }}>×</button>
+                  </div>
+                  <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 12, fontSize: 12, fontWeight: 850 }}>
+                    <span>{activity.duration_minutes} min</span>
+                    {activity.calories_burned != null && <span style={{ color: ACCENT }}>{activity.calories_burned} kcal</span>}
+                    {activity.distance_km != null && <span>{Number(activity.distance_km).toFixed(2)} km</span>}
+                  </div>
+                  {activity.notes && <div style={{ color: '#777', fontSize: 11, lineHeight: 1.45, marginTop: 9 }}>{activity.notes}</div>}
+                </div>
+              ))}
+            </>
+          )}
+
           {tab === 'photos' && (
-            <div style={{
-              minHeight: 330, borderRadius: 22, border: '1px solid rgba(200,255,0,.16)',
-              background: 'radial-gradient(circle at 50% 20%, rgba(200,255,0,.10), transparent 28%), linear-gradient(145deg,#151515,#0d0d0d)',
-              padding: '44px 22px', textAlign: 'center'
-            }}>
+            <div style={{ minHeight: 330, borderRadius: 22, border: '1px solid rgba(200,255,0,.16)', background: 'radial-gradient(circle at 50% 20%, rgba(200,255,0,.10), transparent 28%), linear-gradient(145deg,#151515,#0d0d0d)', padding: '44px 22px', textAlign: 'center' }}>
               <div style={{ display: 'inline-block', color: ACCENT, fontSize: 10, fontWeight: 950, letterSpacing: '.12em', marginBottom: 13 }}>NOX FUTURE</div>
               <div style={{ fontSize: 22, fontWeight: 950, letterSpacing: '-.03em' }}>TA TRANSFORMATION EN IMAGES</div>
-              <div style={{ fontSize: 12.5, color: '#858585', lineHeight: 1.6, maxWidth: 330, margin: '10px auto 23px' }}>
-                Ajoute tes photos de progression et accède à ta timeline NOX FUTURE. Tes photos restent privées.
-              </div>
-              <button onClick={() => window.location.href = '/future'} style={{
-                border: 0, borderRadius: 13, background: ACCENT, color: '#050505', padding: '13px 19px',
-                fontSize: 11.5, fontWeight: 950, cursor: 'pointer'
-              }}>OUVRIR NOX FUTURE</button>
-              <div style={{ fontSize: 9.5, color: '#555', lineHeight: 1.5, marginTop: 16 }}>
-                Les projections IA sont indicatives et ne garantissent pas un résultat physique.
-              </div>
+              <div style={{ fontSize: 12.5, color: '#858585', lineHeight: 1.6, maxWidth: 330, margin: '10px auto 23px' }}>Ajoute tes photos de progression et accède à ta timeline NOX FUTURE. Tes photos restent privées.</div>
+              <button onClick={() => window.location.href = '/future'} style={{ border: 0, borderRadius: 13, background: ACCENT, color: '#050505', padding: '13px 19px', fontSize: 11.5, fontWeight: 950, cursor: 'pointer' }}>OUVRIR NOX FUTURE</button>
+              <div style={{ fontSize: 9.5, color: '#555', lineHeight: 1.5, marginTop: 16 }}>Les projections IA sont indicatives et ne garantissent pas un résultat physique.</div>
             </div>
           )}
         </section>
@@ -325,14 +600,7 @@ export default function Body() {
                 <label key={key} style={{ display: 'block', background: '#111', border: `1px solid ${BORDER}`, borderRadius: 14, padding: 12 }}>
                   <div style={{ fontSize: 9.5, color: '#777', fontWeight: 850, textTransform: 'uppercase' }}>{label}</div>
                   <div style={{ display: 'flex', alignItems: 'center', marginTop: 5 }}>
-                    <input
-                      value={(form as any)[key]}
-                      onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
-                      placeholder={placeholder}
-                      type="number"
-                      inputMode="decimal"
-                      style={{ width: '100%', minWidth: 0, border: 0, outline: 0, background: 'transparent', color: '#fff', fontSize: 18, fontWeight: 900 }}
-                    />
+                    <input value={(form as any)[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} type="number" inputMode="decimal" style={{ width: '100%', minWidth: 0, border: 0, outline: 0, background: 'transparent', color: '#fff', fontSize: 18, fontWeight: 900 }} />
                     <span style={{ color: '#555', fontSize: 10 }}>{unit}</span>
                   </div>
                 </label>
@@ -341,28 +609,73 @@ export default function Body() {
 
             <label style={{ display: 'block', marginTop: 10 }}>
               <div style={{ fontSize: 9.5, color: '#777', fontWeight: 850, textTransform: 'uppercase', marginBottom: 6 }}>Note</div>
-              <input
-                value={form.notes}
-                onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                placeholder="Comment tu te sens aujourd'hui ?"
-                type="text"
-                style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${BORDER}`, outline: 0, background: '#111', color: '#fff', borderRadius: 14, padding: '13px 14px', fontSize: 13 }}
-              />
+              <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Comment tu te sens aujourd'hui ?" type="text" style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${BORDER}`, outline: 0, background: '#111', color: '#fff', borderRadius: 14, padding: '13px 14px', fontSize: 13 }} />
             </label>
 
-            {saveError && (
-              <div role="alert" style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(255,95,95,.08)', border: '1px solid rgba(255,95,95,.22)', color: '#ff8a8a', fontSize: 11.5, lineHeight: 1.45 }}>
-                {saveError}
+            {saveError && <div role="alert" style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(255,95,95,.08)', border: '1px solid rgba(255,95,95,.22)', color: '#ff8a8a', fontSize: 11.5, lineHeight: 1.45 }}>{saveError}</div>}
+            {saveSuccess && <div style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.22)', color: ACCENT, fontSize: 11.5, fontWeight: 850 }}>Check-in enregistré ✓</div>}
+            <button onClick={save} disabled={saving} style={{ width: '100%', border: 0, borderRadius: 14, background: saving ? '#2a2a2a' : ACCENT, color: saving ? '#777' : '#050505', padding: 15, marginTop: 16, fontSize: 12, fontWeight: 950, letterSpacing: '.04em', cursor: saving ? 'wait' : 'pointer' }}>{saving ? 'ENREGISTREMENT...' : 'ENREGISTRER LE CHECK-IN'}</button>
+          </div>
+        </div>
+      )}
+
+      {showActivity && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.86)', backdropFilter: 'blur(8px)', zIndex: 210, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 560, background: '#0d0d0d', border: `1px solid ${BORDER}`, borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px max(24px, env(safe-area-inset-bottom))', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ width: 38, height: 4, background: '#2b2b2b', borderRadius: 999, margin: '2px auto 17px' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+              <div>
+                <div style={{ fontSize: 10, color: ACCENT, fontWeight: 900, letterSpacing: '.1em' }}>NOX ACTIVITY</div>
+                <div style={{ fontSize: 19, fontWeight: 950, marginTop: 3 }}>
+                  {activityMode === 'scan' ? 'SCANNER UNE MACHINE' : activityMode === 'confirm' ? 'CONFIRMER LES DONNÉES' : 'NOUVELLE ACTIVITÉ'}
+                </div>
               </div>
+              <button onClick={() => setShowActivity(false)} style={{ width: 36, height: 36, borderRadius: 12, border: `1px solid ${BORDER}`, background: '#151515', color: '#888', fontSize: 21, cursor: 'pointer' }}>×</button>
+            </div>
+
+            {activityMode === 'scan' && (
+              <>
+                <div style={{ borderRadius: 18, padding: '24px 18px', border: '1px dashed #333', background: SURFACE, textAlign: 'center' }}>
+                  <div style={{ fontSize: 16, fontWeight: 950 }}>PHOTO DE L'ÉCRAN</div>
+                  <div style={{ color: '#777', fontSize: 12, lineHeight: 1.55, margin: '8px auto 17px', maxWidth: 340 }}>
+                    Cadre l’écran pour que la durée, les calories et la distance soient lisibles. NOX te demandera toujours de confirmer avant d’enregistrer.
+                  </div>
+                  <input ref={scanInputRef} type="file" accept="image/*" capture="environment" onChange={e => e.target.files?.[0] && void scanMachine(e.target.files[0])} style={{ display: 'none' }} />
+                  <button disabled={scanning} onClick={() => scanInputRef.current?.click()} style={{ border: 0, borderRadius: 13, background: scanning ? '#2a2a2a' : ACCENT, color: scanning ? '#777' : '#050505', padding: '13px 18px', fontWeight: 950, cursor: scanning ? 'wait' : 'pointer' }}>
+                    {scanning ? 'ANALYSE EN COURS...' : 'PRENDRE / CHOISIR UNE PHOTO'}
+                  </button>
+                </div>
+                {scanPreview && <img src={scanPreview} alt="Écran de machine à confirmer" style={{ width: '100%', maxHeight: 230, objectFit: 'contain', borderRadius: 16, marginTop: 12, background: '#050505' }} />}
+              </>
             )}
-            {saveSuccess && (
-              <div style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.22)', color: ACCENT, fontSize: 11.5, fontWeight: 850 }}>
-                Check-in enregistré ✓
-              </div>
+
+            {(activityMode === 'manual' || activityMode === 'confirm') && (
+              <>
+                {activityMode === 'confirm' && (
+                  <div style={{ borderRadius: 13, padding: '11px 12px', marginBottom: 12, background: 'rgba(200,255,0,.06)', border: '1px solid rgba(200,255,0,.18)', color: '#aaa', fontSize: 11.5, lineHeight: 1.5 }}>
+                    Données lues par IA. <strong style={{ color: '#fff' }}>Vérifie et corrige chaque valeur</strong> avant l’enregistrement.
+                  </div>
+                )}
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {activityInput('activity_type', "Type d'activité", undefined, 'Tapis, vélo, elliptique…')}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>
+                    {activityInput('duration_minutes', 'Durée', 'min', '30')}
+                    {activityInput('calories_burned', 'Calories estimées', 'kcal', '250')}
+                    {activityInput('distance_km', 'Distance', 'km', '5.2')}
+                  </div>
+                  {activityInput('notes', 'Note', undefined, 'Optionnel')}
+                </div>
+                <div style={{ color: '#666', fontSize: 10.5, lineHeight: 1.5, marginTop: 12 }}>
+                  Les calories affichées par les machines restent des estimations. Elles sont conservées comme données d’activité, pas comme calories automatiquement “à manger”.
+                </div>
+                <button onClick={() => void saveActivity()} disabled={activitySaving} style={{ width: '100%', border: 0, borderRadius: 14, background: activitySaving ? '#2a2a2a' : ACCENT, color: activitySaving ? '#777' : '#050505', padding: 15, marginTop: 16, fontSize: 12, fontWeight: 950, cursor: activitySaving ? 'wait' : 'pointer' }}>
+                  {activitySaving ? 'ENREGISTREMENT...' : activityMode === 'confirm' ? 'CONFIRMER ET ENREGISTRER' : "ENREGISTRER L'ACTIVITÉ"}
+                </button>
+              </>
             )}
-            <button onClick={save} disabled={saving} style={{ width: '100%', border: 0, borderRadius: 14, background: saving ? '#2a2a2a' : ACCENT, color: saving ? '#777' : '#050505', padding: 15, marginTop: 16, fontSize: 12, fontWeight: 950, letterSpacing: '.04em', cursor: saving ? 'wait' : 'pointer' }}>
-              {saving ? 'ENREGISTREMENT...' : 'ENREGISTRER LE CHECK-IN'}
-            </button>
+
+            {activityError && <div role="alert" style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(255,95,95,.08)', border: '1px solid rgba(255,95,95,.22)', color: '#ff8a8a', fontSize: 11.5, lineHeight: 1.45 }}>{activityError}</div>}
+            {activitySuccess && <div style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.22)', color: ACCENT, fontSize: 11.5, fontWeight: 850 }}>Activité enregistrée ✓</div>}
           </div>
         </div>
       )}
