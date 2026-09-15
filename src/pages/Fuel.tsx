@@ -492,7 +492,7 @@ export default function Fuel() {
 
       {showAdd && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.84)', backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: 560, background: '#0d0d0d', border: '1px solid #242424', borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px max(24px, env(safe-area-inset-bottom))', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+          <div style={{ width: '100%', maxWidth: 560, background: '#0d0d0d', border: '1px solid #242424', borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px max(34px, env(safe-area-inset-bottom))', maxHeight: '88vh', overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box', WebkitOverflowScrolling: 'touch' }}>
             <div style={{ width: 38, height: 4, background: '#2c2c2c', borderRadius: 999, margin: '2px auto 17px' }} />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 18 }}>
@@ -610,7 +610,11 @@ export default function Fuel() {
                               <div style={{ fontSize: 10, color: '#666', marginTop: 3 }}>{a.quantite} · P {a.protein}g · G {a.carbs}g · L {a.fat}g</div>
                             </div>
                             <div style={{ color: ACCENT, fontSize: 11.5, fontWeight: 900 }}>{a.kcal} kcal</div>
-                            <button onClick={() => addSingleFood(a)} style={{ border: '1px solid rgba(200,255,0,.22)', background: 'rgba(200,255,0,.07)', color: ACCENT, borderRadius: 9, padding: '6px 8px', fontSize: 9.5, fontWeight: 900, cursor: 'pointer' }}>+</button>
+                            <button 
+                              onClick={e => { e.stopPropagation(); addSingleFood(a); }}
+                              style={{ border: '1px solid rgba(200,255,0,.22)', background: 'rgba(200,255,0,.07)', color: ACCENT, borderRadius: 9, padding: '10px 14px', fontSize: 14, fontWeight: 900, cursor: 'pointer', touchAction: 'manipulation', minWidth: 44, minHeight: 44 }}>
+                              +
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -618,7 +622,11 @@ export default function Fuel() {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '.8fr 1.2fr', gap: 8 }}>
                       <button onClick={() => { setPhotoBase64(null); setScanResult(null); fileRef.current?.click(); }} style={{ padding: 13, background: '#111', border: '1px solid #242424', borderRadius: 12, color: '#aaa', fontWeight: 850, cursor: 'pointer' }}>NOUVELLE PHOTO</button>
-                      <button onClick={addScanResult} style={{ padding: 13, background: ACCENT, border: 0, borderRadius: 12, color: '#050505', fontWeight: 950, cursor: 'pointer' }}>AJOUTER TOUT · {Math.round(scanResult.total?.kcal ?? scanResult.total?.calories ?? 0)} KCAL</button>
+                      <button 
+                        onClick={e => { e.stopPropagation(); addScanResult(); }} 
+                        style={{ padding: 13, background: ACCENT, border: 0, borderRadius: 12, color: '#050505', fontWeight: 950, cursor: 'pointer', touchAction: 'manipulation', userSelect: 'none' }}>
+                        AJOUTER TOUT · {Math.round(scanResult.total?.kcal ?? scanResult.total?.calories ?? 0)} KCAL
+                      </button>
                     </div>
                   </div>
                 )}
