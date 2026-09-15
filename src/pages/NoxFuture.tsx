@@ -27,6 +27,13 @@ export default function NoxFuture() {
   const [error, setError] = useState('');
   const [showComparison, setShowComparison] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const timerRef = useRef<number | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const [timerSeconds, setTimerSeconds] = useState<0 | 3 | 5 | 10>(3);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   const [futureCredits, setFutureCredits] = useState<{ used: number; max: number; canGenerate: boolean }>({ used: 0, max: 1, canGenerate: true });
 
@@ -59,6 +66,96 @@ export default function NoxFuture() {
       });
   }, [user]);
 
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) window.clearInterval(timerRef.current);
+      streamRef.current?.getTracks().forEach(track => track.stop());
+    };
+  }, []);
+
+  const stopCamera = () => {
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+    setCountdown(null);
+    setCameraOpen(false);
+  };
+
+  const openCamera = async (angle: 'face' | 'side' | 'back') => {
+    setCurrentAngle(angle);
+    setCameraError('');
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        fileRef.current?.click();
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 1080 }, height: { ideal: 1440 } },
+        audio: false,
+      });
+
+      streamRef.current = stream;
+      setCameraOpen(true);
+
+      window.setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+      }, 50);
+    } catch (e) {
+      console.error(e);
+      setCameraError("La caméra n'est pas accessible. Tu peux importer une photo à la place.");
+      fileRef.current?.click();
+    }
+  };
+
+  const captureNow = () => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      setCameraError("La caméra n'est pas encore prête.");
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const image = canvas.toDataURL('image/jpeg', 0.88);
+    setPhotos(prev => ({ ...prev, [currentAngle]: image }));
+    stopCamera();
+  };
+
+  const startCapture = () => {
+    if (timerSeconds === 0) {
+      captureNow();
+      return;
+    }
+
+    if (timerRef.current) window.clearInterval(timerRef.current);
+    let remaining = timerSeconds;
+    setCountdown(remaining);
+
+    timerRef.current = window.setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        if (timerRef.current) window.clearInterval(timerRef.current);
+        timerRef.current = null;
+        setCountdown(null);
+        captureNow();
+      } else {
+        setCountdown(remaining);
+      }
+    }, 1000);
+  };
+
   const handlePhoto = (angle: 'face' | 'side' | 'back') => {
     setCurrentAngle(angle);
     fileRef.current?.click();
@@ -82,8 +179,8 @@ export default function NoxFuture() {
       // Build context
       const ctx = {
         profile: {
-          objective: profile?.goal_type || 'transformation physique',
-          current_weight: profile?.starting_weight_kg,
+          objective: profile?.goal_type || profile?.goal || 'transformation physique',
+          current_weight: bodyLogs.length ? bodyLogs[bodyLogs.length - 1]?.weight : (profile?.starting_weight_kg || profile?.weight),
           experience: profile?.experience_level,
           activity: profile?.activity_level,
         },
@@ -92,7 +189,9 @@ export default function NoxFuture() {
       };
 
       // Construire le prompt
-      const futurPrompt = `Tu es NOX. Génère une projection de transformation physique personnalisée sur 90 jours.
+      const futurPrompt = `Tu es NOX. Génère une projection de transformation physique personnalisée et prudente sur 90 jours.
+Si le service supporte la génération/édition d'image et qu'une photo est fournie, crée une projection visuelle photoréaliste qui conserve l'identité, le visage, la pose et les proportions générales de la personne, avec uniquement des changements corporels plausibles cohérents avec son objectif.
+Ne promets jamais un résultat physique précis ni une date garantie.
 
 PROFIL :
 - Objectif : ${ctx.profile.objective}
@@ -111,7 +210,7 @@ Réponds UNIQUEMENT en JSON valide :
   "en_90_jours": "Résultat à 90 jours si constants",
   "chiffres_cles": ["Résultat chiffré 1", "Résultat chiffré 2", "Résultat chiffré 3"],
   "message_coach": "Message motivant, ton naturel, 2-3 phrases",
-  "avertissement": "Projection indicative basée sur ta trajectoire. Résultats variables selon régularité et génétique."
+  "avertissement": "Projection IA illustrative et non garantie. Le résultat réel peut être différent."
 }`;
 
       const _futureResp = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/nox-future', {
@@ -121,12 +220,26 @@ Réponds UNIQUEMENT en JSON valide :
         'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4',
         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4',
       },
-        body: JSON.stringify({ prompt: futurPrompt }),
+        body: JSON.stringify({
+          prompt: futurPrompt,
+          photos,
+          source_image: photos.face || photos.side || photos.back || null,
+          goal_description: goalDesc,
+          objective: ctx.profile.objective,
+          request_visual_projection: Object.keys(photos).length > 0,
+        }),
       });
       if (!_futureResp.ok) throw new Error('Erreur future');
       const data = await _futureResp.json();
       if (!data) throw new Error('Réponse vide');
-      const text = data.content?.[0]?.text || '';
+      const text = data?.data?.content?.[0]?.text || data?.content?.[0]?.text || data?.text || '';
+      const projectedImage =
+        data?.projected_image ||
+        data?.image_url ||
+        data?.output_image ||
+        data?.data?.projected_image ||
+        data?.data?.image_url ||
+        null;
       let parsed: any = {};
       try {
         const match = text.match(/\{[\s\S]*\}/);
@@ -136,17 +249,29 @@ Réponds UNIQUEMENT en JSON valide :
         parsed = { titre: 'TON NOX FUTURE', tagline: 'Ta transformation commence maintenant.', message_coach: text };
       }
 
+      if (projectedImage) parsed.projected_image = projectedImage;
+      parsed.avertissement = parsed.avertissement || 'Projection IA illustrative et non garantie. Le résultat réel peut être différent.';
+
       const resultText = JSON.stringify(parsed);
       setProjectionText(resultText);
 
       // Save to DB
-      await supabase.from('future_you_generations').insert({
+      const { data: savedGeneration, error: saveError } = await supabase.from('future_you_generations').insert({
         user_id: user!.id,
         result_text: resultText,
         goal_description: goalDesc,
         created_at: new Date().toISOString(),
-      });
+      }).select('*').single();
 
+      if (saveError) throw saveError;
+
+      if (savedGeneration) {
+        const next = [...allProjections, savedGeneration];
+        setAllProjections(next);
+        setOriginalProjection(originalProjection || savedGeneration);
+        setLatestProjection(savedGeneration);
+      }
+      setFutureCredits(prev => ({ ...prev, used: prev.used + 1, canGenerate: prev.max >= 999 || prev.used + 1 < prev.max }));
       setStep('result');
     } catch (err: any) {
       setError('Erreur lors de la génération. Réessaie.');
@@ -155,7 +280,7 @@ Réponds UNIQUEMENT en JSON valide :
   };
 
   const AngleCard = ({ angle, label, icon }: { angle: 'face' | 'side' | 'back'; label: string; icon: string }) => (
-    <button onClick={() => handlePhoto(angle)}
+    <button onClick={() => openCamera(angle)}
       style={{ flex: 1, aspectRatio: '3/4', background: photos[angle] ? 'transparent' : SURFACE, border: '2px dashed ' + (photos[angle] ? ACCENT : BORDER), borderRadius: 16, cursor: 'pointer', overflow: 'hidden', position: 'relative', padding: 0 }}>
       {photos[angle] ? (
         <img src={photos[angle]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -180,7 +305,52 @@ Réponds UNIQUEMENT en JSON valide :
 
   return (
     <div style={{ minHeight: '100vh', background: BG, paddingBottom: 80 }}>
-      <input ref={fileRef} type="file" accept="image/*" capture="user" style={{ display: 'none' }} onChange={handleFileChange} />
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
+
+      {cameraOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 500, background: '#000', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '18px 18px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ color: ACCENT, fontSize: 10, fontWeight: 900, letterSpacing: '.1em' }}>PHOTO PLEIN CORPS</div>
+              <div style={{ color: '#fff', fontSize: 17, fontWeight: 900, marginTop: 3 }}>
+                {currentAngle === 'face' ? 'FACE' : currentAngle === 'side' ? 'PROFIL' : 'DOS'}
+              </div>
+            </div>
+            <button onClick={stopCamera} style={{ background: '#171717', color: '#fff', border: '1px solid #262626', width: 40, height: 40, borderRadius: 20, fontSize: 22, cursor: 'pointer' }}>×</button>
+          </div>
+
+          <div style={{ position: 'relative', flex: 1, minHeight: 0, margin: '0 14px', borderRadius: 20, overflow: 'hidden', background: '#111' }}>
+            <video ref={videoRef} playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover', transform: currentAngle === 'back' ? 'none' : 'scaleX(-1)' }} />
+            <div style={{ position: 'absolute', inset: '8% 18%', border: '1px solid rgba(255,255,255,.28)', borderRadius: '48% 48% 20% 20% / 18% 18% 10% 10%', pointerEvents: 'none' }} />
+            {countdown !== null && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.28)' }}>
+                <div style={{ color: '#fff', fontSize: 96, fontWeight: 950, textShadow: '0 3px 20px #000' }}>{countdown}</div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ padding: '16px 18px 24px' }}>
+            <div style={{ color: '#666', fontSize: 11, textAlign: 'center', marginBottom: 10 }}>Place le téléphone, recule et garde tout le corps dans le cadre.</div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 14 }}>
+              {([0, 3, 5, 10] as const).map(seconds => (
+                <button key={seconds} onClick={() => setTimerSeconds(seconds)}
+                  style={{ padding: '8px 13px', borderRadius: 20, border: '1px solid ' + (timerSeconds === seconds ? ACCENT : '#2a2a2a'), background: timerSeconds === seconds ? ACCENT + '18' : '#111', color: timerSeconds === seconds ? ACCENT : '#777', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
+                  {seconds === 0 ? 'Direct' : `${seconds}s`}
+                </button>
+              ))}
+            </div>
+            {cameraError && <div style={{ color: '#ff6666', fontSize: 11, textAlign: 'center', marginBottom: 10 }}>{cameraError}</div>}
+            <button onClick={startCapture} disabled={countdown !== null}
+              style={{ width: '100%', padding: 17, background: ACCENT, color: '#000', border: 0, borderRadius: 14, fontWeight: 950, fontSize: 15, cursor: 'pointer' }}>
+              {countdown !== null ? 'PHOTO EN COURS...' : timerSeconds ? `PRENDRE LA PHOTO · ${timerSeconds}s` : 'PRENDRE LA PHOTO'}
+            </button>
+            <button onClick={() => { stopCamera(); window.setTimeout(() => fileRef.current?.click(), 50); }}
+              style={{ width: '100%', padding: 13, marginTop: 8, background: 'transparent', color: '#777', border: 0, fontWeight: 800, cursor: 'pointer' }}>
+              IMPORTER UNE PHOTO
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* INTRO */}
       {step === 'intro' && (
@@ -329,10 +499,10 @@ Réponds UNIQUEMENT en JSON valide :
           <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Confidentialité</div>
           <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', marginBottom: 24 }}>TES PHOTOS SONT PRIVÉES</div>
           {[
-            { icon: '🔒', text: 'Tes photos restent strictement privées et ne sont jamais partagées' },
-            { icon: '🤖', text: 'Elles sont analysées par l\'IA uniquement pour générer ta projection' },
-            { icon: '🗑️', text: 'Tu peux supprimer tes données à tout moment depuis les paramètres' },
-            { icon: '🚫', text: 'Tes photos ne servent jamais à entraîner un modèle IA sans ton accord' },
+            { icon: '🔒', text: 'Tes photos sont utilisées pour cette fonctionnalité selon les règles de confidentialité de NOX' },
+            { icon: '🤖', text: 'Si tu les fournis, elles peuvent être envoyées au service NOX Future pour produire la projection' },
+            { icon: '🗑️', text: 'La suppression et la conservation doivent suivre les réglages et la politique de confidentialité de NOX' },
+            { icon: '⚠️', text: 'La projection est illustrative : elle ne prédit pas ni ne garantit ton apparence future' },
           ].map(({ icon, text }) => (
             <div key={text} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 20 }}>
               <div style={{ fontSize: 24, flexShrink: 0 }}>{icon}</div>
@@ -355,14 +525,18 @@ Réponds UNIQUEMENT en JSON valide :
           <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Optionnel</div>
           <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 8 }}>AJOUTE TES PHOTOS</div>
           <div style={{ fontSize: 14, color: '#555', marginBottom: 24, lineHeight: 1.5 }}>
-            Les photos permettent une projection plus précise. Debout, bonne lumière, tenue ajustée.
+            Debout, bonne lumière, tenue ajustée et corps entier visible. Utilise le retardateur 3, 5 ou 10 secondes pour poser le téléphone et reculer.
           </div>
 
-          <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
             <AngleCard angle="face" label="Face" icon="👤" />
             <AngleCard angle="side" label="Profil" icon="🚶" />
             <AngleCard angle="back" label="Dos" icon="🔄" />
           </div>
+          <button onClick={() => { setCurrentAngle('face'); fileRef.current?.click(); }}
+            style={{ width: '100%', padding: 11, marginBottom: 20, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#777', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
+            IMPORTER UNE PHOTO DEPUIS LE TÉLÉPHONE
+          </button>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <button onClick={() => setStep('goal_desc')} style={{ width: '100%', padding: 18, background: ACCENT, border: 'none', borderRadius: 16, color: '#000', fontWeight: 900, fontSize: 16, cursor: 'pointer' }}>
@@ -434,11 +608,17 @@ Réponds UNIQUEMENT en JSON valide :
                 <img src={photos.face} style={{ width: '100%', borderRadius: 16, aspectRatio: '3/4', objectFit: 'cover' }} />
                 <div style={{ fontSize: 12, color: '#555', marginTop: 8, fontWeight: 700 }}>AUJOURD'HUI</div>
               </div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: SURFACE, borderRadius: 16, border: '2px dashed ' + ACCENT + '44', aspectRatio: '3/4', textAlign: 'center', padding: 16 }}>
-                <div style={{ fontSize: 40, marginBottom: 8 }}>🔮</div>
-                <div style={{ fontSize: 13, color: ACCENT, fontWeight: 800 }}>OBJECTIF</div>
-                <div style={{ fontSize: 12, color: '#555', marginTop: 4 }}>Projection IA — 90 jours</div>
-              </div>
+              {proj.projected_image ? (
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <img src={proj.projected_image} alt="Projection physique IA illustrative" style={{ width: '100%', borderRadius: 16, aspectRatio: '3/4', objectFit: 'cover' }} />
+                  <div style={{ fontSize: 12, color: ACCENT, marginTop: 8, fontWeight: 700 }}>PROJECTION IA</div>
+                </div>
+              ) : (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: SURFACE, borderRadius: 16, border: '2px dashed ' + ACCENT + '44', aspectRatio: '3/4', textAlign: 'center', padding: 16 }}>
+                  <div style={{ fontSize: 13, color: ACCENT, fontWeight: 800 }}>PROJECTION VISUELLE</div>
+                  <div style={{ fontSize: 11, color: '#666', marginTop: 7, lineHeight: 1.45 }}>Le backend NOX actuel n'a pas renvoyé d'image transformée. La projection textuelle reste disponible ci-dessous.</div>
+                </div>
+              )}
             </div>
           )}
 
@@ -486,7 +666,7 @@ Réponds UNIQUEMENT en JSON valide :
 
           {/* Disclaimer */}
           <div style={{ fontSize: 11, color: '#333', textAlign: 'center', lineHeight: 1.5, marginBottom: 24 }}>
-            {proj.avertissement || 'Projection visuelle indicative générée par IA. Les résultats réels dépendent de ta régularité, ta génétique et ton mode de vie.'}
+            {proj.avertissement || 'Projection IA illustrative et non garantie. Elle visualise un scénario possible : ton apparence réelle peut évoluer différemment.'}
           </div>
 
           {/* Actions */}
