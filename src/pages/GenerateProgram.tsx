@@ -135,9 +135,7 @@ RÈGLES :
 - Séances équilibrées push/pull/legs si possible
 - Plages de reps adaptées à l'objectif (force: 3-6, hypertrophie: 8-12, endurance: 15-20)`;
 
-      const { data: apiData, error: fnErr } = await supabase.functions.invoke('generate-program', {
-        body: { prompt },
-      });
+      const { data: apiData, error: fnErr } = (await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/generate-program', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4' }, body: JSON.stringify({ prompt }) })).json();
 
       if (fnErr) {
         throw new Error(fnErr.message || 'Erreur serveur pendant la génération.');

@@ -124,14 +124,13 @@ STYLE :
 - Si blessure grave → conseille un pro
 - Pas de diagnostic médical`;
 
-      const { data, error: fnErr } = await supabase.functions.invoke('nox-coach', {
-        body: {
-          system: systemPrompt,
-          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-        },
+      const _cr = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/nox-coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4' },
+        body: JSON.stringify({ system: systemPrompt, messages: newMessages.map(m => ({ role: m.role, content: m.content })) }),
       });
-
-      if (fnErr) throw fnErr;
+      if (!_cr.ok) throw new Error('Erreur coach');
+      const data = await _cr.json();
       const reply = data?.content?.[0]?.text || 'Désolé, je n\'ai pas pu répondre. Réessaie.';
 
       const finalMessages = [...newMessages, { role: 'assistant' as const, content: reply }];

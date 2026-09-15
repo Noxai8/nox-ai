@@ -25,7 +25,7 @@ export default function FuelAI() {
   const [goal, setGoal] = useState('');
 
   const callAI = async (prompt: string) => {
-    const { data, error } = await supabase.functions.invoke('generate-program', { body: { prompt } });
+    const { data, error } = (await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/generate-program', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4' }, body: JSON.stringify({ prompt }) })).json();
     if (error) throw error;
     return data?.content?.[0]?.text || '';
   };
@@ -33,35 +33,23 @@ export default function FuelAI() {
   const analyzeFridge = async (base64: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-meal', {
-        body: {
-          base64,
-          mime: 'image/jpeg',
-          prompt: `Tu es un chef nutritionniste. Analyse ce frigo/placard et propose 3 idées de repas sains avec ce qui est visible.
-
-Réponds en JSON :
-{
-  "ingredients_detectes": ["liste des aliments visibles"],
-  "repas": [
-    {
-      "nom": "Nom du plat",
-      "temps": "20 min",
-      "difficulte": "Facile",
-      "calories_approx": 450,
-      "protein_approx": 35,
-      "ingredients_utilises": ["ingrédient 1", "ingrédient 2"],
-      "ingredients_manquants": ["ce qui manque"],
-      "recette_rapide": "Instructions en 3 étapes courtes",
-      "pourquoi_sain": "Explication nutrition courte"
-    }
-  ]
-}`
-        }
+      const _fr = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/analyze-meal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4' },
+        body: JSON.stringify({ base64, mime: 'image/jpeg' }),
       });
-      if (error) throw error;
-      const text = data?.content?.[0]?.text || '';
-      const match = text.match(/\{[\s\S]*\}/);
-      if (match) setResult({ type: 'fridge', data: JSON.parse(match[0]) });
+      if (!_fr.ok) throw new Error('Erreur frigo');
+      const fridgeData = await _fr.json();
+      const text = fridgeData ? JSON.stringify(fridgeData) : '';
+      // La réponse est déjà parsée depuis analyze-meal
+      if (fridgeData && !fridgeData.error) {
+        // Reformater pour le frigo si besoin
+        const fridgeResult = fridgeData.aliments ? {
+          ingredients_detectes: fridgeData.aliments.map((a: any) => a.nom),
+          repas: [{ nom: fridgeData.description, temps: '20 min', difficulte: 'Facile', calories_approx: fridgeData.total?.kcal || 0, protein_approx: fridgeData.total?.protein || 0, ingredients_utilises: fridgeData.aliments.map((a: any) => a.nom), ingredients_manquants: [], recette_rapide: 'Prépare les ingrédients détectés selon tes préférences', pourquoi_sain: fridgeData.note || 'Repas équilibré' }]
+        } : (text ? JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || '{}') : {});
+        setResult({ type: 'fridge', data: fridgeResult });
+      }
     } catch (e) {
       console.error(e);
     }
@@ -104,7 +92,6 @@ Réponds en JSON :
   ],
   "conseil_chef": "Conseil nutrition personnalisé"
 }`);
-      const match = text.match(/\{[\s\S]*\}/);
       if (match) setResult({ type: 'meals', data: JSON.parse(match[0]) });
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -146,7 +133,6 @@ Réponds en JSON :
   "conseils_achats": ["Conseil 1", "Conseil 2"],
   "meal_prep_tip": "Conseil pour préparer les repas à l'avance"
 }`);
-      const match = text.match(/\{[\s\S]*\}/);
       if (match) setResult({ type: 'grocery', data: JSON.parse(match[0]) });
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -177,7 +163,6 @@ Réponds en JSON :
   "erreur_commune": "L'erreur n°1 que tu dois éviter",
   "secret_chef": "Une astuce de chef pour rendre tes repas plus sains et délicieux"
 }`);
-      const match = text.match(/\{[\s\S]*\}/);
       if (match) setResult({ type: 'tips', data: JSON.parse(match[0]) });
     } catch (e) { console.error(e); }
     setLoading(false);
