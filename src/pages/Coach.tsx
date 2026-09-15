@@ -3,10 +3,10 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const ACCENT = '#B7FF00';
+const BG = '#FFFFFF';
+const SURFACE = '#F4F4F1';
+const BORDER = '#E5E5E0';
 
 const QUICK_PROMPTS = [
   'Je suis fatigué aujourd\'hui, je fais quoi ?',
@@ -148,165 +148,265 @@ STYLE :
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#070707', color: '#fff', display: 'flex', flexDirection: 'column', paddingBottom: 80 }}>
-      <header style={{
-        flexShrink: 0,
-        background: 'radial-gradient(circle at 88% 0%, rgba(200,255,0,.07), transparent 32%), #090909',
-        borderBottom: '1px solid #202020'
+    <div style={{ minHeight: '100vh', background: '#F5F5F2', color: '#111', paddingBottom: 84 }}>
+      <main style={{
+        minHeight: '100vh',
+        maxWidth: 560,
+        margin: '0 auto',
+        background: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
       }}>
-        <div style={{ width: '100%', maxWidth: 560, margin: '0 auto', padding: '22px 20px 16px', boxSizing: 'border-box' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14 }}>
-            <div>
-              <div style={{ fontSize: 10, color: '#777', textTransform: 'uppercase', letterSpacing: '.14em', fontWeight: 850 }}>Intelligence NOX</div>
-              <div style={{ fontSize: 27, fontWeight: 950, letterSpacing: '-.04em', marginTop: 4 }}>COACH IA</div>
+        <header style={{
+          flexShrink: 0,
+          padding: '18px 18px 14px',
+          background: 'radial-gradient(circle at 92% 18%, rgba(183,255,0,.16), transparent 31%), #fff',
+          borderBottom: '1px solid #ECECE7',
+        }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr auto', alignItems: 'center' }}>
+            <button
+              onClick={() => window.history.back()}
+              aria-label="Retour"
+              style={{
+                width: 36, height: 36, border: 0, background: 'transparent',
+                fontSize: 27, color: '#111', cursor: 'pointer', padding: 0,
+              }}
+            >
+              ‹
+            </button>
+
+            <div style={{ justifySelf: 'center' }}>
+              <NoxBrand />
             </div>
+
             <div style={{
-              padding: '7px 10px', borderRadius: 999, background: 'rgba(200,255,0,.07)',
-              border: '1px solid rgba(200,255,0,.18)', color: ACCENT,
-              fontSize: 9.5, fontWeight: 950, letterSpacing: '.07em'
-            }}>CONTEXTE ACTIF</div>
+              padding: '7px 9px',
+              borderRadius: 999,
+              background: '#F4FFD5',
+              border: '1px solid rgba(183,255,0,.75)',
+              color: '#111',
+              fontSize: 8.5,
+              fontWeight: 950,
+              whiteSpace: 'nowrap',
+            }}>
+              Contexte actif
+            </div>
+          </div>
+
+          <div style={{ marginTop: 22 }}>
+            <div style={{
+              fontSize: 9.5, color: '#77776F', textTransform: 'uppercase',
+              letterSpacing: '.13em', fontWeight: 900,
+            }}>
+              Intelligence NOX
+            </div>
+            <h1 style={{
+              margin: '4px 0 0', fontSize: 31, lineHeight: .95,
+              fontWeight: 1000, letterSpacing: '-.055em',
+            }}>
+              COACH IA
+            </h1>
+            <div style={{ marginTop: 7, color: '#77776F', fontSize: 11.5 }}>
+              Ton assistant personnel 24/7
+            </div>
           </div>
 
           {context?.profile && (
-            <div style={{ display: 'flex', gap: 7, overflowX: 'auto', marginTop: 15, paddingBottom: 2 }}>
-              {context.profile.streak > 0 && (
-                <div style={{ flexShrink: 0, background: '#111', border: '1px solid #222', borderRadius: 10, padding: '7px 9px', fontSize: 10.5, color: '#aaa' }}>
-                  <b style={{ color: '#fff' }}>{context.profile.streak}j</b> streak
-                </div>
-              )}
-              {context.profile.weight && (
-                <div style={{ flexShrink: 0, background: '#111', border: '1px solid #222', borderRadius: 10, padding: '7px 9px', fontSize: 10.5, color: '#aaa' }}>
-                  <b style={{ color: '#fff' }}>{context.profile.weight} kg</b> body
-                </div>
-              )}
-              {context.today_fuel.kcal > 0 && (
-                <div style={{ flexShrink: 0, background: '#111', border: '1px solid #222', borderRadius: 10, padding: '7px 9px', fontSize: 10.5, color: '#aaa' }}>
-                  <b style={{ color: '#fff' }}>{context.today_fuel.kcal}</b> kcal
-                </div>
-              )}
-              {context.recent_workouts > 0 && (
-                <div style={{ flexShrink: 0, background: '#111', border: '1px solid #222', borderRadius: 10, padding: '7px 9px', fontSize: 10.5, color: '#aaa' }}>
-                  <b style={{ color: '#fff' }}>{context.recent_workouts}</b> séances récentes
-                </div>
-              )}
+            <div style={{
+              display: 'flex', gap: 7, overflowX: 'auto',
+              marginTop: 14, paddingBottom: 2, scrollbarWidth: 'none',
+            }}>
+              {context.profile.streak > 0 && <ContextPill strong={`${context.profile.streak}j`} text="streak" />}
+              {context.profile.weight && <ContextPill strong={`${context.profile.weight} kg`} text="body" />}
+              {context.today_fuel?.kcal > 0 && <ContextPill strong={`${context.today_fuel.kcal}`} text="kcal" />}
+              {context.recent_workouts > 0 && <ContextPill strong={`${context.recent_workouts}`} text="séances" />}
             </div>
           )}
-        </div>
-      </header>
+        </header>
 
-      {messages.length <= 1 && (
-        <div style={{ width: '100%', maxWidth: 560, margin: '0 auto', padding: '14px 20px 0', boxSizing: 'border-box', flexShrink: 0 }}>
-          <div style={{
-            borderRadius: 18, padding: 15,
-            background: 'linear-gradient(135deg,rgba(200,255,0,.075),rgba(200,255,0,.02))',
-            border: '1px solid rgba(200,255,0,.14)'
-          }}>
-            <div style={{ color: ACCENT, fontSize: 9.5, fontWeight: 950, letterSpacing: '.1em' }}>COACH CONTEXTUEL</div>
-            <div style={{ fontSize: 13, fontWeight: 850, marginTop: 6, lineHeight: 1.45 }}>
-              Je peux croiser ton entraînement, tes records, BODY et ta nutrition pour te répondre.
-            </div>
-          </div>
-
-          <div style={{ fontSize: 9.5, color: '#666', fontWeight: 900, letterSpacing: '.09em', margin: '15px 2px 8px' }}>QUESTIONS RAPIDES</div>
-          <div style={{ display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 3 }}>
-            {QUICK_PROMPTS.map(p => (
-              <button key={p} onClick={() => send(p)} style={{
-                flexShrink: 0, whiteSpace: 'nowrap', cursor: 'pointer',
-                background: '#111', border: '1px solid #242424', borderRadius: 999,
-                padding: '9px 12px', color: '#bbb', fontSize: 10.5, fontWeight: 700
-              }}>{p}</button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div style={{
-        flex: 1, overflowY: 'auto', width: '100%', maxWidth: 560, margin: '0 auto',
-        padding: '18px 20px 150px', boxSizing: 'border-box'
-      }}>
-        {messages.map((msg, i) => (
-          <div key={i} style={{
-            marginBottom: 14, display: 'flex',
-            justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-            alignItems: 'flex-end', gap: 9
-          }}>
-            {msg.role === 'assistant' && (
+        {messages.length <= 1 && (
+          <section style={{ padding: '14px 18px 0', flexShrink: 0 }}>
+            <div style={{
+              borderRadius: 14,
+              padding: '13px 14px',
+              background: '#F7FFE2',
+              border: '1px solid #E2F5A8',
+              display: 'grid',
+              gridTemplateColumns: '30px 1fr',
+              gap: 10,
+            }}>
               <div style={{
-                width: 32, height: 32, borderRadius: 11, flexShrink: 0,
-                display: 'grid', placeItems: 'center',
-                background: 'rgba(200,255,0,.07)', border: '1px solid rgba(200,255,0,.17)',
-                color: ACCENT, fontSize: 9.5, fontWeight: 950
-              }}>NX</div>
-            )}
-
-            <div style={{
-              maxWidth: '82%',
-              background: msg.role === 'user' ? ACCENT : '#111',
-              color: msg.role === 'user' ? '#050505' : '#e8e8e8',
-              border: msg.role === 'user' ? 'none' : '1px solid #242424',
-              borderRadius: msg.role === 'user' ? '18px 18px 5px 18px' : '18px 18px 18px 5px',
-              padding: '12px 14px', fontSize: 13.5, lineHeight: 1.58,
-              whiteSpace: 'pre-wrap'
-            }}>{msg.content}</div>
-          </div>
-        ))}
-
-        {loading && (
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 9, marginBottom: 14 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 11, display: 'grid', placeItems: 'center',
-              background: 'rgba(200,255,0,.07)', border: '1px solid rgba(200,255,0,.17)',
-              color: ACCENT, fontSize: 9.5, fontWeight: 950
-            }}>NX</div>
-            <div style={{ background: '#111', border: '1px solid #242424', borderRadius: '18px 18px 18px 5px', padding: '14px 17px' }}>
-              <div style={{ display: 'flex', gap: 5 }}>
-                {[0, 1, 2].map(i => (
-                  <div key={i} style={{
-                    width: 5, height: 5, borderRadius: '50%', background: ACCENT,
-                    animation: `noxBounce 1s ${i * .16}s infinite`
-                  }} />
-                ))}
+                width: 28, height: 28, borderRadius: 9,
+                background: ACCENT, display: 'grid', placeItems: 'center',
+                fontSize: 14, fontWeight: 1000,
+              }}>ϟ</div>
+              <div>
+                <div style={{ fontSize: 10.5, fontWeight: 950 }}>
+                  Je suis là pour t'aider !
+                </div>
+                <div style={{ marginTop: 3, fontSize: 10.5, color: '#66665F', lineHeight: 1.45 }}>
+                  Pose-moi toutes tes questions sur ton entraînement, ta nutrition ou ta récupération.
+                </div>
               </div>
             </div>
-          </div>
+
+            <div style={{
+              fontSize: 9, color: '#999991', fontWeight: 900,
+              letterSpacing: '.09em', margin: '15px 1px 8px',
+            }}>
+              QUESTIONS RAPIDES
+            </div>
+
+            <div style={{ display: 'grid', gap: 7 }}>
+              {QUICK_PROMPTS.slice(0, 4).map(p => (
+                <button
+                  key={p}
+                  onClick={() => send(p)}
+                  style={{
+                    width: '100%', textAlign: 'left', cursor: 'pointer',
+                    background: '#fff', border: '1px solid #E5E5E0',
+                    borderRadius: 12, padding: '11px 12px',
+                    color: '#44443F', fontSize: 10.5, fontWeight: 650,
+                  }}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </section>
         )}
-        <div ref={bottomRef} />
-      </div>
+
+        <div style={{
+          flex: 1, overflowY: 'auto',
+          padding: messages.length <= 1 ? '16px 18px 154px' : '20px 18px 154px',
+          boxSizing: 'border-box',
+        }}>
+          {messages.map((msg, i) => (
+            <div key={i} style={{
+              marginBottom: 12,
+              display: 'flex',
+              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+              alignItems: 'flex-end',
+              gap: 8,
+            }}>
+              {msg.role === 'assistant' && (
+                <div style={{
+                  width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                  display: 'grid', placeItems: 'center',
+                  background: ACCENT, color: '#111',
+                  fontSize: 9, fontWeight: 1000,
+                }}>
+                  NX
+                </div>
+              )}
+
+              <div style={{
+                maxWidth: '82%',
+                background: msg.role === 'user' ? '#111' : '#F4F4F1',
+                color: msg.role === 'user' ? '#fff' : '#33332F',
+                border: msg.role === 'user' ? 'none' : '1px solid #E8E8E3',
+                borderRadius: msg.role === 'user'
+                  ? '17px 17px 5px 17px'
+                  : '17px 17px 17px 5px',
+                padding: '11px 13px',
+                fontSize: 12.5,
+                lineHeight: 1.55,
+                whiteSpace: 'pre-wrap',
+              }}>
+                {msg.content}
+              </div>
+            </div>
+          ))}
+
+          {loading && (
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 12 }}>
+              <div style={{
+                width: 30, height: 30, borderRadius: 9,
+                display: 'grid', placeItems: 'center',
+                background: ACCENT, color: '#111',
+                fontSize: 9, fontWeight: 1000,
+              }}>
+                NX
+              </div>
+              <div style={{
+                background: '#F4F4F1', border: '1px solid #E8E8E3',
+                borderRadius: '17px 17px 17px 5px', padding: '13px 16px',
+              }}>
+                <div style={{ display: 'flex', gap: 5 }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} style={{
+                      width: 5, height: 5, borderRadius: '50%',
+                      background: '#77776F',
+                      animation: `noxBounce 1s ${i * .16}s infinite`,
+                    }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div ref={bottomRef} />
+        </div>
+      </main>
 
       <div style={{
-        position: 'fixed', zIndex: 100, left: 0, right: 0, bottom: 70,
-        background: 'linear-gradient(180deg,rgba(7,7,7,0),#0b0b0b 28%)',
-        padding: '22px 16px 11px'
+        position: 'fixed', zIndex: 100,
+        left: 0, right: 0, bottom: 68,
+        padding: '25px 14px 10px',
+        background: 'linear-gradient(180deg,rgba(255,255,255,0),#fff 28%)',
       }}>
         <div style={{ width: '100%', maxWidth: 528, margin: '0 auto' }}>
           <div style={{
-            display: 'flex', alignItems: 'flex-end', gap: 8,
-            padding: 6, background: '#111', border: '1px solid #292929', borderRadius: 18
+            display: 'flex', alignItems: 'flex-end', gap: 7,
+            padding: 5, background: '#fff',
+            border: '1px solid #DCDCD7',
+            borderRadius: 16,
+            boxShadow: '0 8px 28px rgba(0,0,0,.07)',
           }}>
             <textarea
               ref={inputRef}
               value={input}
               onChange={e => setInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-              placeholder="Demande quelque chose à NOX…"
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
+              placeholder="Écris ta question à NOX..."
               rows={1}
               style={{
-                flex: 1, minHeight: 42, maxHeight: 110, boxSizing: 'border-box',
-                padding: '11px 10px', background: 'transparent', border: 0,
-                color: '#fff', fontSize: 13.5, resize: 'none', outline: 'none',
-                fontFamily: 'inherit', overflowY: 'auto'
+                flex: 1, minHeight: 42, maxHeight: 110,
+                boxSizing: 'border-box', padding: '11px 10px',
+                background: 'transparent', border: 0,
+                color: '#111', fontSize: 12.5, resize: 'none',
+                outline: 'none', fontFamily: 'inherit', overflowY: 'auto',
               }}
             />
-            <button onClick={() => send()} disabled={!input.trim() || loading} aria-label="Envoyer" style={{
-              width: 42, height: 42, borderRadius: 13, flexShrink: 0,
-              background: input.trim() && !loading ? ACCENT : '#1b1b1b',
-              color: input.trim() && !loading ? '#050505' : '#555',
-              border: 0, cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-              fontSize: 19, fontWeight: 900
-            }}>↑</button>
+
+            <button
+              onClick={() => send()}
+              disabled={!input.trim() || loading}
+              aria-label="Envoyer"
+              style={{
+                width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+                background: input.trim() && !loading ? ACCENT : '#EFEFEC',
+                color: input.trim() && !loading ? '#111' : '#B2B2AB',
+                border: 0,
+                cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
+                fontSize: 20, fontWeight: 1000,
+              }}
+            >
+              ↑
+            </button>
           </div>
-          <div style={{ fontSize: 8.5, color: '#4f4f4f', textAlign: 'center', marginTop: 6 }}>
-            NOX Coach peut se tromper. Pour une douleur ou un problème médical, consulte un professionnel.
+
+          <div style={{
+            fontSize: 8, color: '#AAA9A2',
+            textAlign: 'center', marginTop: 5,
+          }}>
+            NOX peut se tromper. Pour un problème médical, consulte un professionnel.
           </div>
         </div>
       </div>
@@ -316,8 +416,49 @@ STYLE :
           0%, 80%, 100% { transform: translateY(0); opacity: .35; }
           40% { transform: translateY(-4px); opacity: 1; }
         }
+        textarea::placeholder { color: #AAA9A2; }
       `}</style>
+
       <BottomNav active="coach" />
+    </div>
+  );
+}
+
+function NoxBrand() {
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+      <div style={{ position: 'relative', width: 26, height: 20, flexShrink: 0 }}>
+        <span style={{
+          position: 'absolute', width: 11, height: 7,
+          left: 1, top: 2, borderRadius: 999,
+          background: ACCENT, transform: 'rotate(28deg)',
+        }} />
+        <span style={{
+          position: 'absolute', width: 20, height: 8,
+          left: 6, top: 10, borderRadius: 999,
+          background: ACCENT, transform: 'rotate(7deg)',
+        }} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+        <span style={{ fontSize: 16, fontWeight: 1000, letterSpacing: '-.045em' }}>NOX</span>
+        <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '.1em', color: '#66665F' }}>AI</span>
+      </div>
+    </div>
+  );
+}
+
+function ContextPill({ strong, text }: { strong: string; text: string }) {
+  return (
+    <div style={{
+      flexShrink: 0,
+      background: '#FAFAF8',
+      border: '1px solid #E5E5E0',
+      borderRadius: 9,
+      padding: '6px 8px',
+      fontSize: 9.5,
+      color: '#77776F',
+    }}>
+      <b style={{ color: '#111' }}>{strong}</b> {text}
     </div>
   );
 }
