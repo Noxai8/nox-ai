@@ -244,6 +244,7 @@ export default function Fuel() {
       protein: Math.round(protein * 10) / 10,
       carbs: Math.round(carbs * 10) / 10,
       fat: Math.round(fat * 10) / 10,
+      photo_url: photoBase64 || null,
       created_at: new Date().toISOString(),
     };
     
