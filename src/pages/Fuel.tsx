@@ -223,19 +223,13 @@ export default function Fuel() {
   const addScanResult = async () => {
     if (!scanResult) return;
     
-    // Gérer les différentes structures possibles retournées par Claude
     const total = scanResult.total || scanResult;
     const kcal = total.kcal ?? total.calories ?? total.cal ?? 0;
     const protein = total.protein ?? total.proteines ?? total.proteins ?? 0;
     const carbs = total.carbs ?? total.glucides ?? total.carbohydrates ?? 0;
     const fat = total.fat ?? total.lipides ?? total.fats ?? 0;
     
-    if (!kcal && !protein) {
-      // Rien à ajouter
-      closeAdd();
-      return;
-    }
-    
+    // NE PAS stocker photo_url — base64 trop lourd pour Supabase
     const entry = {
       user_id: user!.id,
       meal_type: selectedMeal,
@@ -244,7 +238,6 @@ export default function Fuel() {
       protein: Math.round(protein * 10) / 10,
       carbs: Math.round(carbs * 10) / 10,
       fat: Math.round(fat * 10) / 10,
-      photo_url: photoBase64 || null,
       created_at: new Date().toISOString(),
     };
     
@@ -253,7 +246,7 @@ export default function Fuel() {
       await loadData();
       closeAdd();
     } else {
-      console.error('Insert error:', error);
+      alert('Erreur ajout: ' + JSON.stringify(error));
     }
   };
 
