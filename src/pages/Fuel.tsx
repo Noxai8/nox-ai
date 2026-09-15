@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
+import BarcodeScanner from './BarcodeScanner';
 
 const ACCENT = '#c8ff00';
 const BG = '#0a0a0a';
@@ -67,7 +68,7 @@ const COMMON_FOODS = [
 
 const MEALS = ['Petit-déjeuner', 'Déjeuner', 'Dîner', 'Snacks'];
 
-type AddMode = 'choose' | 'photo' | 'search' | 'custom';
+type AddMode = 'choose' | 'photo' | 'search' | 'custom' | 'barcode';
 
 export default function Fuel() {
   const { user } = useAuth();

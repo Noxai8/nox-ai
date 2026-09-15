@@ -228,6 +228,8 @@ Réponds en JSON :
             <MenuCard icon="🍽️" title="Plan de repas" desc="NOX génère un plan 3 jours adapté à ton objectif et budget" onClick={() => setMode('meals')} />
             <MenuCard icon="🛒" title="Liste de courses" desc="Budget + objectifs → liste optimisée avec prix approximatifs" onClick={() => setMode('grocery')} />
             <MenuCard icon="💡" title="Astuces nutrition" desc="Conseils personnalisés pour booster tes résultats avec la nutrition" onClick={() => { setMode('tips'); generateTips(); }} />
+          <MenuCard icon="⏱️" title="Jeûne intermittent" desc="Tracker de jeûne avec timer + suivi hydratation" onClick={() => navigate('/fasting')} />
+          <MenuCard icon="😊" title="Humeur & bien-être" desc="Journal quotidien humeur, symptômes et calories brûlées" onClick={() => navigate('/mood')} />
           </>
         )}
 
