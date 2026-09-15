@@ -344,6 +344,41 @@ export function calculateNoxScore(data: {
   };
 }
 
+
+type TrainingSetLike = {
+  weight: number;
+  reps: number;
+  created_at: string;
+  workout_id?: string;
+  set_number?: number;
+  rir?: number;
+  rpe?: number;
+};
+
+function sessionKey(set: TrainingSetLike): string {
+  const workoutId = String(set.workout_id || '').trim();
+  return workoutId ? `workout:${workoutId}` : `day:${dayKey(set.created_at)}`;
+}
+
+function groupTrainingSessions<T extends TrainingSetLike>(sets: T[]): T[][] {
+  const groups = new Map<string, T[]>();
+
+  for (const set of sets) {
+    const key = sessionKey(set);
+    if (!key.endsWith(':')) {
+      const current = groups.get(key) || [];
+      current.push(set);
+      groups.set(key, current);
+    }
+  }
+
+  return [...groups.values()].sort((a, b) => {
+    const latestA = Math.max(...a.map(set => new Date(set.created_at).getTime()));
+    const latestB = Math.max(...b.map(set => new Date(set.created_at).getTime()));
+    return latestB - latestA;
+  });
+}
+
 // ─── PROGRESSIVE OVERLOAD ───────────────────────────────────────────────────
 export interface OverloadSuggestion {
   exerciseName: string;
@@ -360,6 +395,7 @@ export function calculateProgressiveOverload(
     reps: number;
     set_number: number;
     created_at: string;
+    workout_id?: string;
     rir?: number;
     rpe?: number;
   }[],
@@ -389,19 +425,9 @@ export function calculateProgressiveOverload(
 
   if (validSets.length < 3) return null;
 
-  const bySession: Record<string, typeof validSets> = {};
-  validSets.forEach(set => {
-    const day = dayKey(set.created_at);
-    if (!bySession[day]) bySession[day] = [];
-    bySession[day].push(set);
-  });
-
-  const sessions = Object.values(bySession)
-    .sort(
-      (a, b) =>
-        new Date(b[0].created_at).getTime() -
-        new Date(a[0].created_at).getTime(),
-    );
+  // workout_id est prioritaire : deux séances le même jour restent distinctes.
+  // Fallback par jour uniquement pour les anciennes données sans workout_id.
+  const sessions = groupTrainingSessions(validSets);
 
   if (sessions.length < 1) return null;
 
@@ -485,6 +511,7 @@ export function detectStagnation(
     weight: number;
     reps: number;
     created_at: string;
+    workout_id?: string;
     rir?: number;
     rpe?: number;
   }[]
@@ -511,20 +538,8 @@ export function detectStagnation(
     return { stagnating: false, weeksStagnating: 0, suggestion: '' };
   }
 
-  const bySession: Record<string, typeof validSets> = {};
-  validSets.forEach(set => {
-    const day = dayKey(set.created_at);
-    if (!bySession[day]) bySession[day] = [];
-    bySession[day].push(set);
-  });
-
-  const sessions = Object.values(bySession)
-    .sort(
-      (a, b) =>
-        new Date(b[0].created_at).getTime() -
-        new Date(a[0].created_at).getTime(),
-    )
-    .slice(0, 5);
+  // Même définition de séance que la surcharge progressive.
+  const sessions = groupTrainingSessions(validSets).slice(0, 5);
 
   if (sessions.length < 3) {
     return { stagnating: false, weeksStagnating: 0, suggestion: '' };
@@ -572,18 +587,27 @@ export function detectStagnation(
       ? (newest.volume - oldest.volume) / oldest.volume
       : 0;
 
-  const noMeaningfulProgress =
-    strengthProgress < 0.02 && volumeProgress < 0.03;
-
   const declining =
     strengthProgress < -0.03 || volumeProgress < -0.08;
+
+  const noMeaningfulProgress =
+    declining ||
+    (Math.abs(strengthProgress) < 0.02 && Math.abs(volumeProgress) < 0.03);
 
   if (!noMeaningfulProgress) {
     return { stagnating: false, weeksStagnating: 0, suggestion: '' };
   }
 
-  const spanDays = Math.max(1, (newest.date - oldest.date) / DAY_MS);
-  const weeksStagnating = Math.max(1, Math.round(Math.abs(spanDays) / 7));
+  const spanDays = Math.max(1, Math.abs(newest.date - oldest.date) / DAY_MS);
+
+  // Trois expositions rapprochées ne suffisent pas pour annoncer une stagnation.
+  // Une baisse nette reste signalée immédiatement, mais une performance simplement
+  // stable doit persister au moins ~10 jours avant d'être qualifiée de stagnation.
+  if (!declining && spanDays < 10) {
+    return { stagnating: false, weeksStagnating: 0, suggestion: '' };
+  }
+
+  const weeksStagnating = Math.max(1, Math.round(spanDays / 7));
 
   if (declining) {
     return {
