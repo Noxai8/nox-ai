@@ -223,6 +223,7 @@ export default function Recipes() {
     ingredients: [emptyIngredient()],
   });
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -232,26 +233,36 @@ export default function Recipes() {
 
   const load = async () => {
     if (!user) return;
+    setLoading(true);
     setError('');
 
-    const [{ data: recipeData, error: recipeError }, { data: profileData }, { data: targetData }] =
-      await Promise.all([
+    try {
+      const [
+        { data: recipeData, error: recipeError },
+        { data: profileData, error: profileError },
+        { data: targetData, error: targetError },
+      ] = await Promise.all([
         supabase.from('recipes').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
-        supabase.from('nutrition_targets').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase.from('nutrition_targets').select('calories, protein, carbs, fat').eq('user_id', user.id).maybeSingle(),
       ]);
 
-    if (recipeError) {
-      setError(recipeError.message);
-      return;
-    }
+      if (recipeError) throw recipeError;
+      if (profileError) throw profileError;
+      if (targetError) throw targetError;
 
-    setRecipes(recipeData || []);
-    setProfile(profileData || null);
-    setNutritionTarget(targetData || null);
+      setRecipes(recipeData || []);
+      setProfile(profileData || null);
+      setNutritionTarget(targetData || null);
+    } catch (err: any) {
+      console.error('RECIPES_LOAD_ERROR', err);
+      setError(err?.message || 'Impossible de charger les recettes.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const goal = normalizeGoal(profile?.goal_type || profile?.goal);
+  const goal = normalizeGoal(profile?.goal_type || profile?.goal || profile?.objective);
   const suggestions = useMemo(
     () => SUGGESTIONS.filter(r => r.goal === goal || r.goal === 'all'),
     [goal]
@@ -380,7 +391,12 @@ export default function Recipes() {
 
   const deleteRecipe = async (id: string) => {
     setError('');
-    const { error: deleteError } = await supabase.from('recipes').delete().eq('id', id);
+    if (!user) return;
+    const { error: deleteError } = await supabase
+      .from('recipes')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
 
     if (deleteError) {
       setError(deleteError.message);
@@ -399,8 +415,12 @@ export default function Recipes() {
     setError('');
   };
 
-  const dailyCalories = nutritionTarget?.calories || nutritionTarget?.kcal || null;
-  const dailyProtein = nutritionTarget?.protein || null;
+  const dailyCalories = Number(nutritionTarget?.calories || 0) > 0
+    ? Number(nutritionTarget.calories)
+    : null;
+  const dailyProtein = Number(nutritionTarget?.protein || 0) > 0
+    ? Number(nutritionTarget.protein)
+    : null;
 
   return (
     <div style={{ minHeight: '100vh', background: BG, color: '#fff', paddingBottom: 96 }}>
@@ -449,13 +469,19 @@ export default function Recipes() {
 
           {view === 'list' && (
             <>
+              {loading && (
+                <div style={{ marginBottom: 14, padding: 16, borderRadius: 14, background: SURFACE, border: `1px solid ${BORDER}`, color: '#777', fontSize: 11.5 }}>
+                  Chargement de tes données nutritionnelles...
+                </div>
+              )}
               <div style={{ padding: 17, borderRadius: 18, background: 'linear-gradient(135deg,rgba(200,255,0,.12),rgba(200,255,0,.025))', border: '1px solid rgba(200,255,0,.22)', marginBottom: 22 }}>
                 <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 950, letterSpacing: '.1em' }}>RECETTES POUR TON OBJECTIF</div>
                 <div style={{ fontSize: 18, fontWeight: 950, marginTop: 6 }}>{goalLabel(goal)}</div>
                 <div style={{ fontSize: 11.5, color: '#888', lineHeight: 1.5, marginTop: 6 }}>
                   NOX te propose des repas cohérents avec ton objectif nutritionnel.
-                  {dailyCalories ? ` Cible actuelle : ${Math.round(dailyCalories)} kcal/jour` : ''}
+                  {dailyCalories ? ` Même cible que Fuel : ${Math.round(dailyCalories)} kcal/jour` : ''}
                   {dailyProtein ? ` · ${Math.round(dailyProtein)} g protéines` : ''}.
+                  {!dailyCalories ? ' Ouvre Fuel une première fois pour initialiser ta cible nutritionnelle centrale.' : ''}
                 </div>
               </div>
 
