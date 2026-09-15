@@ -29,7 +29,10 @@ type Day = {
 
 type Profile = {
   goal?: string | null;
+  goal_type?: string | null;
+  objective?: string | null;
   weight?: number | null;
+  starting_weight_kg?: number | null;
   height?: number | null;
   age?: number | null;
   gender?: string | null;
@@ -43,6 +46,13 @@ type MealTemplate = {
   name: string;
   calories: number;
   protein: number;
+};
+
+type NutritionTarget = {
+  calories: number;
+  protein: number;
+  carbs?: number | null;
+  fat?: number | null;
 };
 
 const TEMPLATES: Record<GoalKey, Record<string, MealTemplate[]>> = {
@@ -147,6 +157,7 @@ export default function MealPlanner() {
   const { user } = useAuth();
   const [week, setWeek] = useState<Day[]>(() => buildWeek());
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [nutritionTarget, setNutritionTarget] = useState<NutritionTarget | null>(null);
   const [showAdd, setShowAdd] = useState<{ date: string; meal: string } | null>(null);
   const [foodName, setFoodName] = useState('');
   const [calories, setCalories] = useState('');
@@ -157,7 +168,7 @@ export default function MealPlanner() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  const goal = normalizeGoal(profile?.goal);
+  const goal = normalizeGoal(profile?.goal_type || profile?.goal || profile?.objective);
 
   useEffect(() => {
     if (!user) return;
@@ -169,12 +180,40 @@ export default function MealPlanner() {
 
   const loadProfile = async () => {
     if (!user) return;
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-    if (error) {
-      console.error('MEAL_PLANNER_PROFILE_ERROR', error);
+
+    const [profileResult, targetResult] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+      supabase.from('nutrition_targets').select('calories, protein, carbs, fat').eq('user_id', user.id).maybeSingle(),
+    ]);
+
+    if (profileResult.error) {
+      console.error('MEAL_PLANNER_PROFILE_ERROR', profileResult.error);
+      setError(profileResult.error.message);
       return;
     }
-    setProfile(data || null);
+
+    if (targetResult.error) {
+      console.error('MEAL_PLANNER_TARGET_ERROR', targetResult.error);
+      setError(targetResult.error.message);
+      return;
+    }
+
+    setProfile(profileResult.data || null);
+
+    const target = targetResult.data;
+    const kcal = Number(target?.calories || 0);
+    const protein = Number(target?.protein || 0);
+
+    setNutritionTarget(
+      kcal > 0
+        ? {
+            calories: kcal,
+            protein: protein > 0 ? protein : 0,
+            carbs: Number(target?.carbs || 0),
+            fat: Number(target?.fat || 0),
+          }
+        : null,
+    );
   };
 
   const load = async (baseWeek?: Day[]) => {
@@ -207,32 +246,50 @@ export default function MealPlanner() {
   };
 
   const targetCalories = useMemo(() => {
+    const centralized = Number(nutritionTarget?.calories || 0);
+    if (centralized > 0) return Math.round(centralized);
+
+    // Filet de sécurité uniquement si nutrition_targets n'a encore jamais été créé.
+    // Fuel reste la source de vérité et synchronisera ensuite cette cible.
     const stored = Number(profile?.daily_calories || profile?.calorie_target || 0);
     if (stored > 1000) return Math.round(stored);
 
-    const weight = Number(profile?.weight || 0);
+    const weight = Number(profile?.starting_weight_kg || profile?.weight || 0);
     const height = Number(profile?.height || 0);
     const age = Number(profile?.age || 0);
     if (!weight || !height || !age) return goal === 'cut' ? 1900 : goal === 'bulk' ? 2600 : 2200;
 
-    const male = String(profile?.gender || '').toLowerCase().startsWith('m');
-    const bmr = 10 * weight + 6.25 * height - 5 * age + (male ? 5 : -161);
+    const gender = String(profile?.gender || '').toLowerCase();
+    const sexConstant =
+      gender.startsWith('m') || gender.includes('homme')
+        ? 5
+        : gender.startsWith('f') || gender.includes('femme')
+          ? -161
+          : -78;
+
+    const bmr = 10 * weight + 6.25 * height - 5 * age + sexConstant;
     const activityRaw = String(profile?.activity_level || '').toLowerCase();
     const factor =
       activityRaw.includes('very') || activityRaw.includes('high') || activityRaw.includes('très') ? 1.725 :
       activityRaw.includes('moderate') || activityRaw.includes('modéré') ? 1.55 :
-      activityRaw.includes('light') || activityRaw.includes('léger') ? 1.375 : 1.45;
+      activityRaw.includes('light') || activityRaw.includes('léger') ? 1.375 :
+      activityRaw.includes('sedent') ? 1.2 : 1.45;
+
     const maintenance = bmr * factor;
-    return Math.round(maintenance + (goal === 'cut' ? -400 : goal === 'bulk' ? 300 : 0));
-  }, [profile, goal]);
+    return Math.round(maintenance * (goal === 'cut' ? 0.85 : goal === 'bulk' ? 1.08 : 1));
+  }, [nutritionTarget, profile, goal]);
 
   const targetProtein = useMemo(() => {
+    const centralized = Number(nutritionTarget?.protein || 0);
+    if (centralized > 0) return Math.round(centralized);
+
     const stored = Number(profile?.protein_target || 0);
     if (stored > 0) return Math.round(stored);
-    const weight = Number(profile?.weight || 0);
+
+    const weight = Number(profile?.starting_weight_kg || profile?.weight || 0);
     if (!weight) return goal === 'bulk' ? 150 : 140;
-    return Math.round(weight * (goal === 'cut' ? 2 : goal === 'bulk' ? 1.8 : 1.7));
-  }, [profile, goal]);
+    return Math.round(weight * (goal === 'cut' ? 2 : goal === 'bulk' ? 1.8 : 1.8));
+  }, [nutritionTarget, profile, goal]);
 
   const generatePlan = async () => {
     if (!user || generating) return;
@@ -257,13 +314,17 @@ export default function MealPlanner() {
           const template = choices[(dayIndex + MEALS.indexOf(meal)) % choices.length];
           const desired = targetCalories * split[meal];
           const ratio = desired / template.calories;
+          const desiredProtein = targetProtein * split[meal];
+          const calorieScaledProtein = template.protein * Math.min(Math.max(ratio, 0.8), 1.25);
+          const plannedProtein = Math.max(calorieScaledProtein, desiredProtein * 0.9);
+
           rows.push({
             user_id: user.id,
             planned_date: day.date,
             meal_type: meal,
             food_name: template.name,
             calories: Math.round(template.calories * ratio),
-            protein: Math.round(template.protein * Math.min(Math.max(ratio, 0.8), 1.25)),
+            protein: Math.round(plannedProtein),
             created_at: new Date().toISOString(),
           });
         });
@@ -289,31 +350,42 @@ export default function MealPlanner() {
 
   const addPlanned = async () => {
     if (!user || !showAdd || !foodName.trim() || saving) return;
-    setSaving(true);
-    setError('');
 
-    const { error } = await supabase.from('meal_plans').insert({
-      user_id: user.id,
-      planned_date: showAdd.date,
-      meal_type: showAdd.meal,
-      food_name: foodName.trim(),
-      calories: Number(String(calories).replace(',', '.')) || 0,
-      protein: Number(String(protein).replace(',', '.')) || 0,
-      created_at: new Date().toISOString(),
-    });
+    const kcal = Number(String(calories).replace(',', '.'));
+    const prot = Number(String(protein).replace(',', '.'));
 
-    setSaving(false);
-    if (error) {
-      console.error('MEAL_PLAN_ADD_ERROR', error);
-      setError(error.message);
+    if (!Number.isFinite(kcal) || kcal < 0 || !Number.isFinite(prot) || prot < 0) {
+      setError('Calories et protéines doivent être des nombres positifs.');
       return;
     }
 
-    setFoodName('');
-    setCalories('');
-    setProtein('');
-    setShowAdd(null);
-    await load();
+    setSaving(true);
+    setError('');
+
+    try {
+      const { error } = await supabase.from('meal_plans').insert({
+        user_id: user.id,
+        planned_date: showAdd.date,
+        meal_type: showAdd.meal,
+        food_name: foodName.trim(),
+        calories: kcal,
+        protein: prot,
+        created_at: new Date().toISOString(),
+      });
+
+      if (error) throw error;
+
+      setFoodName('');
+      setCalories('');
+      setProtein('');
+      setShowAdd(null);
+      await load();
+    } catch (e: any) {
+      console.error('MEAL_PLAN_ADD_ERROR', e);
+      setError(e?.message || 'Impossible de planifier ce repas.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const logNow = async (entry: PlannedEntry) => {
@@ -383,7 +455,9 @@ export default function MealPlanner() {
           </button>
 
           <div style={{ marginTop: 8, color: '#8A8A83', fontSize: 9.5, lineHeight: 1.45 }}>
-            Cible estimée à partir de ton profil et de ton objectif. Elle pourra être ajustée avec ta progression réelle.
+            {nutritionTarget
+              ? 'Même cible nutritionnelle que Fuel · recalibrée par NOX quand tes données réelles deviennent suffisantes.'
+              : 'Cible provisoire estimée depuis ton profil · Fuel deviendra la source de vérité dès sa première synchronisation.'}
           </div>
 
           {message && <Notice text={message} success />}
