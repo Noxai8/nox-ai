@@ -31,7 +31,6 @@ import {
 
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-import NoxLogo from '../components/NoxLogo';
 
 const ACCENT = '#B7FF00';
 const BLACK = '#0A0A0A';
@@ -560,11 +559,7 @@ export default function Onboarding() {
               marginBottom: 22,
             }}
           >
-            <NoxLogo
-              variant="green"
-              showName
-              size={34}
-            />
+            <span style={{ fontSize: 26, fontWeight: 900, color: '#c8ff00', letterSpacing: '.1em' }}>NOX</span>
 
             <span
               style={{

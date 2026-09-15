@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
-import NoxLogo from '../components/NoxLogo';
 
 const NOX_GREEN = '#B7FF00';
 
@@ -126,11 +125,7 @@ export default function Login() {
               display: 'inline-flex',
             }}
           >
-            <NoxLogo
-              variant="green"
-              showName
-              size={36}
-            />
+            <span style={{ fontSize: 28, fontWeight: 900, color: '#c8ff00', letterSpacing: '.1em' }}>NOX</span>
           </Link>
 
           <Link
