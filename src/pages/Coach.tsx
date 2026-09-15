@@ -24,6 +24,8 @@ export default function Coach() {
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [contextLoading, setContextLoading] = useState(false);
+  const [error, setError] = useState('');
   const [context, setContext] = useState<any>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -32,48 +34,131 @@ export default function Coach() {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const loadContext = async () => {
-    const [{ data: profile }, { data: program }, { data: recentWorkouts }, { data: prs }, { data: bodyLogs }, { data: fuelToday }, { data: history }] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', user!.id).maybeSingle(),
-      supabase.from('workout_programs').select('*').eq('user_id', user!.id).eq('is_active', true).maybeSingle(),
-      supabase.from('workouts').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(5),
-      supabase.from('personal_records').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(10),
-      supabase.from('body_logs').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(5),
-      supabase.from('food_entries').select('*').eq('user_id', user!.id).gte('created_at', new Date().toISOString().split('T')[0] + 'T00:00:00'),
-      supabase.from('coach_messages').select('role, content, created_at').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(20),
-    ]);
+    if (!user) return;
+    setContextLoading(true);
+    setError('');
 
-    const totalKcal = fuelToday?.reduce((s: number, f: any) => s + (f.calories || 0), 0) || 0;
-    const totalProtein = fuelToday?.reduce((s: number, f: any) => s + (f.protein || 0), 0) || 0;
+    try {
+      const today = new Date();
+      const startToday = new Date(today);
+      startToday.setHours(0, 0, 0, 0);
 
-    setContext({
-      profile: {
-        name: profile?.display_name,
-        goal: profile?.goal_type,
-        weight: bodyLogs?.[0]?.weight,
-        level: profile?.experience_level,
-        activity: profile?.activity_level,
-        xp: profile?.xp,
-        streak: profile?.streak_days,
-      },
-      program: program ? { name: program.name, goal: program.goal, days_per_week: program.days_per_week } : null,
-      recent_workouts: recentWorkouts?.length || 0,
-      top_prs: prs?.slice(0, 5).map((p: any) => `${p.exercise_name}: ${p.weight}kg × ${p.reps}`),
-      today_fuel: { kcal: totalKcal, protein: Math.round(totalProtein) },
-      latest_weight: bodyLogs?.[0]?.weight,
-    });
-
-    // Charger l'historique des conversations précédentes
-    if (history && history.length > 0) {
-      const sorted = [...history].reverse();
-      setMessages([
-        { role: 'assistant', content: `Yo ${profile?.display_name?.split(' ')[0] || ''} 👊 Content de te revoir. On reprend où on s'est arrêtés.` },
-        ...sorted.map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+      const [
+        profileResult,
+        programResult,
+        workoutsResult,
+        prsResult,
+        bodyResult,
+        fuelResult,
+        historyResult,
+        targetResult,
+      ] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+        supabase.from('workout_programs').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
+        supabase.from('workouts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
+        supabase.from('personal_records').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10),
+        supabase.from('body_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
+        supabase.from('food_entries').select('calories, protein, carbs, fat, created_at').eq('user_id', user.id).gte('created_at', startToday.toISOString()),
+        supabase.from('coach_messages').select('role, content, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+        supabase.from('nutrition_targets').select('calories, protein, carbs, fat').eq('user_id', user.id).maybeSingle(),
       ]);
-    } else {
-      setMessages([{
+
+      const results = [
+        profileResult,
+        programResult,
+        workoutsResult,
+        prsResult,
+        bodyResult,
+        fuelResult,
+        historyResult,
+        targetResult,
+      ];
+      const failed = results.find(result => result.error);
+      if (failed?.error) throw failed.error;
+
+      const profile = profileResult.data;
+      const program = programResult.data;
+      const recentWorkouts = workoutsResult.data || [];
+      const prs = prsResult.data || [];
+      const bodyLogs = bodyResult.data || [];
+      const fuelToday = fuelResult.data || [];
+      const history = historyResult.data || [];
+      const target = targetResult.data;
+
+      const totalKcal = fuelToday.reduce((sum: number, f: any) => sum + (Number(f.calories) || 0), 0);
+      const totalProtein = fuelToday.reduce((sum: number, f: any) => sum + (Number(f.protein) || 0), 0);
+      const totalCarbs = fuelToday.reduce((sum: number, f: any) => sum + (Number(f.carbs) || 0), 0);
+      const totalFat = fuelToday.reduce((sum: number, f: any) => sum + (Number(f.fat) || 0), 0);
+
+      const completedWorkouts = recentWorkouts.filter((w: any) =>
+        w.status === 'completed' || w.completed === true || Boolean(w.completed_at)
+      );
+
+      setContext({
+        profile: {
+          name: profile?.display_name,
+          goal: profile?.goal_type || profile?.goal || profile?.objective,
+          weight: bodyLogs?.[0]?.weight || profile?.starting_weight_kg || profile?.weight,
+          starting_weight: profile?.starting_weight_kg || profile?.weight || null,
+          level: profile?.experience_level,
+          activity: profile?.activity_level,
+          xp: profile?.xp,
+          streak: profile?.streak_days,
+        },
+        nutrition_targets: target ? {
+          calories: Number(target.calories) || null,
+          protein: Number(target.protein) || null,
+          carbs: Number(target.carbs) || null,
+          fat: Number(target.fat) || null,
+          source: 'nutrition_targets',
+        } : null,
+        program: program ? {
+          name: program.name,
+          goal: program.goal,
+          days_per_week: program.days_per_week,
+        } : null,
+        recent_workouts: {
+          loaded: recentWorkouts.length,
+          completed: completedWorkouts.length,
+          last_status: recentWorkouts?.[0]?.status || null,
+          last_date: recentWorkouts?.[0]?.created_at || null,
+        },
+        top_prs: prs.slice(0, 5).map((p: any) => `${p.exercise_name}: ${p.weight}kg × ${p.reps}`),
+        today_fuel: {
+          kcal: Math.round(totalKcal),
+          protein: Math.round(totalProtein),
+          carbs: Math.round(totalCarbs),
+          fat: Math.round(totalFat),
+          entries: fuelToday.length,
+          note: 'Apports enregistrés aujourd’hui uniquement. Une journée incomplètement trackée ne doit pas être interprétée comme une consommation réelle faible.',
+        },
+        latest_weight: bodyLogs?.[0]?.weight || null,
+      });
+
+      if (history.length > 0) {
+        const sorted = [...history].reverse();
+        setMessages([
+          {
+            role: 'assistant',
+            content: `Yo ${profile?.display_name?.split(' ')[0] || ''} 👊 Content de te revoir. On reprend où on s'est arrêtés.`,
+          },
+          ...sorted.map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+        ]);
+      } else {
+        setMessages([{
+          role: 'assistant',
+          content: `Yo ${profile?.display_name?.split(' ')[0] || ''} 👊 Qu'est-ce qui se passe ?`,
+        }]);
+      }
+    } catch (err: any) {
+      console.error('COACH_CONTEXT_ERROR', err);
+      setError(err?.message || 'Impossible de charger le contexte NOX.');
+      setMessages(prev => prev.length ? prev : [{
         role: 'assistant',
-        content: `Yo ${profile?.display_name?.split(' ')[0] || ''} 👊 Qu'est-ce qui se passe ?`,
+        content: "Je peux te répondre, mais je n'ai pas réussi à charger toutes tes données personnelles pour le moment.",
       }]);
+    } finally {
+      setContextLoading(false);
     }
   };
 
@@ -92,16 +177,16 @@ export default function Coach() {
         .map(m => `${m.role === 'user' ? 'Lui' : 'NOX'}: ${m.content.slice(0, 150)}`)
         .join('\n');
 
-      // Détection d'anomalies dans les données
+      // Détection de données incomplètes : on questionne au lieu d'inventer.
       const anomalies: string[] = [];
-      if (context?.latest_weight && context?.profile?.weight) {
-        const weightDelta = context.latest_weight - context.profile.weight;
-        if (Math.abs(weightDelta) > 2 && context.today_fuel?.kcal > 0) {
-          anomalies.push(`Poids ${weightDelta > 0 ? '+' : ''}${weightDelta.toFixed(1)}kg vs apports déclarés ${context.today_fuel.kcal}kcal — données à vérifier`);
-        }
+      if (!context?.nutrition_targets?.calories) {
+        anomalies.push("Cible calorique NOX indisponible — ne calcule pas une cible concurrente. Invite l'utilisateur à ouvrir Fuel pour initialiser/synchroniser nutrition_targets si nécessaire.");
       }
-      if (context?.profile?.streak > 14 && context?.today_fuel?.kcal === 0) {
-        anomalies.push('14+ jours de streak mais aucune nutrition trackée — cohérence à questionner');
+      if (context?.today_fuel?.entries === 0) {
+        anomalies.push("Aucun aliment enregistré aujourd'hui — cela signifie seulement que le journal est vide, pas que l'utilisateur n'a pas mangé.");
+      }
+      if (!context?.latest_weight) {
+        anomalies.push("Poids récent indisponible — ne déduis pas une évolution de poids.");
       }
 
       const systemPrompt = `Tu es NOX, le coach de ${context?.profile?.name?.split(' ')[0] || 'l\'utilisateur'}.
@@ -121,7 +206,13 @@ STYLE :
 - Naturel, direct, sans bullshit. Pas de "Excellente question !" jamais
 - Tutoie, sois concis (3-5 phrases), utilise les vraies données
 - Si anomalie détectée → pose une question directe plutôt que de deviner
-- Si blessure grave → conseille un pro
+- Pour les calories et macros, nutrition_targets est la seule cible officielle NOX. Ne recalcule jamais une cible concurrente à partir du poids, du sexe ou de l'activité.
+- Si nutrition_targets est absent, dis que la cible n'est pas disponible au lieu d'inventer un chiffre.
+- today_fuel contient uniquement ce qui a été enregistré aujourd'hui : ne confonds jamais absence de tracking et faible consommation réelle.
+- Pour une progression de charge, appuie-toi sur les données d'entraînement disponibles. Si elles ne suffisent pas, demande des précisions au lieu d'inventer une charge.
+- Une mauvaise séance isolée ne signifie pas stagnation. Vérifie récupération, sommeil, douleur, technique et régularité avant de proposer plus de volume.
+- Ne promets pas un rythme de perte de poids, de prise de muscle ou une date de résultat comme garanti.
+- Si douleur importante, persistante, traumatique ou symptômes inquiétants → conseille une évaluation par un professionnel de santé.
 - Pas de diagnostic médical`;
 
       const _cr = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/nox-coach', {
@@ -129,22 +220,41 @@ STYLE :
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4' },
         body: JSON.stringify({ system: systemPrompt, messages: newMessages.map(m => ({ role: m.role, content: m.content })) }),
       });
-      if (!_cr.ok) throw new Error('Erreur coach');
-      const data = await _cr.json();
-      const reply = data?.content?.[0]?.text || 'Désolé, je n\'ai pas pu répondre. Réessaie.';
+      const data = await _cr.json().catch(() => null);
+      if (!_cr.ok) {
+        throw new Error(
+          data?.error?.message ||
+          data?.error ||
+          data?.message ||
+          `Service coach indisponible (${_cr.status}).`
+        );
+      }
+      if (data?.error) {
+        throw new Error(typeof data.error === 'string' ? data.error : data.error?.message || 'Erreur du coach NOX.');
+      }
+
+      const reply = data?.content?.[0]?.text || data?.text || '';
+      if (!reply.trim()) throw new Error("NOX n'a pas renvoyé de réponse exploitable.");
 
       const finalMessages = [...newMessages, { role: 'assistant' as const, content: reply }];
       setMessages(finalMessages);
 
       // Sauvegarder conversation
-      await supabase.from('coach_messages').insert([
+      const { error: saveError } = await supabase.from('coach_messages').insert([
         { user_id: user!.id, role: 'user', content: msg, created_at: new Date().toISOString() },
         { user_id: user!.id, role: 'assistant', content: reply, created_at: new Date().toISOString() },
       ]);
-    } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur de connexion. Vérifie ta connexion et réessaie.' }]);
+      if (saveError) {
+        console.error('COACH_HISTORY_SAVE_ERROR', saveError);
+        setError('La réponse a été reçue, mais l’historique n’a pas pu être sauvegardé.');
+      }
+    } catch (err: any) {
+      console.error('COACH_SEND_ERROR', err);
+      setError(err?.message || 'Impossible de contacter le coach NOX.');
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Je n’ai pas pu répondre correctement. Réessaie dans un instant.' }]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -184,10 +294,26 @@ STYLE :
             <div>
               <div style={{ fontSize: 11, fontWeight: 950 }}>Contexte actif</div>
               <div style={{ marginTop: 2, fontSize: 9.5, color: '#77776F', lineHeight: 1.4 }}>
-                Ton profil, ton programme, tes entraînements et ta nutrition sont pris en compte.
+                Ton profil, ton programme, tes entraînements et la cible nutritionnelle Fuel sont pris en compte.
               </div>
             </div>
           </div>
+
+          {error && (
+            <div style={{
+              marginTop: 10, padding: '10px 12px', borderRadius: 11,
+              background: '#FFF2F2', border: '1px solid #FFD2D2',
+              color: '#A53A3A', fontSize: 10.5, lineHeight: 1.45
+            }}>
+              {error}
+            </div>
+          )}
+
+          {contextLoading && !context && (
+            <div style={{ marginTop: 10, color: '#8B8B84', fontSize: 10.5 }}>
+              Chargement du contexte NOX...
+            </div>
+          )}
 
           {context?.profile && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10 }}>
@@ -195,6 +321,7 @@ STYLE :
               <InfoCard icon="▣" label="Programme" value={context.program?.name || 'Non défini'} />
               <InfoCard icon="★" label="Streak" value={`${context.profile.streak || 0} jours`} />
               <InfoCard icon="●" label="Poids" value={context.profile.weight ? `${context.profile.weight} kg` : '—'} />
+              <InfoCard icon="◈" label="Cible Fuel" value={context.nutrition_targets?.calories ? `${Math.round(context.nutrition_targets.calories)} kcal` : '—'} />
             </div>
           )}
         </header>
