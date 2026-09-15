@@ -54,6 +54,48 @@ const BG = '#070707';
 const SURFACE = '#121212';
 const BORDER = '#242424';
 
+type VisualKey = 'bench' | 'squat' | 'row' | 'overhead' | 'pullup' | 'rdl' | 'plank';
+type ExerciseMedia = { key: VisualKey; image: string; videoEmbed: string | null };
+
+const EXERCISE_MEDIA: Record<VisualKey, ExerciseMedia> = {
+  squat: { key: 'squat', image: 'https://images.pexels.com/photos/17840/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=1200', videoEmbed: 'https://player.vimeo.com/video/919708638?h=8e305290c4&title=0&byline=0&portrait=0' },
+  bench: { key: 'bench', image: 'https://images.pexels.com/photos/13967665/pexels-photo-13967665.jpeg?auto=compress&cs=tinysrgb&w=1200', videoEmbed: 'https://player.vimeo.com/video/919705993?h=2583e706aa&title=0&byline=0&portrait=0' },
+  row: { key: 'row', image: 'https://images.pexels.com/photos/17210045/pexels-photo-17210045.jpeg?auto=compress&cs=tinysrgb&w=1200', videoEmbed: 'https://player.vimeo.com/video/919708991?h=dfda1026a9&title=0&byline=0&portrait=0' },
+  plank: { key: 'plank', image: 'https://images.pexels.com/photos/4944959/pexels-photo-4944959.jpeg?auto=compress&cs=tinysrgb&w=1200', videoEmbed: null },
+  rdl: { key: 'rdl', image: 'https://images.pexels.com/photos/15596431/pexels-photo-15596431.jpeg?auto=compress&cs=tinysrgb&w=1200', videoEmbed: 'https://player.vimeo.com/video/919712383?h=12a5576d3c&title=0&byline=0&portrait=0' },
+  pullup: { key: 'pullup', image: 'https://images.pexels.com/photos/7671462/pexels-photo-7671462.jpeg?auto=compress&cs=tinysrgb&w=1200', videoEmbed: null },
+  overhead: { key: 'overhead', image: 'https://images.pexels.com/photos/13106583/pexels-photo-13106583.jpeg?auto=compress&cs=tinysrgb&w=1200', videoEmbed: 'https://player.vimeo.com/video/919710922?h=e1d5aac320&title=0&byline=0&portrait=0' },
+};
+
+function normalizeExerciseName(name: string) {
+  return String(name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+function exerciseVisualKey(name: string): VisualKey | null {
+  const n = normalizeExerciseName(name);
+  if (n.includes('developpe couche') || n.includes('bench press')) return 'bench';
+  if (n.includes('squat')) return 'squat';
+  if (n.includes('rowing') || n.includes('bent-over row') || n.includes('bent over row')) return 'row';
+  if (n.includes('gainage') || n.includes('plank')) return 'plank';
+  if (n.includes('souleve de terre roumain') || n.includes('romanian deadlift') || n.includes('rdl')) return 'rdl';
+  if (n.includes('traction') || n.includes('pull-up') || n.includes('pull up')) return 'pullup';
+  if (n.includes('developpe militaire') || n.includes('overhead press') || n.includes('shoulder press')) return 'overhead';
+  return null;
+}
+function resolveExerciseMedia(exercise: any): ExerciseMedia | null {
+  const key = exerciseVisualKey(exercise?.name || '');
+  return key ? EXERCISE_MEDIA[key] : null;
+}
+function muscleTags(exercise: any): string[] {
+  const raw = String(exercise?.muscles || '');
+  if (raw.trim()) return raw.split(/[·,/]/).map((x: string) => x.trim()).filter(Boolean).slice(0, 3);
+  const key = exerciseVisualKey(exercise?.name || '');
+  const tags: Record<VisualKey, string[]> = {
+    squat: ['Quadriceps','Fessiers','Ischios'], bench: ['Pectoraux','Triceps','Épaules'], row: ['Dos','Biceps'],
+    overhead: ['Épaules','Triceps'], pullup: ['Dos','Biceps'], rdl: ['Ischios','Fessiers','Dos'], plank: ['Core','Abdominaux']
+  };
+  return key ? tags[key] : [];
+}
+
 export default function Training() {
   const { sessionId } = useParams();
   const { user } = useAuth();
@@ -356,6 +398,8 @@ export default function Training() {
   }
 
   const ex = exercises[currentIdx];
+  const media = resolveExerciseMedia(ex);
+  const tags = muscleTags(ex);
   const totalSets = parseInt(ex?.sets) || 3;
   const exerciseProgress = ((currentIdx + (currentSet - 1) / totalSets) / exercises.length) * 100;
 
@@ -430,7 +474,7 @@ export default function Training() {
         {overloadSuggestion && !resting && (
           <div style={{ margin: '0 20px 12px', background: '#F8FFE4', border: `1px solid ${ACCENT}`, borderRadius: 13, padding: '11px 13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontSize: 9.5, color: '#111', fontWeight: 1000, textTransform: 'uppercase', letterSpacing: '.07em' }}>NOX SUGGÈRE</div>
+              <div style={{ fontSize: 9.5, color: '#111', fontWeight: 1000, textTransform: 'uppercase', letterSpacing: '.07em' }}>PROGRESSION NOX</div>
               <div style={{ fontSize: 11, color: '#66665F', marginTop: 4 }}>{overloadSuggestion.reason}</div>
             </div>
             <div style={{ fontSize: 18, fontWeight: 1000, color: '#111', flexShrink: 0, marginLeft: 12 }}>{overloadSuggestion.suggestedWeight} kg</div>
@@ -451,19 +495,27 @@ export default function Training() {
           />
         ) : (
           <div style={{ flex: 1, padding: '0 20px 28px', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 14 }}>
               <div style={{ fontSize: 10, color: '#8A8A83', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 5, fontWeight: 850 }}>
                 Exercice {currentIdx + 1}
               </div>
               <div style={{ fontSize: 31, fontWeight: 1000, color: '#111', letterSpacing: '-.045em', lineHeight: .98 }}>
                 {ex?.name}
               </div>
-              {ex?.muscles && (
-                <div style={{ fontSize: 11, color: '#77776F', marginTop: 7, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ color: ACCENT, fontWeight: 1000 }}>◎</span>{ex.muscles}
-                </div>
+            </div>
+
+            <div style={{ borderRadius: 14, overflow: 'hidden', background: '#F0F0EC', marginBottom: 8, border: '1px solid #E7E7E2' }}>
+              {media?.image ? (
+                <img src={media.image} alt={`Démonstration ${ex?.name || 'exercice'}`} style={{ width: '100%', height: 174, objectFit: 'cover', display: 'block' }} />
+              ) : (
+                <div style={{ height: 120, display: 'grid', placeItems: 'center', fontWeight: 1000, color: '#B7B7AF' }}>NOX EXERCISE</div>
               )}
             </div>
+            {tags.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+                {tags.map(tag => <span key={tag} style={{ padding: '5px 9px', background: '#F0F0EC', borderRadius: 8, color: '#55554F', fontSize: 9.5, fontWeight: 750 }}>{tag}</span>)}
+              </div>
+            )}
 
             {/* Set indicator */}
             <div style={{ display: 'flex', gap: 7, marginBottom: 14 }}>
@@ -671,6 +723,11 @@ function RestScreen({
           style={{ minHeight: 54, background: ACCENT, border: 'none', borderRadius: 14, color: '#111', fontWeight: 1000, fontSize: 14, cursor: 'pointer' }}>
           PASSER ▶
         </button>
+      </div>
+
+      <div style={{ width: '100%', maxWidth: 330, marginTop: 16, padding: '13px 14px', borderRadius: 14, border: '1px solid #242424', background: '#111', display: 'grid', gridTemplateColumns: '30px 1fr', gap: 10, textAlign: 'left' }}>
+        <div style={{ width: 28, height: 28, borderRadius: 9, background: ACCENT, color: '#111', display: 'grid', placeItems: 'center', fontWeight: 1000 }}>N</div>
+        <div><div style={{ fontSize: 10.5, color: '#fff', fontWeight: 900 }}>Conseil NOX</div><div style={{ fontSize: 10, color: '#777', lineHeight: 1.4, marginTop: 3 }}>Respire, hydrate-toi et prépare ta prochaine série.</div></div>
       </div>
     </div>
   );
