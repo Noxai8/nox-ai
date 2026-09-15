@@ -153,13 +153,11 @@ export default function WeeklyReview() {
       const avgCarbs = average(nutritionDays.map(day => day.carbs));
       const avgFat = average(nutritionDays.map(day => day.fat));
 
-      const calorieTarget =
-        extractMetric(target, ['calories', 'kcal']) ??
-        extractMetric(profile, ['daily_calories', 'calorie_target']);
-
-      const proteinTarget =
-        extractMetric(target, ['protein']) ??
-        extractMetric(profile, ['protein_target']);
+      // nutrition_targets est l'unique source de vérité nutritionnelle NOX.
+      const calorieTarget = extractMetric(target, ['calories']);
+      const proteinTarget = extractMetric(target, ['protein']);
+      const carbsTarget = extractMetric(target, ['carbs']);
+      const fatTarget = extractMetric(target, ['fat']);
 
       const calorieAdherence =
         calorieTarget && nutritionDays.length
@@ -216,6 +214,9 @@ export default function WeeklyReview() {
         avg_fat: avgFat != null ? Math.round(avgFat) : null,
         calorie_target: calorieTarget,
         protein_target: proteinTarget,
+        carbs_target: carbsTarget,
+        fat_target: fatTarget,
+        nutrition_target_source: target ? 'nutrition_targets' : null,
         calorie_adherence: calorieAdherence,
         protein_adherence: proteinAdherence,
         recovery_checkins: moodLogs.length,
@@ -223,7 +224,7 @@ export default function WeeklyReview() {
         avg_recovery: avgRecovery != null ? Math.round(avgRecovery) : null,
         streak: profile?.streak_days || 0,
         xp: profile?.xp || 0,
-        goal: profile?.goal_type || profile?.goal || 'transformation',
+        goal: profile?.goal_type || profile?.goal || profile?.objective || 'transformation',
       };
 
       setData(weekData);
@@ -267,6 +268,9 @@ NUTRITION :
 - Moyenne protéines : ${weekData.avg_protein != null ? weekData.avg_protein + ' g' : 'données insuffisantes'}
 - Cible protéines : ${weekData.protein_target != null ? weekData.protein_target + ' g' : 'non disponible'}
 - Adhérence protéines : ${weekData.protein_adherence != null ? weekData.protein_adherence + '%' : 'non calculable'}
+- Cible glucides : ${weekData.carbs_target != null ? weekData.carbs_target + ' g' : 'non disponible'}
+- Cible lipides : ${weekData.fat_target != null ? weekData.fat_target + ' g' : 'non disponible'}
+- Source des cibles : ${weekData.nutrition_target_source || 'aucune cible centrale disponible'}
 
 RÉCUPÉRATION :
 - Check-ins : ${weekData.recovery_checkins}/7
@@ -288,6 +292,11 @@ ${JSON.stringify(programSessions.map((session: any) => ({
 
 RÈGLES :
 - N'invente aucune donnée manquante.
+- nutrition_targets est l'unique source de vérité pour les cibles calories/macros. Ne recalcule pas et ne remplace pas ces cibles.
+- Si nutrition_targets est absent, indique que la cible nutritionnelle centrale est indisponible au lieu d'utiliser une ancienne valeur du profil.
+- Les moyennes nutritionnelles portent uniquement sur les jours réellement renseignés. Un jour non tracké ne vaut jamais zéro calorie et ne doit pas être interprété comme une journée sans manger.
+- Si peu de jours sont renseignés, baisse la confiance de toute conclusion nutritionnelle et demande davantage de suivi.
+- L'adhérence calorique affichée mesure la proximité des jours trackés avec la cible, pas l'adhérence alimentaire réelle de toute la semaine.
 - Ne promets jamais une date d'atteinte de l'objectif.
 - Une seule semaine ne suffit pas pour conclure à une stagnation.
 - Ne modifie pas automatiquement le programme à partir d'un simple manque d'adhérence.
@@ -440,10 +449,16 @@ FORMAT :
                 </div>
               </div>
 
+              <div style={{ color: '#555', fontSize: 10, marginTop: 12, lineHeight: 1.45 }}>
+                {data.nutrition_target_source
+                  ? 'Cibles synchronisées avec Fuel · moyennes calculées uniquement sur les jours renseignés.'
+                  : 'Aucune cible nutritionnelle centrale disponible · ouvre Fuel pour initialiser ta cible NOX.'}
+              </div>
+
               {(data.calorie_adherence != null || data.protein_adherence != null) && (
                 <div style={{ borderTop: '1px solid ' + BORDER, marginTop: 14, paddingTop: 13, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                  {data.calorie_adherence != null && <div style={{ color: '#777', fontSize: 11 }}>Cible calories · <strong style={{ color: ACCENT }}>{data.calorie_adherence}%</strong></div>}
-                  {data.protein_adherence != null && <div style={{ color: '#777', fontSize: 11 }}>Cible protéines · <strong style={{ color: ACCENT }}>{data.protein_adherence}%</strong></div>}
+                  {data.calorie_adherence != null && <div style={{ color: '#777', fontSize: 11 }}>Proximité calories · <strong style={{ color: ACCENT }}>{data.calorie_adherence}%</strong></div>}
+                  {data.protein_adherence != null && <div style={{ color: '#777', fontSize: 11 }}>Couverture protéines · <strong style={{ color: ACCENT }}>{data.protein_adherence}%</strong></div>}
                 </div>
               )}
             </div>
