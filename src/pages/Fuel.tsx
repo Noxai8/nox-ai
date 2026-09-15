@@ -620,12 +620,25 @@ export default function Fuel() {
                       </div>
                     )}
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '.8fr 1.2fr', gap: 8 }}>
-                      <button onClick={() => { setPhotoBase64(null); setScanResult(null); fileRef.current?.click(); }} style={{ padding: 13, background: '#111', border: '1px solid #242424', borderRadius: 12, color: '#aaa', fontWeight: 850, cursor: 'pointer' }}>NOUVELLE PHOTO</button>
+                    {/* Boutons fixes en bas — toujours visibles sur mobile */}
+                    <div style={{ position: 'sticky', bottom: 0, background: '#0d0d0d', paddingTop: 12, paddingBottom: 8, marginTop: 12 }}>
                       <button 
+                        onPointerUp={e => { e.stopPropagation(); addScanResult(); }}
                         onClick={e => { e.stopPropagation(); addScanResult(); }} 
-                        style={{ padding: 13, background: ACCENT, border: 0, borderRadius: 12, color: '#050505', fontWeight: 950, cursor: 'pointer', touchAction: 'manipulation', userSelect: 'none' }}>
-                        AJOUTER TOUT · {Math.round(scanResult.total?.kcal ?? scanResult.total?.calories ?? 0)} KCAL
+                        style={{ 
+                          width: '100%', padding: 18, background: ACCENT, border: 0, 
+                          borderRadius: 14, color: '#050505', fontWeight: 950, fontSize: 16,
+                          cursor: 'pointer', touchAction: 'manipulation', userSelect: 'none',
+                          display: 'block', marginBottom: 8,
+                          WebkitTapHighlightColor: 'transparent',
+                        }}>
+                        ✓ AJOUTER {Math.round(scanResult.total?.kcal ?? scanResult.total?.calories ?? 0)} KCAL
+                      </button>
+                      <button 
+                        onPointerUp={() => { setPhotoBase64(null); setScanResult(null); fileRef.current?.click(); }}
+                        onClick={() => { setPhotoBase64(null); setScanResult(null); fileRef.current?.click(); }} 
+                        style={{ width: '100%', padding: 12, background: 'transparent', border: '1px solid #242424', borderRadius: 12, color: '#aaa', fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' }}>
+                        Nouvelle photo
                       </button>
                     </div>
                   </div>
