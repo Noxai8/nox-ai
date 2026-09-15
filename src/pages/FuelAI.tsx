@@ -25,6 +25,32 @@ export default function FuelAI() {
   const [goal, setGoal] = useState('');
   const [error, setError] = useState('');
 
+
+  const loadNutritionContext = async () => {
+    if (!user) throw new Error('Utilisateur non connecté.');
+
+    const [profileResult, targetResult] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+      supabase.from('nutrition_targets').select('calories, protein, carbs, fat').eq('user_id', user.id).maybeSingle(),
+    ]);
+
+    if (profileResult.error) throw profileResult.error;
+    if (targetResult.error) throw targetResult.error;
+
+    const profile = profileResult.data || null;
+    const target = targetResult.data || null;
+
+    return {
+      profile,
+      target,
+      profileGoal: profile?.goal_type || profile?.goal || profile?.objective || goal || 'transformation physique',
+      calories: Number(target?.calories || 0) > 0 ? Number(target.calories) : null,
+      protein: Number(target?.protein || 0) > 0 ? Number(target.protein) : null,
+      carbs: Number(target?.carbs || 0) > 0 ? Number(target.carbs) : null,
+      fat: Number(target?.fat || 0) > 0 ? Number(target.fat) : null,
+    };
+  };
+
   const callAI = async (prompt: string) => {
     const response = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/generate-program', {
       method: 'POST',
@@ -58,8 +84,17 @@ export default function FuelAI() {
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4' },
         body: JSON.stringify({ base64, mime: 'image/jpeg' }),
       });
-      if (!_fr.ok) throw new Error('Erreur frigo');
-      const fridgeData = await _fr.json();
+      const fridgeData = await _fr.json().catch(() => null);
+      if (!_fr.ok) {
+        throw new Error(
+          fridgeData?.error ||
+          fridgeData?.message ||
+          `Analyse du frigo indisponible (${_fr.status}).`
+        );
+      }
+      if (fridgeData?.error) {
+        throw new Error(typeof fridgeData.error === 'string' ? fridgeData.error : "Impossible d'analyser le frigo.");
+      }
       const text = fridgeData ? JSON.stringify(fridgeData) : '';
       // La réponse est déjà parsée depuis analyze-meal
       if (fridgeData && !fridgeData.error) {
@@ -69,6 +104,8 @@ export default function FuelAI() {
           repas: [{ nom: fridgeData.description, temps: '20 min', difficulte: 'Facile', calories_approx: fridgeData.total?.kcal || 0, protein_approx: fridgeData.total?.protein || 0, ingredients_utilises: fridgeData.aliments.map((a: any) => a.nom), ingredients_manquants: [], recette_rapide: 'Prépare les ingrédients détectés selon tes préférences', pourquoi_sain: fridgeData.note || 'Repas équilibré' }]
         } : (text ? JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || '{}') : {});
         setResult({ type: 'fridge', data: fridgeResult });
+      } else {
+        throw new Error("NOX n'a pas reconnu suffisamment d'éléments sur cette photo.");
       }
     } catch (e: any) {
       console.error(e);
@@ -78,21 +115,36 @@ export default function FuelAI() {
   };
 
   const generateMeals = async () => {
+    if (!user) return;
     setLoading(true);
+    setResult(null);
+    setError('');
+
     try {
-      const { data: profile } = await supabase.from('profiles').select('*').eq('id', user!.id).maybeSingle();
-      const text = await callAI(`Tu es un chef nutritionniste et coach fitness. Génère un plan de repas sur 3 jours.
+      const ctx = await loadNutritionContext();
+
+      const text = await callAI(`Tu es l'assistant nutrition sportive de NOX. Génère un plan de repas sur 3 jours cohérent avec la cible nutritionnelle centrale de l'utilisateur.
 
 PROFIL :
-- Objectif : ${profile?.goal_type || goal || 'perte de poids'}
+- Objectif : ${ctx.profileGoal}
+- Cible calorique NOX : ${ctx.calories ? `${Math.round(ctx.calories)} kcal/jour` : 'non disponible'}
+- Cible protéines NOX : ${ctx.protein ? `${Math.round(ctx.protein)} g/jour` : 'non disponible'}
 - Budget : ${budget ? budget + '€/semaine' : 'économique'}
 - Personnes : ${people}
-- Restrictions : aucune
+- Restrictions : non renseignées
 
-Réponds en JSON :
+RÈGLES :
+- Si une cible NOX est disponible, utilise-la : n'invente pas une nouvelle cible calorique ou protéique.
+- Si elle n'est pas disponible, ne prétends pas qu'une valeur arbitraire est la cible personnelle de l'utilisateur.
+- Répartis les repas de manière réaliste sur la journée.
+- Ne recommande pas de restriction extrême.
+- Les coûts sont des estimations.
+- Réponds uniquement en JSON valide, sans markdown.
+
+FORMAT :
 {
-  "objectif_calorique": 2200,
-  "objectif_proteines": 160,
+  "objectif_calorique": ${ctx.calories ? Math.round(ctx.calories) : 'null'},
+  "objectif_proteines": ${ctx.protein ? Math.round(ctx.protein) : 'null'},
   "jours": [
     {
       "jour": "Lundi",
@@ -107,15 +159,20 @@ Réponds en JSON :
           "cout_approx": 2.5
         }
       ],
-      "total_calories": 2200,
-      "total_proteines": 160
+      "total_calories": ${ctx.calories ? Math.round(ctx.calories) : 'null'},
+      "total_proteines": ${ctx.protein ? Math.round(ctx.protein) : 'null'}
     }
   ],
   "conseil_chef": "Conseil nutrition personnalisé"
 }`);
-      if (match) setResult({ type: 'meals', data: JSON.parse(match[0]) });
-    } catch (e) { console.error(e); }
-    setLoading(false);
+
+      setResult({ type: 'meals', data: parseAIJson(text) });
+    } catch (e: any) {
+      console.error('FUEL_AI_MEALS_ERROR', e);
+      setError(e?.message || 'Impossible de générer le plan repas.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const generateGrocery = async () => {
@@ -125,14 +182,11 @@ Réponds en JSON :
     setError('');
 
     try {
-      const [{ data: profile }, { data: target }] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
-        supabase.from('nutrition_targets').select('*').eq('user_id', user.id).maybeSingle(),
-      ]);
-
-      const profileGoal = profile?.goal_type || profile?.goal || goal || 'transformation physique';
-      const calories = target?.calories || target?.kcal || profile?.daily_calories || profile?.calorie_target || null;
-      const protein = target?.protein || profile?.protein_target || null;
+      const ctx = await loadNutritionContext();
+      const profile = ctx.profile;
+      const profileGoal = ctx.profileGoal;
+      const calories = ctx.calories;
+      const protein = ctx.protein;
 
       const text = await callAI(`Tu es l'assistant nutrition sportive de NOX. Génère une liste de courses concrète, réaliste et cohérente avec l'objectif de l'utilisateur.
 
@@ -145,6 +199,8 @@ PROFIL :
 - Cible protéines : ${protein ? protein + ' g/jour' : 'non disponible'}
 
 RÈGLES :
+- Les cibles calories/protéines ci-dessus viennent de nutrition_targets, la source de vérité de NOX. Ne les recalcule pas et ne les remplace pas par une estimation.
+- Si une cible est indisponible, n'en invente pas une.
 - Adapte les aliments et quantités à l'objectif (perte de gras, maintien ou prise de masse).
 - Priorise des aliments simples, accessibles et riches nutritionnellement.
 - Respecte autant que possible le budget indiqué.
@@ -197,15 +253,19 @@ FORMAT :
       const since = new Date();
       since.setDate(since.getDate() - 7);
 
-      const [{ data: profile }, { data: target }, { data: entries }] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
-        supabase.from('nutrition_targets').select('*').eq('user_id', user.id).maybeSingle(),
+      const [ctx, entriesResult] = await Promise.all([
+        loadNutritionContext(),
         supabase.from('food_entries')
           .select('calories, protein, carbs, fat, created_at')
           .eq('user_id', user.id)
           .gte('created_at', since.toISOString())
           .order('created_at', { ascending: false }),
       ]);
+
+      if (entriesResult.error) throw entriesResult.error;
+
+      const profile = ctx.profile;
+      const entries = entriesResult.data || [];
 
       const daily = new Map<string, { calories: number; protein: number; carbs: number; fat: number }>();
       (entries || []).forEach((entry: any) => {
@@ -229,9 +289,9 @@ FORMAT :
           }), { calories: 0, protein: 0, carbs: 0, fat: 0 })
         : null;
 
-      const profileGoal = profile?.goal_type || profile?.goal || 'transformation';
-      const calorieTarget = target?.calories || target?.kcal || profile?.daily_calories || profile?.calorie_target || null;
-      const proteinTarget = target?.protein || profile?.protein_target || null;
+      const profileGoal = ctx.profileGoal;
+      const calorieTarget = ctx.calories;
+      const proteinTarget = ctx.protein;
 
       const text = await callAI(`Tu es le coach nutrition de NOX. Donne 6 conseils concrets et personnalisés. Ne donne pas de diagnostic médical et n'invente aucune donnée absente.
 
@@ -241,6 +301,10 @@ PROFIL :
 - Poids : ${profile?.starting_weight_kg || profile?.weight || 'non renseigné'} kg
 - Cible calories : ${calorieTarget ? calorieTarget + ' kcal/jour' : 'non disponible'}
 - Cible protéines : ${proteinTarget ? proteinTarget + ' g/jour' : 'non disponible'}
+
+IMPORTANT :
+- Ces cibles viennent de nutrition_targets. Ne les recalcule pas et ne propose pas une cible concurrente.
+- Si une cible est absente, n'en invente pas une.
 
 JOURNAL DES 7 DERNIERS JOURS :
 - Jours réellement renseignés : ${trackedDays.length}
@@ -348,7 +412,7 @@ FORMAT :
             <MenuCard icon="🛒" title="Liste de courses" desc="Budget + objectifs → liste optimisée avec prix approximatifs" onClick={() => setMode('grocery')} />
             <MenuCard icon="💡" title="Astuces nutrition" desc="Conseils personnalisés pour booster tes résultats avec la nutrition" onClick={() => { setMode('tips'); generateTips(); }} />
           <MenuCard icon="⏱️" title="Jeûne intermittent" desc="Tracker de jeûne avec timer + suivi hydratation" onClick={() => navigate('/fasting')} />
-          <MenuCard icon="😊" title="Humeur & bien-être" desc="Journal quotidien humeur, symptômes et calories brûlées" onClick={() => navigate('/mood')} />
+          <MenuCard icon="😊" title="Humeur & bien-être" desc="Journal quotidien humeur, sommeil, fatigue et récupération" onClick={() => navigate('/mood')} />
           <MenuCard icon="👨‍🍳" title="Mes recettes" desc="Créer et sauvegarder tes propres recettes réutilisables" onClick={() => navigate('/recipes')} />
           <MenuCard icon="📅" title="Planifier mes repas" desc="Organise ta semaine alimentaire à l'avance" onClick={() => navigate('/meal-planner')} />
           </>
