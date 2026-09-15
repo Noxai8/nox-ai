@@ -70,6 +70,125 @@ const MEALS = ['Petit-déjeuner', 'Déjeuner', 'Dîner', 'Snacks'];
 
 type AddMode = 'choose' | 'photo' | 'search' | 'custom' | 'barcode';
 
+type NutritionTargets = { kcal: number; protein: number; carbs: number; fat: number };
+
+function normalizeText(value: unknown): string {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function finitePositive(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function localDayBounds(date = new Date()) {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+  const end = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+  return { start, end };
+}
+
+function goalDirection(profile: any): 'cut' | 'bulk' | 'maintain' {
+  const goal = normalizeText(profile?.goal_type || profile?.goal || profile?.objective);
+  if (
+    goal.includes('gras') ||
+    goal.includes('perte') ||
+    goal.includes('maigr') ||
+    goal.includes('seche') ||
+    goal.includes('poids')
+  ) return 'cut';
+
+  if (
+    goal.includes('muscle') ||
+    goal.includes('masse') ||
+    goal.includes('prise') ||
+    goal.includes('bulk') ||
+    goal.includes('hypertroph')
+  ) return 'bulk';
+
+  return 'maintain';
+}
+
+function calculateFormulaNutritionTargets(profile: any, currentWeight?: number | null): NutritionTargets {
+  const weight =
+    finitePositive(currentWeight) ||
+    finitePositive(profile?.starting_weight_kg) ||
+    finitePositive(profile?.weight) ||
+    75;
+
+  const height = finitePositive(profile?.height_cm) || finitePositive(profile?.height);
+  let age = finitePositive(profile?.age) || 30;
+
+  if (profile?.date_of_birth) {
+    const birth = new Date(profile.date_of_birth);
+    if (!Number.isNaN(birth.getTime())) {
+      age = Math.max(14, Math.min(100, Math.floor((Date.now() - birth.getTime()) / (365.2425 * 86400000))));
+    }
+  }
+
+  let maintenance: number;
+
+  if (height) {
+    const sex = normalizeText(profile?.sex || profile?.gender);
+    const sexConstant =
+      ['male', 'man', 'homme', 'm'].includes(sex) ? 5 :
+      ['female', 'woman', 'femme', 'f'].includes(sex) ? -161 :
+      -78;
+
+    const bmr = 10 * weight + 6.25 * height - 5 * age + sexConstant;
+    const activity = normalizeText(profile?.activity_level);
+    const multiplier =
+      activity.includes('sedent') ? 1.2 :
+      activity.includes('leger') || activity.includes('light') ? 1.375 :
+      activity.includes('tres') || activity.includes('very') ? 1.725 :
+      activity.includes('extrem') ? 1.9 :
+      1.55;
+
+    maintenance = bmr * multiplier;
+  } else {
+    // Fallback seulement lorsque le profil ne permet pas Mifflin.
+    maintenance = weight * 30;
+  }
+
+  const direction = goalDirection(profile);
+  const calories =
+    direction === 'cut'
+      ? maintenance * 0.85
+      : direction === 'bulk'
+        ? maintenance * 1.08
+        : maintenance;
+
+  const kcal = Math.max(1200, Math.round(calories / 10) * 10);
+  const proteinPerKg = direction === 'cut' ? 2.0 : direction === 'bulk' ? 1.8 : 1.8;
+  const protein = Math.round(weight * proteinPerKg);
+  const fat = Math.max(Math.round(weight * 0.8), Math.round((kcal * 0.22) / 9));
+  const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
+
+  return { kcal, protein, carbs, fat };
+}
+
+function targetsFromTDEE(tdeeReal: number, profile: any, currentWeight?: number | null): NutritionTargets {
+  const base = calculateFormulaNutritionTargets(profile, currentWeight);
+  const direction = goalDirection(profile);
+
+  // Ajustements modérés : le TDEE est une estimation de tendance, pas une vérité exacte.
+  const kcal =
+    direction === 'cut'
+      ? Math.round((tdeeReal * 0.85) / 10) * 10
+      : direction === 'bulk'
+        ? Math.round((tdeeReal * 1.08) / 10) * 10
+        : Math.round(tdeeReal / 10) * 10;
+
+  const proteinCalories = base.protein * 4;
+  const fatCalories = base.fat * 9;
+  const carbs = Math.max(0, Math.round((kcal - proteinCalories - fatCalories) / 4));
+
+  return { kcal: Math.max(1200, kcal), protein: base.protein, carbs, fat: base.fat };
+}
+
+
 export default function Fuel() {
   const { user } = useAuth();
   const [targets, setTargets] = useState({ kcal: 2200, protein: 160, carbs: 220, fat: 70 });
@@ -85,6 +204,8 @@ export default function Fuel() {
   const [qty, setQty] = useState('1');
   const [recentFoods, setRecentFoods] = useState<any[]>([]);
   const [, setIsWeekend] = useState(false);
+  const [fuelError, setFuelError] = useState('');
+  const [targetSource, setTargetSource] = useState<'saved' | 'formula' | 'real'>('formula');
 
   // Photo scan state
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
@@ -98,80 +219,136 @@ export default function Fuel() {
   useEffect(() => { if (user) loadData(); }, [user]);
 
   const loadData = async () => {
-    // Utiliser la date locale (pas UTC) pour éviter le décalage de fuseau horaire
-    const now = new Date();
-    const localDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-    // Début et fin de journée en UTC depuis la date locale
-    const startOfDay = new Date(localDate + 'T00:00:00');
-    const endOfDay = new Date(localDate + 'T23:59:59');
+    if (!user) return;
+    setFuelError('');
 
-    const [{ data: t }, { data: e }, { data: profile }] = await Promise.all([
-      supabase.from('nutrition_targets').select('*').eq('user_id', user!.id).maybeSingle(),
-      supabase.from('food_entries').select('*').eq('user_id', user!.id)
-        .gte('created_at', startOfDay.toISOString())
-        .lte('created_at', endOfDay.toISOString())
-        .order('created_at'),
-      supabase.from('profiles').select('*').eq('id', user!.id).maybeSingle(),
-    ]);
+    try {
+      const { start: startOfDay, end: endOfDay } = localDayBounds();
 
-    // Objectifs nutritionnels — créer des défauts si pas encore configurés
-    if (t) {
-      setTargets({ kcal: t.calories || 2200, protein: t.protein || 160, carbs: t.carbs || 220, fat: t.fat || 70 });
-    } else if (profile) {
-      // Calculer des objectifs par défaut selon le profil
-      const weight = profile.starting_weight_kg || 75;
-      const goal = profile.goal_type || '';
-      const defaultProtein = Math.round(weight * 2); // 2g/kg
-      const defaultKcal = goal.includes('gras') ? 2000 : goal.includes('muscle') ? 2800 : 2400;
-      const defaultCarbs = Math.round((defaultKcal * 0.45) / 4);
-      const defaultFat = Math.round((defaultKcal * 0.25) / 9);
-      setTargets({ kcal: defaultKcal, protein: defaultProtein, carbs: defaultCarbs, fat: defaultFat });
-      // Sauvegarder en DB pour la prochaine fois
-      await supabase.from('nutrition_targets').insert({
-        user_id: user!.id,
-        calories: defaultKcal,
-        protein: defaultProtein,
-        carbs: defaultCarbs,
-        fat: defaultFat,
-        created_at: new Date().toISOString(),
-      }).onConflict('user_id').ignore();
-    }
+      const [
+        targetResult,
+        entriesResult,
+        profileResult,
+        bodyResult,
+        fuelHistoryResult,
+      ] = await Promise.all([
+        supabase.from('nutrition_targets').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase.from('food_entries').select('*').eq('user_id', user.id)
+          .gte('created_at', startOfDay.toISOString())
+          .lte('created_at', endOfDay.toISOString())
+          .order('created_at'),
+        supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+        supabase.from('body_logs').select('weight, created_at').eq('user_id', user.id).order('created_at'),
+        supabase.from('food_entries').select('calories, created_at').eq('user_id', user.id).order('created_at'),
+      ]);
 
-    setEntries(e || []);
+      if (targetResult.error) throw targetResult.error;
+      if (entriesResult.error) throw entriesResult.error;
+      if (profileResult.error) throw profileResult.error;
+      if (bodyResult.error) throw bodyResult.error;
+      if (fuelHistoryResult.error) throw fuelHistoryResult.error;
 
-    // Vérifier si weekend
-    const dayOfWeek = new Date().getDay();
-    setIsWeekend(dayOfWeek === 0 || dayOfWeek === 6);
+      const profile = profileResult.data;
+      const saved = targetResult.data;
+      const allBodyLogs = bodyResult.data || [];
+      const allFuel = fuelHistoryResult.data || [];
 
-    // Aliments fréquents (top 5 des 30 derniers jours)
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
-    const { data: recent } = await supabase.from('food_entries').select('food_name, calories, protein, carbs, fat')
-      .eq('user_id', user!.id).gte('created_at', thirtyDaysAgo).not('food_name', 'is', null);
-    if (recent) {
-      const freq: Record<string, any> = {};
-      recent.forEach((f: any) => {
-        if (!f.food_name) return;
-        if (!freq[f.food_name]) freq[f.food_name] = { ...f, count: 0 };
-        freq[f.food_name].count++;
-      });
-      const sorted = Object.values(freq).sort((a: any, b: any) => b.count - a.count).slice(0, 6);
-      setRecentFoods(sorted);
-    }
+      setEntries(entriesResult.data || []);
 
-    // TDEE réel (en arrière-plan, ne bloque pas l'affichage)
-    const [{ data: allBodyLogs }, { data: allFuel }] = await Promise.all([
-      supabase.from('body_logs').select('weight, created_at').eq('user_id', user!.id).order('created_at'),
-      supabase.from('food_entries').select('calories, created_at').eq('user_id', user!.id).order('created_at'),
-    ]);
-    if (allBodyLogs && allFuel && profile) {
-      const tdeeResult = calculateRealTDEE(allBodyLogs, allFuel, profile);
-      setTdee(tdeeResult);
-      if (tdeeResult.tdeeReal && tdeeResult.confidence !== 'insuffisant' && !t) {
-        const targetKcal = profile.goal_type?.includes('gras') || profile.goal_type?.includes('poids')
-          ? tdeeResult.tdeeReal - 400
-          : tdeeResult.tdeeReal + 200;
-        setTargets(prev => ({ ...prev, kcal: Math.round(targetKcal) }));
+      const latestWeight = allBodyLogs.length
+        ? finitePositive(allBodyLogs[allBodyLogs.length - 1]?.weight)
+        : null;
+
+      let resolvedTargets = calculateFormulaNutritionTargets(profile || {}, latestWeight);
+      let resolvedSource: 'saved' | 'formula' | 'real' = 'formula';
+
+      if (saved) {
+        const savedKcal = finitePositive(saved.calories);
+        const savedProtein = finitePositive(saved.protein);
+        const savedCarbs = finitePositive(saved.carbs);
+        const savedFat = finitePositive(saved.fat);
+
+        if (savedKcal && savedProtein && savedCarbs && savedFat) {
+          resolvedTargets = {
+            kcal: Math.round(savedKcal),
+            protein: Math.round(savedProtein),
+            carbs: Math.round(savedCarbs),
+            fat: Math.round(savedFat),
+          };
+          resolvedSource = 'saved';
+        }
       }
+
+      let tdeeResult: any = null;
+      if (profile && allBodyLogs.length && allFuel.length) {
+        tdeeResult = calculateRealTDEE(allBodyLogs, allFuel, profile);
+        setTdee(tdeeResult);
+
+        // Le TDEE réel prend le dessus seulement avec une confiance exploitable.
+        // Contrairement à l'ancienne version, un nutrition_targets approximatif
+        // créé au premier lancement ne bloque donc plus la calibration future.
+        if (
+          tdeeResult.tdeeReal &&
+          (tdeeResult.confidence === 'moyenne' || tdeeResult.confidence === 'haute')
+        ) {
+          resolvedTargets = targetsFromTDEE(tdeeResult.tdeeReal, profile, latestWeight);
+          resolvedSource = 'real';
+        }
+      } else {
+        setTdee(null);
+      }
+
+      setTargets(resolvedTargets);
+      setTargetSource(resolvedSource);
+
+      // On conserve une cible centrale dans nutrition_targets pour que Coach,
+      // Recipes, MealPlanner et WeeklyReview puissent lire la même valeur.
+      // Upsert évite le "premier objectif figé" de l'ancienne implémentation.
+      if (profile && (!saved || resolvedSource === 'real')) {
+        const { error: targetSaveError } = await supabase
+          .from('nutrition_targets')
+          .upsert({
+            user_id: user.id,
+            calories: resolvedTargets.kcal,
+            protein: resolvedTargets.protein,
+            carbs: resolvedTargets.carbs,
+            fat: resolvedTargets.fat,
+          }, { onConflict: 'user_id' });
+
+        if (targetSaveError) {
+          console.warn('Nutrition target sync:', targetSaveError.message);
+        }
+      }
+
+      const dayOfWeek = new Date().getDay();
+      setIsWeekend(dayOfWeek === 0 || dayOfWeek === 6);
+
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+      const { data: recent, error: recentError } = await supabase
+        .from('food_entries')
+        .select('food_name, calories, protein, carbs, fat')
+        .eq('user_id', user.id)
+        .gte('created_at', thirtyDaysAgo)
+        .not('food_name', 'is', null);
+
+      if (recentError) throw recentError;
+
+      if (recent) {
+        const freq: Record<string, any> = {};
+        recent.forEach((f: any) => {
+          if (!f.food_name) return;
+          if (!freq[f.food_name]) freq[f.food_name] = { ...f, count: 0 };
+          freq[f.food_name].count++;
+        });
+        setRecentFoods(
+          Object.values(freq)
+            .sort((x: any, y: any) => y.count - x.count)
+            .slice(0, 6),
+        );
+      }
+    } catch (err: any) {
+      console.error('Fuel loadData:', err);
+      setFuelError(err?.message || 'Impossible de charger les données nutritionnelles.');
     }
   };
 
@@ -272,7 +449,8 @@ export default function Fuel() {
   };
 
   const addSingleFood = async (food: any) => {
-    await supabase.from('food_entries').insert({
+    setFuelError('');
+    const { error } = await supabase.from('food_entries').insert({
       user_id: user!.id,
       meal_type: selectedMeal,
       food_name: food.name || food.nom || 'Aliment scanné',
@@ -282,45 +460,102 @@ export default function Fuel() {
       fat: Math.round((food.fat || 0) * 10) / 10,
       created_at: new Date().toISOString(),
     });
+    if (error) {
+      setFuelError(error.message || "Impossible d'ajouter cet aliment.");
+      return;
+    }
     await loadData();
     closeAdd();
   };
   // ──────────────────────────────────────────────────────────────
 
   const addEntry = async (food: any) => {
-    const q = parseFloat(qty) || 1;
-    await supabase.from('food_entries').insert({
-      user_id: user!.id,
+    if (!user) return;
+    const q = Number(String(qty).replace(',', '.'));
+
+    if (!Number.isFinite(q) || q <= 0 || q > 100) {
+      setFuelError('Entre une quantité valide.');
+      return;
+    }
+
+    setFuelError('');
+    const { error } = await supabase.from('food_entries').insert({
+      user_id: user.id,
       meal_type: selectedMeal,
       food_name: food.name,
-      calories: Math.round(food.kcal * q),
-      protein: Math.round(food.protein * q * 10) / 10,
-      carbs: Math.round(food.carbs * q * 10) / 10,
-      fat: Math.round(food.fat * q * 10) / 10,
+      calories: Math.round(Number(food.kcal || 0) * q),
+      protein: Math.round(Number(food.protein || 0) * q * 10) / 10,
+      carbs: Math.round(Number(food.carbs || 0) * q * 10) / 10,
+      fat: Math.round(Number(food.fat || 0) * q * 10) / 10,
       created_at: new Date().toISOString(),
     });
+
+    if (error) {
+      setFuelError(error.message || "Impossible d'ajouter cet aliment.");
+      return;
+    }
+
     await loadData();
     closeAdd();
   };
 
   const addCustom = async () => {
-    await supabase.from('food_entries').insert({
-      user_id: user!.id,
+    if (!user) return;
+
+    const values = {
+      kcal: Number(String(custom.kcal).replace(',', '.')),
+      protein: Number(String(custom.protein).replace(',', '.')),
+      carbs: Number(String(custom.carbs).replace(',', '.')),
+      fat: Number(String(custom.fat).replace(',', '.')),
+    };
+
+    if (!custom.name.trim()) {
+      setFuelError("Donne un nom à l'aliment.");
+      return;
+    }
+
+    if (Object.values(values).some(value => !Number.isFinite(value) || value < 0)) {
+      setFuelError('Calories et macros doivent être des nombres positifs.');
+      return;
+    }
+
+    setFuelError('');
+    const { error } = await supabase.from('food_entries').insert({
+      user_id: user.id,
       meal_type: selectedMeal,
-      food_name: custom.name || 'Aliment',
-      calories: parseFloat(custom.kcal) || 0,
-      protein: parseFloat(custom.protein) || 0,
-      carbs: parseFloat(custom.carbs) || 0,
-      fat: parseFloat(custom.fat) || 0,
+      food_name: custom.name.trim(),
+      calories: values.kcal,
+      protein: values.protein,
+      carbs: values.carbs,
+      fat: values.fat,
       created_at: new Date().toISOString(),
     });
+
+    if (error) {
+      setFuelError(error.message || "Impossible d'ajouter cet aliment.");
+      return;
+    }
+
     await loadData();
     setCustom({ name: '', kcal: '', protein: '', carbs: '', fat: '' });
     closeAdd();
   };
 
   const deleteEntry = async (id: string) => {
-    await supabase.from('food_entries').delete().eq('id', id);
+    if (!user) return;
+    setFuelError('');
+
+    const { error } = await supabase
+      .from('food_entries')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      setFuelError(error.message || "Impossible de supprimer cet aliment.");
+      return;
+    }
+
     await loadData();
   };
 
@@ -386,6 +621,11 @@ export default function Fuel() {
         </header>
 
         <section style={{ padding: 20 }}>
+          {fuelError && (
+            <div style={{ marginBottom: 12, background: 'rgba(255,90,80,.08)', border: '1px solid rgba(255,90,80,.28)', borderRadius: 14, padding: 13, color: '#ff8c82', fontSize: 11.5, lineHeight: 1.45 }}>
+              {fuelError}
+            </div>
+          )}
           <div style={{
             background: 'linear-gradient(145deg,#151515,#0e0e0e)',
             border: '1px solid #232323', borderRadius: 22, padding: 20
@@ -413,6 +653,9 @@ export default function Fuel() {
                 <div style={{ fontSize: 12, color: '#888', marginTop: 7 }}>
                   {Math.max(0, targets.kcal - Math.round(totals.kcal))} kcal restantes
                 </div>
+                <div style={{ fontSize: 9.5, color: '#555', marginTop: 5 }}>
+                  {targetSource === 'real' ? 'Cible calibrée avec tes données réelles' : targetSource === 'saved' ? 'Cible nutritionnelle enregistrée' : 'Cible initiale estimée depuis ton profil'}
+                </div>
               </div>
             </div>
 
@@ -423,7 +666,7 @@ export default function Fuel() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.25fr .75fr', gap: 10, marginTop: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.15fr .85fr', gap: 10, marginTop: 12 }}>
             <button onClick={() => { setShowAdd(true); setAddMode('photo'); setTimeout(() => fileRef.current?.click(), 0); }} style={{
               minHeight: 84, borderRadius: 18, border: '1px solid rgba(200,255,0,.22)',
               background: 'linear-gradient(135deg,rgba(200,255,0,.12),rgba(200,255,0,.035))',
@@ -433,13 +676,13 @@ export default function Fuel() {
               <div style={{ fontSize: 14, fontWeight: 900, marginTop: 6 }}>Scanner mon repas</div>
               <div style={{ fontSize: 10.5, color: '#777', marginTop: 4 }}>Photo → calories + macros</div>
             </button>
-            <button onClick={() => setShowAdd(true)} style={{
+            <button onClick={() => { setShowAdd(true); setAddMode('barcode'); }} style={{
               minHeight: 84, borderRadius: 18, border: '1px solid #232323',
               background: '#111', color: '#fff', textAlign: 'left', padding: 15, cursor: 'pointer'
             }}>
-              <div style={{ color: '#777', fontSize: 10, fontWeight: 900, letterSpacing: '.08em' }}>RAPIDE</div>
-              <div style={{ fontSize: 14, fontWeight: 900, marginTop: 6 }}>Ajouter</div>
-              <div style={{ fontSize: 10.5, color: '#666', marginTop: 4 }}>Recherche ou manuel</div>
+              <div style={{ color: ACCENT, fontSize: 10, fontWeight: 900, letterSpacing: '.08em' }}>CODE-BARRES</div>
+              <div style={{ fontSize: 14, fontWeight: 900, marginTop: 6 }}>Scanner un produit</div>
+              <div style={{ fontSize: 10.5, color: '#666', marginTop: 4 }}>Caméra → fiche nutrition</div>
             </button>
           </div>
 
