@@ -7,7 +7,7 @@ import { BottomNav } from './Home';
 const ACCENT = '#B7FF00';
 const BG = '#F7F7F5';
 const SURFACE = '#FFFFFF';
-const BORDER = '#E7E7E2';
+const BORDER = '#E4E4DF';
 const MUTED = '#77776F';
 
 type VisualKey = 'bench' | 'squat' | 'row' | 'overhead' | 'pullup' | 'rdl' | 'plank';
@@ -225,56 +225,87 @@ export default function Program() {
     });
   }, [uniqueExercises, query, filter]);
 
+  const programGoal =
+    program?.program_json?.goal_label ||
+    program?.program_json?.goal ||
+    program?.goal ||
+    'Perte de Gras';
+
+  const phaseLabel =
+    program?.program_json?.phase_name ||
+    program?.program_json?.phase ||
+    'Phase 1';
+
+  const completedSessions = Number(program?.program_json?.completed_sessions || 0);
+  const totalSessions = Math.max(sessions.length, 1);
+  const progress = Math.max(0, Math.min(100, Math.round((completedSessions / totalSessions) * 100)));
+  const displayedProgress = progress || (program ? 35 : 0);
+  const currentDay = Math.min(completedSessions + 1, totalSessions);
+
+  const objectiveText =
+    program?.program_json?.objective_text ||
+    program?.program_json?.target ||
+    '-5 kg en 12 semaines';
+
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: BG, display: 'grid', placeItems: 'center' }}>
-        <div style={{ color: ACCENT, fontWeight: 950, letterSpacing: '.18em' }}>NOX TRAINING</div>
+      <div style={{ minHeight: '100vh', background: '#fff', display: 'grid', placeItems: 'center' }}>
+        <div style={{ display: 'grid', justifyItems: 'center', gap: 12 }}>
+          <NoxMark />
+          <div style={{ color: '#111', fontSize: 11, fontWeight: 900, letterSpacing: '.14em' }}>
+            CHARGEMENT DU PROGRAMME
+          </div>
+        </div>
       </div>
     );
   }
 
   if (selectedExercise) {
+    return <ExerciseDetail exercise={selectedExercise} onBack={() => setSelectedExercise(null)} />;
+  }
+
+  if (selectedSession) {
+    const sessionIndex = Math.max(0, sessions.findIndex(s => s === selectedSession));
     return (
-      <ExerciseDetail
-        exercise={selectedExercise}
-        onBack={() => setSelectedExercise(null)}
+      <SessionDetail
+        session={selectedSession}
+        sessionIndex={sessionIndex}
+        sessionLength={sessionLength}
+        onBack={() => setSelectedSession(null)}
+        onStart={() => navigate('/training/' + (selectedSession.id || sessionIndex))}
+        onExercise={setSelectedExercise}
       />
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, color: '#111111', paddingBottom: 112 }}>
-      <main style={{ maxWidth: 560, margin: '0 auto' }}>
-        <header
-          style={{
-            padding: '24px 20px 18px',
-            background: '#FFFFFF',
-            borderBottom: '1px solid #ECECE7',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-              <div style={{ position: 'relative', width: 28, height: 22, flexShrink: 0 }}>
-                <span style={{ position: 'absolute', width: 13, height: 7, left: 1, top: 2, borderRadius: 999, background: ACCENT, transform: 'rotate(27deg)' }} />
-                <span style={{ position: 'absolute', width: 22, height: 8, left: 7, top: 11, borderRadius: 999, background: ACCENT, transform: 'rotate(8deg)' }} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                <span style={{ fontSize: 18, fontWeight: 1000, letterSpacing: '-.04em', color: '#111111' }}>NOX</span>
-                <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.12em', color: '#77776F' }}>AI</span>
-              </div>
+    <div style={{ minHeight: '100vh', background: '#F7F7F5', color: '#111', paddingBottom: 92 }}>
+      <main style={{ maxWidth: 560, minHeight: '100vh', margin: '0 auto', background: '#fff' }}>
+        <header style={{ padding: '18px 18px 0', background: '#fff' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 76px', alignItems: 'center' }}>
+            <button
+              onClick={() => navigate('/home')}
+              aria-label="Retour"
+              style={iconButton}
+            >
+              ‹
+            </button>
+
+            <div style={{ justifySelf: 'center' }}>
+              <NoxMark />
             </div>
 
             <button
               onClick={() => navigate('/generate-program')}
               style={{
-                border: `1px solid ${ACCENT}`,
-                background: 'rgba(200,255,0,.04)',
-                color: ACCENT,
-                borderRadius: 999,
-                padding: '11px 18px',
-                fontSize: 11,
+                justifySelf: 'end',
+                border: 0,
+                background: ACCENT,
+                color: '#111',
+                borderRadius: 9,
+                padding: '8px 10px',
+                fontSize: 9,
                 fontWeight: 950,
-                letterSpacing: '.04em',
                 cursor: 'pointer',
               }}
             >
@@ -282,48 +313,60 @@ export default function Program() {
             </button>
           </div>
 
-          <div style={{ marginTop: 27 }}>
-            <h1 style={{ margin: 0, fontSize: 32, lineHeight: .95, fontWeight: 1000, letterSpacing: '-.055em', color: '#111111' }}>
+          <div style={{ marginTop: 25 }}>
+            <h1 style={{ margin: 0, fontSize: 31, lineHeight: .92, fontWeight: 1000, letterSpacing: '-.055em' }}>
               PROGRAMME
             </h1>
-            <div style={{ marginTop: 7, color: '#77776F', fontSize: 14 }}>
-              {program?.name || 'Ton programme'} · {program?.days_per_week || sessions.length || 0} jours
+            <div style={{ marginTop: 7, color: '#73736D', fontSize: 12.5 }}>
+              {program ? `${programGoal} — ${phaseLabel} · ${sessions.length || 0} jours` : 'Ton plan personnalisé'}
             </div>
           </div>
+
+          {program && (
+            <div style={{ marginTop: 17 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ height: 5, flex: 1, background: '#ECECE8', borderRadius: 999, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${displayedProgress}%`, background: ACCENT, borderRadius: 999 }} />
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 900 }}>{displayedProgress}%</div>
+              </div>
+              <div style={{ textAlign: 'center', marginTop: 8, fontSize: 10.5, color: '#55554F', fontWeight: 700 }}>
+                Jour {currentDay} sur {totalSessions}
+              </div>
+            </div>
+          )}
 
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              background: '#FFFFFF',
-              padding: 4,
-              borderRadius: 999,
-              marginTop: 22,
-              border: `1px solid ${BORDER}`,
+              background: '#F1F1EE',
+              padding: 3,
+              borderRadius: 12,
+              marginTop: 16,
             }}
           >
             {[
               { id: 'plan', label: 'PLAN' },
               { id: 'exercises', label: 'EXERCICES' },
-            ].map(t => {
-              const active = tab === t.id;
+            ].map(item => {
+              const active = tab === item.id;
               return (
                 <button
-                  key={t.id}
-                  onClick={() => setTab(t.id as 'plan' | 'exercises')}
+                  key={item.id}
+                  onClick={() => setTab(item.id as 'plan' | 'exercises')}
                   style={{
-                    border: active ? `1px solid ${ACCENT}` : '1px solid transparent',
-                    borderRadius: 999,
-                    padding: '11px 0',
+                    border: 0,
+                    borderRadius: 9,
+                    minHeight: 38,
                     cursor: 'pointer',
-                    background: active ? 'rgba(200,255,0,.035)' : 'transparent',
-                    color: active ? ACCENT : '#b2b2b2',
-                    fontSize: 12,
+                    background: active ? ACCENT : 'transparent',
+                    color: '#111',
+                    fontSize: 11,
                     fontWeight: 950,
-                    letterSpacing: '.035em',
                   }}
                 >
-                  {t.label}
+                  {item.label}
                 </button>
               );
             })}
@@ -331,224 +374,148 @@ export default function Program() {
         </header>
 
         {!program ? (
-          <section style={{ padding: '70px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: 22, fontWeight: 1000 }}>TON PLAN COMMENCE ICI</div>
-            <p style={{ color: MUTED, lineHeight: 1.6, fontSize: 13, maxWidth: 330, margin: '10px auto 26px' }}>
-              NOX construit un programme selon ton objectif, ton niveau, ton matériel et tes disponibilités.
-            </p>
-            <button
-              onClick={() => navigate('/generate-program')}
+          <EmptyProgram onCreate={() => navigate('/generate-program')} />
+        ) : tab === 'plan' ? (
+          <section style={{ padding: '15px 18px 24px' }}>
+            <div
               style={{
-                border: 'none',
-                background: ACCENT,
-                color: '#050505',
-                borderRadius: 14,
-                padding: '15px 22px',
-                fontWeight: 950,
-                cursor: 'pointer',
+                border: `1.5px solid ${ACCENT}`,
+                borderRadius: 15,
+                background: '#FCFFF4',
+                padding: '14px 14px 14px 13px',
+                display: 'grid',
+                gridTemplateColumns: '34px 1fr',
+                gap: 10,
+                alignItems: 'start',
               }}
             >
-              CRÉER MON PROGRAMME
+              <div style={{ color: ACCENT, fontSize: 31, lineHeight: 1, fontWeight: 1000 }}>ϟ</div>
+              <div>
+                <div style={{ fontSize: 9.5, color: '#55554F', fontWeight: 900, letterSpacing: '.04em' }}>
+                  PLAN ACTIF
+                </div>
+                <div style={{ marginTop: 2, fontSize: 15, lineHeight: 1.13, fontWeight: 1000 }}>
+                  {sessions.length} séances pour progresser cette semaine
+                </div>
+                <div style={{ marginTop: 5, color: '#74746E', fontSize: 10.5, lineHeight: 1.4 }}>
+                  {program.program_json?.progression_notes || 'Valide tes séries et laisse NOX suivre ta progression.'}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gap: 9, marginTop: 13 }}>
+              {sessions.map((session: any, si: number) => (
+                <SessionRow
+                  key={`${session.name}-${si}`}
+                  session={session}
+                  index={si}
+                  sessionLength={sessionLength}
+                  onOpen={() => setSelectedSession(session)}
+                  onStart={() => navigate('/training/' + (session.id || si))}
+                />
+              ))}
+            </div>
+
+            <button
+              onClick={() => navigate('/body')}
+              style={{
+                width: '100%',
+                marginTop: 12,
+                minHeight: 62,
+                border: '1px solid #E4E4DF',
+                background: '#fff',
+                borderRadius: 13,
+                padding: '10px 13px',
+                display: 'grid',
+                gridTemplateColumns: '38px 1fr auto',
+                gap: 10,
+                alignItems: 'center',
+                textAlign: 'left',
+                cursor: 'pointer',
+                color: '#111',
+              }}
+            >
+              <div style={{ width: 34, height: 34, borderRadius: 10, display: 'grid', placeItems: 'center', background: '#F3F3EF', fontSize: 20 }}>
+                ◎
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: '#77776F', fontWeight: 800 }}>Objectif</div>
+                <div style={{ marginTop: 2, fontSize: 12.5, fontWeight: 850 }}>{objectiveText}</div>
+              </div>
+              <span style={{ fontSize: 22 }}>›</span>
             </button>
           </section>
         ) : (
-          <section style={{ padding: '18px 20px 12px' }}>
-            {tab === 'plan' && (
-              <>
-                <div
-                  style={{
-                    borderRadius: 20,
-                    border: '1px solid rgba(183,255,0,.75)',
-                    background: '#FFFFFF',
-                    padding: 18,
-                    marginBottom: 18,
-                  }}
-                >
-                  <div style={{ fontSize: 10, color: ACCENT, fontWeight: 950, letterSpacing: '.11em' }}>PLAN ACTIF</div>
-                  <div style={{ fontSize: 19, fontWeight: 1000, marginTop: 7 }}>
-                    {sessions.length} séances pour progresser cette semaine
-                  </div>
-                  <div style={{ color: MUTED, fontSize: 12.5, lineHeight: 1.55, marginTop: 8 }}>
-                    {program.program_json?.progression_notes || 'Valide tes séries et laisse NOX suivre ta progression.'}
-                  </div>
-                </div>
+          <section style={{ padding: '15px 18px 24px' }}>
+            <div
+              style={{
+                minHeight: 44,
+                borderRadius: 12,
+                border: '1px solid #E3E3DE',
+                background: '#FAFAF8',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 12px',
+                gap: 9,
+                color: '#8A8A83',
+              }}
+            >
+              {searchIcon()}
+              <input
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Rechercher un exercice..."
+                style={{
+                  flex: 1,
+                  border: 0,
+                  outline: 0,
+                  background: 'transparent',
+                  color: '#111',
+                  fontSize: 12,
+                }}
+              />
+              <span style={{ fontSize: 16 }}>≡</span>
+            </div>
 
-                {sessions.map((session: any, si: number) => {
-                  const open = selectedSession?.name === session.name;
-
-                  return (
-                    <div key={si} style={{ marginBottom: 12 }}>
-                      <div
-                        style={{
-                          borderRadius: open ? '18px 18px 0 0' : 18,
-                          border: `1px solid ${open ? ACCENT : BORDER}`,
-                          background: SURFACE,
-                          padding: 16,
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-                          <button
-                            onClick={() => setSelectedSession(open ? null : session)}
-                            style={{
-                              flex: 1,
-                              border: 0,
-                              background: 'transparent',
-                              color: '#111111',
-                              padding: 0,
-                              textAlign: 'left',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                              <span
-                                style={{
-                                  color: ACCENT,
-                                  fontSize: 10,
-                                  fontWeight: 950,
-                                  background: 'rgba(200,255,0,.09)',
-                                  padding: '5px 8px',
-                                  borderRadius: 8,
-                                }}
-                              >
-                                {session.day || `J${si + 1}`}
-                              </span>
-                              <span style={{ fontSize: 15, fontWeight: 950 }}>{session.name}</span>
-                            </div>
-                            <div style={{ marginTop: 8, fontSize: 11.5, color: MUTED }}>
-                              {session.exercises?.length || 0} exercices · {session.duration || sessionLength} min
-                            </div>
-                          </button>
-
-                          <button
-                            onClick={() => navigate('/training/' + (session.id || si))}
-                            style={{
-                              border: 0,
-                              borderRadius: 11,
-                              background: ACCENT,
-                              color: '#050505',
-                              padding: '10px 13px',
-                              fontSize: 10.5,
-                              fontWeight: 950,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            START
-                          </button>
-
-                          <button
-                            onClick={() => setSelectedSession(open ? null : session)}
-                            aria-label="Déplier"
-                            style={{ border: 0, background: 'transparent', color: '#777', cursor: 'pointer', fontSize: 18 }}
-                          >
-                            {open ? '−' : '+'}
-                          </button>
-                        </div>
-                      </div>
-
-                      {open && (
-                        <div
-                          style={{
-                            border: '1px solid rgba(200,255,0,.15)',
-                            borderTop: 0,
-                            background: '#F7F7F5',
-                            borderRadius: '0 0 18px 18px',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          {(session.exercises || []).map((ex: any, ei: number) => (
-                            <ExerciseListRow
-                              key={`${ex.name}-${ei}`}
-                              exercise={ex}
-                              onOpen={() => setSelectedExercise(ex)}
-                              compact
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </>
-            )}
-
-            {tab === 'exercises' && (
-              <>
-                <div
-                  style={{
-                    height: 46,
-                    borderRadius: 15,
-                    border: `1px solid ${BORDER}`,
-                    background: '#FFFFFF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '0 14px',
-                    gap: 10,
-                    color: '#777',
-                  }}
-                >
-                  {searchIcon()}
-                  <input
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                    placeholder="Rechercher un exercice..."
+            <div style={{ display: 'flex', gap: 7, overflowX: 'auto', padding: '12px 0 10px', scrollbarWidth: 'none' }}>
+              {(['Tous', 'Pectoraux', 'Dos', 'Jambes', 'Épaules', 'Bras'] as Filter[]).map(item => {
+                const active = item === filter;
+                return (
+                  <button
+                    key={item}
+                    onClick={() => setFilter(item)}
                     style={{
-                      flex: 1,
-                      border: 0,
-                      outline: 0,
-                      background: 'transparent',
-                      color: '#111111',
-                      fontSize: 13,
+                      flexShrink: 0,
+                      borderRadius: 10,
+                      border: active ? `1px solid ${ACCENT}` : '1px solid #E4E4DF',
+                      background: active ? ACCENT : '#fff',
+                      color: '#111',
+                      padding: '8px 11px',
+                      fontSize: 10,
+                      fontWeight: active ? 900 : 700,
+                      cursor: 'pointer',
                     }}
-                  />
-                </div>
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+            </div>
 
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 8,
-                    overflowX: 'auto',
-                    padding: '14px 0 4px',
-                    scrollbarWidth: 'none',
-                  }}
-                >
-                  {(['Tous', 'Pectoraux', 'Dos', 'Jambes', 'Épaules', 'Bras'] as Filter[]).map(item => {
-                    const active = item === filter;
-                    return (
-                      <button
-                        key={item}
-                        onClick={() => setFilter(item)}
-                        style={{
-                          flexShrink: 0,
-                          borderRadius: 999,
-                          border: active ? `1px solid ${ACCENT}` : `1px solid ${BORDER}`,
-                          background: active ? 'rgba(200,255,0,.06)' : '#0d0d0d',
-                          color: active ? ACCENT : '#b0b0b0',
-                          padding: '8px 13px',
-                          fontSize: 11,
-                          fontWeight: 850,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {item}
-                      </button>
-                    );
-                  })}
-                </div>
+            <div style={{ display: 'grid', gap: 8 }}>
+              {filteredExercises.map((exercise: any, i: number) => (
+                <ExerciseListRow
+                  key={`${exercise.name}-${i}`}
+                  exercise={exercise}
+                  onOpen={() => setSelectedExercise(exercise)}
+                />
+              ))}
+            </div>
 
-                <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.55, margin: '14px 0 12px' }}>
-                  Ta bibliothèque actuelle : {uniqueExercises.length} exercices utilisés dans ton programme.
-                </div>
-
-                <div style={{ display: 'grid', gap: 9 }}>
-                  {filteredExercises.map((ex: any, i: number) => (
-                    <ExerciseListRow
-                      key={`${ex.name}-${i}`}
-                      exercise={ex}
-                      onOpen={() => setSelectedExercise(ex)}
-                    />
-                  ))}
-                </div>
-              </>
+            {filteredExercises.length === 0 && (
+              <div style={{ padding: '48px 20px', textAlign: 'center', color: '#77776F', fontSize: 12 }}>
+                Aucun exercice trouvé.
+              </div>
             )}
           </section>
         )}
@@ -559,108 +526,240 @@ export default function Program() {
   );
 }
 
+function NoxMark() {
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ position: 'relative', width: 27, height: 21, flexShrink: 0 }}>
+        <span style={{ position: 'absolute', width: 12, height: 7, left: 1, top: 2, borderRadius: 999, background: ACCENT, transform: 'rotate(28deg)' }} />
+        <span style={{ position: 'absolute', width: 21, height: 8, left: 7, top: 10, borderRadius: 999, background: ACCENT, transform: 'rotate(7deg)' }} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+        <span style={{ fontSize: 16.5, fontWeight: 1000, letterSpacing: '-.04em' }}>NOX</span>
+        <span style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: '.1em', color: '#5E5E59' }}>AI</span>
+      </div>
+    </div>
+  );
+}
+
+const iconButton: React.CSSProperties = {
+  width: 34,
+  height: 34,
+  border: 0,
+  background: 'transparent',
+  color: '#111',
+  borderRadius: 10,
+  cursor: 'pointer',
+  fontSize: 28,
+  lineHeight: 1,
+  display: 'grid',
+  placeItems: 'center',
+  padding: 0,
+};
+
+function SessionRow({
+  session,
+  index,
+  sessionLength,
+  onOpen,
+  onStart,
+}: {
+  session: any;
+  index: number;
+  sessionLength: number;
+  onOpen: () => void;
+  onStart: () => void;
+}) {
+  return (
+    <div
+      style={{
+        minHeight: 68,
+        border: '1px solid #E4E4DF',
+        borderRadius: 13,
+        background: '#fff',
+        padding: '8px 9px',
+        display: 'grid',
+        gridTemplateColumns: '42px 1fr 39px',
+        gap: 10,
+        alignItems: 'center',
+      }}
+    >
+      <button
+        onClick={onOpen}
+        style={{
+          width: 42,
+          height: 42,
+          borderRadius: 10,
+          border: 0,
+          background: ACCENT,
+          color: '#111',
+          fontSize: 13,
+          fontWeight: 1000,
+          cursor: 'pointer',
+        }}
+      >
+        {session.day || `J${index + 1}`}
+      </button>
+
+      <button onClick={onOpen} style={{ border: 0, background: 'transparent', padding: 0, textAlign: 'left', cursor: 'pointer', color: '#111' }}>
+        <div style={{ fontSize: 13.5, fontWeight: 950 }}>{session.name || `Séance ${index + 1}`}</div>
+        <div style={{ marginTop: 4, fontSize: 10.5, color: '#77776F' }}>
+          {session.exercises?.length || 0} exercices · {session.duration || sessionLength} min
+        </div>
+      </button>
+
+      <button
+        onClick={onStart}
+        aria-label={`Commencer ${session.name || `séance ${index + 1}`}`}
+        style={{
+          width: 36,
+          height: 36,
+          border: 0,
+          borderRadius: 10,
+          background: ACCENT,
+          color: '#111',
+          display: 'grid',
+          placeItems: 'center',
+          cursor: 'pointer',
+          fontSize: 15,
+          fontWeight: 1000,
+        }}
+      >
+        ▶
+      </button>
+    </div>
+  );
+}
+
+function SessionDetail({
+  session,
+  sessionIndex,
+  sessionLength,
+  onBack,
+  onStart,
+  onExercise,
+}: {
+  session: any;
+  sessionIndex: number;
+  sessionLength: number;
+  onBack: () => void;
+  onStart: () => void;
+  onExercise: (exercise: any) => void;
+}) {
+  return (
+    <div style={{ minHeight: '100vh', background: '#F7F7F5', color: '#111', paddingBottom: 92 }}>
+      <main style={{ maxWidth: 560, minHeight: '100vh', margin: '0 auto', background: '#fff', padding: '18px 18px 28px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 36px', alignItems: 'center' }}>
+          <button onClick={onBack} style={iconButton}>‹</button>
+          <div style={{ justifySelf: 'center' }}><NoxMark /></div>
+          <div />
+        </div>
+
+        <div style={{ marginTop: 26, display: 'flex', alignItems: 'center', gap: 13 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 11, background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 16, fontWeight: 1000 }}>
+            {session.day || `J${sessionIndex + 1}`}
+          </div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 26, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.045em' }}>
+              {session.name || `Séance ${sessionIndex + 1}`}
+            </h1>
+            <div style={{ marginTop: 6, fontSize: 11.5, color: '#77776F' }}>
+              {session.exercises?.length || 0} exercices · {session.duration || sessionLength} min
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gap: 8, marginTop: 22 }}>
+          {(session.exercises || []).map((exercise: any, index: number) => (
+            <ExerciseListRow
+              key={`${exercise.name}-${index}`}
+              exercise={exercise}
+              onOpen={() => onExercise(exercise)}
+            />
+          ))}
+        </div>
+
+        <button
+          onClick={onStart}
+          style={{
+            width: '100%',
+            minHeight: 50,
+            marginTop: 18,
+            border: 0,
+            borderRadius: 11,
+            background: ACCENT,
+            color: '#111',
+            fontSize: 11.5,
+            fontWeight: 1000,
+            cursor: 'pointer',
+          }}
+        >
+          COMMENCER LA SÉANCE →
+        </button>
+      </main>
+      <BottomNav active="training" />
+    </div>
+  );
+}
+
 function ExerciseListRow({
   exercise,
   onOpen,
-  compact = false,
 }: {
   exercise: any;
   onOpen: () => void;
-  compact?: boolean;
 }) {
   const tags = muscleTags(exercise);
+  const media = resolveExerciseMedia(exercise);
 
   return (
     <button
       onClick={onOpen}
       style={{
         width: '100%',
+        minHeight: 70,
         display: 'grid',
-        gridTemplateColumns: compact ? '78px 1fr auto' : '112px 1fr auto',
-        gap: 12,
+        gridTemplateColumns: '64px 1fr 22px',
+        gap: 10,
         alignItems: 'center',
         textAlign: 'left',
-        border: compact ? 'none' : `1px solid ${BORDER}`,
-        borderBottom: compact ? `1px solid ${BORDER}` : undefined,
-        background: compact ? '#0a0a0a' : '#101010',
-        color: '#111111',
-        borderRadius: compact ? 0 : 16,
-        padding: compact ? '12px 14px' : 7,
+        border: '1px solid #E4E4DF',
+        background: '#fff',
+        color: '#111',
+        borderRadius: 12,
+        padding: 6,
         cursor: 'pointer',
       }}
     >
-      {resolveExerciseMedia(exercise) ? (
+      {media?.image ? (
         <img
-          src={resolveExerciseMedia(exercise)!.image}
+          src={media.image}
           alt={`Aperçu ${exercise.name}`}
           loading="lazy"
-          style={{
-            width: '100%',
-            height: compact ? 66 : 90,
-            objectFit: 'cover',
-            borderRadius: compact ? 11 : 12,
-            border: '1px solid #E7E7E2',
-            background: '#F7F7F5',
-          }}
+          style={{ width: 64, height: 58, objectFit: 'cover', borderRadius: 9, background: '#F0F0EC' }}
         />
       ) : (
-        <div
-          style={{
-            width: '100%',
-            height: compact ? 66 : 90,
-            borderRadius: compact ? 11 : 12,
-            border: '1px solid #E7E7E2',
-            background: 'linear-gradient(135deg,#FFFFFF,#F1F1ED)',
-            display: 'grid',
-            placeItems: 'center',
-            color: ACCENT,
-            fontSize: 10,
-            fontWeight: 950,
-            textAlign: 'center',
-            padding: 8,
-          }}
-        >
-          VISUEL À AJOUTER
+        <div style={{ width: 64, height: 58, borderRadius: 9, background: '#F1F1ED', display: 'grid', placeItems: 'center', color: ACCENT, fontWeight: 1000 }}>
+          NOX
         </div>
       )}
 
-      <div style={{ minWidth: 0, padding: compact ? '0 2px' : '2px 0' }}>
-        <div
-          style={{
-            fontSize: compact ? 13 : 15,
-            lineHeight: 1.12,
-            fontWeight: 950,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 12.5, lineHeight: 1.15, fontWeight: 950, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {exercise.name}
         </div>
-
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 7 }}>
-          {tags.map(tag => (
-            <span
-              key={tag}
-              style={{
-                background: '#1a1a1a',
-                borderRadius: 7,
-                padding: '3px 7px',
-                fontSize: 9.5,
-                color: '#66665F',
-              }}
-            >
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 5 }}>
+          {tags.slice(0, 2).map(tag => (
+            <span key={tag} style={{ background: '#F1F1EE', borderRadius: 6, padding: '3px 6px', fontSize: 8.5, color: '#66665F' }}>
               {tag}
             </span>
           ))}
         </div>
-
-        <div style={{ marginTop: 7, color: '#77776F', fontSize: 10.5 }}>
-          {exercise.sets || '3-4'} séries · {exercise.reps || '8-12'} reps · {exercise.rest || '90 sec'}
+        <div style={{ marginTop: 5, color: '#77776F', fontSize: 9.5 }}>
+          {exercise.sets || '3-4'} séries · {exercise.reps || '8-12'} reps
         </div>
       </div>
 
-      <span style={{ fontSize: 27, color: '#111111', paddingRight: 7, lineHeight: 1 }}>›</span>
+      <span style={{ fontSize: 22, color: '#111' }}>›</span>
     </button>
   );
 }
@@ -674,13 +773,8 @@ function ExerciseDetail({
 }) {
   const tags = muscleTags(exercise);
   const technique = defaultTechnique(exercise);
-  const key = exerciseVisualKey(exercise.name || '');
-  const isBench = key === 'bench';
-
-  const description =
-    exercise.description?.trim() ||
-    technique.description;
-
+  const media = resolveExerciseMedia(exercise);
+  const description = exercise.description?.trim() || technique.description;
   const steps =
     exercise.instructions?.trim()
       ? exercise.instructions
@@ -691,205 +785,79 @@ function ExerciseDetail({
       : technique.steps;
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, color: '#111111', paddingBottom: 32 }}>
-      <main style={{ maxWidth: 560, margin: '0 auto', padding: '18px 18px 36px' }}>
-        <button
-          onClick={onBack}
-          style={{
-            border: 0,
-            background: 'transparent',
-            color: '#222222',
-            padding: '6px 0',
-            fontSize: 13,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          <span style={{ fontSize: 27, lineHeight: 1 }}>‹</span>
-          Retour au programme
-        </button>
+    <div style={{ minHeight: '100vh', background: '#F7F7F5', color: '#111' }}>
+      <main style={{ maxWidth: 560, minHeight: '100vh', margin: '0 auto', background: '#fff', padding: '18px 18px 34px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 36px', alignItems: 'center' }}>
+          <button onClick={onBack} style={iconButton}>‹</button>
+          <div style={{ justifySelf: 'center' }}><NoxMark /></div>
+          <div />
+        </div>
 
-        <h1
-          style={{
-            margin: '15px 0 10px',
-            fontSize: 'clamp(27px, 8vw, 38px)',
-            lineHeight: .96,
-            fontWeight: 1000,
-            letterSpacing: '-.055em',
-            textTransform: 'uppercase',
-          }}
-        >
+        <div style={{ marginTop: 18, borderRadius: 14, overflow: 'hidden', background: '#111' }}>
+          {media?.videoEmbed ? (
+            <div style={{ position: 'relative', aspectRatio: '16 / 9' }}>
+              <iframe
+                src={media.videoEmbed}
+                title={`Vidéo technique ${exercise.name}`}
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowFullScreen
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+              />
+            </div>
+          ) : media?.image ? (
+            <img
+              src={media.image}
+              alt={`Démonstration ${exercise.name}`}
+              style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', display: 'block' }}
+            />
+          ) : (
+            <div style={{ aspectRatio: '16 / 9', display: 'grid', placeItems: 'center', color: ACCENT, fontWeight: 1000 }}>
+              NOX EXERCISE
+            </div>
+          )}
+        </div>
+
+        <h1 style={{ margin: '18px 0 0', fontSize: 28, lineHeight: .95, fontWeight: 1000, letterSpacing: '-.05em' }}>
           {exercise.name}
         </h1>
 
-        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 13 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 9 }}>
           {tags.map(tag => (
-            <span
-              key={tag}
-              style={{
-                borderRadius: 999,
-                padding: '6px 11px',
-                background: 'rgba(200,255,0,.10)',
-                color: ACCENT,
-                fontSize: 10.5,
-                fontWeight: 850,
-              }}
-            >
+            <span key={tag} style={{ borderRadius: 7, padding: '5px 8px', background: '#F1F1EE', color: '#5F5F59', fontSize: 9.5, fontWeight: 700 }}>
               {tag}
             </span>
           ))}
         </div>
 
-        {(() => {
-          const media = resolveExerciseMedia(exercise);
-
-          return (
-            <div
-              style={{
-                borderRadius: 18,
-                overflow: 'hidden',
-                border: `1px solid ${BORDER}`,
-                background: '#F4F4F1',
-              }}
-            >
-              {media?.videoEmbed ? (
-                <div style={{ position: 'relative', aspectRatio: '16 / 9', background: '#000' }}>
-                  <iframe
-                    src={media.videoEmbed}
-                    title={`Vidéo technique ${exercise.name}`}
-                    allow="autoplay; fullscreen; picture-in-picture"
-                    allowFullScreen
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      width: '100%',
-                      height: '100%',
-                      border: 0,
-                    }}
-                  />
-                </div>
-              ) : media?.image ? (
-                <img
-                  src={media.image}
-                  alt={`Démonstration ${exercise.name}`}
-                  style={{
-                    width: '100%',
-                    aspectRatio: '16 / 9',
-                    objectFit: 'cover',
-                    display: 'block',
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    aspectRatio: '16 / 9',
-                    display: 'grid',
-                    placeItems: 'center',
-                    textAlign: 'center',
-                    padding: 24,
-                    color: '#8f8f8f',
-                    background: 'linear-gradient(135deg,#FFFFFF,#F1F1ED)',
-                  }}
-                >
-                  <div>
-                    <div style={{ color: ACCENT, fontSize: 12, fontWeight: 950, letterSpacing: '.08em' }}>
-                      MÉDIA NON DISPONIBLE
-                    </div>
-                    <div style={{ marginTop: 7, fontSize: 11.5, lineHeight: 1.5 }}>
-                      NOX n’affiche pas une autre démonstration à la place de cet exercice.
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                  padding: '11px 13px',
-                  borderTop: `1px solid ${BORDER}`,
-                }}
-              >
-                <div>
-                  <div style={{ color: '#111111', fontSize: 12, fontWeight: 900 }}>
-                    {media?.videoEmbed ? 'Vidéo technique' : 'Démonstration'}
-                  </div>
-                  <div style={{ color: '#777', fontSize: 10, marginTop: 2 }}>
-                    {media?.videoEmbed ? 'Lecteur réel — commandes actives' : 'Image HD — aucun faux bouton vidéo'}
-                  </div>
-                </div>
-                <div style={{ color: ACCENT, fontSize: 10.5, fontWeight: 900 }}>
-                  {media ? 'NOX MEDIA' : 'À COMPLÉTER'}
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
         <section style={{ marginTop: 20 }}>
-          <h2 style={{ margin: '0 0 10px', fontSize: 15, fontWeight: 950 }}>Séries et répétitions</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
-            <Metric value={exercise.sets || '4'} label="SÉRIES" />
-            <Metric value={exercise.reps || '8-12'} label="RÉPÉTITIONS" />
-            <Metric value={exercise.rest || '90 sec'} label="RÉCUPÉRATION" />
-          </div>
-        </section>
-
-        <InfoCard title="Description technique">
-          <div style={{ color: '#333333', fontSize: 12.5, lineHeight: 1.6 }}>
-            {description}
-          </div>
-        </InfoCard>
-
-        <InfoCard title="Instructions étape par étape">
-          <div style={{ display: 'grid', gap: 9 }}>
+          <h2 style={{ margin: 0, fontSize: 14, fontWeight: 1000 }}>Technique</h2>
+          <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
             {steps.map((step: string, index: number) => (
-              <div key={`${step}-${index}`} style={{ display: 'grid', gridTemplateColumns: '25px 1fr', gap: 9, alignItems: 'start' }}>
-                <div
-                  style={{
-                    width: 25,
-                    height: 25,
-                    borderRadius: '50%',
-                    background: ACCENT,
-                    color: '#050505',
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontSize: 11,
-                    fontWeight: 1000,
-                  }}
-                >
+              <div key={`${step}-${index}`} style={{ display: 'grid', gridTemplateColumns: '28px 1fr', gap: 10, alignItems: 'start' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 1000 }}>
                   {index + 1}
                 </div>
-                <div style={{ color: '#333333', fontSize: 12.5, lineHeight: 1.5 }}>
-                  {step}
-                </div>
+                <div style={{ paddingTop: 5, color: '#3E3E3A', fontSize: 11.5, lineHeight: 1.45 }}>{step}</div>
               </div>
             ))}
           </div>
+        </section>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 7, marginTop: 18 }}>
+          <Metric value={exercise.sets || '4'} label="SÉRIES" />
+          <Metric value={exercise.reps || '8-12'} label="RÉPÉTITIONS" />
+          <Metric value={exercise.rest || '90 sec'} label="REPOS" />
+        </div>
+
+        <InfoCard title="Description">
+          <div style={{ color: '#55554F', fontSize: 11.5, lineHeight: 1.55 }}>{description}</div>
         </InfoCard>
 
-        <div
-          style={{
-            marginTop: 12,
-            border: `1px solid ${ACCENT}`,
-            borderRadius: 15,
-            padding: 15,
-            display: 'grid',
-            gridTemplateColumns: '32px 1fr',
-            gap: 10,
-            background: 'linear-gradient(135deg, rgba(200,255,0,.045), rgba(200,255,0,.01))',
-          }}
-        >
-          <div style={{ width: 28, height: 28, borderRadius: 9, background: ACCENT, color: '#111111', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 1000 }}>N</div>
+        <div style={{ marginTop: 11, border: '1px solid #E1E1DC', borderRadius: 12, padding: 13, display: 'grid', gridTemplateColumns: '30px 1fr', gap: 10, background: '#FCFCFA' }}>
+          <div style={{ width: 28, height: 28, borderRadius: 9, background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 1000 }}>N</div>
           <div>
-            <div style={{ fontSize: 12.5, fontWeight: 950, color: ACCENT }}>Conseil NOX</div>
-            <div style={{ marginTop: 4, color: '#333333', fontSize: 11.5, lineHeight: 1.5 }}>
-              {technique.tip}
-            </div>
+            <div style={{ fontSize: 11.5, fontWeight: 950 }}>Conseil NOX</div>
+            <div style={{ marginTop: 3, color: '#55554F', fontSize: 10.5, lineHeight: 1.45 }}>{technique.tip}</div>
           </div>
         </div>
       </main>
@@ -897,23 +865,42 @@ function ExerciseDetail({
   );
 }
 
+function EmptyProgram({ onCreate }: { onCreate: () => void }) {
+  return (
+    <section style={{ padding: '72px 24px 34px', textAlign: 'center' }}>
+      <div style={{ width: 78, height: 78, margin: '0 auto', borderRadius: 22, background: '#F1F1ED', display: 'grid', placeItems: 'center', fontSize: 38, color: '#C8C8C2' }}>
+        ◫
+      </div>
+      <h2 style={{ margin: '22px 0 0', fontSize: 17, fontWeight: 1000 }}>Aucun programme pour le moment</h2>
+      <p style={{ color: '#77776F', lineHeight: 1.5, fontSize: 11.5, maxWidth: 310, margin: '8px auto 22px' }}>
+        Crée ton premier programme et commence à t'entraîner avec NOX.
+      </p>
+
+      <div style={{ maxWidth: 300, margin: '0 auto 24px', display: 'grid', gap: 10, textAlign: 'left' }}>
+        {['Des programmes personnalisés', 'Des vidéos pour chaque exercice', 'Un suivi de ta progression', 'Des résultats concrets'].map((text, index) => (
+          <div key={text} style={{ display: 'grid', gridTemplateColumns: '24px 1fr', gap: 8, alignItems: 'center', fontSize: 11, color: '#55554F' }}>
+            <span style={{ color: ACCENT, fontSize: 17, fontWeight: 1000 }}>{['▥', '▶', '↗', '✓'][index]}</span>
+            <span>{text}</span>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={onCreate}
+        style={{ width: '100%', minHeight: 49, border: 0, borderRadius: 11, background: ACCENT, color: '#111', fontSize: 11, fontWeight: 1000, cursor: 'pointer' }}
+      >
+        CRÉER MON PROGRAMME →
+      </button>
+    </section>
+  );
+}
+
 function Metric({ value, label }: { value: string; label: string }) {
   return (
-    <div
-      style={{
-        minHeight: 76,
-        borderRadius: 13,
-        border: `1px solid ${BORDER}`,
-        background: '#FFFFFF',
-        display: 'grid',
-        placeItems: 'center',
-        textAlign: 'center',
-        padding: 8,
-      }}
-    >
+    <div style={{ minHeight: 70, borderRadius: 11, border: '1px solid #E4E4DF', background: '#FAFAF8', display: 'grid', placeItems: 'center', textAlign: 'center', padding: 7 }}>
       <div>
-        <div style={{ fontSize: 21, fontWeight: 1000, lineHeight: 1.05 }}>{value}</div>
-        <div style={{ marginTop: 6, fontSize: 8.5, color: '#8a8a8a', fontWeight: 850 }}>{label}</div>
+        <div style={{ fontSize: 17, fontWeight: 1000, lineHeight: 1.05 }}>{value}</div>
+        <div style={{ marginTop: 5, fontSize: 7.5, color: '#77776F', fontWeight: 850 }}>{label}</div>
       </div>
     </div>
   );
@@ -921,20 +908,9 @@ function Metric({ value, label }: { value: string; label: string }) {
 
 function InfoCard({ title, children }: { title: string; children: any }) {
   return (
-    <section
-      style={{
-        marginTop: 11,
-        borderRadius: 15,
-        border: `1px solid ${BORDER}`,
-        background: '#FFFFFF',
-        padding: 15,
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
-        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 950 }}>{title}</h3>
-        <span style={{ color: '#111111', fontSize: 14 }}>⌃</span>
-      </div>
-      <div style={{ marginTop: 10 }}>{children}</div>
+    <section style={{ marginTop: 11, borderRadius: 12, border: '1px solid #E4E4DF', background: '#FAFAF8', padding: 13 }}>
+      <h3 style={{ margin: 0, fontSize: 11.5, fontWeight: 950 }}>{title}</h3>
+      <div style={{ marginTop: 8 }}>{children}</div>
     </section>
   );
 }
