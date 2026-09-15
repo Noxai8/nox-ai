@@ -113,6 +113,8 @@ export default function Training() {
   const [completedSets, setCompletedSets] = useState<any[]>([]);
   const [newPR, setNewPR] = useState<any>(null);
   const [overloadSuggestion, setOverloadSuggestion] = useState<any>(null);
+  const [stagnation, setStagnation] = useState<any>(null);
+  const [trainingError, setTrainingError] = useState('');
   const [done, setDone] = useState(false);
   const [workoutId, setWorkoutId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -128,75 +130,159 @@ export default function Training() {
   }, [user, sessionId]);
 
   const loadSession = async () => {
-    // Charger le programme actif depuis workout_programs
-    const { data: prog } = await supabase
-      .from('workout_programs')
-      .select('*')
-      .eq('user_id', user!.id)
-      .eq('is_active', true)
-      .maybeSingle();
+    setLoading(true);
+    setTrainingError('');
 
-    if (!prog?.program_json) {
+    try {
+      const { data: prog, error: programError } = await supabase
+        .from('workout_programs')
+        .select('*')
+        .eq('user_id', user!.id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (programError) throw programError;
+
+      if (!prog?.program_json) {
+        setLoading(false);
+        return;
+      }
+
+      const sessions: any[] = Array.isArray(prog.program_json.sessions)
+        ? prog.program_json.sessions
+        : [];
+      let session: any = null;
+
+      const idx = parseInt(sessionId || '0');
+      if (!isNaN(idx) && sessions[idx]) {
+        session = sessions[idx];
+      } else {
+        const days = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'];
+        const todayDay = days[new Date().getDay()];
+        session =
+          sessions.find((s: any) => s.day === todayDay || s.id === sessionId) ||
+          sessions[0];
+      }
+
+      if (!session) {
+        setLoading(false);
+        return;
+      }
+
+      setSessionName(session.name || 'SÉANCE');
+      setExercises(Array.isArray(session.exercises) ? session.exercises : []);
+
+      const dayStart = new Date();
+      dayStart.setHours(0, 0, 0, 0);
+
+      const { data: existingWorkout, error: existingError } = await supabase
+        .from('workouts')
+        .select('id, started_at')
+        .eq('user_id', user!.id)
+        .eq('program_id', prog.id)
+        .eq('name', session.name)
+        .eq('status', 'in_progress')
+        .gte('started_at', dayStart.toISOString())
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingError) throw existingError;
+
+      if (existingWorkout?.id) {
+        setWorkoutId(existingWorkout.id);
+      } else {
+        const { data: wk, error: workoutError } = await supabase
+          .from('workouts')
+          .insert({
+            user_id: user!.id,
+            program_id: prog.id,
+            name: session.name,
+            started_at: new Date().toISOString(),
+            status: 'in_progress',
+            created_at: new Date().toISOString(),
+          })
+          .select()
+          .maybeSingle();
+
+        if (workoutError) throw workoutError;
+        if (!wk?.id) throw new Error("Impossible de créer la séance.");
+        setWorkoutId(wk.id);
+      }
+    } catch (err: any) {
+      console.error('Training loadSession:', err);
+      setTrainingError(err?.message || 'Impossible de charger la séance.');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const sessions: any[] = prog.program_json.sessions || [];
-    let session: any = null;
-
-    // Trouver la séance par index ou par nom
-    const idx = parseInt(sessionId || '0');
-    if (!isNaN(idx) && sessions[idx]) {
-      session = sessions[idx];
-    } else {
-      // Chercher par jour ou nom
-      const days = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'];
-      const todayDay = days[new Date().getDay()];
-      session = sessions.find((s: any) => s.day === todayDay || s.id === sessionId) || sessions[0];
-    }
-
-    if (!session) {
-      setLoading(false);
-      return;
-    }
-
-    setSessionName(session.name || 'SÉANCE');
-    setExercises(session.exercises || []);
-
-    // Reprendre une séance en cours aujourd'hui si elle existe déjà.
-    // Cela évite de créer plusieurs workouts lors d'un simple refresh.
-    const dayStart = new Date();
-    dayStart.setHours(0, 0, 0, 0);
-
-    const { data: existingWorkout } = await supabase
-      .from('workouts')
-      .select('id, started_at')
-      .eq('user_id', user!.id)
-      .eq('program_id', prog.id)
-      .eq('name', session.name)
-      .eq('status', 'in_progress')
-      .gte('started_at', dayStart.toISOString())
-      .order('started_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (existingWorkout?.id) {
-      setWorkoutId(existingWorkout.id);
-    } else {
-      const { data: wk } = await supabase.from('workouts').insert({
-        user_id: user!.id,
-        program_id: prog.id,
-        name: session.name,
-        started_at: new Date().toISOString(),
-        status: 'in_progress',
-        created_at: new Date().toISOString(),
-      }).select().maybeSingle();
-
-      if (wk) setWorkoutId(wk.id);
-    }
-
-    setLoading(false);
   };
+
+  useEffect(() => {
+    if (!user || !exercises.length || !exercises[currentIdx]?.name) {
+      setOverloadSuggestion(null);
+      setStagnation(null);
+      return;
+    }
+
+    let cancelled = false;
+    const exercise = exercises[currentIdx];
+
+    const loadExerciseIntelligence = async () => {
+      let historicalSets: any[] = [];
+
+      const { data: setRows, error: setRowsError } = await supabase
+        .from('workout_sets')
+        .select('weight, reps, set_number, created_at')
+        .eq('user_id', user.id)
+        .eq('exercise_name', exercise.name)
+        .order('created_at', { ascending: false })
+        .limit(40);
+
+      if (!setRowsError && Array.isArray(setRows)) {
+        historicalSets = setRows;
+      } else {
+        // Compatibilité avec la base actuelle : tant que workout_sets n'existe pas,
+        // on ne fabrique pas un faux historique à partir d'un PR unique.
+        if (setRowsError) {
+          console.warn('Historique détaillé workout_sets indisponible:', setRowsError.message);
+        }
+      }
+
+      if (cancelled) return;
+
+      const repNumbers = String(exercise.reps || '')
+        .match(/\d+(?:[.,]\d+)?/g)
+        ?.map((value: string) => Number(value.replace(',', '.')))
+        .filter((value: number) => Number.isFinite(value)) || [];
+
+      const targetMin = repNumbers.length ? Math.max(1, Math.floor(repNumbers[0])) : 8;
+      const targetMax = repNumbers.length > 1
+        ? Math.max(targetMin, Math.floor(repNumbers[1]))
+        : targetMin;
+
+      if (historicalSets.length >= 3) {
+        setOverloadSuggestion(
+          calculateProgressiveOverload(
+            exercise.name,
+            historicalSets,
+            targetMin,
+            targetMax,
+          ),
+        );
+        setStagnation(detectStagnation(historicalSets));
+      } else {
+        setOverloadSuggestion(null);
+        setStagnation(null);
+      }
+    };
+
+    void loadExerciseIntelligence();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, exercises, currentIdx]);
+
 
   const startRest = (seconds: number) => {
     clearInterval(timerRef.current);
@@ -222,90 +308,156 @@ export default function Training() {
   };
 
   const validateSet = async () => {
-    if (savingSet) return;
+    if (savingSet || !user) return;
+
     const ex = exercises[currentIdx];
-    if (!weight || !reps) return;
+    if (!ex || !workoutId) {
+      setTrainingError("La séance n'est pas encore prête. Réessaie.");
+      return;
+    }
+
+    const parsedWeight = Number(String(weight).replace(',', '.'));
+    const parsedReps = Number(reps);
+
+    if (!Number.isFinite(parsedWeight) || parsedWeight < 0) {
+      setTrainingError('Entre une charge valide.');
+      return;
+    }
+    if (!Number.isInteger(parsedReps) || parsedReps <= 0 || parsedReps > 200) {
+      setTrainingError('Entre un nombre de répétitions valide.');
+      return;
+    }
 
     setSavingSet(true);
+    setTrainingError('');
 
-    const setData = {
-      exercise_name: ex.name,
-      set_number: currentSet,
-      weight: Number(weight),
-      reps: Number(reps),
-    };
-
-    // Vérifier PR
-    const { data: best } = await supabase
-      .from('personal_records')
-      .select('*')
-      .eq('user_id', user!.id)
-      .eq('exercise_name', ex.name)
-      .maybeSingle();
-
-    const isPR = !best ||
-      Number(weight) > (best.weight || 0) ||
-      (Number(weight) === best.weight && Number(reps) > (best.reps || 0));
-
-    if (isPR) {
-      await supabase.from('personal_records').upsert({
-        user_id: user!.id,
+    try {
+      const now = new Date().toISOString();
+      const setData = {
         exercise_name: ex.name,
-        weight: Number(weight),
-        reps: Number(reps),
-        created_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,exercise_name' });
-      setNewPR({ name: ex.name, weight: Number(weight), reps: Number(reps) });
-      setTimeout(() => setNewPR(null), 3000);
-    }
+        set_number: currentSet,
+        weight: parsedWeight,
+        reps: parsedReps,
+        created_at: now,
+      };
 
-    setCompletedSets(prev => [...prev, setData]);
+      // Persistance indispensable au moteur de progression.
+      // Si workout_sets n'existe pas encore dans la base, on garde la séance
+      // fonctionnelle et NOX utilisera les PRs, mais la progression détaillée
+      // restera indisponible jusqu'à création de cette table.
+      const { error: setInsertError } = await supabase
+        .from('workout_sets')
+        .insert({
+          user_id: user.id,
+          workout_id: workoutId,
+          exercise_name: ex.name,
+          set_number: currentSet,
+          weight: parsedWeight,
+          reps: parsedReps,
+          created_at: now,
+        });
 
-    const totalSets = parseInt(ex.sets) || 3;
-    const restSecs = parseRestSeconds(ex.rest);
+      if (setInsertError) {
+        console.warn('workout_sets non persisté:', setInsertError.message);
+      }
 
-    if (currentSet >= totalSets) {
-      // Exercice terminé
-      setCurrentSet(1);
-      if (currentIdx >= exercises.length - 1) {
-        await finishWorkout();
+      const { data: best, error: bestError } = await supabase
+        .from('personal_records')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('exercise_name', ex.name)
+        .maybeSingle();
+
+      if (bestError) throw bestError;
+
+      const previousWeight = Number(best?.weight || 0);
+      const previousReps = Number(best?.reps || 0);
+      const isPR =
+        !best ||
+        parsedWeight > previousWeight ||
+        (parsedWeight === previousWeight && parsedReps > previousReps);
+
+      if (isPR) {
+        const { error: prError } = await supabase
+          .from('personal_records')
+          .upsert(
+            {
+              user_id: user.id,
+              exercise_name: ex.name,
+              weight: parsedWeight,
+              reps: parsedReps,
+              created_at: now,
+            },
+            { onConflict: 'user_id,exercise_name' },
+          );
+
+        if (prError) throw prError;
+
+        setNewPR({ name: ex.name, weight: parsedWeight, reps: parsedReps });
+        window.setTimeout(() => setNewPR(null), 3000);
+      }
+
+      setCompletedSets(prev => [...prev, setData]);
+
+      const totalSets = parseInt(ex.sets) || 3;
+      const restSecs = parseRestSeconds(ex.rest);
+
+      if (currentSet >= totalSets) {
+        setCurrentSet(1);
+
+        if (currentIdx >= exercises.length - 1) {
+          await finishWorkout();
+        } else {
+          setCurrentIdx(i => i + 1);
+          startRest(restSecs);
+        }
       } else {
-        setCurrentIdx(i => i + 1);
+        setCurrentSet(s => s + 1);
         startRest(restSecs);
       }
-    } else {
-      setCurrentSet(s => s + 1);
-      startRest(restSecs);
-    }
 
-    setWeight('');
-    setReps('');
-    setSavingSet(false);
+      setWeight('');
+      setReps('');
+    } catch (err: any) {
+      console.error('Training validateSet:', err);
+      setTrainingError(err?.message || "Impossible d'enregistrer cette série.");
+    } finally {
+      setSavingSet(false);
+    }
   };
 
   const finishWorkout = async () => {
-    if (finishingRef.current) return;
+    if (finishingRef.current || !user) return;
     finishingRef.current = true;
+    setTrainingError('');
 
     try {
       const duration = Math.max(1, Math.round((Date.now() - startTime) / 60000));
-      if (workoutId) {
-        await supabase.from('workouts').update({
+
+      if (!workoutId) throw new Error("Séance introuvable.");
+
+      const { error: finishError } = await supabase
+        .from('workouts')
+        .update({
           status: 'completed',
           finished_at: new Date().toISOString(),
           duration_minutes: duration,
-        }).eq('id', workoutId).eq('status', 'in_progress');
-      }
+        })
+        .eq('id', workoutId)
+        .eq('user_id', user.id)
+        .eq('status', 'in_progress');
 
-      // Recalcul du streak à partir des vraies séances complétées.
-      // Plusieurs entraînements le même jour ne comptent donc qu'une fois.
-      const { data: completedWorkouts } = await supabase
+      if (finishError) throw finishError;
+
+      const { data: completedWorkouts, error: historyError } = await supabase
         .from('workouts')
         .select('finished_at, started_at')
-        .eq('user_id', user!.id)
+        .eq('user_id', user.id)
         .eq('status', 'completed')
         .order('started_at', { ascending: false })
         .limit(120);
+
+      if (historyError) throw historyError;
 
       const streak = calculateTrainingStreak(
         (completedWorkouts || [])
@@ -313,18 +465,28 @@ export default function Training() {
           .filter(Boolean),
       );
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('xp')
-        .eq('id', user!.id)
+        .eq('id', user.id)
         .maybeSingle();
 
-      await supabase.from('profiles').update({
-        streak_days: streak,
-        xp: (profile?.xp || 0) + 50,
-      }).eq('id', user!.id);
+      if (profileError) throw profileError;
+
+      const { error: rewardError } = await supabase
+        .from('profiles')
+        .update({
+          streak_days: streak,
+          xp: Number(profile?.xp || 0) + 50,
+        })
+        .eq('id', user.id);
+
+      if (rewardError) throw rewardError;
 
       setDone(true);
+    } catch (err: any) {
+      console.error('Training finishWorkout:', err);
+      setTrainingError(err?.message || 'Impossible de terminer la séance.');
     } finally {
       finishingRef.current = false;
     }
@@ -461,6 +623,19 @@ export default function Training() {
             <div style={{ height: '100%', width: `${Math.max(3, exerciseProgress)}%`, background: ACCENT, borderRadius: 999, transition: 'width .4s' }} />
           </div>
         </div>
+
+        {trainingError && (
+          <div style={{ margin: '0 20px 12px', background: '#FFF2F2', border: '1px solid #FFB8B8', borderRadius: 13, padding: '11px 13px', color: '#9B1C1C', fontSize: 11.5, lineHeight: 1.45, fontWeight: 750 }}>
+            {trainingError}
+          </div>
+        )}
+
+        {stagnation?.stagnating && !resting && (
+          <div style={{ margin: '0 20px 12px', background: '#FAFAF8', border: '1px solid #E1E1DC', borderRadius: 13, padding: '11px 13px' }}>
+            <div style={{ fontSize: 9.5, color: '#111', fontWeight: 1000, textTransform: 'uppercase', letterSpacing: '.07em' }}>ANALYSE NOX</div>
+            <div style={{ fontSize: 11, color: '#66665F', marginTop: 4, lineHeight: 1.45 }}>{stagnation.suggestion}</div>
+          </div>
+        )}
 
         {/* PR Banner */}
         {newPR && (
@@ -746,22 +921,74 @@ function DoneMetric({ label, value, symbol }: { label: string; value: string; sy
 // ─── LAST PERFORMANCES ──────────────────────────────────────────
 function LastPerformances({ exerciseName, userId, completedSets }: any) {
   const [history, setHistory] = useState<any[]>([]);
+  const [lastSets, setLastSets] = useState<any[]>([]);
 
   useEffect(() => {
     if (!exerciseName || !userId) return;
-    supabase.from('personal_records')
-      .select('weight, reps, created_at')
-      .eq('user_id', userId)
-      .eq('exercise_name', exerciseName)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .then(({ data }) => setHistory(data || []));
+
+    let cancelled = false;
+
+    const load = async () => {
+      const [prResult, setsResult] = await Promise.all([
+        supabase
+          .from('personal_records')
+          .select('weight, reps, created_at')
+          .eq('user_id', userId)
+          .eq('exercise_name', exerciseName)
+          .order('created_at', { ascending: false })
+          .limit(1),
+        supabase
+          .from('workout_sets')
+          .select('weight, reps, set_number, created_at')
+          .eq('user_id', userId)
+          .eq('exercise_name', exerciseName)
+          .order('created_at', { ascending: false })
+          .limit(12),
+      ]);
+
+      if (cancelled) return;
+
+      setHistory(prResult.data || []);
+
+      if (!setsResult.error && Array.isArray(setsResult.data)) {
+        const rows = setsResult.data;
+        const latestDay = rows[0]?.created_at?.split('T')[0];
+        setLastSets(
+          latestDay
+            ? rows
+                .filter((row: any) => row.created_at?.split('T')[0] === latestDay)
+                .sort((a: any, b: any) => Number(a.set_number) - Number(b.set_number))
+            : [],
+        );
+      } else {
+        setLastSets([]);
+      }
+    };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [exerciseName, userId]);
 
-  if (history.length === 0 && completedSets.length === 0) return null;
+  if (history.length === 0 && lastSets.length === 0 && completedSets.length === 0) return null;
 
   return (
     <div style={{ background: '#FAFAF8', border: '1px solid #E7E7E2', borderRadius: 12, padding: '10px 12px', marginBottom: 14 }}>
+      {lastSets.length > 0 && (
+        <div style={{ marginBottom: history.length > 0 || completedSets.length > 0 ? 8 : 0 }}>
+          <div style={{ fontSize: 8.5, color: '#999991', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5, fontWeight: 850 }}>DERNIÈRE SÉANCE</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {lastSets.map((s: any, i: number) => (
+              <div key={i} style={{ background: '#EEEEEA', borderRadius: 7, padding: '4px 8px', fontSize: 10.5, color: '#44443F', fontWeight: 750 }}>
+                {s.weight} kg × {s.reps}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {history[0] && (
         <div style={{ marginBottom: completedSets.length > 0 ? 8 : 0 }}>
           <div style={{ fontSize: 8.5, color: '#999991', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4, fontWeight: 850 }}>MEILLEUR PR</div>
@@ -770,6 +997,7 @@ function LastPerformances({ exerciseName, userId, completedSets }: any) {
           </div>
         </div>
       )}
+
       {completedSets.length > 0 && (
         <div>
           <div style={{ fontSize: 8.5, color: '#999991', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5, fontWeight: 850 }}>CETTE SÉANCE</div>
@@ -785,3 +1013,4 @@ function LastPerformances({ exerciseName, userId, completedSets }: any) {
     </div>
   );
 }
+
