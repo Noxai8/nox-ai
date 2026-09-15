@@ -5,8 +5,8 @@ import { BottomNav } from './Home';
 
 const ACCENT = '#B7FF00';
 const BG = '#FFFFFF';
-const SURFACE = '#F4F4F1';
-const BORDER = '#E5E5E0';
+const SURFACE = '#F5F5F2';
+const BORDER = '#E8E8E3';
 
 const QUICK_PROMPTS = [
   'Je suis fatigué aujourd\'hui, je fais quoi ?',
@@ -148,171 +148,104 @@ STYLE :
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F5F5F2', color: '#111', paddingBottom: 84 }}>
-      <main style={{
-        minHeight: '100vh',
-        maxWidth: 560,
-        margin: '0 auto',
-        background: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-      }}>
-        <header style={{
-          flexShrink: 0,
-          padding: '18px 18px 14px',
-          background: 'radial-gradient(circle at 92% 18%, rgba(183,255,0,.16), transparent 31%), #fff',
-          borderBottom: '1px solid #ECECE7',
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr auto', alignItems: 'center' }}>
+    <div style={{ minHeight: '100vh', background: '#fff', color: '#0B0B0B', paddingBottom: 82 }}>
+      <div style={{ width: '100%', maxWidth: 560, minHeight: '100vh', margin: '0 auto', background: '#fff', display: 'flex', flexDirection: 'column' }}>
+        <header style={{ flexShrink: 0, padding: '20px 20px 14px', borderBottom: '1px solid #EFEFEB' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <NoxBrand />
             <button
-              onClick={() => window.history.back()}
-              aria-label="Retour"
+              type="button"
+              aria-label="Profil"
               style={{
-                width: 36, height: 36, border: 0, background: 'transparent',
-                fontSize: 27, color: '#111', cursor: 'pointer', padding: 0,
+                width: 34, height: 34, borderRadius: 12, border: '1px solid #E9E9E4',
+                background: '#fff', display: 'grid', placeItems: 'center', color: '#111',
+                fontSize: 16, cursor: 'pointer'
               }}
             >
-              ‹
+              ♙
             </button>
-
-            <div style={{ justifySelf: 'center' }}>
-              <NoxBrand />
-            </div>
-
-            <div style={{
-              padding: '7px 9px',
-              borderRadius: 999,
-              background: '#F4FFD5',
-              border: '1px solid rgba(183,255,0,.75)',
-              color: '#111',
-              fontSize: 8.5,
-              fontWeight: 950,
-              whiteSpace: 'nowrap',
-            }}>
-              Contexte actif
-            </div>
           </div>
 
           <div style={{ marginTop: 22 }}>
+            <div style={{ fontSize: 10, color: '#85857D', letterSpacing: '.13em', fontWeight: 850 }}>INTELLIGENCE NOX</div>
+            <h1 style={{ margin: '4px 0 0', fontSize: 31, lineHeight: .95, fontWeight: 1000, letterSpacing: '-.055em' }}>COACH IA</h1>
+            <div style={{ marginTop: 7, color: '#76766F', fontSize: 12 }}>Ton coach personnel, 24/7</div>
+          </div>
+
+          <div style={{
+            marginTop: 15, borderRadius: 16, padding: '13px 14px',
+            background: '#F6FFE0', border: '1px solid #E5F6B2',
+            display: 'grid', gridTemplateColumns: '34px 1fr', gap: 11, alignItems: 'center'
+          }}>
             <div style={{
-              fontSize: 9.5, color: '#77776F', textTransform: 'uppercase',
-              letterSpacing: '.13em', fontWeight: 900,
-            }}>
-              Intelligence NOX
-            </div>
-            <h1 style={{
-              margin: '4px 0 0', fontSize: 31, lineHeight: .95,
-              fontWeight: 1000, letterSpacing: '-.055em',
-            }}>
-              COACH IA
-            </h1>
-            <div style={{ marginTop: 7, color: '#77776F', fontSize: 11.5 }}>
-              Ton assistant personnel 24/7
+              width: 32, height: 32, borderRadius: 10, background: ACCENT,
+              display: 'grid', placeItems: 'center', fontWeight: 1000, fontSize: 16
+            }}>▥</div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 950 }}>Contexte actif</div>
+              <div style={{ marginTop: 2, fontSize: 9.5, color: '#77776F', lineHeight: 1.4 }}>
+                Ton profil, ton programme, tes entraînements et ta nutrition sont pris en compte.
+              </div>
             </div>
           </div>
 
           {context?.profile && (
-            <div style={{
-              display: 'flex', gap: 7, overflowX: 'auto',
-              marginTop: 14, paddingBottom: 2, scrollbarWidth: 'none',
-            }}>
-              {context.profile.streak > 0 && <ContextPill strong={`${context.profile.streak}j`} text="streak" />}
-              {context.profile.weight && <ContextPill strong={`${context.profile.weight} kg`} text="body" />}
-              {context.today_fuel?.kcal > 0 && <ContextPill strong={`${context.today_fuel.kcal}`} text="kcal" />}
-              {context.recent_workouts > 0 && <ContextPill strong={`${context.recent_workouts}`} text="séances" />}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10 }}>
+              <InfoCard icon="✦" label="Objectif" value={formatGoal(context.profile.goal)} />
+              <InfoCard icon="▣" label="Programme" value={context.program?.name || 'Non défini'} />
+              <InfoCard icon="★" label="Streak" value={`${context.profile.streak || 0} jours`} />
+              <InfoCard icon="●" label="Poids" value={context.profile.weight ? `${context.profile.weight} kg` : '—'} />
             </div>
           )}
         </header>
 
         {messages.length <= 1 && (
-          <section style={{ padding: '14px 18px 0', flexShrink: 0 }}>
-            <div style={{
-              borderRadius: 14,
-              padding: '13px 14px',
-              background: '#F7FFE2',
-              border: '1px solid #E2F5A8',
-              display: 'grid',
-              gridTemplateColumns: '30px 1fr',
-              gap: 10,
-            }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: 9,
-                background: ACCENT, display: 'grid', placeItems: 'center',
-                fontSize: 14, fontWeight: 1000,
-              }}>ϟ</div>
-              <div>
-                <div style={{ fontSize: 10.5, fontWeight: 950 }}>
-                  Je suis là pour t'aider !
-                </div>
-                <div style={{ marginTop: 3, fontSize: 10.5, color: '#66665F', lineHeight: 1.45 }}>
-                  Pose-moi toutes tes questions sur ton entraînement, ta nutrition ou ta récupération.
-                </div>
-              </div>
-            </div>
-
-            <div style={{
-              fontSize: 9, color: '#999991', fontWeight: 900,
-              letterSpacing: '.09em', margin: '15px 1px 8px',
-            }}>
-              QUESTIONS RAPIDES
+          <section style={{ padding: '16px 20px 4px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9 }}>
+              <div style={{ fontSize: 13, fontWeight: 950 }}>Questions rapides</div>
+              <span style={{ fontSize: 9.5, color: '#8B8B84' }}>Suggestions NOX</span>
             </div>
 
             <div style={{ display: 'grid', gap: 7 }}>
-              {QUICK_PROMPTS.slice(0, 4).map(p => (
+              {QUICK_PROMPTS.slice(0, 4).map((p) => (
                 <button
                   key={p}
                   onClick={() => send(p)}
+                  disabled={loading}
                   style={{
-                    width: '100%', textAlign: 'left', cursor: 'pointer',
-                    background: '#fff', border: '1px solid #E5E5E0',
-                    borderRadius: 12, padding: '11px 12px',
-                    color: '#44443F', fontSize: 10.5, fontWeight: 650,
+                    width: '100%', minHeight: 43, display: 'flex', alignItems: 'center',
+                    justifyContent: 'space-between', gap: 10, textAlign: 'left',
+                    padding: '10px 12px', borderRadius: 12, border: '1px solid #E6E6E1',
+                    background: '#fff', color: '#3D3D38', fontSize: 10.5,
+                    fontWeight: 650, cursor: loading ? 'default' : 'pointer'
                   }}
                 >
-                  {p}
+                  <span>{p}</span>
+                  <span style={{ color: '#111', fontSize: 18, lineHeight: 1 }}>›</span>
                 </button>
               ))}
             </div>
           </section>
         )}
 
-        <div style={{
-          flex: 1, overflowY: 'auto',
-          padding: messages.length <= 1 ? '16px 18px 154px' : '20px 18px 154px',
-          boxSizing: 'border-box',
+        <section style={{
+          flex: 1, overflowY: 'auto', padding: messages.length <= 1 ? '13px 20px 155px' : '20px 20px 155px',
+          boxSizing: 'border-box'
         }}>
           {messages.map((msg, i) => (
             <div key={i} style={{
-              marginBottom: 12,
-              display: 'flex',
-              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-              alignItems: 'flex-end',
-              gap: 8,
+              display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 13,
+              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start'
             }}>
-              {msg.role === 'assistant' && (
-                <div style={{
-                  width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-                  display: 'grid', placeItems: 'center',
-                  background: ACCENT, color: '#111',
-                  fontSize: 9, fontWeight: 1000,
-                }}>
-                  NX
-                </div>
-              )}
+              {msg.role === 'assistant' && <NoxAvatar />}
 
               <div style={{
                 maxWidth: '82%',
-                background: msg.role === 'user' ? '#111' : '#F4F4F1',
-                color: msg.role === 'user' ? '#fff' : '#33332F',
-                border: msg.role === 'user' ? 'none' : '1px solid #E8E8E3',
-                borderRadius: msg.role === 'user'
-                  ? '17px 17px 5px 17px'
-                  : '17px 17px 17px 5px',
-                padding: '11px 13px',
-                fontSize: 12.5,
-                lineHeight: 1.55,
-                whiteSpace: 'pre-wrap',
+                background: msg.role === 'user' ? ACCENT : '#F3F3F0',
+                color: '#151512',
+                border: msg.role === 'user' ? '1px solid #AEEA00' : '1px solid #E9E9E4',
+                borderRadius: msg.role === 'user' ? '16px 16px 5px 16px' : '16px 16px 16px 5px',
+                padding: '11px 13px', fontSize: 12.5, lineHeight: 1.55, whiteSpace: 'pre-wrap'
               }}>
                 {msg.content}
               </div>
@@ -320,25 +253,17 @@ STYLE :
           ))}
 
           {loading && (
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 13 }}>
+              <NoxAvatar />
               <div style={{
-                width: 30, height: 30, borderRadius: 9,
-                display: 'grid', placeItems: 'center',
-                background: ACCENT, color: '#111',
-                fontSize: 9, fontWeight: 1000,
-              }}>
-                NX
-              </div>
-              <div style={{
-                background: '#F4F4F1', border: '1px solid #E8E8E3',
-                borderRadius: '17px 17px 17px 5px', padding: '13px 16px',
+                background: '#F3F3F0', border: '1px solid #E9E9E4',
+                borderRadius: '16px 16px 16px 5px', padding: '13px 16px'
               }}>
                 <div style={{ display: 'flex', gap: 5 }}>
                   {[0, 1, 2].map(i => (
-                    <div key={i} style={{
-                      width: 5, height: 5, borderRadius: '50%',
-                      background: '#77776F',
-                      animation: `noxBounce 1s ${i * .16}s infinite`,
+                    <span key={i} style={{
+                      width: 5, height: 5, borderRadius: '50%', background: '#8C8C85',
+                      animation: `noxBounce 1s ${i * .16}s infinite`
                     }} />
                   ))}
                 </div>
@@ -347,22 +272,19 @@ STYLE :
           )}
 
           <div ref={bottomRef} />
-        </div>
-      </main>
+        </section>
+      </div>
 
       <div style={{
-        position: 'fixed', zIndex: 100,
-        left: 0, right: 0, bottom: 68,
-        padding: '25px 14px 10px',
-        background: 'linear-gradient(180deg,rgba(255,255,255,0),#fff 28%)',
+        position: 'fixed', left: 0, right: 0, bottom: 68, zIndex: 100,
+        padding: '24px 15px 10px',
+        background: 'linear-gradient(180deg,rgba(255,255,255,0),#fff 27%)'
       }}>
-        <div style={{ width: '100%', maxWidth: 528, margin: '0 auto' }}>
+        <div style={{ maxWidth: 530, margin: '0 auto' }}>
           <div style={{
-            display: 'flex', alignItems: 'flex-end', gap: 7,
-            padding: 5, background: '#fff',
-            border: '1px solid #DCDCD7',
-            borderRadius: 16,
-            boxShadow: '0 8px 28px rgba(0,0,0,.07)',
+            display: 'flex', alignItems: 'flex-end', gap: 7, padding: 5,
+            background: '#fff', border: '1px solid #DCDCD7', borderRadius: 15,
+            boxShadow: '0 8px 24px rgba(0,0,0,.06)'
           }}>
             <textarea
               ref={inputRef}
@@ -374,39 +296,30 @@ STYLE :
                   send();
                 }
               }}
-              placeholder="Écris ta question à NOX..."
+              placeholder="Écris ton message..."
               rows={1}
               style={{
-                flex: 1, minHeight: 42, maxHeight: 110,
-                boxSizing: 'border-box', padding: '11px 10px',
-                background: 'transparent', border: 0,
-                color: '#111', fontSize: 12.5, resize: 'none',
-                outline: 'none', fontFamily: 'inherit', overflowY: 'auto',
+                flex: 1, minHeight: 40, maxHeight: 110, boxSizing: 'border-box',
+                padding: '10px 9px', border: 0, outline: 'none', resize: 'none',
+                background: 'transparent', color: '#111', fontFamily: 'inherit',
+                fontSize: 12.5, overflowY: 'auto'
               }}
             />
-
             <button
               onClick={() => send()}
               disabled={!input.trim() || loading}
               aria-label="Envoyer"
               style={{
-                width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+                width: 40, height: 40, borderRadius: 11, border: 0,
                 background: input.trim() && !loading ? ACCENT : '#EFEFEC',
-                color: input.trim() && !loading ? '#111' : '#B2B2AB',
-                border: 0,
-                cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
+                color: input.trim() && !loading ? '#111' : '#A9A9A2',
                 fontSize: 20, fontWeight: 1000,
+                cursor: input.trim() && !loading ? 'pointer' : 'not-allowed'
               }}
-            >
-              ↑
-            </button>
+            >↑</button>
           </div>
-
-          <div style={{
-            fontSize: 8, color: '#AAA9A2',
-            textAlign: 'center', marginTop: 5,
-          }}>
-            NOX peut se tromper. Pour un problème médical, consulte un professionnel.
+          <div style={{ marginTop: 5, textAlign: 'center', color: '#A3A39C', fontSize: 8 }}>
+            NOX peut se tromper. Pour une douleur ou un problème médical, consulte un professionnel.
           </div>
         </div>
       </div>
@@ -424,41 +337,78 @@ STYLE :
   );
 }
 
+function formatGoal(goal?: string) {
+  if (!goal) return 'Non défini';
+  const map: Record<string, string> = {
+    muscle_gain: 'Prise de masse',
+    gain_muscle: 'Prise de masse',
+    hypertrophy: 'Prise de masse',
+    weight_loss: 'Perte de poids',
+    lose_weight: 'Perte de poids',
+    fat_loss: 'Perte de poids',
+    strength: 'Force',
+    performance: 'Performance',
+    maintenance: 'Maintien',
+  };
+  return map[goal] || goal.replaceAll('_', ' ');
+}
+
 function NoxBrand() {
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-      <div style={{ position: 'relative', width: 26, height: 20, flexShrink: 0 }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ position: 'relative', width: 29, height: 22 }}>
         <span style={{
-          position: 'absolute', width: 11, height: 7,
-          left: 1, top: 2, borderRadius: 999,
-          background: ACCENT, transform: 'rotate(28deg)',
+          position: 'absolute', width: 12, height: 8, left: 1, top: 2,
+          borderRadius: 999, background: ACCENT, transform: 'rotate(28deg)'
         }} />
         <span style={{
-          position: 'absolute', width: 20, height: 8,
-          left: 6, top: 10, borderRadius: 999,
-          background: ACCENT, transform: 'rotate(7deg)',
+          position: 'absolute', width: 22, height: 8, left: 7, top: 11,
+          borderRadius: 999, background: ACCENT, transform: 'rotate(7deg)'
         }} />
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-        <span style={{ fontSize: 16, fontWeight: 1000, letterSpacing: '-.045em' }}>NOX</span>
-        <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '.1em', color: '#66665F' }}>AI</span>
+        <span style={{ fontSize: 17, fontWeight: 1000, letterSpacing: '-.05em' }}>NOX</span>
+        <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '.11em', color: '#676760' }}>AI</span>
       </div>
     </div>
   );
 }
 
-function ContextPill({ strong, text }: { strong: string; text: string }) {
+function NoxAvatar() {
   return (
     <div style={{
-      flexShrink: 0,
-      background: '#FAFAF8',
-      border: '1px solid #E5E5E0',
-      borderRadius: 9,
-      padding: '6px 8px',
-      fontSize: 9.5,
-      color: '#77776F',
+      width: 30, height: 30, flexShrink: 0, borderRadius: 10,
+      background: '#101010', display: 'grid', placeItems: 'center'
     }}>
-      <b style={{ color: '#111' }}>{strong}</b> {text}
+      <div style={{ position: 'relative', width: 17, height: 13 }}>
+        <span style={{
+          position: 'absolute', width: 7, height: 5, left: 0, top: 1,
+          borderRadius: 999, background: ACCENT, transform: 'rotate(28deg)'
+        }} />
+        <span style={{
+          position: 'absolute', width: 13, height: 5, left: 4, top: 7,
+          borderRadius: 999, background: ACCENT, transform: 'rotate(7deg)'
+        }} />
+      </div>
+    </div>
+  );
+}
+
+function InfoCard({ icon, label, value }: { icon: string; label: string; value: string }) {
+  return (
+    <div style={{
+      minHeight: 52, border: '1px solid #E8E8E3', borderRadius: 12,
+      padding: '9px 10px', background: '#fff',
+      display: 'grid', gridTemplateColumns: '22px 1fr', gap: 7, alignItems: 'center'
+    }}>
+      <div style={{ color: '#73A600', fontSize: 14, fontWeight: 950 }}>{icon}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ color: '#92928A', fontSize: 8.5, lineHeight: 1.2 }}>{label}</div>
+        <div style={{
+          marginTop: 2, fontSize: 10.5, fontWeight: 900, color: '#20201D',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+        }}>{value}</div>
+      </div>
     </div>
   );
 }
