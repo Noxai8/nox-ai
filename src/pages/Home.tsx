@@ -1,4 +1,5 @@
 import { calculateNoxScore, calculateRealTDEE } from '../lib/noxBrain';
+import NoxMascot from '../components/NoxMascot';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {

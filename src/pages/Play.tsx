@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import NoxMascot from '../components/NoxMascot';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
@@ -228,6 +229,24 @@ export default function Play() {
           </div>
         </section>
       </main>
+
+      {/* Mascotte */}
+      <div style={{ padding: '0 20px 16px' }}>
+        <NoxMascot context={totalWorkouts > 0 ? 'streak' : 'default'} compact />
+      </div>
+
+      {/* Leaderboard */}
+      <div style={{ padding: '0 20px 10px' }}>
+        <button onClick={() => navigate('/leaderboard')}
+          style={{ width: '100%', background: '#111', border: '1px solid #1a1a1a', borderRadius: 14, padding: '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left', touchAction: 'manipulation' }}>
+          <div style={{ fontSize: 28 }}>🏆</div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>CLASSEMENT GLOBAL</div>
+            <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>Compare-toi à tous les athlètes NOX</div>
+          </div>
+          <div style={{ marginLeft: 'auto', color: '#333', fontSize: 16 }}>→</div>
+        </button>
+      </div>
 
       {/* Mode Partenaire */}
       <div style={{ padding: '16px 20px 0' }}>
