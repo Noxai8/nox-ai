@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BottomNav } from './Home';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
@@ -284,6 +285,7 @@ export default function ShareTimeline() {
           </>
         )}
       </div>
+      <BottomNav active="future" />
     </div>
   );
 }

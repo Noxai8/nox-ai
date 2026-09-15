@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BottomNav } from './Home';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
@@ -94,6 +95,7 @@ export default function RestDay() {
           HOME
         </button>
       </div>
+      <BottomNav active="home" />
     </div>
   );
 }

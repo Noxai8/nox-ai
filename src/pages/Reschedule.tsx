@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BottomNav } from './Home';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
@@ -242,6 +243,7 @@ RÈGLES :
           </>
         )}
       </div>
+      <BottomNav active="home" />
     </div>
   );
 }

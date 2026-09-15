@@ -635,8 +635,7 @@ export default function Fuel() {
                       </div>
                     )}
 
-                    {/* Placeholder pour que le scroll ne cache pas les boutons */}
-                    <div style={{ height: 120 }} />
+                    <div style={{ height: 10 }} />
                   </div>
                 )}
 
@@ -731,25 +730,19 @@ export default function Fuel() {
             )}
           </div>{/* fin zone scrollable */}
 
-          {/* BOUTONS FIXES HORS DU SCROLL — toujours accessibles sur mobile */}
-          {scanResult && (
-            <div style={{ padding: '12px 20px', paddingBottom: 'max(20px, env(safe-area-inset-bottom))', background: '#0d0d0d', borderTop: '1px solid #1a1a1a' }}>
+          {/* BOUTONS SCAN FIXES EN BAS */}
+          {addMode === 'photo' && scanResult && (
+            <div style={{ flexShrink: 0, padding: '12px 20px 20px', background: '#0d0d0d', borderTop: '1px solid #1a1a1a' }}>
               <button
-                onTouchEnd={e => { e.preventDefault(); e.stopPropagation(); addScanResult(); }}
-                onClick={e => { e.stopPropagation(); addScanResult(); }}
-                style={{
-                  width: '100%', padding: 20, background: '#c8ff00', border: 'none',
-                  borderRadius: 16, color: '#000', fontWeight: 900, fontSize: 17,
-                  cursor: 'pointer', touchAction: 'manipulation', display: 'block',
-                  marginBottom: 10, WebkitTapHighlightColor: 'transparent',
-                  letterSpacing: '.03em',
-                }}>
-                ✓ AJOUTER {Math.round(scanResult.total?.kcal ?? scanResult.total?.calories ?? 0)} KCAL
+                onTouchEnd={e => { e.preventDefault(); addScanResult(); }}
+                onClick={addScanResult}
+                style={{ width: '100%', padding: 20, background: '#c8ff00', border: 'none', borderRadius: 16, color: '#000', fontWeight: 900, fontSize: 17, cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', marginBottom: 8 }}>
+                ✓ AJOUTER · {Math.round(scanResult.total?.kcal ?? scanResult.total?.calories ?? 0)} KCAL
               </button>
               <button
-                onTouchEnd={e => { e.preventDefault(); setPhotoBase64(null); setScanResult(null); fileRef.current?.click(); }}
-                onClick={() => { setPhotoBase64(null); setScanResult(null); fileRef.current?.click(); }}
-                style={{ width: '100%', padding: 13, background: 'transparent', border: '1px solid #242424', borderRadius: 12, color: '#888', fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' }}>
+                onTouchEnd={e => { e.preventDefault(); setPhotoBase64(null); setScanResult(null); }}
+                onClick={() => { setPhotoBase64(null); setScanResult(null); }}
+                style={{ width: '100%', padding: 12, background: 'transparent', border: '1px solid #242424', borderRadius: 12, color: '#888', fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' }}>
                 Nouvelle photo
               </button>
             </div>

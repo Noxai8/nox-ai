@@ -52,22 +52,45 @@ export function BottomNav({ active }: { active: string }) {
     { id: 'more', label: 'Plus', icon: null, path: '' },
   ];
 
-  const moreItems = [
-    { icon: BarChart3, label: 'Body', path: '/body' },
-    { icon: WandSparkles, label: 'Future', path: '/future' },
-    { icon: Medal, label: 'Play', path: '/play' },
-    { icon: '🏆', label: 'Classement', path: '/leaderboard' },
-    { icon: '🧊', label: 'Fuel IA', path: '/fuel-ai' },
-    { icon: '👨‍🍳', label: 'Recettes', path: '/recipes' },
-    { icon: '📅', label: 'Planifier', path: '/meal-planner' },
-    { icon: '⏱️', label: 'Jeûne', path: '/fasting' },
-    { icon: '😊', label: 'Humeur', path: '/mood' },
-    { icon: '🌙', label: 'Recovery', path: '/recovery' },
-    { icon: '📋', label: 'Bilan', path: '/weekly-review' },
-    { icon: '👥', label: 'Partenaire', path: '/partner' },
-    { icon: '📤', label: 'Timeline', path: '/share-timeline' },
-    { icon: '⚙️', label: 'Réglages', path: '/settings' },
+  const moreCategories = [
+    {
+      title: 'CORPS & SUIVI',
+      items: [
+        { icon: BarChart3, label: 'Body', path: '/body' },
+        { icon: WandSparkles, label: 'Future', path: '/future' },
+        { icon: '🌙', label: 'Recovery', path: '/recovery' },
+        { icon: '😊', label: 'Humeur', path: '/mood' },
+      ],
+    },
+    {
+      title: 'NUTRITION',
+      items: [
+        { icon: '🧊', label: 'Fuel IA', path: '/fuel-ai' },
+        { icon: '👨‍🍳', label: 'Recettes', path: '/recipes' },
+        { icon: '📅', label: 'Planifier', path: '/meal-planner' },
+        { icon: '⏱️', label: 'Jeûne', path: '/fasting' },
+      ],
+    },
+    {
+      title: 'COMPÉTITION',
+      items: [
+        { icon: Medal, label: 'Play', path: '/play' },
+        { icon: '🏆', label: 'Classement', path: '/leaderboard' },
+        { icon: '👥', label: 'Partenaire', path: '/partner' },
+        { icon: '📋', label: 'Bilan hebdo', path: '/weekly-review' },
+      ],
+    },
+    {
+      title: 'PARTAGE & RÉGLAGES',
+      items: [
+        { icon: '📤', label: 'Timeline', path: '/share-timeline' },
+        { icon: '⚙️', label: 'Réglages', path: '/settings' },
+        { icon: '🔔', label: 'Notifications', path: '/notification-settings' },
+        { icon: '🎯', label: 'Calibration', path: '/calibration' },
+      ],
+    },
   ];
+  const moreItems = moreCategories.flatMap(c => c.items);
 
   return (
     <>
@@ -76,22 +99,26 @@ export function BottomNav({ active }: { active: string }) {
           onClick={() => setShowMore(false)}>
           <div style={{ background: '#0d0d0d', borderRadius: '20px 20px 0 0', padding: '20px 20px 90px', maxHeight: '75vh', overflowY: 'auto' }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 16, fontWeight: 800 }}>TOUTES LES FONCTIONNALITÉS</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-              {moreItems.map(item => {
-                const isString = typeof item.icon === 'string';
-                return (
-                  <button key={item.path} onClick={() => { navigate(item.path); setShowMore(false); }}
-                    style={{ background: '#111', border: '1px solid #1a1a1a', borderRadius: 14, padding: '14px 8px', textAlign: 'center', cursor: 'pointer', touchAction: 'manipulation' }}>
-                    {isString
-                      ? <div style={{ fontSize: 24, marginBottom: 6 }}>{item.icon as string}</div>
-                      : (() => { const I = item.icon as any; return <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}><I size={24} color={ACCENT} /></div>; })()
-                    }
-                    <div style={{ fontSize: 10, color: '#888', fontWeight: 700 }}>{item.label}</div>
-                  </button>
-                );
-              })}
-            </div>
+            {moreCategories.map(cat => (
+              <div key={cat.title} style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 10, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 10, fontWeight: 800 }}>{cat.title}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                  {cat.items.map(item => {
+                    const isString = typeof item.icon === 'string';
+                    return (
+                      <button key={item.path} onClick={() => { navigate(item.path); setShowMore(false); }}
+                        style={{ background: '#111', border: '1px solid #1a1a1a', borderRadius: 14, padding: '14px 8px', textAlign: 'center', cursor: 'pointer', touchAction: 'manipulation' }}>
+                        {isString
+                          ? <div style={{ fontSize: 22, marginBottom: 5 }}>{item.icon as string}</div>
+                          : (() => { const I = item.icon as any; return <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 5 }}><I size={22} color={ACCENT} /></div>; })()
+                        }
+                        <div style={{ fontSize: 9.5, color: '#888', fontWeight: 700, lineHeight: 1.2 }}>{item.label}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

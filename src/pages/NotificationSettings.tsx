@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { requestNotificationPermission, registerServiceWorker, scheduleWorkoutReminder, scheduleStreakReminder } from '../lib/notifications';
+import { BottomNav } from './Home';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
@@ -119,6 +120,7 @@ export default function NotificationSettings() {
           {saved ? '✓ ENREGISTRÉ' : 'ENREGISTRER LES PRÉFÉRENCES'}
         </button>
       </div>
+      <BottomNav active="settings" />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BottomNav } from './Home';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
@@ -126,6 +127,7 @@ export default function Subscribe() {
           Aucune carte requise pour l'instant · Annulable à tout moment
         </div>
       </div>
+      <BottomNav active="settings" />
     </div>
   );
 }

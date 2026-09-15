@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { BottomNav } from './Home';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
@@ -200,6 +201,7 @@ export default function BeginnerCalibration() {
           {step < exercises.length - 1 ? 'EXERCICE SUIVANT →' : 'TERMINER LA CALIBRATION ✓'}
         </button>
       </div>
+      <BottomNav active="settings" />
     </div>
   );
 }
