@@ -29,7 +29,6 @@ import {
 
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-import NoxLogo from '../components/NoxLogo';
 
 const ACCENT = '#B7FF00';
 const BLACK = '#0A0A0A';
@@ -596,7 +595,36 @@ export default function Onboarding() {
               marginBottom: 22,
             }}
           >
-            <NoxLogo variant="green" showName size={34} />
+            <div
+              aria-label="NOX AI"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'baseline',
+                gap: 6,
+                color: BLACK,
+                lineHeight: 1,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 24,
+                  fontWeight: 950,
+                  letterSpacing: '-0.055em',
+                }}
+              >
+                NOX
+              </span>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 900,
+                  letterSpacing: '0.12em',
+                  color: '#777777',
+                }}
+              >
+                AI
+              </span>
+            </div>
 
             <span
               style={{
