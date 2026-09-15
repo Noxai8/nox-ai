@@ -194,7 +194,7 @@ export default function ShareTimeline() {
 
     ctx.fillStyle = '#333';
     ctx.font = '24px system-ui';
-    ctx.fillText('nox-ai-five.vercel.app · Données réelles · ' + new Date().toLocaleDateString('fr-FR'), 80, 1860);
+    ctx.fillText('noxai.fr · Données réelles · ' + new Date().toLocaleDateString('fr-FR'), 80, 1860);
 
     ctx.fillStyle = '#555';
     ctx.font = '20px system-ui';

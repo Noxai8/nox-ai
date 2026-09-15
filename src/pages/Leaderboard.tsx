@@ -79,7 +79,7 @@ export default function Leaderboard() {
   };
 
   const copyInvite = () => {
-    navigator.clipboard.writeText(`Rejoins-moi sur NOX ! Mon code : ${inviteCode} — nox-ai-five.vercel.app`);
+    navigator.clipboard.writeText(`Rejoins-moi sur NOX ! Mon code : ${inviteCode} — noxai.fr`);
   };
 
   return (
