@@ -491,8 +491,10 @@ export default function Fuel() {
       </main>
 
       {showAdd && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.84)', backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: 560, background: '#0d0d0d', border: '1px solid #242424', borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px max(34px, env(safe-area-inset-bottom))', maxHeight: '88vh', overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.84)', backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
+          <div style={{ width: '100%', maxWidth: 560, background: '#0d0d0d', border: '1px solid #242424', borderBottom: 0, borderRadius: '24px 24px 0 0', display: 'flex', flexDirection: 'column', maxHeight: '88vh' }}>
+          {/* Zone scrollable */}
+          <div style={{ padding: '10px 20px 0', overflowY: 'auto', overflowX: 'hidden', flex: 1, WebkitOverflowScrolling: 'touch', boxSizing: 'border-box' }}>
             <div style={{ width: 38, height: 4, background: '#2c2c2c', borderRadius: 999, margin: '2px auto 17px' }} />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 18 }}>
@@ -620,27 +622,8 @@ export default function Fuel() {
                       </div>
                     )}
 
-                    {/* Boutons fixes en bas — toujours visibles sur mobile */}
-                    <div style={{ position: 'sticky', bottom: 0, background: '#0d0d0d', paddingTop: 12, paddingBottom: 8, marginTop: 12 }}>
-                      <button 
-                        onPointerUp={e => { e.stopPropagation(); addScanResult(); }}
-                        onClick={e => { e.stopPropagation(); addScanResult(); }} 
-                        style={{ 
-                          width: '100%', padding: 18, background: ACCENT, border: 0, 
-                          borderRadius: 14, color: '#050505', fontWeight: 950, fontSize: 16,
-                          cursor: 'pointer', touchAction: 'manipulation', userSelect: 'none',
-                          display: 'block', marginBottom: 8,
-                          WebkitTapHighlightColor: 'transparent',
-                        }}>
-                        ✓ AJOUTER {Math.round(scanResult.total?.kcal ?? scanResult.total?.calories ?? 0)} KCAL
-                      </button>
-                      <button 
-                        onPointerUp={() => { setPhotoBase64(null); setScanResult(null); fileRef.current?.click(); }}
-                        onClick={() => { setPhotoBase64(null); setScanResult(null); fileRef.current?.click(); }} 
-                        style={{ width: '100%', padding: 12, background: 'transparent', border: '1px solid #242424', borderRadius: 12, color: '#aaa', fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' }}>
-                        Nouvelle photo
-                      </button>
-                    </div>
+                    {/* Placeholder pour que le scroll ne cache pas les boutons */}
+                    <div style={{ height: 120 }} />
                   </div>
                 )}
 
@@ -733,7 +716,32 @@ export default function Fuel() {
                 </div>
               </div>
             )}
-          </div>
+          </div>{/* fin zone scrollable */}
+
+          {/* BOUTONS FIXES HORS DU SCROLL — toujours accessibles sur mobile */}
+          {scanResult && (
+            <div style={{ padding: '12px 20px', paddingBottom: 'max(20px, env(safe-area-inset-bottom))', background: '#0d0d0d', borderTop: '1px solid #1a1a1a' }}>
+              <button
+                onTouchEnd={e => { e.preventDefault(); e.stopPropagation(); addScanResult(); }}
+                onClick={e => { e.stopPropagation(); addScanResult(); }}
+                style={{
+                  width: '100%', padding: 20, background: '#c8ff00', border: 'none',
+                  borderRadius: 16, color: '#000', fontWeight: 900, fontSize: 17,
+                  cursor: 'pointer', touchAction: 'manipulation', display: 'block',
+                  marginBottom: 10, WebkitTapHighlightColor: 'transparent',
+                  letterSpacing: '.03em',
+                }}>
+                ✓ AJOUTER {Math.round(scanResult.total?.kcal ?? scanResult.total?.calories ?? 0)} KCAL
+              </button>
+              <button
+                onTouchEnd={e => { e.preventDefault(); setPhotoBase64(null); setScanResult(null); fileRef.current?.click(); }}
+                onClick={() => { setPhotoBase64(null); setScanResult(null); fileRef.current?.click(); }}
+                style={{ width: '100%', padding: 13, background: 'transparent', border: '1px solid #242424', borderRadius: 12, color: '#888', fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' }}>
+                Nouvelle photo
+              </button>
+            </div>
+          )}
+          </div>{/* fin modal */}
         </div>
       )}
 
