@@ -230,6 +230,8 @@ Réponds en JSON :
             <MenuCard icon="💡" title="Astuces nutrition" desc="Conseils personnalisés pour booster tes résultats avec la nutrition" onClick={() => { setMode('tips'); generateTips(); }} />
           <MenuCard icon="⏱️" title="Jeûne intermittent" desc="Tracker de jeûne avec timer + suivi hydratation" onClick={() => navigate('/fasting')} />
           <MenuCard icon="😊" title="Humeur & bien-être" desc="Journal quotidien humeur, symptômes et calories brûlées" onClick={() => navigate('/mood')} />
+          <MenuCard icon="👨‍🍳" title="Mes recettes" desc="Créer et sauvegarder tes propres recettes réutilisables" onClick={() => navigate('/recipes')} />
+          <MenuCard icon="📅" title="Planifier mes repas" desc="Organise ta semaine alimentaire à l'avance" onClick={() => navigate('/meal-planner')} />
           </>
         )}
 

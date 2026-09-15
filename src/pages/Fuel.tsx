@@ -138,6 +138,25 @@ export default function Fuel() {
 
     setEntries(e || []);
 
+    // Vérifier si weekend
+    const dayOfWeek = new Date().getDay();
+    setIsWeekend(dayOfWeek === 0 || dayOfWeek === 6);
+
+    // Aliments fréquents (top 5 des 30 derniers jours)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+    const { data: recent } = await supabase.from('food_entries').select('food_name, calories, protein, carbs, fat')
+      .eq('user_id', user!.id).gte('created_at', thirtyDaysAgo).not('food_name', 'is', null);
+    if (recent) {
+      const freq: Record<string, any> = {};
+      recent.forEach((f: any) => {
+        if (!f.food_name) return;
+        if (!freq[f.food_name]) freq[f.food_name] = { ...f, count: 0 };
+        freq[f.food_name].count++;
+      });
+      const sorted = Object.values(freq).sort((a: any, b: any) => b.count - a.count).slice(0, 6);
+      setRecentFoods(sorted);
+    }
+
     // TDEE réel (en arrière-plan, ne bloque pas l'affichage)
     const [{ data: allBodyLogs }, { data: allFuel }] = await Promise.all([
       supabase.from('body_logs').select('weight, created_at').eq('user_id', user!.id).order('created_at'),
