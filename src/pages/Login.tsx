@@ -43,14 +43,30 @@ export default function Login() {
       return;
     }
 
-    // Vérifier si onboarding terminé
-    const { data: profile } = await supabase
+    // Vérifier si l'onboarding NOX est terminé
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('onboarding_done')
+      .select('onboarding_completed')
       .eq('id', data.user.id)
       .maybeSingle();
 
-    navigate(profile?.onboarding_done ? '/home' : '/onboarding');
+    if (profileError) {
+      console.error(
+        'Erreur lors de la vérification du profil NOX :',
+        profileError
+      );
+
+      // En cas de doute, on envoie vers l'onboarding
+      // plutôt que de laisser passer un profil incomplet.
+      navigate('/onboarding');
+      return;
+    }
+
+    navigate(
+      profile?.onboarding_completed === true
+        ? '/home'
+        : '/onboarding'
+    );
   };
 
   return (
@@ -125,7 +141,16 @@ export default function Login() {
               display: 'inline-flex',
             }}
           >
-            <span style={{ fontSize: 28, fontWeight: 900, color: '#c8ff00', letterSpacing: '.1em' }}>NOX</span>
+            <span
+              style={{
+                fontSize: 28,
+                fontWeight: 900,
+                color: '#c8ff00',
+                letterSpacing: '.1em',
+              }}
+            >
+              NOX
+            </span>
           </Link>
 
           <Link
@@ -364,7 +389,9 @@ export default function Login() {
 
                 <button
                   type="button"
-                  onClick={() => setShowPassword((value) => !value)}
+                  onClick={() =>
+                    setShowPassword((value) => !value)
+                  }
                   aria-label={
                     showPassword
                       ? 'Masquer le mot de passe'
@@ -424,13 +451,15 @@ export default function Login() {
               }}
               onMouseEnter={(e) => {
                 if (!loading) {
-                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.transform =
+                    'translateY(-1px)';
                   e.currentTarget.style.boxShadow =
                     '0 18px 40px rgba(183,255,0,.28)';
                 }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.transform =
+                  'translateY(0)';
                 e.currentTarget.style.boxShadow =
                   '0 14px 34px rgba(183,255,0,.2)';
               }}
