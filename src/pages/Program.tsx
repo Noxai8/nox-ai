@@ -3,6 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
+import {
+  getNoxExerciseCoachTips,
+  getNoxExerciseMuscles,
+  getNoxExerciseSteps,
+  getNoxExerciseThumbnail,
+  resolveNoxExercise,
+} from '../lib/noxExercises';
 
 const ACCENT = '#B7FF00';
 const BG = '#F7F7F5';
@@ -10,91 +17,79 @@ const SURFACE = '#FFFFFF';
 const BORDER = '#E4E4DF';
 const MUTED = '#77776F';
 
-type VisualKey = 'bench' | 'squat' | 'row' | 'overhead' | 'pullup' | 'rdl' | 'plank';
 type Filter = 'Tous' | 'Pectoraux' | 'Dos' | 'Jambes' | 'Épaules' | 'Bras';
 
-type ExerciseMedia = {
-  key: VisualKey;
-  image: string;
-  videoEmbed: string | null;
-};
-
-const EXERCISE_MEDIA: Record<VisualKey, ExerciseMedia> = {
-  squat: {
-    key: 'squat',
-    image: 'https://images.pexels.com/photos/17840/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=1200',
-    videoEmbed: 'https://player.vimeo.com/video/919708638?h=8e305290c4&title=0&byline=0&portrait=0',
-  },
-  bench: {
-    key: 'bench',
-    image: 'https://images.pexels.com/photos/13967665/pexels-photo-13967665.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    videoEmbed: 'https://player.vimeo.com/video/919705993?h=2583e706aa&title=0&byline=0&portrait=0',
-  },
-  row: {
-    key: 'row',
-    image: 'https://images.pexels.com/photos/17210045/pexels-photo-17210045.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    videoEmbed: 'https://player.vimeo.com/video/919708991?h=dfda1026a9&title=0&byline=0&portrait=0',
-  },
-  plank: {
-    key: 'plank',
-    image: 'https://images.pexels.com/photos/4944959/pexels-photo-4944959.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    videoEmbed: null,
-  },
-  rdl: {
-    key: 'rdl',
-    image: 'https://images.pexels.com/photos/15596431/pexels-photo-15596431.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    videoEmbed: 'https://player.vimeo.com/video/919712383?h=12a5576d3c&title=0&byline=0&portrait=0',
-  },
-  pullup: {
-    key: 'pullup',
-    image: 'https://images.pexels.com/photos/7671462/pexels-photo-7671462.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    videoEmbed: null,
-  },
-  overhead: {
-    key: 'overhead',
-    image: 'https://images.pexels.com/photos/13106583/pexels-photo-13106583.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    videoEmbed: 'https://player.vimeo.com/video/919710922?h=e1d5aac320&title=0&byline=0&portrait=0',
-  },
-};
-
-function normalizeExerciseName(name: string) {
-  return String(name || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+function resolvedNoxExercise(exercise: any) {
+  return resolveNoxExercise({
+    exercise_id: exercise?.exercise_id,
+    id: exercise?.id,
+    name: exercise?.name,
+    exercise_name: exercise?.exercise_name,
+  });
 }
 
-function exerciseVisualKey(name: string): VisualKey | null {
-  const n = normalizeExerciseName(name);
+function exerciseFilterGroup(exercise: any): Exclude<Filter, 'Tous'> {
+  const nox = resolvedNoxExercise(exercise);
+  const primary = nox?.muscles?.primary || [];
+  const secondary = nox?.muscles?.secondary || [];
+  const stabilizers = nox?.muscles?.stabilizers || [];
+  const text = `${nox?.name || exercise?.name || ''} ${[...primary, ...secondary, ...stabilizers].join(' ')}`.toLowerCase();
 
-  if (n.includes('developpe couche') || n.includes('bench press')) return 'bench';
-  if (n.includes('squat')) return 'squat';
-  if (n.includes('rowing') || n.includes('bent-over row') || n.includes('bent over row')) return 'row';
-  if (n.includes('gainage') || n.includes('plank')) return 'plank';
-  if (n.includes('souleve de terre roumain') || n.includes('romanian deadlift') || n.includes('rdl')) return 'rdl';
-  if (n.includes('traction') || n.includes('pull-up') || n.includes('pull up')) return 'pullup';
-  if (n.includes('developpe militaire') || n.includes('overhead press') || n.includes('shoulder press')) return 'overhead';
+  if (nox?.category === 'legs') return 'Jambes';
 
-  return null;
-}
+  if (
+    text.includes('pector') ||
+    text.includes('poitrine') ||
+    text.includes('bench') ||
+    text.includes('chest')
+  ) return 'Pectoraux';
 
-function resolveExerciseMedia(exercise: any): ExerciseMedia | null {
-  const key = exerciseVisualKey(exercise?.name || '');
-  return key ? EXERCISE_MEDIA[key] : null;
-}
+  if (
+    text.includes('dos') ||
+    text.includes('dors') ||
+    text.includes('rhombo') ||
+    text.includes('trapè') ||
+    text.includes('trape') ||
+    text.includes('rowing') ||
+    text.includes('traction') ||
+    text.includes('tirage')
+  ) return 'Dos';
 
-function exerciseFilterGroup(name: string, muscles = ''): Exclude<Filter, 'Tous'> {
-  const text = `${name} ${muscles}`.toLowerCase();
+  if (
+    text.includes('épaule') ||
+    text.includes('epaule') ||
+    text.includes('delto')
+  ) return 'Épaules';
 
-  if (text.includes('pector') || text.includes('poitrine') || text.includes('bench') || text.includes('développé couché')) return 'Pectoraux';
-  if (text.includes('dos') || text.includes('dors') || text.includes('rowing') || text.includes('traction') || text.includes('tirage')) return 'Dos';
-  if (text.includes('quad') || text.includes('ischio') || text.includes('fess') || text.includes('jambe') || text.includes('squat') || text.includes('soulevé')) return 'Jambes';
-  if (text.includes('épaule') || text.includes('epaule') || text.includes('delto')) return 'Épaules';
+  if (nox?.category === 'push') {
+    if (
+      text.includes('triceps') &&
+      !text.includes('pector') &&
+      !text.includes('delto')
+    ) return 'Bras';
+
+    return 'Épaules';
+  }
+
+  if (nox?.category === 'pull') return 'Bras';
 
   return 'Bras';
 }
 
 function muscleTags(exercise: any): string[] {
+  const nox = resolvedNoxExercise(exercise);
+
+  if (nox) {
+    const muscles = getNoxExerciseMuscles(nox.id);
+    const tags = [
+      ...muscles.primary,
+      ...muscles.secondary,
+      ...muscles.stabilizers,
+    ].filter(Boolean);
+
+    return Array.from(new Set(tags)).slice(0, 3);
+  }
+
   const raw = String(exercise?.muscles || '');
   if (raw.trim()) {
     return raw
@@ -104,72 +99,35 @@ function muscleTags(exercise: any): string[] {
       .slice(0, 3);
   }
 
-  const group = exerciseFilterGroup(exercise?.name || '', '');
-  const fallback: Record<string, string[]> = {
-    Pectoraux: ['Pectoraux', 'Triceps', 'Deltoïdes'],
-    Dos: ['Dos', 'Biceps'],
-    Jambes: ['Quadriceps', 'Fessiers', 'Ischios'],
-    Épaules: ['Deltoïdes', 'Triceps'],
-    Bras: ['Biceps', 'Triceps'],
-  };
-
-  return fallback[group] || ['Muscles ciblés'];
+  return ['Muscles ciblés'];
 }
 
-function defaultTechnique(exercise: any) {
-  const key = exerciseVisualKey(exercise?.name || '');
+function exerciseTechnique(exercise: any) {
+  const nox = resolvedNoxExercise(exercise);
 
-  const generic = {
-    description: 'Consulte les consignes de ton programme et privilégie une exécution lente, stable et contrôlée.',
-    steps: [
-      'Prépare une position stable.',
-      'Choisis une charge adaptée à ton niveau.',
-      'Exécute le mouvement sans élan.',
-      'Garde une amplitude confortable.',
-      'Arrête la série si la technique se dégrade.',
-    ],
-    tip: 'La qualité d’exécution passe avant la charge.',
+  if (!nox) {
+    return {
+      description:
+        'Consulte les consignes de ton programme et privilégie une exécution lente, stable et contrôlée.',
+      steps: [
+        'Prépare une position stable.',
+        'Choisis une charge adaptée à ton niveau.',
+        'Exécute le mouvement sans élan.',
+        'Garde une amplitude confortable.',
+        'Arrête la série si la technique se dégrade.',
+      ],
+      tip: 'La qualité d’exécution passe avant la charge.',
+    };
+  }
+
+  const steps = getNoxExerciseSteps(nox.id);
+  const tips = getNoxExerciseCoachTips(nox.id);
+
+  return {
+    description: steps.map(step => step.cue).join(' '),
+    steps: steps.map(step => `${step.title} — ${step.cue}`),
+    tip: tips[0] || 'La qualité d’exécution passe avant la charge.',
   };
-
-  const map: Partial<Record<VisualKey, { description: string; steps: string[]; tip: string }>> = {
-    bench: {
-      description: 'Mouvement de poussée horizontal. Garde les omoplates stables et contrôle la trajectoire sur toute l’amplitude.',
-      steps: ['Allonge-toi avec les pieds bien ancrés au sol.', 'Place les mains légèrement plus larges que les épaules.', 'Descends la charge de façon contrôlée vers la poitrine.', 'Pousse sans perdre la position des épaules.', 'Garde une trajectoire régulière à chaque répétition.'],
-      tip: 'Contrôle la descente 2 à 3 secondes et garde une tension continue.',
-    },
-    squat: {
-      description: 'Mouvement dominant genoux et hanches. Cherche une descente stable avec les genoux dans l’axe des pieds.',
-      steps: ['Place les pieds de façon stable.', 'Gaine le tronc avant de descendre.', 'Descends les hanches en gardant les genoux dans l’axe.', 'Atteins une profondeur confortable et contrôlée.', 'Remonte en poussant le sol.'],
-      tip: 'Garde le pied entier au sol et évite de laisser les genoux rentrer vers l’intérieur.',
-    },
-    row: {
-      description: 'Tirage horizontal orienté dos. Le coude se déplace vers la hanche sans rotation excessive du buste.',
-      steps: ['Stabilise le tronc.', 'Laisse le bras s’allonger sans perdre la posture.', 'Tire le coude vers l’arrière.', 'Marque une courte contraction.', 'Reviens lentement à la position de départ.'],
-      tip: 'Pense à tirer avec le coude plutôt qu’avec la main.',
-    },
-    overhead: {
-      description: 'Poussée verticale pour les épaules et les triceps. Le tronc reste gainé pendant toute la répétition.',
-      steps: ['Place la charge au niveau des épaules.', 'Serre les abdominaux et les fessiers.', 'Pousse verticalement.', 'Termine bras au-dessus de la tête.', 'Redescends sous contrôle.'],
-      tip: 'Évite de compenser en cambrant fortement le bas du dos.',
-    },
-    pullup: {
-      description: 'Tirage vertical pour le dos et les bras. Démarre chaque répétition depuis une position stable.',
-      steps: ['Saisis la barre avec une prise confortable.', 'Place les épaules basses et stables.', 'Tire la poitrine vers la barre.', 'Garde le corps sous contrôle.', 'Redescends lentement.'],
-      tip: 'Évite le balancement et garde la descente aussi propre que la montée.',
-    },
-    rdl: {
-      description: 'Charnière de hanches ciblant surtout les ischio-jambiers et les fessiers. Garde le dos neutre et la charge proche du corps.',
-      steps: ['Place les pieds de façon stable.', 'Déverrouille légèrement les genoux.', 'Recule les hanches avec le dos neutre.', 'Garde la charge près des jambes.', 'Reviens debout en contractant les fessiers.'],
-      tip: 'Le mouvement vient des hanches, pas d’un arrondi du bas du dos.',
-    },
-    plank: {
-      description: 'Exercice de gainage anti-extension. Le corps reste aligné des épaules aux chevilles.',
-      steps: ['Place les coudes sous les épaules.', 'Tends les jambes et serre les fessiers.', 'Rentre légèrement les côtes.', 'Garde la nuque neutre.', 'Maintiens la position sans laisser tomber le bassin.'],
-      tip: 'Cherche une ligne droite et une respiration contrôlée plutôt qu’un temps maximal.',
-    },
-  };
-
-  return key && map[key] ? map[key]! : generic;
 }
 
 function searchIcon() {
@@ -219,8 +177,16 @@ export default function Program() {
   const filteredExercises = useMemo(() => {
     return uniqueExercises.filter(ex => {
       const q = query.trim().toLowerCase();
-      const matchesSearch = !q || `${ex.name} ${ex.muscles || ''}`.toLowerCase().includes(q);
-      const matchesFilter = filter === 'Tous' || exerciseFilterGroup(ex.name, ex.muscles) === filter;
+      const nox = resolvedNoxExercise(ex);
+      const muscleText = nox
+        ? [
+            ...nox.muscles.primary,
+            ...nox.muscles.secondary,
+            ...nox.muscles.stabilizers,
+          ].join(' ')
+        : ex.muscles || '';
+      const matchesSearch = !q || `${nox?.name || ex.name} ${muscleText}`.toLowerCase().includes(q);
+      const matchesFilter = filter === 'Tous' || exerciseFilterGroup(ex) === filter;
       return matchesSearch && matchesFilter;
     });
   }, [uniqueExercises, query, filter]);
@@ -709,7 +675,8 @@ function ExerciseListRow({
   onOpen: () => void;
 }) {
   const tags = muscleTags(exercise);
-  const media = resolveExerciseMedia(exercise);
+  const nox = resolvedNoxExercise(exercise);
+  const thumbnail = getNoxExerciseThumbnail(exercise);
 
   return (
     <button
@@ -730,22 +697,20 @@ function ExerciseListRow({
         cursor: 'pointer',
       }}
     >
-      {media?.image ? (
+      {thumbnail ? (
         <img
-          src={media.image}
-          alt={`Aperçu ${exercise.name}`}
+          src={thumbnail}
+          alt={`Aperçu ${nox?.name || exercise.name}`}
           loading="lazy"
           style={{ width: 64, height: 58, objectFit: 'cover', borderRadius: 9, background: '#F0F0EC' }}
         />
       ) : (
-        <div style={{ width: 64, height: 58, borderRadius: 9, background: '#F1F1ED', display: 'grid', placeItems: 'center', color: ACCENT, fontWeight: 1000 }}>
-          NOX
-        </div>
+        <NoxExerciseFallback compact />
       )}
 
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 12.5, lineHeight: 1.15, fontWeight: 950, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {exercise.name}
+          {nox?.name || exercise.name}
         </div>
         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 5 }}>
           {tags.slice(0, 2).map(tag => (
@@ -772,8 +737,10 @@ function ExerciseDetail({
   onBack: () => void;
 }) {
   const tags = muscleTags(exercise);
-  const technique = defaultTechnique(exercise);
-  const media = resolveExerciseMedia(exercise);
+  const nox = resolvedNoxExercise(exercise);
+  const technique = exerciseTechnique(exercise);
+  const thumbnail = getNoxExerciseThumbnail(exercise);
+  const displayName = nox?.name || exercise.name;
   const description = exercise.description?.trim() || technique.description;
   const steps =
     exercise.instructions?.trim()
@@ -793,32 +760,20 @@ function ExerciseDetail({
           <div />
         </div>
 
-        <div style={{ marginTop: 18, borderRadius: 14, overflow: 'hidden', background: '#111' }}>
-          {media?.videoEmbed ? (
-            <div style={{ position: 'relative', aspectRatio: '16 / 9' }}>
-              <iframe
-                src={media.videoEmbed}
-                title={`Vidéo technique ${exercise.name}`}
-                allow="autoplay; fullscreen; picture-in-picture"
-                allowFullScreen
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
-              />
-            </div>
-          ) : media?.image ? (
+        <div style={{ marginTop: 18, borderRadius: 14, overflow: 'hidden', background: '#F1F1ED' }}>
+          {thumbnail ? (
             <img
-              src={media.image}
-              alt={`Démonstration ${exercise.name}`}
+              src={thumbnail}
+              alt={`Démonstration ${displayName}`}
               style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', display: 'block' }}
             />
           ) : (
-            <div style={{ aspectRatio: '16 / 9', display: 'grid', placeItems: 'center', color: ACCENT, fontWeight: 1000 }}>
-              NOX EXERCISE
-            </div>
+            <NoxExerciseFallback />
           )}
         </div>
 
         <h1 style={{ margin: '18px 0 0', fontSize: 28, lineHeight: .95, fontWeight: 1000, letterSpacing: '-.05em' }}>
-          {exercise.name}
+          {displayName}
         </h1>
 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 9 }}>
@@ -865,6 +820,52 @@ function ExerciseDetail({
   );
 }
 
+
+function NoxExerciseFallback({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <div
+        style={{
+          width: 64,
+          height: 58,
+          borderRadius: 9,
+          background: '#111',
+          display: 'grid',
+          placeItems: 'center',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ display: 'grid', justifyItems: 'center', gap: 2 }}>
+          <div style={{ color: ACCENT, fontSize: 10, fontWeight: 1000, letterSpacing: '.08em' }}>NOX</div>
+          <div style={{ color: '#fff', fontSize: 6.5, fontWeight: 850, letterSpacing: '.12em' }}>EXERCISE</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        aspectRatio: '16 / 9',
+        display: 'grid',
+        placeItems: 'center',
+        background: '#111',
+        padding: 24,
+      }}
+    >
+      <div style={{ display: 'grid', justifyItems: 'center', gap: 10, textAlign: 'center' }}>
+        <NoxMark />
+        <div style={{ color: '#fff', fontSize: 12, fontWeight: 1000, letterSpacing: '.1em' }}>
+          DÉMO NOX
+        </div>
+        <div style={{ color: '#9B9B94', fontSize: 10.5, lineHeight: 1.4 }}>
+          Visuel NOX bientôt disponible
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EmptyProgram({ onCreate }: { onCreate: () => void }) {
   return (
     <section style={{ padding: '72px 24px 34px', textAlign: 'center' }}>
@@ -877,7 +878,7 @@ function EmptyProgram({ onCreate }: { onCreate: () => void }) {
       </p>
 
       <div style={{ maxWidth: 300, margin: '0 auto 24px', display: 'grid', gap: 10, textAlign: 'left' }}>
-        {['Des programmes personnalisés', 'Des vidéos pour chaque exercice', 'Un suivi de ta progression', 'Des résultats concrets'].map((text, index) => (
+        {['Des programmes personnalisés', 'Des démos NOX pour chaque exercice', 'Un suivi de ta progression', 'Des résultats concrets'].map((text, index) => (
           <div key={text} style={{ display: 'grid', gridTemplateColumns: '24px 1fr', gap: 8, alignItems: 'center', fontSize: 11, color: '#55554F' }}>
             <span style={{ color: ACCENT, fontSize: 17, fontWeight: 1000 }}>{['▥', '▶', '↗', '✓'][index]}</span>
             <span>{text}</span>
