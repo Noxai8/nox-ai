@@ -108,6 +108,7 @@ export default function Training() {
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
   const [resting, setResting] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
   const [restTime, setRestTime] = useState(0);
   const [restMax, setRestMax] = useState(90);
   const [restPaused, setRestPaused] = useState(false);
@@ -605,7 +606,8 @@ export default function Training() {
       <NoxBrand />
       <div style={{ width: 38, height: 38, border: '3px solid #ECECE7', borderTop: '3px solid ' + ACCENT, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
       <div style={{ color: '#77776F', fontSize: 12, fontWeight: 700 }}>Chargement de la séance...</div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }
+        button:active { transform: scale(.98); }`}</style>
     </div>
   );
 
@@ -713,8 +715,10 @@ export default function Training() {
           </div>
 
           {!resting && (
-            <div style={{ height: 6, background: '#ECEEF2', borderRadius: 999, overflow: 'hidden', marginBottom: 20 }}>
-              <div style={{ height: '100%', width: `${Math.max(3, exerciseProgress)}%`, background: ACCENT, borderRadius: 999, transition: 'width .4s' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, exercises.length)}, 1fr)`, gap: 5, marginBottom: 22 }}>
+              {exercises.map((_: any, i: number) => (
+                <div key={i} style={{ height: 7, borderRadius: 999, background: i <= currentIdx ? ACCENT : '#ECEEF2', transition: 'background .3s ease' }} />
+              ))}
             </div>
           )}
         </div>
@@ -767,116 +771,105 @@ export default function Training() {
             onSkip={skipRest}
           />
         ) : (
-          <div style={{ flex: 1, padding: '0 20px 28px', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, color: '#8A8A83', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 5, fontWeight: 850 }}>
-                Exercice {currentIdx + 1}
+          <div style={{ flex: 1, padding: '0 20px 30px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 118px', gap: 10, alignItems: 'end', marginBottom: 14 }}>
+              <div style={{ background: '#FFFFFF', border: '1px solid #E8E8E3', borderRadius: 22, padding: '18px 18px 16px', boxShadow: '0 8px 24px rgba(17,17,17,.06)', minWidth: 0 }}>
+                <div style={{ fontSize: 10, color: '#8A8A83', textTransform: 'uppercase', letterSpacing: '.11em', marginBottom: 7, fontWeight: 900 }}>EXERCICE {currentIdx + 1}</div>
+                <div style={{ fontSize: 27, fontWeight: 1000, color: '#111', letterSpacing: '-.045em', lineHeight: .98 }}>{ex?.name}</div>
+                <div style={{ marginTop: 12, fontSize: 12.5, color: '#77776F', lineHeight: 1.45, fontWeight: 650 }}>
+                  {ex?.description || 'Chaque répétition te rapproche de ton objectif. 💪'}
+                </div>
               </div>
-              <div style={{ fontSize: 31, fontWeight: 1000, color: '#111', letterSpacing: '-.045em', lineHeight: .98 }}>
-                {ex?.name}
-              </div>
+              <NoxCoachMascot />
             </div>
 
-            <div style={{ borderRadius: 14, overflow: 'hidden', background: '#F0F0EC', marginBottom: 8, border: '1px solid #E7E7E2' }}>
+            <button
+              type="button"
+              onClick={() => setDemoOpen(true)}
+              aria-label={`Voir la démonstration de ${ex?.name || 'cet exercice'}`}
+              style={{ position: 'relative', padding: 0, border: 'none', borderRadius: 20, overflow: 'hidden', background: '#F0F0EC', marginBottom: 10, cursor: 'pointer', textAlign: 'left', boxShadow: '0 8px 22px rgba(17,17,17,.06)' }}
+            >
               {media?.image ? (
-                <img src={media.image} alt={`Démonstration ${ex?.name || 'exercice'}`} style={{ width: '100%', height: 174, objectFit: 'cover', display: 'block' }} />
+                <img src={media.image} alt={`Démonstration ${ex?.name || 'exercice'}`} style={{ width: '100%', height: 230, objectFit: 'cover', display: 'block' }} />
               ) : (
-                <div style={{ height: 120, display: 'grid', placeItems: 'center', fontWeight: 1000, color: '#B7B7AF' }}>NOX EXERCISE</div>
+                <div style={{ height: 190, display: 'grid', placeItems: 'center', fontWeight: 1000, color: '#A5A59D', fontSize: 18 }}>NOX EXERCISE</div>
               )}
-            </div>
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 48%, rgba(0,0,0,.58) 100%)' }} />
+              <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 64, height: 64, borderRadius: '50%', background: '#FFFFFF', display: 'grid', placeItems: 'center', boxShadow: '0 8px 24px rgba(0,0,0,.18)', fontSize: 24, color: '#111' }}>▶</div>
+              <div style={{ position: 'absolute', left: 14, bottom: 13, display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(17,17,17,.82)', color: '#fff', borderRadius: 999, padding: '8px 12px', fontSize: 11, fontWeight: 900 }}>
+                <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', color: '#111', display: 'grid', placeItems: 'center', fontSize: 9 }}>▶</span> VOIR LA DÉMO
+              </div>
+            </button>
+
             {tags.length > 0 && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
-                {tags.map(tag => <span key={tag} style={{ padding: '5px 9px', background: '#F0F0EC', borderRadius: 8, color: '#55554F', fontSize: 9.5, fontWeight: 750 }}>{tag}</span>)}
+              <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 14 }}>
+                {tags.map(tag => <span key={tag} style={{ padding: '7px 11px', background: '#F2F2EF', borderRadius: 999, color: '#55554F', fontSize: 10.5, fontWeight: 850 }}>{tag}</span>)}
               </div>
             )}
 
-            {/* Set indicator */}
-            <div style={{ display: 'flex', gap: 7, marginBottom: 14 }}>
-              {Array.from({ length: totalSets }).map((_, i) => (
-                <div key={i} style={{
-                  flex: 1, height: 6, borderRadius: 999,
-                  background: i <= currentSet - 1 ? ACCENT : '#E8E8E3',
-                  opacity: i === currentSet - 1 ? 1 : i < currentSet - 1 ? .65 : 1,
-                  transition: 'background .3s',
-                }} />
-              ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'linear-gradient(90deg,#F4FFE0,#FBFFF4)', borderRadius: 18, padding: '13px 15px', marginBottom: 16 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 13, background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 19 }}>🎯</div>
+              <div>
+                <div style={{ fontSize: 9, color: '#9A9A92', fontWeight: 950, letterSpacing: '.08em' }}>OBJECTIF DU JOUR</div>
+                <div style={{ fontSize: 17, color: '#111', fontWeight: 1000, marginTop: 2 }}>{ex?.reps || '8–12'} répétitions</div>
+              </div>
             </div>
 
-            <div style={{ fontSize: 12.5, color: '#77776F', marginBottom: 15 }}>
-              Série <span style={{ color: '#111', fontWeight: 1000 }}>{currentSet}</span> / {totalSets}
-              {ex?.reps && <span style={{ marginLeft: 8 }}>· Objectif : <span style={{ color: '#111', fontWeight: 950, background: ACCENT, padding: '2px 5px', borderRadius: 5 }}>{ex.reps} reps</span></span>}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 15 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: 16, color: '#111' }}>Série <strong>{currentSet}</strong> / {totalSets}</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {Array.from({ length: totalSets }).map((_, i) => (
+                    <span key={i} style={{ width: 13, height: 13, borderRadius: '50%', background: i <= currentSet - 1 ? ACCENT : '#ECEEF2' }} />
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#F4FFE0', display: 'grid', placeItems: 'center' }}>🏆</div>
+                <div style={{ lineHeight: 1.15 }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 950, color: '#111' }}>Tu avances bien !</div>
+                  <div style={{ fontSize: 9.5, color: '#92928B', marginTop: 3 }}>Reste concentré.</div>
+                </div>
+              </div>
             </div>
 
-            <LastPerformances
-              exerciseName={ex?.name}
-              userId={user?.id}
-              workoutId={workoutId}
-              completedSets={completedSets.filter(s => s.exercise_name === ex?.name)}
-            />
+            <LastPerformances exerciseName={ex?.name} userId={user?.id} workoutId={workoutId} completedSets={completedSets.filter(s => s.exercise_name === ex?.name)} />
 
-            {/* Inputs */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-              <NumberField
-                label="CHARGE (KG)"
-                value={weight}
-                onChange={setWeight}
-                mode="decimal"
-              />
-              <NumberField
-                label="RÉPÉTITIONS"
-                value={reps}
-                onChange={setReps}
-                mode="numeric"
-              />
+              <NumberStepper label="CHARGE (KG)" value={weight} onChange={setWeight} step={2.5} min={0} />
+              <NumberStepper label="RÉPÉTITIONS" value={reps} onChange={setReps} step={1} min={0} integer />
             </div>
 
-            <button
-              onClick={() => setWeight(weight === '0' ? '' : '0')}
-              style={{
-                background: 'transparent', border: 'none',
-                color: weight === '0' ? '#111' : '#77776F',
-                fontSize: 11.5, cursor: 'pointer', marginBottom: 15,
-                textAlign: 'left', padding: '2px 0', fontWeight: weight === '0' ? 850 : 600,
-              }}
-            >
-              <span style={{ color: weight === '0' ? ACCENT : '#AAA', fontWeight: 1000 }}>{weight === '0' ? '●' : '○'}</span>
-              {' '}Poids du corps / Sans charge
+            <button onClick={() => setWeight(weight === '0' ? '' : '0')} style={{ background: 'transparent', border: 'none', color: weight === '0' ? '#111' : '#77776F', fontSize: 11.5, cursor: 'pointer', marginBottom: 15, textAlign: 'left', padding: '2px 0', fontWeight: weight === '0' ? 850 : 650 }}>
+              <span style={{ color: weight === '0' ? ACCENT : '#AAA', fontWeight: 1000 }}>{weight === '0' ? '●' : '○'}</span>{' '}Poids du corps / Sans charge
             </button>
 
-            <button
-              onClick={validateSet}
-              disabled={!weight || !reps || savingSet}
-              style={{
-                width: '100%',
-                padding: 17,
-                background: weight && reps && !savingSet ? ACCENT : '#EFEFEC',
-                border: 'none',
-                borderRadius: 13,
-                color: weight && reps && !savingSet ? '#111' : '#B6B6AF',
-                fontWeight: 1000,
-                fontSize: 13.5,
-                cursor: weight && reps && !savingSet ? 'pointer' : 'not-allowed',
-                marginBottom: 12,
-                letterSpacing: '.02em',
-                transition: 'background .2s, color .2s',
-              }}
-            >
+            <button onClick={validateSet} disabled={!weight || !reps || savingSet} style={{ width: '100%', padding: 18, background: weight && reps && !savingSet ? ACCENT : '#EFEFEC', border: 'none', borderRadius: 18, color: weight && reps && !savingSet ? '#111' : '#B6B6AF', fontWeight: 1000, fontSize: 14, cursor: weight && reps && !savingSet ? 'pointer' : 'not-allowed', marginBottom: 14, letterSpacing: '.01em', boxShadow: weight && reps && !savingSet ? '0 10px 24px rgba(183,255,0,.28)' : 'none', transition: 'transform .15s ease, background .2s' }}>
               {savingSet ? 'ENREGISTREMENT...' : 'VALIDER LA SÉRIE ✓'}
             </button>
 
             {currentIdx < exercises.length - 1 && (
-              <div style={{ marginTop: 3, padding: '13px 14px', background: '#FAFAF8', borderRadius: 12, border: '1px solid #E7E7E2' }}>
-                <div style={{ fontSize: 9, color: '#A0A099', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 4, fontWeight: 800 }}>PROCHAIN EXERCICE</div>
-                <div style={{ fontSize: 12.5, color: '#55554F', fontWeight: 750 }}>{exercises[currentIdx + 1]?.name}</div>
+              <div style={{ padding: '14px 15px', background: '#FFFFFF', borderRadius: 18, border: '1px solid #E7E7E2', display: 'grid', gridTemplateColumns: '1fr 52px 18px', gap: 10, alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 9, color: '#A0A099', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 5, fontWeight: 900 }}>PROCHAIN EXERCICE</div>
+                  <div style={{ fontSize: 14, color: '#33332F', fontWeight: 900 }}>{exercises[currentIdx + 1]?.name}</div>
+                </div>
+                {resolveExerciseMedia(exercises[currentIdx + 1])?.image ? <img src={resolveExerciseMedia(exercises[currentIdx + 1])!.image} alt="" style={{ width: 52, height: 52, borderRadius: 12, objectFit: 'cover' }} /> : <div />}
+                <div style={{ fontSize: 25, color: '#111' }}>›</div>
               </div>
             )}
           </div>
+        )}
+
+        {demoOpen && (
+          <ExerciseDemoModal exercise={ex} media={media} tags={tags} onClose={() => setDemoOpen(false)} />
         )}
       </main>
 
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes spin { to { transform: rotate(360deg); } }
+        button:active { transform: scale(.98); }
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
@@ -895,6 +888,86 @@ function NoxBrand({ compact = false }: { compact?: boolean }) {
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, color: '#111' }}>
         <span style={{ fontSize: compact ? 14 : 17, fontWeight: 1000, letterSpacing: '-.045em' }}>NOX</span>
         <span style={{ fontSize: compact ? 8 : 9.5, fontWeight: 900, letterSpacing: '.1em', color: '#66665F' }}>AI</span>
+      </div>
+    </div>
+  );
+}
+
+function NoxCoachMascot() {
+  return (
+    <div style={{ height: 118, position: 'relative', display: 'grid', placeItems: 'end center' }} aria-hidden="true">
+      <div style={{ position: 'absolute', top: 5, right: 0, width: 84, background: '#F4FFE0', borderRadius: '15px 15px 15px 4px', padding: '8px 9px', fontSize: 8.5, lineHeight: 1.25, fontWeight: 900, color: '#222' }}>Chaque rep te rapproche de ton objectif !</div>
+      <div style={{ position: 'relative', width: 64, height: 72, marginBottom: 2 }}>
+        <div style={{ position: 'absolute', width: 54, height: 44, left: 5, top: 0, borderRadius: 18, background: '#151515', boxShadow: 'inset 0 -8px 0 #222' }}>
+          <span style={{ position: 'absolute', width: 9, height: 5, borderRadius: 999, background: ACCENT, left: 13, top: 17 }} />
+          <span style={{ position: 'absolute', width: 9, height: 5, borderRadius: 999, background: ACCENT, right: 13, top: 17 }} />
+          <span style={{ position: 'absolute', width: 13, height: 4, borderRadius: 999, background: ACCENT, left: 20, top: 28 }} />
+        </div>
+        <div style={{ position: 'absolute', width: 40, height: 33, left: 12, top: 40, borderRadius: 12, background: '#111', color: ACCENT, display: 'grid', placeItems: 'center', fontSize: 20, fontWeight: 1000 }}>N</div>
+        <span style={{ position: 'absolute', width: 18, height: 7, borderRadius: 999, background: '#111', left: -1, top: 47, transform: 'rotate(-30deg)' }} />
+        <span style={{ position: 'absolute', width: 18, height: 7, borderRadius: 999, background: '#111', right: -1, top: 47, transform: 'rotate(30deg)' }} />
+      </div>
+    </div>
+  );
+}
+
+function NumberStepper({ label, value, onChange, step, min = 0, integer = false }: any) {
+  const current = Number(String(value || '0').replace(',', '.')) || 0;
+  const update = (next: number) => {
+    const safe = Math.max(min, next);
+    onChange(integer ? String(Math.round(safe)) : String(Math.round(safe * 10) / 10));
+  };
+  return (
+    <div style={{ border: '1px solid #E3E3DE', borderRadius: 18, padding: '12px 11px 14px', background: '#fff' }}>
+      <div style={{ fontSize: 9, color: '#7C7C75', fontWeight: 900, letterSpacing: '.06em', marginBottom: 12 }}>{label}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '38px 1fr 38px', alignItems: 'center', gap: 6 }}>
+        <button type="button" onClick={() => update(current - step)} style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', background: '#F0F1F3', color: '#111', fontSize: 22, cursor: 'pointer' }}>−</button>
+        <input type="number" value={value} onChange={e => onChange(e.target.value)} inputMode={integer ? 'numeric' : 'decimal'} placeholder="0" style={{ width: '100%', minWidth: 0, border: 'none', outline: 'none', background: 'transparent', textAlign: 'center', color: '#111', fontSize: 30, fontWeight: 1000 }} />
+        <button type="button" onClick={() => update(current + step)} style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', background: '#F0F1F3', color: '#111', fontSize: 22, cursor: 'pointer' }}>+</button>
+      </div>
+    </div>
+  );
+}
+
+function ExerciseDemoModal({ exercise, media, tags, onClose }: any) {
+  const instructions = Array.isArray(exercise?.instructions)
+    ? exercise.instructions
+    : String(exercise?.instructions || '').split(/[\n•]+/).map((x: string) => x.trim()).filter(Boolean);
+  const tips = instructions.length ? instructions.slice(0, 4) : [
+    'Garde le dos stable et le buste bien placé.',
+    'Contrôle la trajectoire pendant tout le mouvement.',
+    'Expire pendant l’effort, inspire au retour.',
+    'Reste gainé et évite les mouvements brusques.',
+  ];
+  return (
+    <div role="dialog" aria-modal="true" aria-label={`Démonstration ${exercise?.name || ''}`} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(17,17,17,.28)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+      <div style={{ width: '100%', maxWidth: 560, maxHeight: '94vh', overflowY: 'auto', background: '#fff', borderRadius: '28px 28px 0 0', padding: '18px 20px 28px', boxShadow: '0 -20px 60px rgba(0,0,0,.16)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '38px 1fr 38px', alignItems: 'center', marginBottom: 18 }}>
+          <button onClick={onClose} aria-label="Fermer la démonstration" style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', background: '#F2F2EF', fontSize: 24, cursor: 'pointer' }}>×</button>
+          <div style={{ textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 1000 }}>DÉMO NOX</div><div style={{ fontSize: 11, color: '#77776F', marginTop: 3 }}>{exercise?.name}</div></div>
+          <div />
+        </div>
+
+        <div style={{ borderRadius: 22, overflow: 'hidden', background: '#F4F4F1', minHeight: 260, marginBottom: 15, position: 'relative' }}>
+          {media?.videoEmbed ? (
+            <iframe title={`Démonstration ${exercise?.name}`} src={media.videoEmbed} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen style={{ width: '100%', height: 280, border: 0, display: 'block' }} />
+          ) : media?.image ? (
+            <div style={{ position: 'relative' }}><img src={media.image} alt={`Position de démonstration ${exercise?.name}`} style={{ width: '100%', height: 280, objectFit: 'cover', display: 'block' }} /><div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,.08)' }}><div style={{ background: 'rgba(255,255,255,.92)', borderRadius: 999, padding: '10px 14px', fontSize: 11, fontWeight: 950 }}>↕ SUIS LE MOUVEMENT</div></div></div>
+          ) : <div style={{ height: 280, display: 'grid', placeItems: 'center', fontWeight: 1000, color: '#999' }}>DÉMONSTRATION NOX</div>}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 18 }}>
+          {['Position de départ', 'Mouvement contrôlé', 'Position finale'].map((label, i) => <div key={label} style={{ textAlign: 'center' }}><div style={{ width: 42, height: 42, margin: '0 auto 7px', borderRadius: '50%', background: i === 0 ? ACCENT : '#F0F1F3', display: 'grid', placeItems: 'center', fontWeight: 1000 }}>{i + 1}</div><div style={{ fontSize: 9.5, color: '#55554F', fontWeight: 800, lineHeight: 1.25 }}>{label}</div></div>)}
+        </div>
+
+        <div style={{ background: '#F5FFE5', borderRadius: 20, padding: '15px 16px', marginBottom: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 11, fontWeight: 1000, color: '#4B6F00', marginBottom: 11 }}><span style={{ width: 30, height: 30, borderRadius: '50%', background: ACCENT, display: 'grid', placeItems: 'center' }}>💡</span> CONSEILS COACH</div>
+          {tips.map((tip: string, i: number) => <div key={i} style={{ display: 'grid', gridTemplateColumns: '24px 1fr', gap: 9, alignItems: 'start', marginTop: i ? 9 : 0 }}><span style={{ width: 24, height: 24, borderRadius: '50%', background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 1000 }}>{i + 1}</span><span style={{ fontSize: 11, lineHeight: 1.45, color: '#33332F', paddingTop: 4 }}>{tip}</span></div>)}
+        </div>
+
+        {tags?.length > 0 && <div style={{ marginBottom: 18 }}><div style={{ fontSize: 10, color: '#77776F', fontWeight: 950, letterSpacing: '.07em', marginBottom: 9 }}>MUSCLES SOLLICITÉS</div><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{tags.map((tag: string) => <span key={tag} style={{ background: '#F2F2EF', borderRadius: 999, padding: '8px 12px', fontSize: 10.5, fontWeight: 850 }}>{tag}</span>)}</div></div>}
+
+        <button onClick={onClose} style={{ width: '100%', border: 'none', borderRadius: 18, background: ACCENT, color: '#111', padding: 18, fontSize: 14, fontWeight: 1000, cursor: 'pointer', boxShadow: '0 10px 24px rgba(183,255,0,.28)' }}>J’AI COMPRIS !</button>
       </div>
     </div>
   );
