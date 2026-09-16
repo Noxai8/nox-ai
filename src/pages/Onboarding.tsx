@@ -858,7 +858,7 @@ export default function Onboarding() {
             target_date:
               data.target_date || null,
 
-            sessions_per_week:
+            days_per_week:
               Number(
                 data.sessions_per_week
               ) || 3,
