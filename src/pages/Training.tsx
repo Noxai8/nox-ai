@@ -110,6 +110,7 @@ export default function Training() {
   const [resting, setResting] = useState(false);
   const [restTime, setRestTime] = useState(0);
   const [restMax, setRestMax] = useState(90);
+  const [restPaused, setRestPaused] = useState(false);
   const [completedSets, setCompletedSets] = useState<any[]>([]);
   const [newPR, setNewPR] = useState<any>(null);
   const [overloadSuggestion, setOverloadSuggestion] = useState<any>(null);
@@ -344,6 +345,7 @@ export default function Training() {
     clearInterval(timerRef.current);
     setRestMax(seconds);
     setRestTime(seconds);
+    setRestPaused(false);
     setResting(true);
     timerRef.current = setInterval(() => {
       setRestTime(t => {
@@ -359,8 +361,33 @@ export default function Training() {
 
   const skipRest = () => {
     clearInterval(timerRef.current);
+    setRestPaused(false);
     setResting(false);
     setRestTime(0);
+  };
+
+  const toggleRestPause = () => {
+    if (!resting) return;
+
+    if (restPaused) {
+      setRestPaused(false);
+      clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setRestTime(t => {
+          if (t <= 1) {
+            clearInterval(timerRef.current);
+            setRestPaused(false);
+            setResting(false);
+            return 0;
+          }
+          return t - 1;
+        });
+      }, 1000);
+      return;
+    }
+
+    clearInterval(timerRef.current);
+    setRestPaused(true);
   };
 
   const validateSet = async () => {
@@ -634,8 +661,8 @@ export default function Training() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: resting ? '#070707' : '#F4F4F1',
-      color: resting ? '#fff' : '#111',
+      background: '#FFFFFF',
+      color: '#111',
       display: 'flex',
       flexDirection: 'column',
       transition: 'background .25s ease, color .25s ease',
@@ -645,7 +672,7 @@ export default function Training() {
         maxWidth: 560,
         minHeight: '100vh',
         margin: '0 auto',
-        background: resting ? '#070707' : '#FFFFFF',
+        background: '#FFFFFF',
         display: 'flex',
         flexDirection: 'column',
       }}>
@@ -657,7 +684,7 @@ export default function Training() {
               aria-label="Abandonner la séance"
               style={{
                 width: 36, height: 36, border: 'none', background: 'transparent',
-                color: resting ? '#6B6B6B' : '#111', cursor: 'pointer',
+                color: '#111', cursor: 'pointer',
                 fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
               }}
             >
@@ -669,7 +696,7 @@ export default function Training() {
               <div style={{
                 fontSize: resting ? 13 : 11,
                 fontWeight: 950,
-                color: resting ? '#626262' : '#77776F',
+                color: resting ? '#111' : '#77776F',
                 textTransform: 'uppercase',
                 letterSpacing: '.08em',
                 whiteSpace: 'nowrap',
@@ -680,14 +707,16 @@ export default function Training() {
               </div>
             </div>
 
-            <div style={{ textAlign: 'right', fontSize: 12, fontWeight: 800, color: resting ? '#626262' : '#77776F' }}>
+            <div style={{ textAlign: 'right', fontSize: 12, fontWeight: 900, color: resting ? '#111' : '#77776F' }}>
               {currentIdx + 1}/{exercises.length}
             </div>
           </div>
 
-          <div style={{ height: 4, background: resting ? '#1B1B1B' : '#ECECE8', borderRadius: 999, overflow: 'hidden', marginBottom: resting ? 12 : 20 }}>
-            <div style={{ height: '100%', width: `${Math.max(3, exerciseProgress)}%`, background: ACCENT, borderRadius: 999, transition: 'width .4s' }} />
-          </div>
+          {!resting && (
+            <div style={{ height: 6, background: '#ECEEF2', borderRadius: 999, overflow: 'hidden', marginBottom: 20 }}>
+              <div style={{ height: '100%', width: `${Math.max(3, exerciseProgress)}%`, background: ACCENT, borderRadius: 999, transition: 'width .4s' }} />
+            </div>
+          )}
         </div>
 
         {trainingError && (
@@ -726,12 +755,15 @@ export default function Training() {
           <RestScreen
             restTime={restTime}
             restMax={restMax}
+            restPaused={restPaused}
             ex={ex}
             currentIdx={currentIdx}
             currentSet={currentSet}
             totalSets={totalSets}
             exercises={exercises}
             onAdd={() => setRestTime(t => t + 15)}
+            onSubtract={() => setRestTime(t => Math.max(0, t - 15))}
+            onTogglePause={toggleRestPause}
             onSkip={skipRest}
           />
         ) : (
@@ -912,65 +944,158 @@ function NumberField({
 function RestScreen({
   restTime,
   restMax,
+  restPaused,
   ex,
   currentIdx,
   currentSet,
   totalSets,
   exercises,
   onAdd,
+  onSubtract,
+  onTogglePause,
   onSkip,
 }: any) {
-  const radius = 72;
+  const radius = 82;
   const circumference = 2 * Math.PI * radius;
   const ratio = restMax > 0 ? Math.min(1, Math.max(0, restTime / restMax)) : 0;
 
-  const nextLabel =
-    currentSet <= totalSets
-      ? `${ex?.name} — Série ${currentSet}`
-      : currentIdx < exercises.length - 1
-        ? exercises[currentIdx + 1]?.name
-        : ex?.name;
+  const nextExercise = currentSet <= totalSets
+    ? ex
+    : currentIdx < exercises.length - 1
+      ? exercises[currentIdx + 1]
+      : ex;
+
+  const nextLabel = currentSet <= totalSets
+    ? `${ex?.name} — Série ${currentSet}`
+    : nextExercise?.name;
+
+  const nextMedia = resolveExerciseMedia(nextExercise);
+  const completedExerciseCount = Math.max(0, currentIdx);
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '34px 28px 70px', textAlign: 'center' }}>
-      <div style={{ fontSize: 13, color: '#656565', textTransform: 'uppercase', letterSpacing: '.14em', marginBottom: 20, fontWeight: 700 }}>REPOS</div>
-
-      <div style={{ position: 'relative', width: 180, height: 180, marginBottom: 34 }}>
-        <svg width="180" height="180" viewBox="0 0 180 180" style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx="90" cy="90" r={radius} fill="none" stroke="#1C1C1C" strokeWidth="9" />
-          <circle
-            cx="90" cy="90" r={radius} fill="none" stroke={ACCENT} strokeWidth="9"
-            strokeDasharray={circumference}
-            strokeDashoffset={circumference * (1 - ratio)}
-            strokeLinecap="round"
-            style={{ transition: 'stroke-dashoffset 1s linear' }}
+    <div style={{ flex: 1, padding: '2px 20px 30px', display: 'flex', flexDirection: 'column', color: '#111' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, exercises.length)}, 1fr)`, gap: 5, marginBottom: 20 }}>
+        {exercises.map((_: any, index: number) => (
+          <div
+            key={index}
+            style={{
+              height: 7,
+              borderRadius: 999,
+              background: index <= completedExerciseCount ? ACCENT : '#E9ECF2',
+              transition: 'background .25s ease',
+            }}
           />
-        </svg>
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ fontSize: 52, fontWeight: 1000, color: '#fff', lineHeight: .9, letterSpacing: '-.04em' }}>{restTime}</div>
-          <div style={{ fontSize: 12, color: '#656565', marginTop: 10 }}>secondes</div>
+        ))}
+      </div>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 116px',
+        alignItems: 'center',
+        gap: 14,
+        padding: '18px 18px 17px',
+        borderRadius: 24,
+        background: 'linear-gradient(135deg, #F7FFE8 0%, #EEFFD0 100%)',
+        border: '1px solid #E4F7B9',
+        marginBottom: 20,
+        boxShadow: '0 12px 34px rgba(31, 45, 0, .06)',
+      }}>
+        <div style={{ textAlign: 'left' }}>
+          <div style={{ fontSize: 22, fontWeight: 1000, letterSpacing: '-.035em', marginBottom: 7 }}>Bonne série ! 🎉</div>
+          <div style={{ fontSize: 14, lineHeight: 1.42, color: '#62685A', fontWeight: 650 }}>
+            Prends ton temps. La prochaine sera encore meilleure.
+          </div>
+        </div>
+
+        <div style={{ width: 108, height: 88, position: 'relative', justifySelf: 'end' }}>
+          <div style={{ position: 'absolute', width: 76, height: 66, right: 8, top: 4, borderRadius: 24, background: '#111', boxShadow: '0 10px 18px rgba(0,0,0,.14)' }}>
+            <div style={{ position: 'absolute', left: 17, top: 22, width: 12, height: 7, borderRadius: '50%', borderBottom: `4px solid ${ACCENT}` }} />
+            <div style={{ position: 'absolute', right: 17, top: 22, width: 12, height: 7, borderRadius: '50%', borderBottom: `4px solid ${ACCENT}` }} />
+            <div style={{ position: 'absolute', left: '50%', bottom: 13, transform: 'translateX(-50%)', color: ACCENT, fontSize: 18, fontWeight: 1000 }}>N</div>
+          </div>
+          <div style={{ position: 'absolute', right: 0, bottom: 2, width: 34, height: 34, borderRadius: '50%', background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 17, fontWeight: 1000, border: '4px solid #F1FFD6' }}>✓</div>
         </div>
       </div>
 
-      <div style={{ fontSize: 13.5, color: '#666', marginBottom: 7 }}>
-        Prochain : <span style={{ color: '#fff', fontWeight: 900 }}>{nextLabel}</span>
+      <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0 14px' }}>
+        <div style={{ position: 'relative', width: 214, height: 214 }}>
+          <svg width="214" height="214" viewBox="0 0 214 214" style={{ transform: 'rotate(-90deg)' }}>
+            <circle cx="107" cy="107" r={radius} fill="none" stroke="#E9EDF3" strokeWidth="11" />
+            <circle
+              cx="107" cy="107" r={radius} fill="none" stroke={ACCENT} strokeWidth="11"
+              strokeDasharray={circumference}
+              strokeDashoffset={circumference * (1 - ratio)}
+              strokeLinecap="round"
+              style={{ transition: restPaused ? 'none' : 'stroke-dashoffset 1s linear', filter: 'drop-shadow(0 3px 7px rgba(183,255,0,.28))' }}
+            />
+          </svg>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: 12, color: '#9298A3', textTransform: 'uppercase', letterSpacing: '.13em', fontWeight: 900, marginBottom: 7 }}>REPOS</div>
+            <div style={{ fontSize: 61, fontWeight: 1000, color: '#111', lineHeight: .9, letterSpacing: '-.06em' }}>{restTime}</div>
+            <div style={{ fontSize: 13, color: '#8A909A', marginTop: 11, fontWeight: 650 }}>secondes</div>
+          </div>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '116px minmax(150px, 1fr)', gap: 12, width: '100%', maxWidth: 330, marginTop: 26 }}>
-        <button onClick={onAdd}
-          style={{ minHeight: 54, background: '#121212', border: '1px solid #252525', borderRadius: 14, color: '#fff', fontWeight: 900, fontSize: 14, cursor: 'pointer' }}>
-          +15s
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 76px 1fr', gap: 12, width: '100%', maxWidth: 360, alignSelf: 'center', marginBottom: 20 }}>
+        <button onClick={onSubtract} style={{ minHeight: 62, borderRadius: 18, border: '1px solid #E1E5EB', background: '#F8F9FB', color: '#111', fontSize: 16, fontWeight: 1000, cursor: 'pointer' }}>−15s</button>
+        <button
+          onClick={onTogglePause}
+          aria-label={restPaused ? 'Reprendre le repos' : 'Mettre le repos en pause'}
+          style={{ minHeight: 62, borderRadius: 22, border: 'none', background: ACCENT, color: '#111', fontSize: 24, fontWeight: 1000, cursor: 'pointer', boxShadow: '0 10px 22px rgba(183,255,0,.25)' }}
+        >
+          {restPaused ? '▶' : 'Ⅱ'}
         </button>
-        <button onClick={onSkip}
-          style={{ minHeight: 54, background: ACCENT, border: 'none', borderRadius: 14, color: '#111', fontWeight: 1000, fontSize: 14, cursor: 'pointer' }}>
-          PASSER ▶
-        </button>
+        <button onClick={onAdd} style={{ minHeight: 62, borderRadius: 18, border: '1px solid #E1E5EB', background: '#F8F9FB', color: '#111', fontSize: 16, fontWeight: 1000, cursor: 'pointer' }}>+15s</button>
       </div>
 
-      <div style={{ width: '100%', maxWidth: 330, marginTop: 16, padding: '13px 14px', borderRadius: 14, border: '1px solid #242424', background: '#111', display: 'grid', gridTemplateColumns: '30px 1fr', gap: 10, textAlign: 'left' }}>
-        <div style={{ width: 28, height: 28, borderRadius: 9, background: ACCENT, color: '#111', display: 'grid', placeItems: 'center', fontWeight: 1000 }}>N</div>
-        <div><div style={{ fontSize: 10.5, color: '#fff', fontWeight: 900 }}>Conseil NOX</div><div style={{ fontSize: 10, color: '#777', lineHeight: 1.4, marginTop: 3 }}>Respire, hydrate-toi et prépare ta prochaine série.</div></div>
+      <div style={{ width: '100%', border: '1px solid #E4E7EC', borderRadius: 22, padding: '15px 16px', display: 'grid', gridTemplateColumns: '1fr 66px 22px', alignItems: 'center', gap: 10, textAlign: 'left', marginBottom: 12, boxShadow: '0 8px 28px rgba(18, 24, 40, .045)' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 9.5, color: '#969CA6', textTransform: 'uppercase', letterSpacing: '.09em', fontWeight: 900, marginBottom: 5 }}>PROCHAIN EXERCICE</div>
+          <div style={{ fontSize: 15.5, color: '#111', fontWeight: 1000, lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis' }}>{nextLabel}</div>
+        </div>
+        {nextMedia?.image ? (
+          <img src={nextMedia.image} alt="Prochain exercice" style={{ width: 62, height: 56, objectFit: 'cover', borderRadius: 13, background: '#F0F1F3' }} />
+        ) : (
+          <div style={{ width: 62, height: 56, borderRadius: 13, background: '#F1F3F5', display: 'grid', placeItems: 'center', color: '#A3A8B0', fontSize: 10, fontWeight: 1000 }}>NOX</div>
+        )}
+        <div style={{ fontSize: 25, color: '#111', lineHeight: 1 }}>›</div>
       </div>
+
+      <div style={{ width: '100%', border: '1px solid #E4E7EC', borderRadius: 20, padding: '14px 15px', display: 'grid', gridTemplateColumns: '42px 1fr', gap: 11, textAlign: 'left', marginBottom: 12, background: '#FCFCFD' }}>
+        <div style={{ width: 40, height: 40, borderRadius: 13, background: '#E9FFB0', display: 'grid', placeItems: 'center', fontSize: 19 }}>💡</div>
+        <div>
+          <div style={{ fontSize: 11.5, color: '#111', fontWeight: 1000, marginBottom: 3 }}>Conseil NOX</div>
+          <div style={{ fontSize: 11.5, color: '#777E89', lineHeight: 1.42 }}>Respire profondément, hydrate-toi et garde une bonne posture.</div>
+        </div>
+      </div>
+
+      <div style={{ width: '100%', border: '1px solid #E8EAEF', borderRadius: 20, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+          <div style={{ fontSize: 24 }}>🔥</div>
+          <div style={{ fontSize: 11.5, color: '#4E5560', lineHeight: 1.35, fontWeight: 700 }}>Chaque série te rapproche de ton objectif.</div>
+        </div>
+        <div style={{ flexShrink: 0, background: '#F0FFCF', borderRadius: 999, padding: '8px 10px', color: '#3F6A00', fontSize: 10.5, fontWeight: 1000 }}>TU GÈRES 💪</div>
+      </div>
+
+      <button
+        onClick={onSkip}
+        style={{
+          width: '100%',
+          minHeight: 60,
+          marginTop: 'auto',
+          background: ACCENT,
+          border: 'none',
+          borderRadius: 20,
+          color: '#111',
+          fontWeight: 1000,
+          fontSize: 15,
+          cursor: 'pointer',
+          boxShadow: '0 10px 28px rgba(183,255,0,.23)',
+        }}
+      >
+        PASSER LE REPOS ▶
+      </button>
     </div>
   );
 }
