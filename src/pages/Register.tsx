@@ -29,6 +29,9 @@ export default function Register() {
     const { data, error: err } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: 'https://www.noxai.fr/onboarding',
+      },
     });
 
     if (err) {
@@ -39,16 +42,15 @@ export default function Register() {
 
     // Avec la confirmation email activée dans Supabase, signUp réussit mais
     // aucune session n'est créée tant que l'utilisateur n'a pas confirmé son email.
-    // Naviguer vers /onboarding (route protégée) dans cet état provoque un retour
-    // immédiat vers l'accueil via le guard d'authentification.
+    // On affiche donc l'écran de confirmation au lieu de naviguer immédiatement
+    // vers /onboarding, qui est une route protégée.
     if (!data.session) {
       setConfirmationSent(true);
       setLoading(false);
       return;
     }
 
-    // Si la confirmation email est désactivée et qu'une session existe déjà,
-    // on conserve le comportement initial.
+    // Si une session existe déjà, on peut aller directement à l'onboarding.
     navigate('/onboarding');
   };
 
@@ -258,7 +260,16 @@ export default function Register() {
               display: 'inline-flex',
             }}
           >
-            <span style={{ fontSize: 28, fontWeight: 900, color: '#c8ff00', letterSpacing: '.1em' }}>NOX</span>
+            <span
+              style={{
+                fontSize: 28,
+                fontWeight: 900,
+                color: '#c8ff00',
+                letterSpacing: '.1em',
+              }}
+            >
+              NOX
+            </span>
           </Link>
 
           <Link
@@ -423,7 +434,8 @@ export default function Register() {
                   fontWeight: 550,
                   color: '#0A0A0A',
                   outline: 'none',
-                  transition: 'border-color 160ms ease, box-shadow 160ms ease',
+                  transition:
+                    'border-color 160ms ease, box-shadow 160ms ease',
                 }}
                 onFocus={(e) => {
                   e.currentTarget.style.borderColor = '#0A0A0A';
@@ -498,7 +510,9 @@ export default function Register() {
 
                 <button
                   type="button"
-                  onClick={() => setShowPassword((value) => !value)}
+                  onClick={() =>
+                    setShowPassword((value) => !value)
+                  }
                   aria-label={
                     showPassword
                       ? 'Masquer le mot de passe'
@@ -558,13 +572,15 @@ export default function Register() {
               }}
               onMouseEnter={(e) => {
                 if (!loading) {
-                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.transform =
+                    'translateY(-1px)';
                   e.currentTarget.style.boxShadow =
                     '0 18px 40px rgba(183,255,0,.28)';
                 }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.transform =
+                  'translateY(0)';
                 e.currentTarget.style.boxShadow =
                   '0 14px 34px rgba(183,255,0,.2)';
               }}
