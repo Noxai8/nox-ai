@@ -1,5 +1,3 @@
-// src/lib/noxExercises.ts
-
 export type NoxExerciseCategory =
   | 'push'
   | 'pull'
@@ -36,21 +34,12 @@ export type NoxExercise = {
   name: string;
   category: NoxExerciseCategory;
   equipment: string;
-
   aliases: string[];
-
   muscles: NoxExerciseMuscles;
-
-  steps: [
-    NoxExerciseStep,
-    NoxExerciseStep,
-    NoxExerciseStep
-  ];
-
+  steps: [NoxExerciseStep, NoxExerciseStep, NoxExerciseStep];
   coachTips: string[];
   mistakes: NoxExerciseMistake[];
   variants: string[];
-
   visuals: NoxExerciseVisuals;
 };
 
@@ -61,40 +50,38 @@ type CatalogExercise = {
   equipment: string;
 };
 
-/* =========================================================
-   NORMALISATION
-   ========================================================= */
-
-export function normalizeExerciseText(
-  value?: string | null,
-) {
+export function normalizeExerciseText(value: string): string {
   return String(value || '')
+    .trim()
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/['’]/g, ' ')
-    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/[’']/g, ' ')
+    .replace(/[-_/]/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-export function normalizeExerciseId(
-  value?: string | null,
-) {
-  return normalizeExerciseText(value)
-    .replace(/\s+/g, '_');
+export function normalizeExerciseId(value: string): string {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
 }
 
-/* =========================================================
-   CATALOGUE OFFICIEL NOX
-
-   IMPORTANT :
-   Ces 152 IDs correspondent EXACTEMENT au catalogue
-   utilisé par GenerateProgram.tsx.
-   ========================================================= */
-
-export const NOX_GENERATOR_CATALOG: CatalogExercise[] = [
-  // PUSH — BARRE
+/*
+ * Catalogue canonique NOX.
+ *
+ * IMPORTANT :
+ * - les IDs correspondent au catalogue utilisé par GenerateProgram ;
+ * - Program et Training doivent résoudre les exercices avec exercise_id ;
+ * - aucun exercice ne doit récupérer le visuel d'un autre exercice ;
+ * - les visuels restent vides tant que le véritable asset NOX
+ *   correspondant n'a pas été ajouté.
+ */
+const NOX_GENERATOR_CATALOG: CatalogExercise[] = [
+  // PUSH
   { id: 'barbell_bench_press', name: 'Développé couché barre', category: 'push', equipment: 'barre' },
   { id: 'incline_barbell_bench_press', name: 'Développé incliné barre', category: 'push', equipment: 'barre' },
   { id: 'decline_barbell_bench_press', name: 'Développé décliné barre', category: 'push', equipment: 'barre' },
@@ -102,7 +89,6 @@ export const NOX_GENERATOR_CATALOG: CatalogExercise[] = [
   { id: 'barbell_overhead_press', name: 'Développé militaire barre', category: 'push', equipment: 'barre' },
   { id: 'push_press', name: 'Push Press', category: 'push', equipment: 'barre' },
 
-  // PUSH — HALTÈRES
   { id: 'dumbbell_bench_press', name: 'Développé couché haltères', category: 'push', equipment: 'haltères' },
   { id: 'incline_dumbbell_bench_press', name: 'Développé incliné haltères', category: 'push', equipment: 'haltères' },
   { id: 'decline_dumbbell_bench_press', name: 'Développé décliné haltères', category: 'push', equipment: 'haltères' },
@@ -112,11 +98,20 @@ export const NOX_GENERATOR_CATALOG: CatalogExercise[] = [
   { id: 'dumbbell_front_raise', name: 'Élévations frontales haltères', category: 'push', equipment: 'haltères' },
   { id: 'dumbbell_fly', name: 'Écarté couché haltères', category: 'push', equipment: 'haltères' },
   { id: 'incline_dumbbell_fly', name: 'Écarté incliné haltères', category: 'push', equipment: 'haltères' },
-  { id: 'dumbbell_triceps_extension', name: 'Extension triceps haltère au-dessus de la tête', category: 'push', equipment: 'haltères' },
-  { id: 'dumbbell_skull_crusher', name: 'Extension triceps couché haltères', category: 'push', equipment: 'haltères' },
+  {
+    id: 'dumbbell_triceps_extension',
+    name: 'Extension triceps haltère au-dessus de la tête',
+    category: 'push',
+    equipment: 'haltères',
+  },
+  {
+    id: 'dumbbell_skull_crusher',
+    name: 'Extension triceps couché haltères',
+    category: 'push',
+    equipment: 'haltères',
+  },
   { id: 'dumbbell_kickback', name: 'Kickback triceps haltère', category: 'push', equipment: 'haltères' },
 
-  // PUSH — POULIE
   { id: 'cable_chest_fly', name: 'Écarté poulie vis-à-vis', category: 'push', equipment: 'poulie' },
   { id: 'high_to_low_cable_fly', name: 'Écarté poulie haute vers basse', category: 'push', equipment: 'poulie' },
   { id: 'low_to_high_cable_fly', name: 'Écarté poulie basse vers haute', category: 'push', equipment: 'poulie' },
@@ -124,9 +119,13 @@ export const NOX_GENERATOR_CATALOG: CatalogExercise[] = [
   { id: 'cable_front_raise', name: 'Élévation frontale poulie', category: 'push', equipment: 'poulie' },
   { id: 'rope_triceps_pushdown', name: 'Extension triceps corde', category: 'push', equipment: 'poulie' },
   { id: 'bar_triceps_pushdown', name: 'Extension triceps barre poulie', category: 'push', equipment: 'poulie' },
-  { id: 'cable_overhead_triceps_extension', name: 'Extension triceps poulie au-dessus de la tête', category: 'push', equipment: 'poulie' },
+  {
+    id: 'cable_overhead_triceps_extension',
+    name: 'Extension triceps poulie au-dessus de la tête',
+    category: 'push',
+    equipment: 'poulie',
+  },
 
-  // PUSH — MACHINE
   { id: 'machine_chest_press', name: 'Chest Press machine', category: 'push', equipment: 'machine' },
   { id: 'incline_machine_press', name: 'Développé incliné machine', category: 'push', equipment: 'machine' },
   { id: 'pec_deck', name: 'Pec Deck', category: 'push', equipment: 'machine' },
@@ -134,14 +133,13 @@ export const NOX_GENERATOR_CATALOG: CatalogExercise[] = [
   { id: 'machine_lateral_raise', name: 'Élévation latérale machine', category: 'push', equipment: 'machine' },
   { id: 'assisted_dip', name: 'Dips assistés', category: 'push', equipment: 'machine' },
 
-  // PUSH — POIDS DU CORPS
   { id: 'push_up', name: 'Pompes', category: 'push', equipment: 'poids du corps' },
   { id: 'incline_push_up', name: 'Pompes inclinées', category: 'push', equipment: 'poids du corps' },
   { id: 'decline_push_up', name: 'Pompes déclinées', category: 'push', equipment: 'poids du corps' },
   { id: 'diamond_push_up', name: 'Pompes diamant', category: 'push', equipment: 'poids du corps' },
   { id: 'dip', name: 'Dips', category: 'push', equipment: 'poids du corps' },
 
-  // PULL — BARRE
+  // PULL
   { id: 'barbell_bent_over_row', name: 'Rowing barre buste penché', category: 'pull', equipment: 'barre' },
   { id: 'pendlay_row', name: 'Rowing Pendlay', category: 'pull', equipment: 'barre' },
   { id: 'underhand_barbell_row', name: 'Rowing barre supination', category: 'pull', equipment: 'barre' },
@@ -150,9 +148,13 @@ export const NOX_GENERATOR_CATALOG: CatalogExercise[] = [
   { id: 'ez_bar_curl', name: 'Curl barre EZ', category: 'pull', equipment: 'barre' },
   { id: 'reverse_barbell_curl', name: 'Curl inversé barre', category: 'pull', equipment: 'barre' },
 
-  // PULL — HALTÈRES
   { id: 'one_arm_dumbbell_row', name: 'Rowing haltère unilatéral', category: 'pull', equipment: 'haltères' },
-  { id: 'chest_supported_dumbbell_row', name: 'Rowing haltères poitrine appuyée', category: 'pull', equipment: 'haltères' },
+  {
+    id: 'chest_supported_dumbbell_row',
+    name: 'Rowing haltères poitrine appuyée',
+    category: 'pull',
+    equipment: 'haltères',
+  },
   { id: 'dumbbell_shrug', name: 'Shrugs haltères', category: 'pull', equipment: 'haltères' },
   { id: 'dumbbell_pullover', name: 'Pull-over haltère', category: 'pull', equipment: 'haltères' },
   { id: 'dumbbell_curl', name: 'Curl haltères', category: 'pull', equipment: 'haltères' },
@@ -162,36 +164,43 @@ export const NOX_GENERATOR_CATALOG: CatalogExercise[] = [
   { id: 'concentration_curl', name: 'Curl concentration', category: 'pull', equipment: 'haltères' },
   { id: 'reverse_fly_dumbbell', name: 'Oiseau haltères', category: 'pull', equipment: 'haltères' },
 
-  // PULL — POULIE
   { id: 'lat_pulldown', name: 'Tirage vertical poitrine', category: 'pull', equipment: 'poulie' },
   { id: 'close_grip_lat_pulldown', name: 'Tirage vertical prise serrée', category: 'pull', equipment: 'poulie' },
   { id: 'neutral_grip_lat_pulldown', name: 'Tirage vertical prise neutre', category: 'pull', equipment: 'poulie' },
   { id: 'straight_arm_pulldown', name: 'Pull-over poulie bras tendus', category: 'pull', equipment: 'poulie' },
   { id: 'seated_cable_row', name: 'Tirage horizontal poulie', category: 'pull', equipment: 'poulie' },
   { id: 'wide_grip_cable_row', name: 'Tirage horizontal prise large', category: 'pull', equipment: 'poulie' },
-  { id: 'single_arm_cable_row', name: 'Tirage horizontal unilatéral poulie', category: 'pull', equipment: 'poulie' },
+  {
+    id: 'single_arm_cable_row',
+    name: 'Tirage horizontal unilatéral poulie',
+    category: 'pull',
+    equipment: 'poulie',
+  },
   { id: 'face_pull', name: 'Face Pull', category: 'pull', equipment: 'poulie' },
   { id: 'cable_reverse_fly', name: 'Oiseau poulie', category: 'pull', equipment: 'poulie' },
   { id: 'cable_curl', name: 'Curl poulie', category: 'pull', equipment: 'poulie' },
   { id: 'rope_hammer_curl', name: 'Curl marteau corde', category: 'pull', equipment: 'poulie' },
   { id: 'bayesian_curl', name: 'Curl Bayesian', category: 'pull', equipment: 'poulie' },
 
-  // PULL — MACHINE
   { id: 'machine_row', name: 'Rowing machine', category: 'pull', equipment: 'machine' },
-  { id: 'chest_supported_machine_row', name: 'Rowing machine poitrine appuyée', category: 'pull', equipment: 'machine' },
+  {
+    id: 'chest_supported_machine_row',
+    name: 'Rowing machine poitrine appuyée',
+    category: 'pull',
+    equipment: 'machine',
+  },
   { id: 'machine_high_row', name: 'High Row machine', category: 'pull', equipment: 'machine' },
   { id: 'reverse_pec_deck', name: 'Reverse Pec Deck', category: 'pull', equipment: 'machine' },
   { id: 'machine_pullover', name: 'Pull-over machine', category: 'pull', equipment: 'machine' },
   { id: 'preacher_curl_machine', name: 'Curl pupitre machine', category: 'pull', equipment: 'machine' },
   { id: 'assisted_pull_up', name: 'Tractions assistées', category: 'pull', equipment: 'machine' },
 
-  // PULL — POIDS DU CORPS
   { id: 'pull_up', name: 'Tractions pronation', category: 'pull', equipment: 'poids du corps' },
   { id: 'chin_up', name: 'Tractions supination', category: 'pull', equipment: 'poids du corps' },
   { id: 'neutral_grip_pull_up', name: 'Tractions prise neutre', category: 'pull', equipment: 'poids du corps' },
   { id: 'inverted_row', name: 'Rowing inversé', category: 'pull', equipment: 'poids du corps' },
 
-  // LEGS — BARRE
+  // LEGS
   { id: 'back_squat', name: 'Squat barre arrière', category: 'legs', equipment: 'barre' },
   { id: 'front_squat', name: 'Front Squat', category: 'legs', equipment: 'barre' },
   { id: 'box_squat', name: 'Box Squat', category: 'legs', equipment: 'barre' },
@@ -203,17 +212,20 @@ export const NOX_GENERATOR_CATALOG: CatalogExercise[] = [
   { id: 'barbell_glute_bridge', name: 'Glute Bridge barre', category: 'legs', equipment: 'barre' },
   { id: 'barbell_reverse_lunge', name: 'Fentes arrière barre', category: 'legs', equipment: 'barre' },
 
-  // LEGS — HALTÈRES
   { id: 'goblet_squat', name: 'Goblet Squat', category: 'legs', equipment: 'haltères' },
   { id: 'dumbbell_squat', name: 'Squat haltères', category: 'legs', equipment: 'haltères' },
-  { id: 'dumbbell_romanian_deadlift', name: 'Soulevé de terre roumain haltères', category: 'legs', equipment: 'haltères' },
+  {
+    id: 'dumbbell_romanian_deadlift',
+    name: 'Soulevé de terre roumain haltères',
+    category: 'legs',
+    equipment: 'haltères',
+  },
   { id: 'dumbbell_walking_lunge', name: 'Fentes marchées haltères', category: 'legs', equipment: 'haltères' },
   { id: 'dumbbell_reverse_lunge', name: 'Fentes arrière haltères', category: 'legs', equipment: 'haltères' },
   { id: 'bulgarian_split_squat', name: 'Bulgarian Split Squat', category: 'legs', equipment: 'haltères' },
   { id: 'dumbbell_step_up', name: 'Step-up haltères', category: 'legs', equipment: 'haltères' },
   { id: 'dumbbell_calf_raise', name: 'Mollets debout haltères', category: 'legs', equipment: 'haltères' },
 
-  // LEGS — MACHINE
   { id: 'leg_press', name: 'Presse à cuisses', category: 'legs', equipment: 'machine' },
   { id: 'hack_squat', name: 'Hack Squat', category: 'legs', equipment: 'machine' },
   { id: 'pendulum_squat', name: 'Pendulum Squat', category: 'legs', equipment: 'machine' },
@@ -224,24 +236,42 @@ export const NOX_GENERATOR_CATALOG: CatalogExercise[] = [
   { id: 'hip_abduction_machine', name: 'Abduction de hanche machine', category: 'legs', equipment: 'machine' },
   { id: 'hip_adduction_machine', name: 'Adduction de hanche machine', category: 'legs', equipment: 'machine' },
   { id: 'glute_kickback_machine', name: 'Kickback fessier machine', category: 'legs', equipment: 'machine' },
-  { id: 'standing_calf_raise_machine', name: 'Mollets debout machine', category: 'legs', equipment: 'machine' },
-  { id: 'seated_calf_raise_machine', name: 'Mollets assis machine', category: 'legs', equipment: 'machine' },
+  {
+    id: 'standing_calf_raise_machine',
+    name: 'Mollets debout machine',
+    category: 'legs',
+    equipment: 'machine',
+  },
+  {
+    id: 'seated_calf_raise_machine',
+    name: 'Mollets assis machine',
+    category: 'legs',
+    equipment: 'machine',
+  },
 
-  // LEGS — POULIE
   { id: 'cable_pull_through', name: 'Pull Through poulie', category: 'legs', equipment: 'poulie' },
   { id: 'cable_glute_kickback', name: 'Kickback fessier poulie', category: 'legs', equipment: 'poulie' },
   { id: 'cable_hip_abduction', name: 'Abduction de hanche poulie', category: 'legs', equipment: 'poulie' },
   { id: 'cable_hip_adduction', name: 'Adduction de hanche poulie', category: 'legs', equipment: 'poulie' },
 
-  // LEGS — POIDS DU CORPS
   { id: 'bodyweight_squat', name: 'Squat poids du corps', category: 'legs', equipment: 'poids du corps' },
   { id: 'bodyweight_lunge', name: 'Fentes poids du corps', category: 'legs', equipment: 'poids du corps' },
   { id: 'reverse_lunge', name: 'Fentes arrière poids du corps', category: 'legs', equipment: 'poids du corps' },
   { id: 'walking_lunge', name: 'Fentes marchées poids du corps', category: 'legs', equipment: 'poids du corps' },
   { id: 'step_up', name: 'Step-up', category: 'legs', equipment: 'poids du corps' },
-  { id: 'single_leg_glute_bridge', name: 'Glute Bridge une jambe', category: 'legs', equipment: 'poids du corps' },
+  {
+    id: 'single_leg_glute_bridge',
+    name: 'Glute Bridge une jambe',
+    category: 'legs',
+    equipment: 'poids du corps',
+  },
   { id: 'glute_bridge', name: 'Glute Bridge', category: 'legs', equipment: 'poids du corps' },
-  { id: 'single_leg_calf_raise', name: 'Mollets une jambe', category: 'legs', equipment: 'poids du corps' },
+  {
+    id: 'single_leg_calf_raise',
+    name: 'Mollets une jambe',
+    category: 'legs',
+    equipment: 'poids du corps',
+  },
   { id: 'wall_sit', name: 'Chaise au mur', category: 'legs', equipment: 'poids du corps' },
 
   // CORE
@@ -254,21 +284,38 @@ export const NOX_GENERATOR_CATALOG: CatalogExercise[] = [
   { id: 'reverse_crunch', name: 'Crunch inversé', category: 'core', equipment: 'poids du corps' },
   { id: 'bicycle_crunch', name: 'Bicycle Crunch', category: 'core', equipment: 'poids du corps' },
   { id: 'mountain_climber', name: 'Mountain Climbers', category: 'core', equipment: 'poids du corps' },
-  { id: 'hanging_knee_raise', name: 'Relevé de genoux suspendu', category: 'core', equipment: 'poids du corps' },
-  { id: 'hanging_leg_raise', name: 'Relevé de jambes suspendu', category: 'core', equipment: 'poids du corps' },
+  {
+    id: 'hanging_knee_raise',
+    name: 'Relevé de genoux suspendu',
+    category: 'core',
+    equipment: 'poids du corps',
+  },
+  {
+    id: 'hanging_leg_raise',
+    name: 'Relevé de jambes suspendu',
+    category: 'core',
+    equipment: 'poids du corps',
+  },
   { id: 'lying_leg_raise', name: 'Relevé de jambes au sol', category: 'core', equipment: 'poids du corps' },
   { id: 'russian_twist', name: 'Russian Twist', category: 'core', equipment: 'poids du corps' },
   { id: 'v_up', name: 'V-Up', category: 'core', equipment: 'poids du corps' },
   { id: 'bear_crawl', name: 'Bear Crawl', category: 'core', equipment: 'poids du corps' },
+
   { id: 'cable_crunch', name: 'Crunch poulie', category: 'core', equipment: 'poulie' },
   { id: 'pallof_press', name: 'Pallof Press', category: 'core', equipment: 'poulie' },
   { id: 'cable_woodchop', name: 'Woodchop poulie', category: 'core', equipment: 'poulie' },
   { id: 'cable_rotation', name: 'Rotation du buste poulie', category: 'core', equipment: 'poulie' },
+
   { id: 'ab_wheel_rollout', name: 'Ab Wheel Rollout', category: 'core', equipment: 'roue abdominale' },
 
   // CONDITIONING
   { id: 'treadmill_walk', name: 'Marche sur tapis', category: 'conditioning', equipment: 'cardio' },
-  { id: 'incline_treadmill_walk', name: 'Marche inclinée sur tapis', category: 'conditioning', equipment: 'cardio' },
+  {
+    id: 'incline_treadmill_walk',
+    name: 'Marche inclinée sur tapis',
+    category: 'conditioning',
+    equipment: 'cardio',
+  },
   { id: 'treadmill_run', name: 'Course sur tapis', category: 'conditioning', equipment: 'cardio' },
   { id: 'stationary_bike', name: 'Vélo stationnaire', category: 'conditioning', equipment: 'cardio' },
   { id: 'rowing_ergometer', name: 'Rameur', category: 'conditioning', equipment: 'cardio' },
@@ -281,391 +328,335 @@ export const NOX_GENERATOR_CATALOG: CatalogExercise[] = [
   { id: 'battle_rope', name: 'Battle Rope', category: 'conditioning', equipment: 'cardio' },
 ];
 
-/* =========================================================
-   ALIASES DE COMPATIBILITÉ
-
-   Ils servent seulement de fallback pour les anciens
-   programmes déjà enregistrés.
-
-   exercise_id reste TOUJOURS prioritaire.
-   ========================================================= */
-
 const EXTRA_ALIASES: Record<string, string[]> = {
   barbell_bench_press: [
-    'Développé couché',
-    'Bench Press',
-    'Barbell Bench Press',
+    'bench press',
+    'barbell bench press',
+    'développé couché',
+    'developpe couche',
   ],
-
   incline_barbell_bench_press: [
-    'Incline Bench Press',
+    'incline bench press',
+    'incline barbell bench press',
+    'développé incliné',
   ],
-
-  dumbbell_bench_press: [
-    'Dumbbell Bench Press',
-  ],
-
-  incline_dumbbell_bench_press: [
-    'Incline Dumbbell Press',
-    'Incline Dumbbell Bench Press',
-  ],
-
-  dumbbell_overhead_press: [
-    'Shoulder Press haltères',
-    'Dumbbell Shoulder Press',
-    'Dumbbell Overhead Press',
-  ],
-
   barbell_overhead_press: [
-    'Military Press',
-    'Overhead Press',
-    'OHP',
+    'overhead press',
+    'military press',
+    'barbell overhead press',
+    'développé militaire',
   ],
-
+  dumbbell_overhead_press: [
+    'dumbbell overhead press',
+    'dumbbell shoulder press',
+    'développé militaire haltères',
+  ],
   dumbbell_lateral_raise: [
-    'Élévation latérale haltères',
-    'Dumbbell Lateral Raise',
+    'lateral raise',
+    'dumbbell lateral raise',
+    'élévations latérales',
   ],
-
   machine_chest_press: [
-    'Presse pectoraux machine',
-    'Machine Chest Press',
+    'machine chest press',
+    'chest press',
   ],
-
   cable_chest_fly: [
-    'Écarté poulie',
-    'Cable Fly',
-    'Cable Chest Fly',
+    'cable fly',
+    'cable chest fly',
+    'écarté poulie',
   ],
-
   barbell_bent_over_row: [
-    'Tirage barre pronation',
-    'Rowing barre',
-    'Barbell Row',
-    'Bent Over Row',
+    'barbell row',
+    'bent over row',
+    'bent-over row',
+    'rowing barre',
   ],
-
-  neutral_grip_lat_pulldown: [
-    'Tirage poulie haute prise neutre',
-    'Neutral Grip Lat Pulldown',
-  ],
-
   lat_pulldown: [
-    'Lat Pulldown',
+    'lat pulldown',
+    'tirage vertical',
   ],
-
   seated_cable_row: [
-    'Rowing poulie basse',
-    'Seated Cable Row',
+    'seated cable row',
+    'cable row',
+    'tirage horizontal',
   ],
-
-  face_pull: [
-    'Face pull poulie',
-    'Facepull',
-  ],
-
+  face_pull: ['face pull', 'facepull'],
   pull_up: [
-    'Tractions',
-    'Pull Up',
-    'Pull-up',
+    'pull up',
+    'pull-up',
+    'pullup',
+    'traction pronation',
   ],
-
   back_squat: [
-    'Squat barre',
-    'Barbell Back Squat',
-    'Back Squat',
+    'back squat',
+    'barbell back squat',
+    'squat barre',
+    'squat arrière',
   ],
-
   goblet_squat: [
-    'Squat gobelet',
-    'Squat gobelet kettlebell',
-    'Goblet Squat Kettlebell',
-    'Kettlebell Goblet Squat',
+    'goblet squat',
+    'kettlebell goblet squat',
   ],
-
   romanian_deadlift: [
-    'RDL',
-    'Romanian Deadlift',
+    'romanian deadlift',
+    'rdl',
+    'soulevé de terre roumain',
   ],
-
   conventional_deadlift: [
-    'Soulevé de terre',
-    'Deadlift',
-    'Conventional Deadlift',
+    'deadlift',
+    'conventional deadlift',
+    'soulevé de terre',
   ],
-
   leg_press: [
-    'Leg Press',
+    'leg press',
+    'presse',
+    'presse à cuisses',
   ],
-
   barbell_hip_thrust: [
-    'Hip Thrust',
-    'Barbell Hip Thrust',
+    'hip thrust',
+    'barbell hip thrust',
   ],
-
   ez_bar_curl: [
-    'EZ Bar Curl',
-    'Curl EZ',
+    'ez curl',
+    'ez bar curl',
+    'curl ez',
   ],
-
   dumbbell_curl: [
-    'Dumbbell Curl',
-    'Dumbbell Biceps Curl',
+    'dumbbell curl',
+    'curl haltère',
+    'curl haltères',
   ],
-
   hammer_curl: [
-    'Hammer Curl',
+    'hammer curl',
+    'curl marteau',
   ],
-
   rope_triceps_pushdown: [
-    'Rope Pushdown',
-    'Rope Triceps Pushdown',
+    'rope pushdown',
+    'triceps rope pushdown',
+    'triceps pushdown',
+    'extension triceps corde',
   ],
-
-  dip: [
-    'Parallel Bar Dip',
-  ],
-
+  dip: ['dip', 'dips'],
   plank: [
-    'Gainage',
-    'Gainage planche',
-    'Front Plank',
+    'plank',
+    'gainage',
+    'planche abdominale',
   ],
-
   side_plank: [
-    'Side Plank',
+    'side plank',
+    'gainage latéral',
   ],
-
-  dead_bug: [
-    'Deadbug',
+  dead_bug: ['dead bug', 'deadbug'],
+  treadmill_walk: [
+    'treadmill walk',
+    'marche tapis',
   ],
-
-  stationary_bike: [
-    'Cardio HIIT vélo',
-    'HIIT vélo',
+  incline_treadmill_walk: [
+    'incline treadmill walk',
+    'marche inclinée',
   ],
-
-  rowing_ergometer: [
-    'Cardio HIIT rameur',
-    'HIIT rameur',
-  ],
-
   treadmill_run: [
-    'Cardio HIIT tapis',
-    'HIIT tapis',
+    'treadmill run',
+    'course tapis',
+  ],
+  stationary_bike: [
+    'stationary bike',
+    'vélo',
+    'velo stationnaire',
+  ],
+  rowing_ergometer: [
+    'rowing machine',
+    'rowing ergometer',
+    'rameur',
   ],
 };
 
-/* =========================================================
-   PROFILS TECHNIQUES PAR CATÉGORIE
+type ExerciseTemplate = {
+  muscles: NoxExerciseMuscles;
+  steps: [NoxExerciseStep, NoxExerciseStep, NoxExerciseStep];
+  coachTips: string[];
+  mistakes: NoxExerciseMistake[];
+  variants: string[];
+};
 
-   Ils servent de fallback pour les exercices dont la fiche
-   technique spécifique n'a pas encore été enrichie.
-
-   On n'invente JAMAIS un visuel.
-   ========================================================= */
-
-const CATEGORY_DEFAULTS: Record<
-  NoxExerciseCategory,
-  {
-    muscles: NoxExerciseMuscles;
-    steps: [
-      NoxExerciseStep,
-      NoxExerciseStep,
-      NoxExerciseStep
-    ];
-    coachTips: string[];
-    mistakes: NoxExerciseMistake[];
-  }
-> = {
+const CATEGORY_DEFAULTS: Record<NoxExerciseCategory, ExerciseTemplate> = {
   push: {
     muscles: {
-      primary: ['Pectoraux', 'Épaules', 'Triceps'],
-      secondary: [],
-      stabilizers: ['Core'],
+      primary: ['Pectoraux / épaules'],
+      secondary: ['Triceps'],
+      stabilizers: ['Ceinture abdominale'],
     },
-
     steps: [
       {
         title: 'Position de départ',
-        cue: 'Installe-toi dans une position stable et prépare la charge avec contrôle.',
+        cue: 'Installe-toi de façon stable et place la charge dans une position confortable.',
       },
       {
         title: 'Mouvement',
-        cue: 'Effectue la poussée avec une trajectoire maîtrisée et sans élan.',
+        cue: 'Pousse la charge avec contrôle en gardant le tronc stable et les articulations alignées.',
       },
       {
         title: 'Retour',
-        cue: 'Reviens progressivement à la position initiale en contrôlant la charge.',
+        cue: 'Reviens lentement à la position de départ sans perdre la tension.',
       },
     ],
-
     coachTips: [
-      'Garde le tronc stable.',
-      'Contrôle la phase de retour.',
-      'Utilise une charge qui permet une exécution propre.',
+      'Garde une trajectoire contrôlée.',
+      'Évite de sacrifier la technique pour augmenter la charge.',
+      'Expire pendant la phase de poussée.',
     ],
-
     mistakes: [
       {
-        title: 'Charge excessive',
-        correction: 'Réduis la charge si ta technique se dégrade.',
+        title: 'Charge trop lourde',
+        correction: 'Réduis la charge et conserve une amplitude propre.',
       },
       {
         title: 'Mouvement trop rapide',
-        correction: 'Ralentis la répétition et garde le contrôle.',
+        correction: 'Contrôle particulièrement la phase de retour.',
       },
     ],
+    variants: [],
   },
 
   pull: {
     muscles: {
-      primary: ['Dos', 'Biceps'],
-      secondary: ['Avant-bras'],
-      stabilizers: ['Core'],
+      primary: ['Dos'],
+      secondary: ['Biceps'],
+      stabilizers: ['Arrière des épaules', 'Ceinture abdominale'],
     },
-
     steps: [
       {
         title: 'Position de départ',
-        cue: 'Place-toi de manière stable et prépare les épaules avant de tirer.',
+        cue: 'Place-toi de façon stable et laisse les bras prendre leur position de départ.',
       },
       {
-        title: 'Mouvement',
-        cue: 'Effectue le tirage avec contrôle en guidant le mouvement avec les coudes.',
+        title: 'Tirage',
+        cue: 'Tire en guidant le mouvement avec les coudes et en gardant le buste contrôlé.',
       },
       {
         title: 'Retour',
-        cue: 'Reviens lentement sans perdre la position du tronc.',
+        cue: 'Reviens lentement jusqu’à retrouver une amplitude complète et maîtrisée.',
       },
     ],
-
     coachTips: [
-      'Évite de tirer uniquement avec les mains.',
-      'Garde le buste stable.',
-      'Contrôle le retour.',
+      'Pense à guider le mouvement avec les coudes.',
+      'Évite les à-coups.',
+      'Contrôle la phase de retour.',
     ],
-
     mistakes: [
       {
-        title: 'Élan excessif',
-        correction: 'Réduis la charge et stabilise le tronc.',
+        title: 'Élan du buste',
+        correction: 'Stabilise le tronc et diminue la charge si nécessaire.',
       },
       {
-        title: 'Épaules haussées',
-        correction: 'Garde les épaules contrôlées pendant le mouvement.',
+        title: 'Tirage uniquement avec les bras',
+        correction: 'Initie le mouvement avec le dos et dirige les coudes.',
       },
     ],
+    variants: [],
   },
 
   legs: {
     muscles: {
-      primary: ['Quadriceps', 'Fessiers'],
-      secondary: ['Ischio-jambiers'],
-      stabilizers: ['Core'],
+      primary: ['Jambes'],
+      secondary: ['Fessiers'],
+      stabilizers: ['Ceinture abdominale'],
     },
-
     steps: [
       {
         title: 'Position de départ',
-        cue: 'Place les pieds de manière stable et engage le tronc.',
+        cue: 'Place les appuis de façon stable et prépare le tronc avant le mouvement.',
       },
       {
         title: 'Mouvement',
-        cue: 'Effectue le mouvement en contrôlant les genoux, les hanches et la posture.',
+        cue: 'Fléchis ou déplace les hanches et les genoux en conservant un alignement stable.',
       },
       {
         title: 'Retour',
-        cue: 'Reviens à la position de départ en poussant de manière stable.',
+        cue: 'Pousse dans tes appuis pour revenir à la position finale sans perdre le contrôle.',
       },
     ],
-
     coachTips: [
-      'Garde les pieds stables.',
-      'Contrôle la descente.',
-      'Maintiens les genoux dans une trajectoire naturelle.',
+      'Garde les appuis stables.',
+      'Maintiens les genoux dans l’axe des pieds.',
+      'Contrôle la descente avant d’accélérer la remontée.',
     ],
-
     mistakes: [
       {
-        title: 'Perte de stabilité',
-        correction: 'Réduis la charge ou l’amplitude pour garder le contrôle.',
+        title: 'Genoux qui rentrent',
+        correction: 'Garde les genoux alignés avec la direction des pieds.',
       },
       {
-        title: 'Genoux instables',
-        correction: 'Maintiens-les dans l’axe des pieds.',
+        title: 'Perte de stabilité',
+        correction: 'Réduis la charge ou l’amplitude jusqu’à retrouver le contrôle.',
       },
     ],
+    variants: [],
   },
 
   core: {
     muscles: {
-      primary: ['Abdominaux', 'Core'],
+      primary: ['Abdominaux'],
       secondary: ['Obliques'],
-      stabilizers: [],
+      stabilizers: ['Lombaires', 'Hanches'],
     },
-
     steps: [
       {
         title: 'Position de départ',
-        cue: 'Installe-toi dans une position stable et engage les abdominaux.',
+        cue: 'Place le bassin et la cage thoracique dans une position neutre et stable.',
       },
       {
-        title: 'Mouvement',
-        cue: 'Effectue le mouvement sans perdre le contrôle du bassin et du tronc.',
+        title: 'Gainage',
+        cue: 'Crée une tension abdominale continue sans bloquer inutilement la respiration.',
       },
       {
-        title: 'Retour',
-        cue: 'Reviens progressivement à la position initiale.',
+        title: 'Contrôle',
+        cue: 'Maintiens ou répète le mouvement sans perdre l’alignement du tronc.',
       },
     ],
-
     coachTips: [
-      'Respire régulièrement.',
+      'Respire tout en gardant les abdominaux engagés.',
       'Privilégie le contrôle à la vitesse.',
-      'Évite les compensations du bas du dos.',
+      'Arrête lorsque tu ne peux plus maintenir la position.',
     ],
-
     mistakes: [
       {
-        title: 'Perte de gainage',
-        correction: 'Réduis l’amplitude ou la durée.',
+        title: 'Perte de position',
+        correction: 'Réduis la durée ou l’amplitude et replace le bassin.',
       },
       {
-        title: 'Mouvement trop rapide',
-        correction: 'Ralentis pour garder le contrôle du tronc.',
+        title: 'Apnée',
+        correction: 'Continue à respirer pendant l’effort.',
       },
     ],
+    variants: [],
   },
 
   conditioning: {
     muscles: {
-      primary: ['Cardio', 'Jambes'],
-      secondary: [],
-      stabilizers: ['Core'],
+      primary: ['Système cardio-respiratoire'],
+      secondary: ['Jambes'],
+      stabilizers: ['Ceinture abdominale'],
     },
-
     steps: [
       {
-        title: 'Préparation',
-        cue: 'Commence progressivement et adopte une position stable.',
+        title: 'Mise en route',
+        cue: 'Commence progressivement pour trouver un rythme stable.',
       },
       {
         title: 'Effort',
-        cue: 'Maintiens l’intensité prévue tout en conservant une technique propre.',
+        cue: 'Maintiens l’intensité prévue avec une respiration régulière et une technique propre.',
       },
       {
-        title: 'Récupération',
-        cue: 'Réduis progressivement l’intensité et récupère avant le prochain effort.',
+        title: 'Fin',
+        cue: 'Réduis progressivement l’intensité avant de terminer.',
       },
     ],
-
     coachTips: [
-      'Commence par un échauffement progressif.',
-      'Adapte l’intensité à ton niveau.',
-      'Garde une technique propre même lorsque la fatigue augmente.',
+      'Adapte l’intensité à la durée prévue.',
+      'Garde une respiration régulière.',
+      'Privilégie une technique stable même lorsque la fatigue augmente.',
     ],
-
     mistakes: [
       {
         title: 'Départ trop rapide',
@@ -673,79 +664,52 @@ const CATEGORY_DEFAULTS: Record<
       },
       {
         title: 'Technique dégradée',
-        correction: 'Réduis l’intensité si tu perds le contrôle.',
+        correction: 'Ralentis avant que la fatigue n’altère le mouvement.',
       },
     ],
+    variants: [],
   },
 };
 
-/* =========================================================
-   FICHES TECHNIQUES SPÉCIFIQUES
-
-   Les exercices importants peuvent écraser les defaults.
-   ========================================================= */
-
-type ExerciseOverride = Partial<
-  Pick<
-    NoxExercise,
-    | 'muscles'
-    | 'steps'
-    | 'coachTips'
-    | 'mistakes'
-    | 'variants'
-    | 'visuals'
-  >
->;
-
-const EXERCISE_OVERRIDES: Record<
-  string,
-  ExerciseOverride
+const EXERCISE_OVERRIDES: Partial<
+  Record<string, Partial<ExerciseTemplate> & { visuals?: NoxExerciseVisuals }>
 > = {
   barbell_bench_press: {
     muscles: {
       primary: ['Pectoraux'],
       secondary: ['Triceps', 'Deltoïdes antérieurs'],
-      stabilizers: ['Core'],
+      stabilizers: ['Haut du dos'],
     },
-
     steps: [
       {
         title: 'Position de départ',
-        cue: 'Allonge-toi sur le banc, pieds ancrés au sol, omoplates serrées et barre au-dessus de la poitrine.',
+        cue: 'Allonge-toi, pieds ancrés au sol, omoplates serrées et barre au-dessus de la poitrine.',
       },
       {
         title: 'Descente',
-        cue: 'Descends la barre de façon contrôlée vers le bas des pectoraux.',
+        cue: 'Descends la barre sous contrôle vers le bas des pectoraux en gardant les avant-bras stables.',
       },
       {
-        title: 'Position finale',
-        cue: 'Pousse la barre vers le haut sans perdre la stabilité des épaules.',
+        title: 'Poussée',
+        cue: 'Pousse la barre vers le haut sans perdre la position des épaules ni l’appui des pieds.',
       },
     ],
-
     coachTips: [
-      'Garde les omoplates serrées.',
-      'Pieds bien ancrés au sol.',
+      'Garde les omoplates serrées contre le banc.',
       'Contrôle la descente.',
-      'Garde les poignets alignés.',
-      'Expire pendant la poussée.',
+      'Garde les pieds fermement au sol.',
+      'Évite de faire rebondir la barre sur la poitrine.',
     ],
-
     mistakes: [
       {
-        title: 'Coudes trop écartés',
-        correction: 'Garde une trajectoire naturelle des coudes.',
-      },
-      {
-        title: 'Barre rebondie',
-        correction: 'Contrôle la descente sans faire rebondir la barre.',
-      },
-      {
         title: 'Épaules qui avancent',
-        correction: 'Maintiens les omoplates stables contre le banc.',
+        correction: 'Garde les omoplates serrées et abaissées.',
+      },
+      {
+        title: 'Barre qui rebondit',
+        correction: 'Ralentis la descente et marque un contact contrôlé.',
       },
     ],
-
     variants: [
       'Développé couché haltères',
       'Développé incliné barre',
@@ -757,51 +721,43 @@ const EXERCISE_OVERRIDES: Record<
     muscles: {
       primary: ['Deltoïdes'],
       secondary: ['Triceps'],
-      stabilizers: ['Haut du dos', 'Core'],
+      stabilizers: ['Haut du dos', 'Abdominaux'],
     },
-
     steps: [
       {
         title: 'Position de départ',
-        cue: 'Haltères à hauteur des épaules, paumes vers l’avant, buste droit.',
+        cue: 'Haltères à hauteur des épaules, paumes vers l’avant et buste droit.',
       },
       {
         title: 'Mouvement',
-        cue: 'Pousse verticalement en gardant le gainage et les abdos serrés.',
+        cue: 'Pousse verticalement en gardant le gainage et les abdominaux serrés.',
       },
       {
         title: 'Position finale',
-        cue: 'Bras tendus au-dessus de la tête sans exagérer le verrouillage des coudes.',
+        cue: 'Termine les bras au-dessus de la tête puis redescends sous contrôle.',
       },
     ],
-
     coachTips: [
       'Garde le dos bien droit.',
-      'Ne cambre pas le bas du dos.',
+      'Ne cambre pas excessivement le bas du dos.',
       'Contrôle la descente.',
-      'Expire en montant.',
+      'Expire en montant et inspire en descendant.',
       'Garde un mouvement fluide et contrôlé.',
     ],
-
     mistakes: [
       {
         title: 'Dos trop cambré',
-        correction: 'Serre les abdominaux et réduis la charge.',
+        correction: 'Serre les abdominaux et les fessiers avant de pousser.',
       },
       {
-        title: 'Trajectoire instable',
-        correction: 'Garde les haltères sur une trajectoire verticale contrôlée.',
-      },
-      {
-        title: 'Épaules haussées',
-        correction: 'Contrôle la position des épaules.',
+        title: 'Trajectoire vers l’avant',
+        correction: 'Pousse les haltères verticalement au-dessus des épaules.',
       },
     ],
-
     variants: [
       'Développé militaire barre',
-      'Développé épaules machine',
       'Arnold Press',
+      'Développé épaules machine',
     ],
   },
 
@@ -809,51 +765,42 @@ const EXERCISE_OVERRIDES: Record<
     muscles: {
       primary: ['Quadriceps', 'Fessiers'],
       secondary: ['Ischio-jambiers'],
-      stabilizers: ['Core', 'Érecteurs du rachis'],
+      stabilizers: ['Abdominaux', 'Lombaires'],
     },
-
     steps: [
       {
         title: 'Position de départ',
-        cue: 'Place la barre sur le haut du dos, pieds stables et tronc gainé.',
+        cue: 'Place la barre de façon stable sur le haut du dos, pieds ancrés et tronc gainé.',
       },
       {
         title: 'Descente',
-        cue: 'Fléchis les genoux et les hanches en gardant les pieds ancrés au sol.',
+        cue: 'Descends les hanches en gardant les genoux dans l’axe des pieds et le tronc contrôlé.',
       },
       {
-        title: 'Retour',
-        cue: 'Pousse le sol pour remonter en gardant les genoux dans l’axe des pieds.',
+        title: 'Remontée',
+        cue: 'Pousse le sol avec les pieds et remonte sans laisser les genoux rentrer.',
       },
     ],
-
     coachTips: [
       'Garde le pied entier au sol.',
       'Gaine avant chaque répétition.',
-      'Contrôle la descente.',
+      'Contrôle la profondeur.',
       'Garde les genoux dans l’axe des pieds.',
     ],
-
     mistakes: [
       {
-        title: 'Genoux qui rentrent',
-        correction: 'Maintiens-les dans l’axe des pieds.',
-      },
-      {
         title: 'Talons qui décollent',
-        correction: 'Adapte ta position et ton amplitude.',
+        correction: 'Réduis la profondeur et travaille la stabilité des appuis.',
       },
       {
-        title: 'Perte de gainage',
-        correction: 'Réduis la charge et stabilise le tronc.',
+        title: 'Genoux vers l’intérieur',
+        correction: 'Pousse légèrement les genoux dans la direction des orteils.',
       },
     ],
-
     variants: [
       'Front Squat',
+      'Box Squat',
       'Goblet Squat',
-      'Hack Squat',
-      'Presse à cuisses',
     ],
   },
 
@@ -861,149 +808,122 @@ const EXERCISE_OVERRIDES: Record<
     muscles: {
       primary: ['Quadriceps', 'Fessiers'],
       secondary: ['Ischio-jambiers'],
-      stabilizers: ['Core'],
+      stabilizers: ['Abdominaux', 'Haut du dos'],
     },
-
     steps: [
       {
         title: 'Position de départ',
-        cue: 'Tiens la charge contre la poitrine, pieds stables et buste haut.',
+        cue: 'Tiens la charge contre la poitrine, pieds stables et buste droit.',
       },
       {
         title: 'Descente',
-        cue: 'Descends entre les hanches en gardant la charge proche du torse.',
+        cue: 'Descends entre les jambes en gardant les genoux dans l’axe des pieds.',
       },
       {
-        title: 'Retour',
-        cue: 'Pousse le sol et tends les jambes pour revenir debout.',
+        title: 'Remontée',
+        cue: 'Pousse dans le sol pour revenir debout en gardant la charge proche du corps.',
       },
     ],
-
     coachTips: [
-      'Garde la charge contre la poitrine.',
-      'Maintiens le buste haut.',
-      'Garde les genoux dans l’axe des pieds.',
+      'Garde la charge proche de la poitrine.',
+      'Maintiens le buste droit.',
+      'Garde les talons au sol.',
       'Contrôle la descente.',
-      'Gaine les abdominaux.',
     ],
-
     mistakes: [
       {
         title: 'Charge éloignée du corps',
-        correction: 'Maintiens-la proche du sternum.',
+        correction: 'Ramène la charge contre la poitrine.',
       },
       {
-        title: 'Genoux qui rentrent',
-        correction: 'Maintiens les genoux dans l’axe des pieds.',
-      },
-      {
-        title: 'Dos arrondi',
-        correction: 'Réduis l’amplitude et garde le buste stable.',
+        title: 'Talons qui se lèvent',
+        correction: 'Réduis l’amplitude et stabilise tes appuis.',
       },
     ],
-
     variants: [
-      'Squat barre arrière',
-      'Front Squat',
+      'Squat poids du corps',
       'Squat haltères',
+      'Front Squat',
     ],
   },
 
   romanian_deadlift: {
     muscles: {
-      primary: ['Ischio-jambiers', 'Fessiers'],
-      secondary: ['Érecteurs du rachis'],
-      stabilizers: ['Core'],
+      primary: ['Ischio-jambiers'],
+      secondary: ['Fessiers'],
+      stabilizers: ['Lombaires', 'Haut du dos', 'Abdominaux'],
     },
-
     steps: [
       {
         title: 'Position de départ',
-        cue: 'Debout, barre contre les cuisses, genoux légèrement fléchis et tronc gainé.',
+        cue: 'Tiens la barre près des cuisses, pieds stables et genoux légèrement fléchis.',
       },
       {
-        title: 'Descente',
+        title: 'Charnière de hanches',
         cue: 'Recule les hanches en gardant la barre proche des jambes et le dos neutre.',
       },
       {
         title: 'Retour',
-        cue: 'Pousse les hanches vers l’avant en contractant les fessiers.',
+        cue: 'Reviens debout en poussant les hanches vers l’avant et en contractant les fessiers.',
       },
     ],
-
     coachTips: [
-      'Pense à reculer les hanches.',
-      'Garde la barre près du corps.',
-      'Cherche la tension dans les ischio-jambiers.',
-      'Ne transforme pas le mouvement en squat.',
+      'Le mouvement vient principalement des hanches.',
+      'Garde la barre proche du corps.',
+      'Ne cherche pas à descendre plus bas si le dos commence à s’arrondir.',
     ],
-
     mistakes: [
       {
-        title: 'Genoux trop fléchis',
-        correction: 'Garde seulement une légère flexion.',
-      },
-      {
-        title: 'Barre éloignée',
-        correction: 'Maintiens-la près des jambes.',
-      },
-      {
         title: 'Dos arrondi',
-        correction: 'Réduis l’amplitude et stabilise le tronc.',
+        correction: 'Réduis l’amplitude et maintiens le tronc gainé.',
+      },
+      {
+        title: 'Squat au lieu de charnière',
+        correction: 'Recule davantage les hanches et limite la flexion des genoux.',
       },
     ],
-
     variants: [
       'Soulevé de terre roumain haltères',
-      'Soulevé de terre conventionnel',
       'Good Morning',
+      'Pull Through poulie',
     ],
   },
 
   conventional_deadlift: {
     muscles: {
-      primary: ['Fessiers', 'Ischio-jambiers', 'Dos'],
-      secondary: ['Quadriceps', 'Trapèzes'],
-      stabilizers: ['Core', 'Avant-bras'],
+      primary: ['Fessiers', 'Ischio-jambiers'],
+      secondary: ['Quadriceps', 'Dos'],
+      stabilizers: ['Abdominaux', 'Avant-bras'],
     },
-
     steps: [
       {
         title: 'Position de départ',
-        cue: 'Place la barre au-dessus du milieu du pied et crée de la tension avec le dos neutre.',
+        cue: 'Place la barre au-dessus du milieu du pied, saisis-la et crée une tension dans tout le corps.',
       },
       {
-        title: 'Montée',
-        cue: 'Pousse le sol avec les jambes en gardant la barre proche du corps.',
+        title: 'Décollage',
+        cue: 'Pousse le sol tout en gardant la barre proche des jambes et le dos stable.',
       },
       {
-        title: 'Position finale',
-        cue: 'Termine debout sans exagérer l’extension du bas du dos.',
+        title: 'Verrouillage',
+        cue: 'Termine debout avec les hanches et les genoux tendus sans exagérer l’extension du dos.',
       },
     ],
-
     coachTips: [
       'Garde la barre proche du corps.',
-      'Crée de la tension avant de décoller.',
-      'Maintiens le dos neutre.',
-      'Pousse le sol.',
+      'Crée de la tension avant de décoller la barre.',
+      'Pousse le sol plutôt que de tirer uniquement avec le dos.',
     ],
-
     mistakes: [
       {
-        title: 'Dos arrondi',
-        correction: 'Réduis la charge et stabilise le tronc.',
+        title: 'Barre trop loin des jambes',
+        correction: 'Replace la barre au-dessus du milieu du pied.',
       },
       {
-        title: 'Barre trop loin',
-        correction: 'Maintiens-la près des jambes.',
-      },
-      {
-        title: 'Hyperextension en haut',
-        correction: 'Termine simplement debout.',
+        title: 'Dos qui s’arrondit',
+        correction: 'Réduis la charge et prépare davantage le gainage.',
       },
     ],
-
     variants: [
       'Soulevé de terre sumo',
       'Soulevé de terre roumain',
@@ -1013,88 +933,80 @@ const EXERCISE_OVERRIDES: Record<
   barbell_bent_over_row: {
     muscles: {
       primary: ['Grand dorsal', 'Rhomboïdes'],
-      secondary: ['Trapèzes', 'Biceps'],
-      stabilizers: ['Core', 'Érecteurs du rachis'],
+      secondary: ['Biceps', 'Arrière des épaules'],
+      stabilizers: ['Lombaires', 'Abdominaux'],
     },
-
     steps: [
       {
         title: 'Position de départ',
-        cue: 'Incline le buste avec le dos neutre et stabilise le tronc.',
+        cue: 'Incline le buste avec le dos neutre et tiens la barre bras tendus.',
       },
       {
         title: 'Tirage',
-        cue: 'Tire la barre vers le ventre en ramenant les coudes vers l’arrière.',
+        cue: 'Tire les coudes vers l’arrière en amenant la barre vers le bas du buste.',
       },
       {
         title: 'Retour',
-        cue: 'Redescends la barre sous contrôle sans modifier la position du buste.',
+        cue: 'Redescends la barre lentement sans modifier la position du tronc.',
       },
     ],
-
     coachTips: [
       'Garde le buste stable.',
       'Tire avec les coudes.',
-      'Contrôle la descente.',
+      'Évite de donner de l’élan avec les hanches.',
     ],
-
     mistakes: [
       {
-        title: 'Buste qui se redresse',
-        correction: 'Réduis la charge.',
+        title: 'Buste qui se relève',
+        correction: 'Réduis la charge et stabilise l’angle du torse.',
       },
       {
         title: 'Élan excessif',
-        correction: 'Garde le mouvement contrôlé.',
+        correction: 'Contrôle chaque répétition sans balancement.',
       },
     ],
-
     variants: [
+      'Rowing Pendlay',
+      'Rowing barre supination',
       'Rowing haltère unilatéral',
-      'Tirage horizontal poulie',
-      'Rowing machine',
     ],
   },
 
   face_pull: {
     muscles: {
-      primary: ['Deltoïdes postérieurs'],
+      primary: ['Arrière des épaules'],
       secondary: ['Rhomboïdes', 'Trapèzes'],
-      stabilizers: ['Rotateurs externes'],
+      stabilizers: ['Coiffe des rotateurs'],
     },
-
     steps: [
       {
         title: 'Position de départ',
-        cue: 'Place la corde à hauteur du visage et garde le tronc stable.',
+        cue: 'Place la corde à hauteur du visage et recule pour créer une tension constante.',
       },
       {
         title: 'Tirage',
-        cue: 'Tire la corde vers le visage en ouvrant les mains.',
+        cue: 'Tire la corde vers le visage en ouvrant les mains et en guidant les coudes vers l’extérieur.',
       },
       {
         title: 'Retour',
-        cue: 'Étends les bras lentement sans perdre le contrôle des épaules.',
+        cue: 'Reviens lentement bras tendus sans laisser les épaules partir vers l’avant.',
       },
     ],
-
     coachTips: [
       'Utilise une charge modérée.',
-      'Évite de hausser les épaules.',
-      'Concentre-toi sur l’arrière des épaules.',
+      'Garde les épaules basses.',
+      'Ouvre la corde vers les côtés du visage.',
     ],
-
     mistakes: [
       {
         title: 'Charge trop lourde',
-        correction: 'Réduis le poids.',
+        correction: 'Réduis la charge pour conserver la rotation externe.',
       },
       {
-        title: 'Tirage trop bas',
-        correction: 'Dirige la corde vers le visage.',
+        title: 'Coudes trop bas',
+        correction: 'Garde les coudes proches de la hauteur des épaules.',
       },
     ],
-
     variants: [
       'Oiseau poulie',
       'Reverse Pec Deck',
@@ -1104,90 +1016,81 @@ const EXERCISE_OVERRIDES: Record<
 
   leg_press: {
     muscles: {
-      primary: ['Quadriceps', 'Fessiers'],
-      secondary: ['Ischio-jambiers'],
-      stabilizers: [],
+      primary: ['Quadriceps'],
+      secondary: ['Fessiers', 'Ischio-jambiers'],
+      stabilizers: ['Abdominaux'],
     },
-
     steps: [
       {
         title: 'Position de départ',
-        cue: 'Place les pieds sur la plateforme et garde le bassin contre le dossier.',
+        cue: 'Place les pieds de façon stable sur la plateforme et garde le bassin contre le dossier.',
       },
       {
         title: 'Descente',
-        cue: 'Fléchis les genoux de manière contrôlée sans décoller le bassin.',
+        cue: 'Fléchis les genoux sous contrôle sans laisser le bassin se décoller.',
       },
       {
-        title: 'Retour',
-        cue: 'Pousse la plateforme en gardant les genoux dans l’axe des pieds.',
+        title: 'Poussée',
+        cue: 'Pousse la plateforme avec tout le pied sans verrouiller brutalement les genoux.',
       },
     ],
-
     coachTips: [
-      'Garde le bassin contre le dossier.',
+      'Garde les talons en contact avec la plateforme.',
       'Contrôle la profondeur.',
       'Ne verrouille pas brutalement les genoux.',
     ],
-
     mistakes: [
       {
         title: 'Bassin qui se décolle',
-        correction: 'Réduis la profondeur.',
+        correction: 'Réduis l’amplitude de descente.',
       },
       {
-        title: 'Genoux qui rentrent',
-        correction: 'Maintiens-les dans l’axe des pieds.',
+        title: 'Genoux vers l’intérieur',
+        correction: 'Garde les genoux alignés avec les pieds.',
       },
     ],
-
     variants: [
-      'Squat barre arrière',
       'Hack Squat',
-      'Goblet Squat',
+      'Pendulum Squat',
+      'Squat barre arrière',
     ],
   },
 
   plank: {
     muscles: {
-      primary: ['Abdominaux', 'Transverse'],
+      primary: ['Abdominaux'],
       secondary: ['Obliques'],
-      stabilizers: ['Fessiers', 'Épaules'],
+      stabilizers: ['Fessiers', 'Épaules', 'Lombaires'],
     },
-
     steps: [
       {
         title: 'Position de départ',
-        cue: 'Place les avant-bras au sol avec les coudes sous les épaules.',
+        cue: 'Place les coudes sous les épaules et tends les jambes derrière toi.',
+      },
+      {
+        title: 'Gainage',
+        cue: 'Serre les abdominaux et les fessiers pour aligner épaules, bassin et chevilles.',
       },
       {
         title: 'Maintien',
-        cue: 'Forme une ligne droite de la tête aux talons en contractant abdominaux et fessiers.',
-      },
-      {
-        title: 'Position finale',
-        cue: 'Maintiens la position sans laisser le bassin s’affaisser.',
+        cue: 'Respire normalement et conserve la position sans laisser le bassin tomber.',
       },
     ],
-
     coachTips: [
-      'Contracte les abdominaux.',
+      'Garde une ligne droite de la tête aux talons.',
       'Serre les fessiers.',
-      'Respire normalement.',
-      'Garde la nuque neutre.',
+      'Respire pendant tout le maintien.',
     ],
-
     mistakes: [
       {
         title: 'Bassin trop bas',
-        correction: 'Resserre les abdominaux et les fessiers.',
+        correction: 'Contracte les abdominaux et les fessiers.',
       },
       {
         title: 'Bassin trop haut',
-        correction: 'Aligne épaules, hanches et talons.',
+        correction: 'Replace le bassin dans l’alignement des épaules.',
       },
     ],
-
     variants: [
       'Planche latérale',
       'Dead Bug',
@@ -1196,18 +1099,9 @@ const EXERCISE_OVERRIDES: Record<
   },
 };
 
-/* =========================================================
-   CRÉATION DES 152 FICHES
-   ========================================================= */
-
-function buildExercise(
-  base: CatalogExercise,
-): NoxExercise {
-  const defaults =
-    CATEGORY_DEFAULTS[base.category];
-
-  const override =
-    EXERCISE_OVERRIDES[base.id] || {};
+function buildExercise(base: CatalogExercise): NoxExercise {
+  const defaults = CATEGORY_DEFAULTS[base.category];
+  const override = EXERCISE_OVERRIDES[base.id] || {};
 
   return {
     id: base.id,
@@ -1215,90 +1109,63 @@ function buildExercise(
     category: base.category,
     equipment: base.equipment,
 
-    aliases: [
-      ...(EXTRA_ALIASES[base.id] || []),
-    ],
+    aliases: Array.from(
+      new Set([
+        base.name,
+        ...(EXTRA_ALIASES[base.id] || []),
+      ]),
+    ),
 
-    muscles:
-      override.muscles ||
-      defaults.muscles,
+    muscles: override.muscles || defaults.muscles,
 
-    steps:
-      override.steps ||
-      defaults.steps,
+    steps: override.steps || defaults.steps,
 
-    coachTips:
-      override.coachTips ||
-      defaults.coachTips,
+    coachTips: override.coachTips || defaults.coachTips,
 
-    mistakes:
-      override.mistakes ||
-      defaults.mistakes,
+    mistakes: override.mistakes || defaults.mistakes,
 
-    variants:
-      override.variants || [],
+    variants: override.variants || defaults.variants,
 
     /*
-     * IMPORTANT :
-     * aucun Pexels,
-     * aucun Vimeo,
-     * aucune image d'un autre exercice.
+     * Aucun faux visuel.
      *
-     * Les vrais assets DÉMO NOX seront ajoutés ici.
+     * Quand les véritables assets DÉMO NOX seront ajoutés,
+     * ils seront renseignés ici par exercise_id.
      */
-    visuals:
-      override.visuals || {},
+    visuals: override.visuals || {},
   };
 }
 
 export const NOX_EXERCISES: NoxExercise[] =
   NOX_GENERATOR_CATALOG.map(buildExercise);
 
-/* =========================================================
-   INDEX PAR ID
-   ========================================================= */
-
-export const NOX_EXERCISES_BY_ID:
-  Record<string, NoxExercise> =
+export const NOX_EXERCISES_BY_ID: Record<string, NoxExercise> =
   Object.fromEntries(
-    NOX_EXERCISES.map(item => [
-      item.id,
-      item,
-    ]),
+    NOX_EXERCISES.map(exercise => [exercise.id, exercise]),
   );
 
-/* =========================================================
-   INDEX EXACT NOM / ALIAS
-   ========================================================= */
+const NOX_EXERCISE_BY_NORMALIZED_NAME = new Map<string, NoxExercise>();
 
-const NOX_EXERCISES_BY_NAME =
-  new Map<string, NoxExercise>();
-
-for (const item of NOX_EXERCISES) {
-  const values = [
-    item.name,
-    ...item.aliases,
+for (const exercise of NOX_EXERCISES) {
+  const names = [
+    exercise.name,
+    ...exercise.aliases,
   ];
 
-  for (const value of values) {
-    const key =
-      normalizeExerciseText(value);
+  for (const name of names) {
+    const normalized = normalizeExerciseText(name);
 
     if (
-      key &&
-      !NOX_EXERCISES_BY_NAME.has(key)
+      normalized &&
+      !NOX_EXERCISE_BY_NORMALIZED_NAME.has(normalized)
     ) {
-      NOX_EXERCISES_BY_NAME.set(
-        key,
-        item,
+      NOX_EXERCISE_BY_NORMALIZED_NAME.set(
+        normalized,
+        exercise,
       );
     }
   }
 }
-
-/* =========================================================
-   RÉSOLUTION
-   ========================================================= */
 
 export type NoxExerciseSource = {
   exercise_id?: string | null;
@@ -1308,59 +1175,34 @@ export type NoxExerciseSource = {
 };
 
 export function getNoxExerciseById(
-  exerciseId?: string | null,
+  id: string | null | undefined,
 ): NoxExercise | null {
-  if (!exerciseId) {
-    return null;
-  }
+  if (!id) return null;
 
-  const exact =
-    String(exerciseId).trim();
+  const normalized = normalizeExerciseId(id);
 
-  if (NOX_EXERCISES_BY_ID[exact]) {
-    return NOX_EXERCISES_BY_ID[exact];
-  }
-
-  const normalized =
-    normalizeExerciseId(exerciseId);
-
-  return (
-    NOX_EXERCISES_BY_ID[normalized] ||
-    null
-  );
+  return NOX_EXERCISES_BY_ID[normalized] || null;
 }
 
 export function getNoxExerciseByName(
-  name?: string | null,
+  name: string | null | undefined,
 ): NoxExercise | null {
-  if (!name) {
-    return null;
-  }
-
-  const normalized =
-    normalizeExerciseText(name);
-
-  if (!normalized) {
-    return null;
-  }
+  if (!name) return null;
 
   /*
-   * IMPORTANT :
-   * correspondance exacte uniquement.
+   * Match EXACT uniquement.
    *
-   * Pas de :
+   * Surtout pas de :
    * name.includes('squat')
    *
-   * Donc :
-   * Goblet Squat ≠ Back Squat
-   * Front Squat ≠ Back Squat
-   * Hack Squat ≠ Back Squat
+   * car Goblet Squat ne doit jamais récupérer
+   * automatiquement le visuel de Back Squat.
    */
+  const normalized = normalizeExerciseText(name);
 
   return (
-    NOX_EXERCISES_BY_NAME.get(
-      normalized,
-    ) || null
+    NOX_EXERCISE_BY_NORMALIZED_NAME.get(normalized) ||
+    null
   );
 }
 
@@ -1371,9 +1213,7 @@ export function resolveNoxExercise(
     | null
     | undefined,
 ): NoxExercise | null {
-  if (!source) {
-    return null;
-  }
+  if (!source) return null;
 
   if (typeof source === 'string') {
     return (
@@ -1383,39 +1223,27 @@ export function resolveNoxExercise(
   }
 
   /*
-   * PRIORITÉ ABSOLUE :
-   * exercise_id généré par NOX.
+   * exercise_id est volontairement prioritaire.
    */
+  const byExerciseId =
+    getNoxExerciseById(source.exercise_id);
 
-  if (source.exercise_id) {
-    const byExerciseId =
-      getNoxExerciseById(
-        source.exercise_id,
-      );
-
-    if (byExerciseId) {
-      return byExerciseId;
-    }
+  if (byExerciseId) {
+    return byExerciseId;
   }
 
-  if (source.id) {
-    const byId =
-      getNoxExerciseById(source.id);
+  const byId = getNoxExerciseById(source.id);
 
-    if (byId) {
-      return byId;
-    }
+  if (byId) {
+    return byId;
   }
 
-  return getNoxExerciseByName(
+  const name =
     source.name ||
-    source.exercise_name,
-  );
-}
+    source.exercise_name;
 
-/* =========================================================
-   VISUELS
-   ========================================================= */
+  return getNoxExerciseByName(name);
+}
 
 export function getNoxExerciseThumbnail(
   source:
@@ -1424,16 +1252,14 @@ export function getNoxExerciseThumbnail(
     | null
     | undefined,
 ): string | null {
-  const item =
-    resolveNoxExercise(source);
+  const exercise = resolveNoxExercise(source);
 
-  if (!item) {
-    return null;
-  }
+  if (!exercise) return null;
 
   return (
-    item.visuals.thumbnail ||
-    item.visuals.position1 ||
+    exercise.visuals.thumbnail ||
+    exercise.visuals.position2 ||
+    exercise.visuals.position1 ||
     null
   );
 }
@@ -1444,27 +1270,16 @@ export function getNoxExerciseMovementImages(
     | string
     | null
     | undefined,
-): [
-  string | null,
-  string | null,
-  string | null
-] {
-  const item =
-    resolveNoxExercise(source);
+): string[] {
+  const exercise = resolveNoxExercise(source);
 
-  if (!item) {
-    return [
-      null,
-      null,
-      null,
-    ];
-  }
+  if (!exercise) return [];
 
   return [
-    item.visuals.position1 || null,
-    item.visuals.position2 || null,
-    item.visuals.position3 || null,
-  ];
+    exercise.visuals.position1,
+    exercise.visuals.position2,
+    exercise.visuals.position3,
+  ].filter((value): value is string => Boolean(value));
 }
 
 export function getNoxExerciseAnatomyImage(
@@ -1474,11 +1289,9 @@ export function getNoxExerciseAnatomyImage(
     | null
     | undefined,
 ): string | null {
-  return (
-    resolveNoxExercise(source)
-      ?.visuals.anatomy ||
-    null
-  );
+  const exercise = resolveNoxExercise(source);
+
+  return exercise?.visuals.anatomy || null;
 }
 
 export function hasCompleteNoxDemo(
@@ -1488,25 +1301,16 @@ export function hasCompleteNoxDemo(
     | null
     | undefined,
 ): boolean {
-  const [
-    position1,
-    position2,
-    position3,
-  ] =
-    getNoxExerciseMovementImages(
-      source,
-    );
+  const exercise = resolveNoxExercise(source);
+
+  if (!exercise) return false;
 
   return Boolean(
-    position1 &&
-    position2 &&
-    position3,
+    exercise.visuals.position1 &&
+    exercise.visuals.position2 &&
+    exercise.visuals.position3,
   );
 }
-
-/* =========================================================
-   CONTENU DÉMO
-   ========================================================= */
 
 export function getNoxExerciseSteps(
   source:
@@ -1514,11 +1318,27 @@ export function getNoxExerciseSteps(
     | string
     | null
     | undefined,
-): NoxExerciseStep[] {
-  return (
-    resolveNoxExercise(source)
-      ?.steps || []
-  );
+): [NoxExerciseStep, NoxExerciseStep, NoxExerciseStep] {
+  const exercise = resolveNoxExercise(source);
+
+  if (exercise) {
+    return exercise.steps;
+  }
+
+  return [
+    {
+      title: 'Position de départ',
+      cue: 'Place-toi de façon stable avant de commencer.',
+    },
+    {
+      title: 'Mouvement',
+      cue: 'Exécute le mouvement lentement et sous contrôle.',
+    },
+    {
+      title: 'Retour',
+      cue: 'Reviens à la position de départ sans perdre la technique.',
+    },
+  ];
 }
 
 export function getNoxExerciseCoachTips(
@@ -1528,10 +1348,13 @@ export function getNoxExerciseCoachTips(
     | null
     | undefined,
 ): string[] {
-  return (
-    resolveNoxExercise(source)
-      ?.coachTips || []
-  );
+  const exercise = resolveNoxExercise(source);
+
+  return exercise?.coachTips || [
+    'Privilégie toujours la qualité d’exécution.',
+    'Adapte la charge à ton niveau.',
+    'Arrête la série si ta technique se dégrade.',
+  ];
 }
 
 export function getNoxExerciseMistakes(
@@ -1541,10 +1364,15 @@ export function getNoxExerciseMistakes(
     | null
     | undefined,
 ): NoxExerciseMistake[] {
-  return (
-    resolveNoxExercise(source)
-      ?.mistakes || []
-  );
+  const exercise = resolveNoxExercise(source);
+
+  return exercise?.mistakes || [
+    {
+      title: 'Technique dégradée',
+      correction:
+        'Réduis la charge ou l’intensité et retrouve une exécution propre.',
+    },
+  ];
 }
 
 export function getNoxExerciseVariants(
@@ -1554,10 +1382,9 @@ export function getNoxExerciseVariants(
     | null
     | undefined,
 ): string[] {
-  return (
-    resolveNoxExercise(source)
-      ?.variants || []
-  );
+  const exercise = resolveNoxExercise(source);
+
+  return exercise?.variants || [];
 }
 
 export function getNoxExerciseMuscles(
@@ -1567,96 +1394,60 @@ export function getNoxExerciseMuscles(
     | null
     | undefined,
 ): NoxExerciseMuscles {
-  return (
-    resolveNoxExercise(source)
-      ?.muscles || {
-      primary: [],
-      secondary: [],
-      stabilizers: [],
-    }
-  );
+  const exercise = resolveNoxExercise(source);
+
+  return exercise?.muscles || {
+    primary: ['Muscles principaux'],
+    secondary: [],
+    stabilizers: [],
+  };
 }
 
-/* =========================================================
-   HELPERS PROGRAM / TRAINING / GENERATOR
-   ========================================================= */
-
-export function getNoxExerciseIds() {
-  return NOX_EXERCISES.map(
-    item => item.id,
-  );
+export function getNoxExerciseIds(): string[] {
+  return NOX_EXERCISES.map(exercise => exercise.id);
 }
 
-export function getNoxExerciseGeneratorCatalog() {
-  return NOX_GENERATOR_CATALOG.map(
-    item => ({
-      exercise_id: item.id,
-      name: item.name,
-      category: item.category,
-      equipment: item.equipment,
-    }),
-  );
+export function getNoxExerciseGeneratorCatalog(): CatalogExercise[] {
+  return NOX_GENERATOR_CATALOG.map(exercise => ({
+    ...exercise,
+  }));
 }
 
-export function getNoxExerciseCount() {
+export function getNoxExerciseCount(): number {
   return NOX_EXERCISES.length;
 }
 
-/* =========================================================
-   VALIDATION
-   ========================================================= */
+export function validateNoxExerciseLibrary(): {
+  valid: boolean;
+  count: number;
+  expected: number;
+  duplicateIds: string[];
+  missingIds: string[];
+} {
+  const expected = 152;
 
-export function validateNoxExerciseLibrary() {
-  const ids =
-    new Set<string>();
+  const ids = NOX_EXERCISES.map(
+    exercise => exercise.id,
+  );
 
-  const names =
-    new Set<string>();
+  const duplicateIds = ids.filter(
+    (id, index) => ids.indexOf(id) !== index,
+  );
 
-  const duplicateIds: string[] = [];
-  const duplicateNames: string[] = [];
-  const invalidExercises: string[] = [];
-
-  for (const item of NOX_EXERCISES) {
-    if (
-      !item.id ||
-      !item.name ||
-      !item.category ||
-      !item.equipment
-    ) {
-      invalidExercises.push(
-        item.id || item.name || 'unknown',
-      );
-    }
-
-    if (ids.has(item.id)) {
-      duplicateIds.push(item.id);
-    }
-
-    ids.add(item.id);
-
-    const normalizedName =
-      normalizeExerciseText(item.name);
-
-    if (names.has(normalizedName)) {
-      duplicateNames.push(item.name);
-    }
-
-    names.add(normalizedName);
-  }
+  const missingIds =
+    NOX_GENERATOR_CATALOG
+      .map(exercise => exercise.id)
+      .filter(id => !NOX_EXERCISES_BY_ID[id]);
 
   return {
     valid:
-      NOX_EXERCISES.length === 152 &&
+      NOX_EXERCISES.length === expected &&
       duplicateIds.length === 0 &&
-      duplicateNames.length === 0 &&
-      invalidExercises.length === 0,
+      missingIds.length === 0,
 
-    expectedCount: 152,
     count: NOX_EXERCISES.length,
-
-    duplicateIds,
-    duplicateNames,
-    invalidExercises,
+    expected,
+    duplicateIds: Array.from(new Set(duplicateIds)),
+    missingIds,
   };
 }
