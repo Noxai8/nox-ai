@@ -724,7 +724,11 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
         <button onClick={() => setShowDemo(true)} aria-label={`Voir la démonstration de ${ex?.name || 'cet exercice'}`}
           style={{ width: '100%', border: '1px solid #E7E7E2', padding: 0, borderRadius: 24, overflow: 'hidden', background: '#fff', cursor: 'pointer', marginBottom: 12, textAlign: 'left', boxShadow: '0 8px 24px rgba(0,0,0,.045)' }}>
           <div style={{ position: 'relative', background: '#F7F7F4' }}>
-            {thumbnail ? <img src={thumbnail} alt={`Aperçu ${noxExercise?.name || ex?.name || 'exercice'}`} style={{ width: '100%', height: 244, objectFit: 'cover', display: 'block' }} /> :
+            {thumbnail ? <NoxExerciseImage
+                  src={thumbnail}
+                  alt={`Aperçu ${noxExercise?.name || ex?.name || 'exercice'}`}
+                  height={244}
+                /> :
               <NoxVisualFallback height={244} />}
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 58%,rgba(0,0,0,.58))' }} />
             <div style={{ position: 'absolute', left: 14, top: 14, background: ACCENT, color: '#111', borderRadius: 999, padding: '7px 11px', fontSize: 9.5, fontWeight: 1000, letterSpacing: '.04em' }}>DÉMO NOX</div>
@@ -860,6 +864,38 @@ function demoSteps(exercise: any): { title: string; cue: string }[] {
   ];
 }
 
+function NoxExerciseImage({
+  src,
+  alt,
+  height,
+  fallbackLabel = 'DÉMO NOX',
+}: {
+  src: string;
+  alt: string;
+  height: number;
+  fallbackLabel?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  if (!src || failed) {
+    return <NoxVisualFallback height={height} label={fallbackLabel} />;
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      style={{ width: '100%', height, objectFit: 'cover', display: 'block' }}
+    />
+  );
+}
+
 function NoxVisualFallback({ height = 150, label = 'DÉMO NOX' }: { height?: number; label?: string }) {
   return (
     <div style={{ height, display: 'grid', placeItems: 'center', background: '#111', color: '#fff' }}>
@@ -917,7 +953,12 @@ function DemoNox({ exercise, tags, onClose }: { exercise: any; tags: string[]; o
                 <div style={{ fontSize: 9.5, lineHeight: 1.05, fontWeight: 1000 }}>{step.title}</div>
               </div>
               {movementImages[i]
-                ? <img src={movementImages[i]} alt={`${displayName} — ${step.title}`} style={{ width: '100%', height: 150, objectFit: 'cover', display: 'block' }} />
+                ? <NoxExerciseImage
+                    src={movementImages[i]}
+                    alt={`${displayName} — ${step.title}`}
+                    height={150}
+                    fallbackLabel={`POSITION ${i + 1}`}
+                  />
                 : <NoxVisualFallback height={150} label={`POSITION ${i + 1}`} />}
               <div style={{ padding: '9px 8px 11px', fontSize: 9.2, lineHeight: 1.35, color: '#66665F' }}>{step.cue}</div>
             </div>
