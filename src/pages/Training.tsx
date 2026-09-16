@@ -945,22 +945,27 @@ function DemoNox({ exercise, tags, onClose }: { exercise: any; tags: string[]; o
           <div style={{ position: 'absolute', right: 8, bottom: 3 }}><NoxMascot /></div>
         </div>
 
+        {/* Un seul asset NOX par exercice : la planche complète est affichée une seule fois.
+            Les 3 étapes restent séparées en texte afin d'éviter les doublons et les faux visuels. */}
+        <div style={{ borderRadius: 24, overflow: 'hidden', border: '1px solid #E9E9E4', background: '#111', marginBottom: 12 }}>
+          {movementImages[0]
+            ? <NoxExerciseImage
+                src={movementImages[0]}
+                alt={`Démonstration complète — ${displayName}`}
+                height={320}
+                fallbackLabel="DÉMO NOX"
+              />
+            : <NoxVisualFallback height={320} label="DÉMO NOX" />}
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 7, marginBottom: 12 }}>
           {steps.slice(0, 3).map((step, i) => (
-            <div key={`${step.title}-${i}`} style={{ borderRadius: 18, background: '#F7F7F5', border: '1px solid #ECECE8', overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 8px 7px' }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: i === 1 ? ACCENT : '#ECECE9', display: 'grid', placeItems: 'center', fontWeight: 1000, fontSize: 13, flexShrink: 0 }}>{i + 1}</div>
-                <div style={{ fontSize: 9.5, lineHeight: 1.05, fontWeight: 1000 }}>{step.title}</div>
+            <div key={`${step.title}-${i}`} style={{ borderRadius: 18, background: '#F7F7F5', border: '1px solid #ECECE8', padding: '12px 10px 13px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: i === 1 ? ACCENT : '#ECECE9', display: 'grid', placeItems: 'center', fontWeight: 1000, fontSize: 13, flexShrink: 0 }}>{i + 1}</div>
+                <div style={{ fontSize: 10, lineHeight: 1.08, fontWeight: 1000 }}>{step.title}</div>
               </div>
-              {movementImages[i]
-                ? <NoxExerciseImage
-                    src={movementImages[i]}
-                    alt={`${displayName} — ${step.title}`}
-                    height={150}
-                    fallbackLabel={`POSITION ${i + 1}`}
-                  />
-                : <NoxVisualFallback height={150} label={`POSITION ${i + 1}`} />}
-              <div style={{ padding: '9px 8px 11px', fontSize: 9.2, lineHeight: 1.35, color: '#66665F' }}>{step.cue}</div>
+              <div style={{ fontSize: 9.5, lineHeight: 1.4, color: '#66665F' }}>{step.cue}</div>
             </div>
           ))}
         </div>
