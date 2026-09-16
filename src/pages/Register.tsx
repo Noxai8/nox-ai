@@ -15,6 +15,7 @@ export default function Register() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   const handleRegister = async () => {
     if (!email || !password) {
@@ -25,7 +26,7 @@ export default function Register() {
     setLoading(true);
     setError('');
 
-    const { error: err } = await supabase.auth.signUp({
+    const { data, error: err } = await supabase.auth.signUp({
       email,
       password,
     });
@@ -36,8 +37,148 @@ export default function Register() {
       return;
     }
 
+    // Avec la confirmation email activée dans Supabase, signUp réussit mais
+    // aucune session n'est créée tant que l'utilisateur n'a pas confirmé son email.
+    // Naviguer vers /onboarding (route protégée) dans cet état provoque un retour
+    // immédiat vers l'accueil via le guard d'authentification.
+    if (!data.session) {
+      setConfirmationSent(true);
+      setLoading(false);
+      return;
+    }
+
+    // Si la confirmation email est désactivée et qu'une session existe déjà,
+    // on conserve le comportement initial.
     navigate('/onboarding');
   };
+
+  if (confirmationSent) {
+    return (
+      <main
+        style={{
+          minHeight: '100dvh',
+          background: '#FFFFFF',
+          color: '#0A0A0A',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          boxSizing: 'border-box',
+        }}
+      >
+        <section
+          style={{
+            width: '100%',
+            maxWidth: 430,
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: 58,
+              height: 58,
+              margin: '0 auto 24px',
+              borderRadius: 18,
+              background: NOX_GREEN,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 24,
+              fontWeight: 950,
+            }}
+          >
+            ✓
+          </div>
+
+          <div
+            style={{
+              marginBottom: 14,
+              fontSize: 11,
+              fontWeight: 850,
+              letterSpacing: '0.12em',
+              color: '#777777',
+            }}
+          >
+            DERNIÈRE ÉTAPE
+          </div>
+
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 'clamp(36px, 8vw, 50px)',
+              lineHeight: 0.98,
+              letterSpacing: '-0.055em',
+              fontWeight: 950,
+            }}
+          >
+            CONFIRME TON
+            <br />
+            EMAIL.
+          </h1>
+
+          <p
+            style={{
+              margin: '20px auto 0',
+              maxWidth: 350,
+              fontSize: 15,
+              lineHeight: 1.65,
+              color: '#717171',
+              fontWeight: 500,
+            }}
+          >
+            Un email de confirmation vient d’être envoyé à{' '}
+            <strong style={{ color: '#0A0A0A' }}>{email}</strong>.
+            <br />
+            Clique sur le bouton dans l’email pour continuer ton onboarding NOX AI.
+          </p>
+
+          <div
+            style={{
+              marginTop: 30,
+              padding: '16px 18px',
+              borderRadius: 16,
+              background: '#F8F8F8',
+              border: '1px solid #E8E8E8',
+              fontSize: 12,
+              lineHeight: 1.55,
+              color: '#777777',
+              fontWeight: 650,
+            }}
+          >
+            Pense à vérifier tes courriers indésirables si l’email n’apparaît pas dans quelques instants.
+          </div>
+
+          <Link
+            to="/login"
+            style={{
+              display: 'inline-block',
+              marginTop: 26,
+              color: '#0A0A0A',
+              textDecoration: 'none',
+              fontSize: 12,
+              fontWeight: 850,
+              borderBottom: `2px solid ${NOX_GREEN}`,
+              paddingBottom: 2,
+            }}
+          >
+            RETOUR À LA CONNEXION
+          </Link>
+
+          <div
+            style={{
+              marginTop: 48,
+              color: '#B4B4B4',
+              fontSize: 9,
+              fontWeight: 800,
+              letterSpacing: '0.12em',
+            }}
+          >
+            CONÇU POUR TOI · PENSÉ POUR PROGRESSER
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main
