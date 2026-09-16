@@ -1,10 +1,30 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Activity, ArrowLeft, ArrowRight, BriefcaseBusiness, Building2, Check,
-  ChefHat, CircleHelp, Clock3, Dumbbell, Flame, Footprints, Gauge, HeartPulse,
-  House, MapPin, Moon, Salad, ShieldCheck, Sparkles, Sprout, Target, Trees,
-  Trophy, Utensils, WalletCards, Zap,
+  Activity,
+  ArrowLeft,
+  ArrowRight,
+  BriefcaseBusiness,
+  Building2,
+  Check,
+  CircleHelp,
+  Clock3,
+  Dumbbell,
+  Flame,
+  Footprints,
+  Gauge,
+  HeartPulse,
+  House,
+  MapPin,
+  Moon,
+  ShieldCheck,
+  Sparkles,
+  Sprout,
+  Target,
+  Trees,
+  Trophy,
+  Utensils,
+  Zap,
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
@@ -17,8 +37,17 @@ const SURFACE = '#F7F7F7';
 const BORDER = '#E8E8E8';
 const TOTAL_STEPS = 17;
 
-type IconType = (props: { size?: number; strokeWidth?: number }) => ReactNode;
-type Option = { label: string; value?: string; desc?: string; icon?: IconType };
+type IconType = (props: {
+  size?: number;
+  strokeWidth?: number;
+}) => ReactNode;
+
+type Option = {
+  label: string;
+  value?: string;
+  desc?: string;
+  icon?: IconType;
+};
 
 type OnboardingData = {
   goal: string;
@@ -195,7 +224,10 @@ function OptionCard({
             background: selected ? ACCENT : '#F5F5F5',
           }}
         >
-          <Icon size={compact ? 18 : 20} strokeWidth={2} />
+          <Icon
+            size={compact ? 18 : 20}
+            strokeWidth={2}
+          />
         </span>
       )}
 
@@ -231,7 +263,9 @@ function OptionCard({
           height: 22,
           flexShrink: 0,
           borderRadius: '50%',
-          border: `1.5px solid ${selected ? BLACK : '#D5D5D5'}`,
+          border: `1.5px solid ${
+            selected ? BLACK : '#D5D5D5'
+          }`,
           background: selected ? BLACK : '#FFFFFF',
           color: ACCENT,
           display: 'flex',
@@ -272,6 +306,7 @@ function SectionTitle({
             background: ACCENT,
           }}
         />
+
         <span
           style={{
             fontSize: 10,
@@ -336,8 +371,14 @@ function SubTitle({
       }}
     >
       <span>{children}</span>
+
       {optional && (
-        <span style={{ color: '#B0B0B0', fontWeight: 700 }}>
+        <span
+          style={{
+            color: '#B0B0B0',
+            fontWeight: 700,
+          }}
+        >
           OPTIONNEL
         </span>
       )}
@@ -449,7 +490,13 @@ function ChoiceList({
   compact?: boolean;
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 9,
+      }}
+    >
       {options.map((o) => (
         <OptionCard
           key={o.value || o.label}
@@ -513,23 +560,34 @@ export default function Onboarding() {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const [data, setData] = useState<OnboardingData>(initialData);
+  const [data, setData] =
+    useState<OnboardingData>(initialData);
 
   const set = <K extends keyof OnboardingData>(
     key: K,
     value: OnboardingData[K]
-  ) => setData((d) => ({ ...d, [key]: value }));
+  ) =>
+    setData((d) => ({
+      ...d,
+      [key]: value,
+    }));
 
   const next = () => {
     setSaveError('');
     setStep((s) => Math.min(s + 1, TOTAL_STEPS));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
   };
 
   const back = () => {
     setSaveError('');
     setStep((s) => Math.max(s - 1, 1));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
   };
 
   const trajectory = useMemo(() => {
@@ -542,7 +600,8 @@ export default function Onboarding() {
     }
 
     const weeks = Math.round(
-      (new Date(data.target_date).getTime() - Date.now()) /
+      (new Date(data.target_date).getTime() -
+        Date.now()) /
         (7 * 24 * 3600 * 1000)
     );
 
@@ -620,13 +679,17 @@ export default function Onboarding() {
           padding: '0 17px',
           border: 'none',
           borderRadius: 16,
-          background: disabled || saving ? '#EEE' : ACCENT,
-          color: disabled || saving ? '#AAA' : BLACK,
+          background:
+            disabled || saving ? '#EEE' : ACCENT,
+          color:
+            disabled || saving ? '#AAA' : BLACK,
           fontSize: 12,
           fontWeight: 950,
           letterSpacing: '.045em',
           cursor:
-            disabled || saving ? 'not-allowed' : 'pointer',
+            disabled || saving
+              ? 'not-allowed'
+              : 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -634,10 +697,14 @@ export default function Onboarding() {
         }}
       >
         <span>
-          {saving ? 'CRÉATION EN COURS...' : label}
+          {saving
+            ? 'CRÉATION EN COURS...'
+            : label}
         </span>
 
-        {!disabled && !saving && <ArrowRight size={18} />}
+        {!disabled && !saving && (
+          <ArrowRight size={18} />
+        )}
       </button>
     </div>
   );
@@ -654,93 +721,162 @@ export default function Onboarding() {
         goal_priority: data.goal_priority,
         usual_weight_kg:
           Number(data.usual_weight_kg) || null,
-        recent_weight_trend: data.recent_weight_trend,
-        training_experience: data.training_experience,
-        recent_consistency: data.recent_consistency,
-        current_activities: data.current_activities,
+        recent_weight_trend:
+          data.recent_weight_trend,
+        training_experience:
+          data.training_experience,
+        recent_consistency:
+          data.recent_consistency,
+        current_activities:
+          data.current_activities,
         current_sessions_per_week:
-          Number(data.current_sessions_per_week) || 0,
-        technique_confidence: data.technique_confidence,
-        rir_familiarity: data.rir_familiarity,
+          Number(
+            data.current_sessions_per_week
+          ) || 0,
+        technique_confidence:
+          data.technique_confidence,
+        rir_familiarity:
+          data.rir_familiarity,
         location: data.location,
-        training_preferences: data.training_preferences,
-        disliked_movements: data.disliked_movements,
-        body_priorities: data.body_priorities,
+        training_preferences:
+          data.training_preferences,
+        disliked_movements:
+          data.disliked_movements,
+        body_priorities:
+          data.body_priorities,
         work_activity: data.work_activity,
-        daily_steps: Number(data.daily_steps) || null,
-        sleep_hours: Number(data.sleep_hours) || null,
+        daily_steps:
+          Number(data.daily_steps) || null,
+        sleep_hours:
+          Number(data.sleep_hours) || null,
         sleep_quality: data.sleep_quality,
-        sleep_regularity: data.sleep_regularity,
+        sleep_regularity:
+          data.sleep_regularity,
         stress_level: data.stress_level,
         usual_fatigue: data.usual_fatigue,
-        recovery_quality: data.recovery_quality,
+        recovery_quality:
+          data.recovery_quality,
         diet_type: data.diet_type,
-        dietary_exclusions: data.dietary_exclusions,
-        meals_per_day: Number(data.meals_per_day) || null,
-        cooking_frequency: data.cooking_frequency,
-        eating_out_frequency: data.eating_out_frequency,
+        dietary_exclusions:
+          data.dietary_exclusions,
+        meals_per_day:
+          Number(data.meals_per_day) || null,
+        cooking_frequency:
+          data.cooking_frequency,
+        eating_out_frequency:
+          data.eating_out_frequency,
         food_budget: data.food_budget,
-        nutrition_tracking: data.nutrition_tracking,
-        nutrition_challenge: data.nutrition_challenge,
-        cardio_preference: data.cardio_preference,
-        cardio_frequency: data.cardio_frequency,
-        dropout_reason: data.dropout_reason,
-        coaching_style: data.coaching_style,
+        nutrition_tracking:
+          data.nutrition_tracking,
+        nutrition_challenge:
+          data.nutrition_challenge,
+        cardio_preference:
+          data.cardio_preference,
+        cardio_frequency:
+          data.cardio_frequency,
+        dropout_reason:
+          data.dropout_reason,
+        coaching_style:
+          data.coaching_style,
       };
 
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          email: user.email,
-          display_name: user.email?.split('@')[0],
-          motivation: data.motivation,
-          date_of_birth: data.date_of_birth || null,
-          height_cm: Number(data.height_cm) || null,
-          starting_weight_kg:
-            Number(data.starting_weight_kg) || null,
-          level: data.goal,
-          experience_level: data.experience_level,
-          equipment: data.equipment,
+      const { error: profileError } =
+        await supabase
+          .from('profiles')
+          .upsert({
+            id: user.id,
+            email: user.email,
+            display_name:
+              user.email?.split('@')[0],
+            motivation: data.motivation,
+            date_of_birth:
+              data.date_of_birth || null,
+            height_cm:
+              Number(data.height_cm) || null,
+            starting_weight_kg:
+              Number(
+                data.starting_weight_kg
+              ) || null,
 
-          // Les valeurs sont maintenant "1" à "7".
-          // On les convertit explicitement en nombres avant l'upsert.
-          available_days: data.available_days.map((day) =>
-            Number(day)
-          ),
+            // level supprimé :
+            // la colonne Supabase est int4
+            // et ne doit pas recevoir data.goal.
 
-          session_length_min:
-            Number(data.session_length_min) || 60,
-          diet_description: data.diet_description,
-          activity_level: data.activity_level,
-          injuries: data.injuries,
-          sex: data.sex,
-          units: 'metric',
-          onboarding_context,
-          onboarding_completed: true,
-          updated_at: new Date().toISOString(),
-        });
+            experience_level:
+              data.experience_level,
 
-      if (profileError) throw profileError;
+            equipment: data.equipment,
 
-      const { error: goalError } = await supabase
-        .from('goals')
-        .upsert({
-          user_id: user.id,
-          goal_type: data.goal,
-          target_weight_kg:
-            Number(data.target_weight) || null,
-          target_date: data.target_date || null,
-          sessions_per_week:
-            Number(data.sessions_per_week) || 3,
-          created_at: new Date().toISOString(),
-        });
+            // Supabase attend des entiers.
+            available_days:
+              data.available_days.map(
+                (day) => Number(day)
+              ),
 
-      if (goalError) throw goalError;
+            session_length_min:
+              Number(
+                data.session_length_min
+              ) || 60,
+
+            diet_description:
+              data.diet_description,
+
+            activity_level:
+              data.activity_level,
+
+            injuries: data.injuries,
+            sex: data.sex,
+            units: 'metric',
+
+            onboarding_context,
+
+            onboarding_completed: true,
+
+            updated_at:
+              new Date().toISOString(),
+          });
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      const { error: goalError } =
+        await supabase
+          .from('goals')
+          .upsert({
+            user_id: user.id,
+
+            // goals.goal_type est TEXT :
+            // l'objectif reste donc sous forme lisible.
+            goal_type: data.goal,
+
+            target_weight_kg:
+              Number(
+                data.target_weight
+              ) || null,
+
+            target_date:
+              data.target_date || null,
+
+            sessions_per_week:
+              Number(
+                data.sessions_per_week
+              ) || 3,
+
+            created_at:
+              new Date().toISOString(),
+          });
+
+      if (goalError) {
+        throw goalError;
+      }
 
       navigate('/generate-program');
     } catch (error: any) {
-      console.error('Onboarding save error:', error);
+      console.error(
+        'Onboarding save error:',
+        error
+      );
 
       setSaveError(
         error?.message ||
@@ -774,7 +910,8 @@ export default function Onboarding() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent:
+                'space-between',
               marginBottom: 22,
             }}
           >
@@ -815,7 +952,8 @@ export default function Onboarding() {
                 letterSpacing: '.08em',
               }}
             >
-              {String(step).padStart(2, '0')} / {TOTAL_STEPS}
+              {String(step).padStart(2, '0')}{' '}
+              / {TOTAL_STEPS}
             </span>
           </div>
 
@@ -838,30 +976,37 @@ export default function Onboarding() {
 
             <ChoiceList
               value={data.goal}
-              onChange={(v) => set('goal', v)}
+              onChange={(v) =>
+                set('goal', v)
+              }
               options={[
                 {
                   label: 'Perdre du gras',
                   icon: Flame,
                 },
                 {
-                  label: 'Prendre du muscle',
+                  label:
+                    'Prendre du muscle',
                   icon: Dumbbell,
                 },
                 {
-                  label: 'Recomposition corporelle',
+                  label:
+                    'Recomposition corporelle',
                   icon: Sparkles,
                 },
                 {
-                  label: 'Devenir plus fort',
+                  label:
+                    'Devenir plus fort',
                   icon: Trophy,
                 },
                 {
-                  label: 'Améliorer mes performances',
+                  label:
+                    'Améliorer mes performances',
                   icon: Gauge,
                 },
                 {
-                  label: 'Maintenir mon physique',
+                  label:
+                    'Maintenir mon physique',
                   icon: ShieldCheck,
                 },
               ]}
@@ -885,14 +1030,19 @@ export default function Onboarding() {
               description="Deux personnes avec le même objectif peuvent avoir des priorités très différentes."
             />
 
-            <SubTitle>TA PRIORITÉ N°1</SubTitle>
+            <SubTitle>
+              TA PRIORITÉ N°1
+            </SubTitle>
 
             <ChoiceList
               value={data.goal_priority}
-              onChange={(v) => set('goal_priority', v)}
+              onChange={(v) =>
+                set('goal_priority', v)
+              }
               options={[
                 {
-                  label: 'Mon apparence physique',
+                  label:
+                    'Mon apparence physique',
                   icon: Sparkles,
                 },
                 {
@@ -900,11 +1050,13 @@ export default function Onboarding() {
                   icon: Dumbbell,
                 },
                 {
-                  label: 'Mes performances',
+                  label:
+                    'Mes performances',
                   icon: Trophy,
                 },
                 {
-                  label: 'Mon énergie et ma forme',
+                  label:
+                    'Mon énergie et ma forme',
                   icon: Zap,
                 },
                 {
@@ -914,11 +1066,15 @@ export default function Onboarding() {
               ]}
             />
 
-            <SubTitle optional>POURQUOI MAINTENANT ?</SubTitle>
+            <SubTitle optional>
+              POURQUOI MAINTENANT ?
+            </SubTitle>
 
             <TextArea
               value={data.motivation}
-              onChange={(v) => set('motivation', v)}
+              onChange={(v) =>
+                set('motivation', v)
+              }
               placeholder="Ex : retrouver confiance, préparer l'été, reprendre après une longue pause..."
             />
 
@@ -948,12 +1104,21 @@ export default function Onboarding() {
                 gap: 12,
               }}
             >
-              <div style={{ gridColumn: '1/-1' }}>
+              <div
+                style={{
+                  gridColumn: '1/-1',
+                }}
+              >
                 <Field
                   label="Date de naissance"
-                  value={data.date_of_birth}
+                  value={
+                    data.date_of_birth
+                  }
                   onChange={(v) =>
-                    set('date_of_birth', v)
+                    set(
+                      'date_of_birth',
+                      v
+                    )
                   }
                   type="date"
                 />
@@ -962,7 +1127,9 @@ export default function Onboarding() {
               <Field
                 label="Taille (cm)"
                 value={data.height_cm}
-                onChange={(v) => set('height_cm', v)}
+                onChange={(v) =>
+                  set('height_cm', v)
+                }
                 type="number"
                 placeholder="178"
                 min="120"
@@ -971,9 +1138,14 @@ export default function Onboarding() {
 
               <Field
                 label="Poids actuel (kg)"
-                value={data.starting_weight_kg}
+                value={
+                  data.starting_weight_kg
+                }
                 onChange={(v) =>
-                  set('starting_weight_kg', v)
+                  set(
+                    'starting_weight_kg',
+                    v
+                  )
                 }
                 type="number"
                 placeholder="80"
@@ -984,12 +1156,15 @@ export default function Onboarding() {
             </div>
 
             <SubTitle>
-              SEXE UTILISÉ POUR LES ESTIMATIONS PHYSIOLOGIQUES
+              SEXE UTILISÉ POUR LES
+              ESTIMATIONS PHYSIOLOGIQUES
             </SubTitle>
 
             <ChoiceList
               value={data.sex}
-              onChange={(v) => set('sex', v)}
+              onChange={(v) =>
+                set('sex', v)
+              }
               options={[
                 {
                   label: 'Homme',
@@ -1000,7 +1175,8 @@ export default function Onboarding() {
                   value: 'female',
                 },
                 {
-                  label: 'Je préfère ne pas répondre',
+                  label:
+                    'Je préfère ne pas répondre',
                   value: 'unspecified',
                 },
               ]}
@@ -1039,9 +1215,14 @@ export default function Onboarding() {
             >
               <Field
                 label="Poids habituel (kg)"
-                value={data.usual_weight_kg}
+                value={
+                  data.usual_weight_kg
+                }
                 onChange={(v) =>
-                  set('usual_weight_kg', v)
+                  set(
+                    'usual_weight_kg',
+                    v
+                  )
                 }
                 type="number"
                 placeholder="80"
@@ -1052,7 +1233,10 @@ export default function Onboarding() {
                 label="Poids cible (kg)"
                 value={data.target_weight}
                 onChange={(v) =>
-                  set('target_weight', v)
+                  set(
+                    'target_weight',
+                    v
+                  )
                 }
                 type="number"
                 placeholder="75"
@@ -1061,42 +1245,60 @@ export default function Onboarding() {
             </div>
 
             <SubTitle>
-              CES DERNIERS MOIS, TON POIDS...
+              CES DERNIERS MOIS, TON
+              POIDS...
             </SubTitle>
 
             <ChoiceList
-              value={data.recent_weight_trend}
+              value={
+                data.recent_weight_trend
+              }
               onChange={(v) =>
-                set('recent_weight_trend', v)
+                set(
+                  'recent_weight_trend',
+                  v
+                )
               }
               options={[
                 {
-                  label: 'A plutôt baissé',
+                  label:
+                    'A plutôt baissé',
                   value: 'down',
                 },
                 {
-                  label: 'Est resté stable',
+                  label:
+                    'Est resté stable',
                   value: 'stable',
                 },
                 {
-                  label: 'A plutôt augmenté',
+                  label:
+                    'A plutôt augmenté',
                   value: 'up',
                 },
                 {
-                  label: 'A beaucoup fluctué',
+                  label:
+                    'A beaucoup fluctué',
                   value: 'variable',
                 },
               ]}
             />
 
-            <SubTitle optional>DATE CIBLE</SubTitle>
+            <SubTitle optional>
+              DATE CIBLE
+            </SubTitle>
 
             <Field
               label="Date cible"
               value={data.target_date}
-              onChange={(v) => set('target_date', v)}
+              onChange={(v) =>
+                set('target_date', v)
+              }
               type="date"
-              min={new Date().toISOString().split('T')[0]}
+              min={
+                new Date()
+                  .toISOString()
+                  .split('T')[0]
+              }
             />
 
             {trajectory && (
@@ -1106,10 +1308,15 @@ export default function Onboarding() {
                   padding: 16,
                   borderRadius: 17,
                   background: '#F7FFD9',
-                  border: '1px solid #DDF7A0',
+                  border:
+                    '1px solid #DDF7A0',
                 }}
               >
-                <b style={{ fontSize: 12 }}>
+                <b
+                  style={{
+                    fontSize: 12,
+                  }}
+                >
                   {trajectory.label}
                 </b>
 
@@ -1128,7 +1335,9 @@ export default function Onboarding() {
               </div>
             )}
 
-            {nav(!data.recent_weight_trend)}
+            {nav(
+              !data.recent_weight_trend
+            )}
           </div>
         )}
 
@@ -1147,9 +1356,14 @@ export default function Onboarding() {
             />
 
             <ChoiceList
-              value={data.experience_level}
+              value={
+                data.experience_level
+              }
               onChange={(v) =>
-                set('experience_level', v)
+                set(
+                  'experience_level',
+                  v
+                )
               }
               compact={false}
               options={[
@@ -1160,8 +1374,10 @@ export default function Onboarding() {
                   icon: Sprout,
                 },
                 {
-                  label: 'Intermédiaire',
-                  value: 'intermediate',
+                  label:
+                    'Intermédiaire',
+                  value:
+                    'intermediate',
                   desc: 'Je m’entraîne déjà avec régularité',
                   icon: Zap,
                 },
@@ -1179,17 +1395,37 @@ export default function Onboarding() {
             </SubTitle>
 
             <ChoiceList
-              value={data.training_experience}
+              value={
+                data.training_experience
+              }
               onChange={(v) =>
-                set('training_experience', v)
+                set(
+                  'training_experience',
+                  v
+                )
               }
               options={[
-                { label: 'Moins de 3 mois' },
-                { label: '3 à 6 mois' },
-                { label: '6 à 12 mois' },
-                { label: '1 à 2 ans' },
-                { label: '2 à 5 ans' },
-                { label: '5 ans ou plus' },
+                {
+                  label:
+                    'Moins de 3 mois',
+                },
+                {
+                  label: '3 à 6 mois',
+                },
+                {
+                  label:
+                    '6 à 12 mois',
+                },
+                {
+                  label: '1 à 2 ans',
+                },
+                {
+                  label: '2 à 5 ans',
+                },
+                {
+                  label:
+                    '5 ans ou plus',
+                },
               ]}
             />
 
@@ -1219,17 +1455,31 @@ export default function Onboarding() {
             </SubTitle>
 
             <ChoiceList
-              value={data.recent_consistency}
+              value={
+                data.recent_consistency
+              }
               onChange={(v) =>
-                set('recent_consistency', v)
+                set(
+                  'recent_consistency',
+                  v
+                )
               }
               options={[
                 {
-                  label: 'Presque aucune séance',
+                  label:
+                    'Presque aucune séance',
                 },
-                { label: 'Irrégulier' },
-                { label: 'Plutôt régulier' },
-                { label: 'Très régulier' },
+                {
+                  label: 'Irrégulier',
+                },
+                {
+                  label:
+                    'Plutôt régulier',
+                },
+                {
+                  label:
+                    'Très régulier',
+                },
               ]}
             />
 
@@ -1238,19 +1488,42 @@ export default function Onboarding() {
             </SubTitle>
 
             <MultiChoice
-              values={data.current_activities}
+              values={
+                data.current_activities
+              }
               onChange={(v) =>
-                set('current_activities', v)
+                set(
+                  'current_activities',
+                  v
+                )
               }
               options={[
-                { label: 'Musculation' },
-                { label: 'Course' },
-                { label: 'Vélo' },
-                { label: 'Sport collectif' },
-                { label: 'Combat' },
-                { label: 'Natation' },
-                { label: 'Cross training' },
-                { label: 'Autre' },
+                {
+                  label: 'Musculation',
+                },
+                {
+                  label: 'Course',
+                },
+                {
+                  label: 'Vélo',
+                },
+                {
+                  label:
+                    'Sport collectif',
+                },
+                {
+                  label: 'Combat',
+                },
+                {
+                  label: 'Natation',
+                },
+                {
+                  label:
+                    'Cross training',
+                },
+                {
+                  label: 'Autre',
+                },
               ]}
             />
 
@@ -1259,22 +1532,31 @@ export default function Onboarding() {
             </SubTitle>
 
             <ChoiceList
-              value={data.current_sessions_per_week}
-              onChange={(v) =>
-                set('current_sessions_per_week', v)
+              value={
+                data.current_sessions_per_week
               }
-              options={[0, 1, 2, 3, 4, 5, 6, 7].map(
-                (n) => ({
-                  label:
-                    n === 0
-                      ? 'Aucune actuellement'
-                      : `${n} séance${n > 1 ? 's' : ''}`,
-                  value: String(n),
-                })
-              )}
+              onChange={(v) =>
+                set(
+                  'current_sessions_per_week',
+                  v
+                )
+              }
+              options={[
+                0, 1, 2, 3, 4, 5, 6, 7,
+              ].map((n) => ({
+                label:
+                  n === 0
+                    ? 'Aucune actuellement'
+                    : `${n} séance${
+                        n > 1 ? 's' : ''
+                      }`,
+                value: String(n),
+              }))}
             />
 
-            {nav(!data.recent_consistency)}
+            {nav(
+              !data.recent_consistency
+            )}
           </div>
         )}
 
@@ -1297,9 +1579,14 @@ export default function Onboarding() {
             </SubTitle>
 
             <ChoiceList
-              value={data.technique_confidence}
+              value={
+                data.technique_confidence
+              }
               onChange={(v) =>
-                set('technique_confidence', v)
+                set(
+                  'technique_confidence',
+                  v
+                )
               }
               options={[
                 {
@@ -1320,25 +1607,36 @@ export default function Onboarding() {
               ]}
             />
 
-            <SubTitle>RPE / RIR</SubTitle>
+            <SubTitle>
+              RPE / RIR
+            </SubTitle>
 
             <ChoiceList
-              value={data.rir_familiarity}
+              value={
+                data.rir_familiarity
+              }
               onChange={(v) =>
-                set('rir_familiarity', v)
+                set(
+                  'rir_familiarity',
+                  v
+                )
               }
               options={[
                 {
-                  label: 'Je ne connais pas',
+                  label:
+                    'Je ne connais pas',
                   value: 'none',
                 },
                 {
-                  label: 'J’en ai entendu parler',
+                  label:
+                    'J’en ai entendu parler',
                   value: 'basic',
                 },
                 {
-                  label: 'Je sais les utiliser',
-                  value: 'comfortable',
+                  label:
+                    'Je sais les utiliser',
+                  value:
+                    'comfortable',
                 },
               ]}
             />
@@ -1364,13 +1662,17 @@ export default function Onboarding() {
               description="On construit autour de ta vraie semaine, pas autour d'une semaine parfaite."
             />
 
-            <SubTitle>SÉANCES PAR SEMAINE</SubTitle>
+            <SubTitle>
+              SÉANCES PAR SEMAINE
+            </SubTitle>
 
             <MultiChoice
               columns={5}
               values={
                 data.sessions_per_week
-                  ? [data.sessions_per_week]
+                  ? [
+                      data.sessions_per_week,
+                    ]
                   : []
               }
               onChange={(v) =>
@@ -1379,19 +1681,25 @@ export default function Onboarding() {
                   v.at(-1) || ''
                 )
               }
-              options={[2, 3, 4, 5, 6].map((n) => ({
+              options={[
+                2, 3, 4, 5, 6,
+              ].map((n) => ({
                 label: String(n),
                 value: String(n),
               }))}
             />
 
-            <SubTitle>DURÉE PAR SÉANCE</SubTitle>
+            <SubTitle>
+              DURÉE PAR SÉANCE
+            </SubTitle>
 
             <MultiChoice
               columns={3}
               values={
                 data.session_length_min
-                  ? [data.session_length_min]
+                  ? [
+                      data.session_length_min,
+                    ]
                   : []
               }
               onChange={(v) =>
@@ -1400,39 +1708,65 @@ export default function Onboarding() {
                   v.at(-1) || ''
                 )
               }
-              options={[30, 45, 60, 75, 90].map(
-                (n) => ({
-                  label: `${n} min`,
-                  value: String(n),
-                })
-              )}
+              options={[
+                30, 45, 60, 75, 90,
+              ].map((n) => ({
+                label: `${n} min`,
+                value: String(n),
+              }))}
             />
 
-            <SubTitle>JOURS DISPONIBLES</SubTitle>
+            <SubTitle>
+              JOURS DISPONIBLES
+            </SubTitle>
 
-            {/* CORRECTION :
-                l'utilisateur voit LUN/MAR/MER...
-                mais la valeur interne est 1/2/3... */}
             <MultiChoice
-              values={data.available_days}
+              values={
+                data.available_days
+              }
               onChange={(v) =>
-                set('available_days', v)
+                set(
+                  'available_days',
+                  v
+                )
               }
               options={[
-                { label: 'LUN', value: '1' },
-                { label: 'MAR', value: '2' },
-                { label: 'MER', value: '3' },
-                { label: 'JEU', value: '4' },
-                { label: 'VEN', value: '5' },
-                { label: 'SAM', value: '6' },
-                { label: 'DIM', value: '7' },
+                {
+                  label: 'LUN',
+                  value: '1',
+                },
+                {
+                  label: 'MAR',
+                  value: '2',
+                },
+                {
+                  label: 'MER',
+                  value: '3',
+                },
+                {
+                  label: 'JEU',
+                  value: '4',
+                },
+                {
+                  label: 'VEN',
+                  value: '5',
+                },
+                {
+                  label: 'SAM',
+                  value: '6',
+                },
+                {
+                  label: 'DIM',
+                  value: '7',
+                },
               ]}
             />
 
             {nav(
               !data.sessions_per_week ||
                 !data.session_length_min ||
-                data.available_days.length === 0
+                data.available_days
+                  .length === 0
             )}
           </div>
         )}
@@ -1457,10 +1791,13 @@ export default function Onboarding() {
 
             <ChoiceList
               value={data.location}
-              onChange={(v) => set('location', v)}
+              onChange={(v) =>
+                set('location', v)
+              }
               options={[
                 {
-                  label: 'Salle de sport',
+                  label:
+                    'Salle de sport',
                   icon: Building2,
                 },
                 {
@@ -1472,7 +1809,8 @@ export default function Onboarding() {
                   icon: Trees,
                 },
                 {
-                  label: 'Plusieurs lieux',
+                  label:
+                    'Plusieurs lieux',
                   icon: MapPin,
                 },
               ]}
@@ -1484,24 +1822,50 @@ export default function Onboarding() {
 
             <MultiChoice
               values={data.equipment}
-              onChange={(v) => set('equipment', v)}
+              onChange={(v) =>
+                set('equipment', v)
+              }
               options={[
-                { label: 'Machines' },
-                { label: 'Haltères' },
-                { label: 'Barre + disques' },
-                { label: 'Rack' },
-                { label: 'Banc' },
-                { label: 'Poulies' },
-                { label: 'Kettlebells' },
-                { label: 'Élastiques' },
-                { label: 'Poids du corps' },
-                { label: 'Cardio' },
+                {
+                  label: 'Machines',
+                },
+                {
+                  label: 'Haltères',
+                },
+                {
+                  label:
+                    'Barre + disques',
+                },
+                {
+                  label: 'Rack',
+                },
+                {
+                  label: 'Banc',
+                },
+                {
+                  label: 'Poulies',
+                },
+                {
+                  label:
+                    'Kettlebells',
+                },
+                {
+                  label: 'Élastiques',
+                },
+                {
+                  label:
+                    'Poids du corps',
+                },
+                {
+                  label: 'Cardio',
+                },
               ]}
             />
 
             {nav(
               !data.location ||
-                data.equipment.length === 0
+                data.equipment.length ===
+                  0
             )}
           </div>
         )}
@@ -1525,17 +1889,38 @@ export default function Onboarding() {
             </SubTitle>
 
             <MultiChoice
-              values={data.training_preferences}
+              values={
+                data.training_preferences
+              }
               onChange={(v) =>
-                set('training_preferences', v)
+                set(
+                  'training_preferences',
+                  v
+                )
               }
               options={[
-                { label: 'Machines' },
-                { label: 'Poids libres' },
-                { label: 'Exercices simples' },
-                { label: 'Séances intenses' },
-                { label: 'Circuits' },
-                { label: 'Travail de force' },
+                {
+                  label: 'Machines',
+                },
+                {
+                  label:
+                    'Poids libres',
+                },
+                {
+                  label:
+                    'Exercices simples',
+                },
+                {
+                  label:
+                    'Séances intenses',
+                },
+                {
+                  label: 'Circuits',
+                },
+                {
+                  label:
+                    'Travail de force',
+                },
               ]}
             />
 
@@ -1544,19 +1929,41 @@ export default function Onboarding() {
             </SubTitle>
 
             <MultiChoice
-              values={data.body_priorities}
+              values={
+                data.body_priorities
+              }
               onChange={(v) =>
-                set('body_priorities', v)
+                set(
+                  'body_priorities',
+                  v
+                )
               }
               options={[
-                { label: 'Pectoraux' },
-                { label: 'Dos' },
-                { label: 'Épaules' },
-                { label: 'Bras' },
-                { label: 'Fessiers' },
-                { label: 'Jambes' },
-                { label: 'Abdos' },
-                { label: 'Aucune priorité' },
+                {
+                  label: 'Pectoraux',
+                },
+                {
+                  label: 'Dos',
+                },
+                {
+                  label: 'Épaules',
+                },
+                {
+                  label: 'Bras',
+                },
+                {
+                  label: 'Fessiers',
+                },
+                {
+                  label: 'Jambes',
+                },
+                {
+                  label: 'Abdos',
+                },
+                {
+                  label:
+                    'Aucune priorité',
+                },
               ]}
             />
 
@@ -1565,9 +1972,14 @@ export default function Onboarding() {
             </SubTitle>
 
             <TextArea
-              value={data.disliked_movements}
+              value={
+                data.disliked_movements
+              }
               onChange={(v) =>
-                set('disliked_movements', v)
+                set(
+                  'disliked_movements',
+                  v
+                )
               }
               placeholder="Ex : burpees, course, squat barre..."
             />
@@ -1610,20 +2022,25 @@ export default function Onboarding() {
                   lineHeight: 1.5,
                 }}
               >
-                Cette réponse est optionnelle. En cas
-                de douleur persistante ou de problème
-                médical, demande l'avis d'un
-                professionnel qualifié.
+                Cette réponse est
+                optionnelle. En cas de
+                douleur persistante ou de
+                problème médical, demande
+                l'avis d'un professionnel
+                qualifié.
               </p>
             </div>
 
             <SubTitle optional>
-              LIMITATIONS / MOUVEMENTS À ÉVITER
+              LIMITATIONS / MOUVEMENTS À
+              ÉVITER
             </SubTitle>
 
             <TextArea
               value={data.injuries}
-              onChange={(v) => set('injuries', v)}
+              onChange={(v) =>
+                set('injuries', v)
+              }
               placeholder="Ex : éviter les impacts, gêne sur certains mouvements..."
             />
 
@@ -1650,30 +2067,45 @@ export default function Onboarding() {
             </SubTitle>
 
             <ChoiceList
-              value={data.work_activity}
+              value={
+                data.work_activity
+              }
               onChange={(v) => {
-                set('work_activity', v);
+                set(
+                  'work_activity',
+                  v
+                );
 
-                const map: Record<string, string> = {
-                  seated: 'sedentary',
-                  standing: 'lightly_active',
+                const map: Record<
+                  string,
+                  string
+                > = {
+                  seated:
+                    'sedentary',
+                  standing:
+                    'lightly_active',
                   active: 'active',
-                  physical: 'very_active',
+                  physical:
+                    'very_active',
                 };
 
                 set(
                   'activity_level',
-                  map[v] || 'lightly_active'
+                  map[v] ||
+                    'lightly_active'
                 );
               }}
               options={[
                 {
-                  label: 'Principalement assis',
+                  label:
+                    'Principalement assis',
                   value: 'seated',
-                  icon: BriefcaseBusiness,
+                  icon:
+                    BriefcaseBusiness,
                 },
                 {
-                  label: 'Souvent debout',
+                  label:
+                    'Souvent debout',
                   value: 'standing',
                   icon: Footprints,
                 },
@@ -1684,7 +2116,8 @@ export default function Onboarding() {
                   icon: Activity,
                 },
                 {
-                  label: 'Travail très physique',
+                  label:
+                    'Travail très physique',
                   value: 'physical',
                   icon: Zap,
                 },
@@ -1698,14 +2131,21 @@ export default function Onboarding() {
             <Field
               label="Pas / jour"
               value={data.daily_steps}
-              onChange={(v) => set('daily_steps', v)}
+              onChange={(v) =>
+                set(
+                  'daily_steps',
+                  v
+                )
+              }
               type="number"
               placeholder="8000"
               min="0"
               max="50000"
             />
 
-            {nav(!data.work_activity)}
+            {nav(
+              !data.work_activity
+            )}
           </div>
         )}
 
@@ -1723,11 +2163,20 @@ export default function Onboarding() {
               description="NOX utilisera ces repères comme contexte, puis apprendra de tes check-ins réels."
             />
 
-            <SubTitle>HEURES MOYENNES</SubTitle>
+            <SubTitle>
+              HEURES MOYENNES
+            </SubTitle>
 
             <ChoiceList
-              value={data.sleep_hours}
-              onChange={(v) => set('sleep_hours', v)}
+              value={
+                data.sleep_hours
+              }
+              onChange={(v) =>
+                set(
+                  'sleep_hours',
+                  v
+                )
+              }
               options={[
                 '<5',
                 '5',
@@ -1757,9 +2206,14 @@ export default function Onboarding() {
             </SubTitle>
 
             <ChoiceList
-              value={data.sleep_quality}
+              value={
+                data.sleep_quality
+              }
               onChange={(v) =>
-                set('sleep_quality', v)
+                set(
+                  'sleep_quality',
+                  v
+                )
               }
               options={[
                 {
@@ -1781,24 +2235,35 @@ export default function Onboarding() {
               ]}
             />
 
-            <SubTitle>HORAIRES</SubTitle>
+            <SubTitle>
+              HORAIRES
+            </SubTitle>
 
             <ChoiceList
-              value={data.sleep_regularity}
+              value={
+                data.sleep_regularity
+              }
               onChange={(v) =>
-                set('sleep_regularity', v)
+                set(
+                  'sleep_regularity',
+                  v
+                )
               }
               options={[
                 {
-                  label: 'Très irréguliers',
+                  label:
+                    'Très irréguliers',
                   value: 'irregular',
                 },
                 {
-                  label: 'Assez réguliers',
-                  value: 'mostly_regular',
+                  label:
+                    'Assez réguliers',
+                  value:
+                    'mostly_regular',
                 },
                 {
-                  label: 'Très réguliers',
+                  label:
+                    'Très réguliers',
                   value: 'regular',
                 },
               ]}
@@ -1826,12 +2291,19 @@ export default function Onboarding() {
               description="Stress et fatigue peuvent changer ce qui est récupérable, même avec un bon programme."
             />
 
-            <SubTitle>STRESS HABITUEL</SubTitle>
+            <SubTitle>
+              STRESS HABITUEL
+            </SubTitle>
 
             <ChoiceList
-              value={data.stress_level}
+              value={
+                data.stress_level
+              }
               onChange={(v) =>
-                set('stress_level', v)
+                set(
+                  'stress_level',
+                  v
+                )
               }
               options={[
                 {
@@ -1847,7 +2319,8 @@ export default function Onboarding() {
                   value: 'high',
                 },
                 {
-                  label: 'Très élevé',
+                  label:
+                    'Très élevé',
                   value: 'very_high',
                 },
               ]}
@@ -1858,9 +2331,14 @@ export default function Onboarding() {
             </SubTitle>
 
             <ChoiceList
-              value={data.usual_fatigue}
+              value={
+                data.usual_fatigue
+              }
               onChange={(v) =>
-                set('usual_fatigue', v)
+                set(
+                  'usual_fatigue',
+                  v
+                )
               }
               options={[
                 {
@@ -1872,20 +2350,27 @@ export default function Onboarding() {
                   value: 'normal',
                 },
                 {
-                  label: 'Souvent fatigué',
+                  label:
+                    'Souvent fatigué',
                   value: 'high',
                 },
               ]}
             />
 
             <SubTitle>
-              RÉCUPÉRATION ENTRE LES SÉANCES
+              RÉCUPÉRATION ENTRE LES
+              SÉANCES
             </SubTitle>
 
             <ChoiceList
-              value={data.recovery_quality}
+              value={
+                data.recovery_quality
+              }
               onChange={(v) =>
-                set('recovery_quality', v)
+                set(
+                  'recovery_quality',
+                  v
+                )
               }
               options={[
                 {
@@ -1931,12 +2416,27 @@ export default function Onboarding() {
 
             <ChoiceList
               value={data.diet_type}
-              onChange={(v) => set('diet_type', v)}
+              onChange={(v) =>
+                set(
+                  'diet_type',
+                  v
+                )
+              }
               options={[
-                { label: 'Omnivore' },
-                { label: 'Végétarienne' },
-                { label: 'Végétalienne' },
-                { label: 'Autre' },
+                {
+                  label: 'Omnivore',
+                },
+                {
+                  label:
+                    'Végétarienne',
+                },
+                {
+                  label:
+                    'Végétalienne',
+                },
+                {
+                  label: 'Autre',
+                },
               ]}
             />
 
@@ -1945,26 +2445,48 @@ export default function Onboarding() {
             </SubTitle>
 
             <ChoiceList
-              value={data.diet_description}
+              value={
+                data.diet_description
+              }
               onChange={(v) =>
-                set('diet_description', v)
+                set(
+                  'diet_description',
+                  v
+                )
               }
               options={[
-                { label: 'Très structurée' },
-                { label: 'Plutôt correcte' },
-                { label: 'Irrégulière' },
-                { label: 'Je ne sais pas vraiment' },
+                {
+                  label:
+                    'Très structurée',
+                },
+                {
+                  label:
+                    'Plutôt correcte',
+                },
+                {
+                  label: 'Irrégulière',
+                },
+                {
+                  label:
+                    'Je ne sais pas vraiment',
+                },
               ]}
             />
 
             <SubTitle optional>
-              ALLERGIES, INTOLÉRANCES OU ALIMENTS EXCLUS
+              ALLERGIES, INTOLÉRANCES OU
+              ALIMENTS EXCLUS
             </SubTitle>
 
             <TextArea
-              value={data.dietary_exclusions}
+              value={
+                data.dietary_exclusions
+              }
               onChange={(v) =>
-                set('dietary_exclusions', v)
+                set(
+                  'dietary_exclusions',
+                  v
+                )
               }
               placeholder="Uniquement si tu souhaites les renseigner."
             />
@@ -1990,28 +2512,46 @@ export default function Onboarding() {
               description="Organisation, budget et difficulté principale permettent des recommandations plus réalistes."
             />
 
-            <SubTitle>REPAS PAR JOUR</SubTitle>
+            <SubTitle>
+              REPAS PAR JOUR
+            </SubTitle>
 
             <ChoiceList
-              value={data.meals_per_day}
-              onChange={(v) =>
-                set('meals_per_day', v)
+              value={
+                data.meals_per_day
               }
-              options={[2, 3, 4, 5].map((n) => ({
+              onChange={(v) =>
+                set(
+                  'meals_per_day',
+                  v
+                )
+              }
+              options={[
+                2, 3, 4, 5,
+              ].map((n) => ({
                 label: `${n} repas`,
                 value: String(n),
               }))}
             />
 
-            <SubTitle>CUISINE</SubTitle>
+            <SubTitle>
+              CUISINE
+            </SubTitle>
 
             <ChoiceList
-              value={data.cooking_frequency}
+              value={
+                data.cooking_frequency
+              }
               onChange={(v) =>
-                set('cooking_frequency', v)
+                set(
+                  'cooking_frequency',
+                  v
+                )
               }
               options={[
-                { label: 'Rarement' },
+                {
+                  label: 'Rarement',
+                },
                 {
                   label:
                     'Quelques fois par semaine',
@@ -2028,13 +2568,23 @@ export default function Onboarding() {
             </SubTitle>
 
             <ChoiceList
-              value={data.eating_out_frequency}
+              value={
+                data.eating_out_frequency
+              }
               onChange={(v) =>
-                set('eating_out_frequency', v)
+                set(
+                  'eating_out_frequency',
+                  v
+                )
               }
               options={[
-                { label: 'Rarement' },
-                { label: '1–2 fois / semaine' },
+                {
+                  label: 'Rarement',
+                },
+                {
+                  label:
+                    '1–2 fois / semaine',
+                },
                 {
                   label:
                     '3 fois ou plus / semaine',
@@ -2047,14 +2597,26 @@ export default function Onboarding() {
             </SubTitle>
 
             <ChoiceList
-              value={data.food_budget}
+              value={
+                data.food_budget
+              }
               onChange={(v) =>
-                set('food_budget', v)
+                set(
+                  'food_budget',
+                  v
+                )
               }
               options={[
-                { label: 'Économique' },
-                { label: 'Modéré' },
-                { label: 'Flexible' },
+                {
+                  label:
+                    'Économique',
+                },
+                {
+                  label: 'Modéré',
+                },
+                {
+                  label: 'Flexible',
+                },
                 {
                   label:
                     'Je préfère ne pas répondre',
@@ -2067,13 +2629,23 @@ export default function Onboarding() {
             </SubTitle>
 
             <ChoiceList
-              value={data.nutrition_tracking}
+              value={
+                data.nutrition_tracking
+              }
               onChange={(v) =>
-                set('nutrition_tracking', v)
+                set(
+                  'nutrition_tracking',
+                  v
+                )
               }
               options={[
-                { label: 'Je ne suis rien' },
-                { label: 'Je débute' },
+                {
+                  label:
+                    'Je ne suis rien',
+                },
+                {
+                  label: 'Je débute',
+                },
                 {
                   label:
                     'Je suis parfois calories/macros',
@@ -2090,27 +2662,47 @@ export default function Onboarding() {
             </SubTitle>
 
             <ChoiceList
-              value={data.nutrition_challenge}
+              value={
+                data.nutrition_challenge
+              }
               onChange={(v) =>
-                set('nutrition_challenge', v)
+                set(
+                  'nutrition_challenge',
+                  v
+                )
               }
               options={[
-                { label: 'La faim' },
-                { label: 'Le grignotage' },
-                { label: 'Les portions' },
+                {
+                  label: 'La faim',
+                },
+                {
+                  label:
+                    'Le grignotage',
+                },
+                {
+                  label:
+                    'Les portions',
+                },
                 {
                   label:
                     'Atteindre mes protéines',
                 },
                 {
-                  label: 'Le manque de temps',
+                  label:
+                    'Le manque de temps',
                 },
-                { label: 'L’organisation' },
+                {
+                  label:
+                    'L’organisation',
+                },
                 {
                   label:
                     'Les repas à l’extérieur',
                 },
-                { label: 'Rester régulier' },
+                {
+                  label:
+                    'Rester régulier',
+                },
               ]}
             />
 
@@ -2143,17 +2735,36 @@ export default function Onboarding() {
             </SubTitle>
 
             <ChoiceList
-              value={data.cardio_preference}
+              value={
+                data.cardio_preference
+              }
               onChange={(v) =>
-                set('cardio_preference', v)
+                set(
+                  'cardio_preference',
+                  v
+                )
               }
               options={[
-                { label: 'Marche' },
-                { label: 'Course' },
-                { label: 'Vélo' },
-                { label: 'Escaliers / stepper' },
-                { label: 'Rameur' },
-                { label: 'Pas de préférence' },
+                {
+                  label: 'Marche',
+                },
+                {
+                  label: 'Course',
+                },
+                {
+                  label: 'Vélo',
+                },
+                {
+                  label:
+                    'Escaliers / stepper',
+                },
+                {
+                  label: 'Rameur',
+                },
+                {
+                  label:
+                    'Pas de préférence',
+                },
               ]}
             />
 
@@ -2162,14 +2773,27 @@ export default function Onboarding() {
             </SubTitle>
 
             <ChoiceList
-              value={data.cardio_frequency}
+              value={
+                data.cardio_frequency
+              }
               onChange={(v) =>
-                set('cardio_frequency', v)
+                set(
+                  'cardio_frequency',
+                  v
+                )
               }
               options={[
-                { label: 'Aucun' },
-                { label: '1 fois / semaine' },
-                { label: '2–3 fois / semaine' },
+                {
+                  label: 'Aucun',
+                },
+                {
+                  label:
+                    '1 fois / semaine',
+                },
+                {
+                  label:
+                    '2–3 fois / semaine',
+                },
                 {
                   label:
                     '4 fois ou plus / semaine',
@@ -2178,21 +2802,29 @@ export default function Onboarding() {
             />
 
             <SubTitle>
-              CE QUI TE FAIT LE PLUS SOUVENT DÉCROCHER
+              CE QUI TE FAIT LE PLUS
+              SOUVENT DÉCROCHER
             </SubTitle>
 
             <ChoiceList
-              value={data.dropout_reason}
+              value={
+                data.dropout_reason
+              }
               onChange={(v) =>
-                set('dropout_reason', v)
+                set(
+                  'dropout_reason',
+                  v
+                )
               }
               options={[
                 {
-                  label: 'Le manque de temps',
+                  label:
+                    'Le manque de temps',
                   icon: Clock3,
                 },
                 {
-                  label: 'La motivation',
+                  label:
+                    'La motivation',
                   icon: Flame,
                 },
                 {
@@ -2201,11 +2833,13 @@ export default function Onboarding() {
                   icon: Gauge,
                 },
                 {
-                  label: 'L’alimentation',
+                  label:
+                    'L’alimentation',
                   icon: Utensils,
                 },
                 {
-                  label: 'La fatigue',
+                  label:
+                    'La fatigue',
                   icon: Moon,
                 },
                 {
@@ -2221,14 +2855,20 @@ export default function Onboarding() {
             </SubTitle>
 
             <ChoiceList
-              value={data.coaching_style}
+              value={
+                data.coaching_style
+              }
               onChange={(v) =>
-                set('coaching_style', v)
+                set(
+                  'coaching_style',
+                  v
+                )
               }
               compact={false}
               options={[
                 {
-                  label: 'Encourageant',
+                  label:
+                    'Encourageant',
                   value: 'supportive',
                   desc: 'Positif, rassurant, sans pression inutile',
                 },
@@ -2267,24 +2907,46 @@ export default function Onboarding() {
               </div>
 
               {[
-                ['Objectif', data.goal],
-                ['Niveau', data.experience_level],
+                [
+                  'Objectif',
+                  data.goal,
+                ],
+                [
+                  'Niveau',
+                  data.experience_level,
+                ],
                 [
                   'Rythme',
-                  `${data.sessions_per_week || '—'} séances · ${
-                    data.session_length_min || '—'
+                  `${
+                    data.sessions_per_week ||
+                    '—'
+                  } séances · ${
+                    data.session_length_min ||
+                    '—'
                   } min`,
                 ],
-                ['Lieu', data.location],
-                ['Activité', data.work_activity],
+                [
+                  'Lieu',
+                  data.location,
+                ],
+                [
+                  'Activité',
+                  data.work_activity,
+                ],
                 [
                   'Sommeil',
                   data.sleep_hours
                     ? `${data.sleep_hours} h`
                     : '—',
                 ],
-                ['Nutrition', data.diet_type],
-                ['Coaching', data.coaching_style],
+                [
+                  'Nutrition',
+                  data.diet_type,
+                ],
+                [
+                  'Coaching',
+                  data.coaching_style,
+                ],
               ].map(([k, v]) => (
                 <div
                   key={k}
@@ -2325,9 +2987,11 @@ export default function Onboarding() {
                 role="alert"
                 style={{
                   marginTop: 18,
-                  padding: '14px 16px',
+                  padding:
+                    '14px 16px',
                   borderRadius: 16,
-                  background: '#FFF3F2',
+                  background:
+                    '#FFF3F2',
                   border:
                     '1px solid #FFD0CD',
                   color: '#D92D20',
@@ -2348,7 +3012,8 @@ export default function Onboarding() {
 
             <p
               style={{
-                margin: '17px auto 0',
+                margin:
+                  '17px auto 0',
                 maxWidth: 390,
                 textAlign: 'center',
                 color: '#AAA',
@@ -2357,11 +3022,14 @@ export default function Onboarding() {
                 fontWeight: 650,
               }}
             >
-              NOX utilise ces informations pour
-              personnaliser ton entraînement, ta
-              nutrition et ton accompagnement. Les
-              estimations évolueront ensuite avec tes
-              données réelles.
+              NOX utilise ces
+              informations pour
+              personnaliser ton
+              entraînement, ta nutrition
+              et ton accompagnement. Les
+              estimations évolueront
+              ensuite avec tes données
+              réelles.
             </p>
           </div>
         )}
