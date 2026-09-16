@@ -728,18 +728,32 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
           <div style={{ position: 'absolute', right: 12, top: 20, maxWidth: 118, background: '#F0FFD0', borderRadius: '18px 18px 18px 5px', padding: '9px 10px', fontSize: 9.5, fontWeight: 900, lineHeight: 1.15 }}>Chaque rep te rapproche de ton objectif !</div>
         </div>
 
-        {/* Démo — le clic ouvre une démo NOX native, sans Vimeo */}
+        {/* Aperçu DÉMO NOX — même identité visuelle que la fiche complète. */}
         <button onClick={() => setShowDemo(true)} aria-label={`Voir la démonstration de ${ex?.name || 'cet exercice'}`}
-          style={{ position: 'relative', width: '100%', border: 0, padding: 0, borderRadius: 22, overflow: 'hidden', background: '#F0F0EC', cursor: 'pointer', marginBottom: 10, textAlign: 'left' }}>
-          {media?.image ? <img src={media.image} alt="" style={{ width: '100%', height: 232, objectFit: 'cover', display: 'block' }} /> :
-            <div style={{ height: 232, display: 'grid', placeItems: 'center', fontWeight: 1000, color: '#AAA' }}>NOX EXERCISE</div>}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 48%,rgba(0,0,0,.55))' }} />
-          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 66, height: 66, borderRadius: '50%', background: '#fff', display: 'grid', placeItems: 'center', color: '#111', fontSize: 26, boxShadow: '0 8px 25px rgba(0,0,0,.18)' }}>▶</div>
-          <div style={{ position: 'absolute', left: 14, bottom: 14, background: '#111', color: '#fff', borderRadius: 999, padding: '10px 14px', fontSize: 11.5, fontWeight: 950 }}>● &nbsp; VOIR LA DÉMO</div>
+          style={{ width: '100%', border: '1px solid #E7E7E2', padding: 0, borderRadius: 24, overflow: 'hidden', background: '#fff', cursor: 'pointer', marginBottom: 12, textAlign: 'left', boxShadow: '0 8px 24px rgba(0,0,0,.045)' }}>
+          <div style={{ position: 'relative', background: '#F7F7F4' }}>
+            {media?.image ? <img src={media.image} alt={`Aperçu ${ex?.name || 'exercice'}`} style={{ width: '100%', height: 244, objectFit: 'cover', display: 'block' }} /> :
+              <div style={{ height: 244, display: 'grid', placeItems: 'center', fontWeight: 1000, color: '#AAA' }}>NOX EXERCISE</div>}
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 58%,rgba(0,0,0,.58))' }} />
+            <div style={{ position: 'absolute', left: 14, top: 14, background: ACCENT, color: '#111', borderRadius: 999, padding: '7px 11px', fontSize: 9.5, fontWeight: 1000, letterSpacing: '.04em' }}>DÉMO NOX</div>
+            <div style={{ position: 'absolute', right: 14, bottom: 14, width: 52, height: 52, borderRadius: '50%', background: '#fff', display: 'grid', placeItems: 'center', color: '#111', fontSize: 20, boxShadow: '0 7px 20px rgba(0,0,0,.2)' }}>▶</div>
+            <div style={{ position: 'absolute', left: 14, bottom: 16, right: 80, color: '#fff' }}>
+              <div style={{ fontSize: 16, fontWeight: 1000, lineHeight: 1.05 }}>{ex?.name}</div>
+              <div style={{ marginTop: 5, fontSize: 10.5, fontWeight: 800, opacity: .9 }}>Voir mouvement · muscles · conseils</div>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0, padding: '11px 8px 12px', background: '#fff' }}>
+            {demoSteps(ex).map((step, i) => (
+              <div key={step.title} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 6px', minWidth: 0, borderLeft: i ? '1px solid #ECECE7' : 'none' }}>
+                <span style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', background: i === 1 ? ACCENT : '#F0F0ED', color: '#111', fontSize: 10.5, fontWeight: 1000 }}>{i + 1}</span>
+                <span style={{ minWidth: 0, fontSize: 9.5, lineHeight: 1.1, color: '#111', fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis' }}>{step.title}</span>
+              </div>
+            ))}
+          </div>
         </button>
 
         {tags.length > 0 && <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 15 }}>
-          {tags.map(tag => <span key={tag} style={{ padding: '7px 11px', background: '#F1F1EE', borderRadius: 999, color: '#55554F', fontSize: 10.5, fontWeight: 800 }}>{tag}</span>)}
+          {tags.map((tag, i) => <span key={tag} style={{ padding: '7px 11px', background: i === 0 ? '#F3FFE1' : '#F1F1EE', border: i === 0 ? `1px solid ${ACCENT}` : '1px solid transparent', borderRadius: 999, color: '#55554F', fontSize: 10.5, fontWeight: 800 }}>{tag}</span>)}
         </div>}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '14px 16px', borderRadius: 20, background: '#F5FFE3', marginBottom: 17 }}>
