@@ -1127,12 +1127,22 @@ function buildExercise(base: CatalogExercise): NoxExercise {
     variants: override.variants || defaults.variants,
 
     /*
-     * Aucun faux visuel.
+     * Asset NOX résolu directement depuis l'exercise_id canonique.
      *
-     * Quand les véritables assets DÉMO NOX seront ajoutés,
-     * ils seront renseignés ici par exercise_id.
+     * Chaque exercice possède son fichier :
+     * /public/exercises/<exercise_id>.webp
+     *
+     * On renseigne uniquement thumbnail + position1 pour l'instant.
+     * position2/position3 restent volontairement absents afin que
+     * hasCompleteNoxDemo() ne déclare pas une fausse démo 3 positions.
+     *
+     * Un override spécifique peut toujours remplacer ces valeurs plus tard.
      */
-    visuals: override.visuals || {},
+    visuals: {
+      thumbnail: `/exercises/${base.id}.webp`,
+      position1: `/exercises/${base.id}.webp`,
+      ...(override.visuals || {}),
+    },
   };
 }
 
