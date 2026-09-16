@@ -698,11 +698,10 @@ function ExerciseListRow({
       }}
     >
       {thumbnail ? (
-        <img
+        <NoxExerciseImage
           src={thumbnail}
           alt={`Aperçu ${nox?.name || exercise.name}`}
-          loading="lazy"
-          style={{ width: 64, height: 58, objectFit: 'cover', borderRadius: 9, background: '#F0F0EC' }}
+          compact
         />
       ) : (
         <NoxExerciseFallback compact />
@@ -762,10 +761,9 @@ function ExerciseDetail({
 
         <div style={{ marginTop: 18, borderRadius: 14, overflow: 'hidden', background: '#F1F1ED' }}>
           {thumbnail ? (
-            <img
+            <NoxExerciseImage
               src={thumbnail}
               alt={`Démonstration ${displayName}`}
-              style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', display: 'block' }}
             />
           ) : (
             <NoxExerciseFallback />
@@ -820,6 +818,40 @@ function ExerciseDetail({
   );
 }
 
+
+function NoxExerciseImage({
+  src,
+  alt,
+  compact = false,
+}: {
+  src: string;
+  alt: string;
+  compact?: boolean;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  if (!src || failed) {
+    return <NoxExerciseFallback compact={compact} />;
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      style={
+        compact
+          ? { width: 64, height: 58, objectFit: 'cover', borderRadius: 9, background: '#F0F0EC', display: 'block' }
+          : { width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', display: 'block' }
+      }
+    />
+  );
+}
 
 function NoxExerciseFallback({ compact = false }: { compact?: boolean }) {
   if (compact) {
