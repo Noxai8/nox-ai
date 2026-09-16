@@ -26,6 +26,185 @@ const DAY_LABELS: Record<number, string> = {
   7: 'DIM',
 };
 
+
+
+type NoxExercise = {
+  id: string;
+  name: string;
+  category: 'push' | 'pull' | 'legs' | 'core' | 'conditioning';
+  equipment: string;
+};
+
+const NOX_EXERCISE_LIBRARY: NoxExercise[] = [
+  { id: 'barbell_bench_press', name: 'Développé couché barre', category: 'push', equipment: 'barre' },
+  { id: 'incline_barbell_bench_press', name: 'Développé incliné barre', category: 'push', equipment: 'barre' },
+  { id: 'decline_barbell_bench_press', name: 'Développé décliné barre', category: 'push', equipment: 'barre' },
+  { id: 'close_grip_bench_press', name: 'Développé couché prise serrée', category: 'push', equipment: 'barre' },
+  { id: 'barbell_overhead_press', name: 'Développé militaire barre', category: 'push', equipment: 'barre' },
+  { id: 'push_press', name: 'Push Press', category: 'push', equipment: 'barre' },
+  { id: 'dumbbell_bench_press', name: 'Développé couché haltères', category: 'push', equipment: 'haltères' },
+  { id: 'incline_dumbbell_bench_press', name: 'Développé incliné haltères', category: 'push', equipment: 'haltères' },
+  { id: 'decline_dumbbell_bench_press', name: 'Développé décliné haltères', category: 'push', equipment: 'haltères' },
+  { id: 'dumbbell_overhead_press', name: 'Développé militaire haltères', category: 'push', equipment: 'haltères' },
+  { id: 'arnold_press', name: 'Arnold Press', category: 'push', equipment: 'haltères' },
+  { id: 'dumbbell_lateral_raise', name: 'Élévations latérales haltères', category: 'push', equipment: 'haltères' },
+  { id: 'dumbbell_front_raise', name: 'Élévations frontales haltères', category: 'push', equipment: 'haltères' },
+  { id: 'dumbbell_fly', name: 'Écarté couché haltères', category: 'push', equipment: 'haltères' },
+  { id: 'incline_dumbbell_fly', name: 'Écarté incliné haltères', category: 'push', equipment: 'haltères' },
+  { id: 'dumbbell_triceps_extension', name: 'Extension triceps haltère au-dessus de la tête', category: 'push', equipment: 'haltères' },
+  { id: 'dumbbell_skull_crusher', name: 'Extension triceps couché haltères', category: 'push', equipment: 'haltères' },
+  { id: 'dumbbell_kickback', name: 'Kickback triceps haltère', category: 'push', equipment: 'haltères' },
+  { id: 'cable_chest_fly', name: 'Écarté poulie vis-à-vis', category: 'push', equipment: 'poulie' },
+  { id: 'high_to_low_cable_fly', name: 'Écarté poulie haute vers basse', category: 'push', equipment: 'poulie' },
+  { id: 'low_to_high_cable_fly', name: 'Écarté poulie basse vers haute', category: 'push', equipment: 'poulie' },
+  { id: 'cable_lateral_raise', name: 'Élévation latérale poulie', category: 'push', equipment: 'poulie' },
+  { id: 'cable_front_raise', name: 'Élévation frontale poulie', category: 'push', equipment: 'poulie' },
+  { id: 'rope_triceps_pushdown', name: 'Extension triceps corde', category: 'push', equipment: 'poulie' },
+  { id: 'bar_triceps_pushdown', name: 'Extension triceps barre poulie', category: 'push', equipment: 'poulie' },
+  { id: 'cable_overhead_triceps_extension', name: 'Extension triceps poulie au-dessus de la tête', category: 'push', equipment: 'poulie' },
+  { id: 'machine_chest_press', name: 'Chest Press machine', category: 'push', equipment: 'machine' },
+  { id: 'incline_machine_press', name: 'Développé incliné machine', category: 'push', equipment: 'machine' },
+  { id: 'pec_deck', name: 'Pec Deck', category: 'push', equipment: 'machine' },
+  { id: 'machine_shoulder_press', name: 'Développé épaules machine', category: 'push', equipment: 'machine' },
+  { id: 'machine_lateral_raise', name: 'Élévation latérale machine', category: 'push', equipment: 'machine' },
+  { id: 'assisted_dip', name: 'Dips assistés', category: 'push', equipment: 'machine' },
+  { id: 'push_up', name: 'Pompes', category: 'push', equipment: 'poids du corps' },
+  { id: 'incline_push_up', name: 'Pompes inclinées', category: 'push', equipment: 'poids du corps' },
+  { id: 'decline_push_up', name: 'Pompes déclinées', category: 'push', equipment: 'poids du corps' },
+  { id: 'diamond_push_up', name: 'Pompes diamant', category: 'push', equipment: 'poids du corps' },
+  { id: 'dip', name: 'Dips', category: 'push', equipment: 'poids du corps' },
+  { id: 'barbell_bent_over_row', name: 'Rowing barre buste penché', category: 'pull', equipment: 'barre' },
+  { id: 'pendlay_row', name: 'Rowing Pendlay', category: 'pull', equipment: 'barre' },
+  { id: 'underhand_barbell_row', name: 'Rowing barre supination', category: 'pull', equipment: 'barre' },
+  { id: 'barbell_shrug', name: 'Shrugs barre', category: 'pull', equipment: 'barre' },
+  { id: 'barbell_curl', name: 'Curl barre', category: 'pull', equipment: 'barre' },
+  { id: 'ez_bar_curl', name: 'Curl barre EZ', category: 'pull', equipment: 'barre' },
+  { id: 'reverse_barbell_curl', name: 'Curl inversé barre', category: 'pull', equipment: 'barre' },
+  { id: 'one_arm_dumbbell_row', name: 'Rowing haltère unilatéral', category: 'pull', equipment: 'haltères' },
+  { id: 'chest_supported_dumbbell_row', name: 'Rowing haltères poitrine appuyée', category: 'pull', equipment: 'haltères' },
+  { id: 'dumbbell_shrug', name: 'Shrugs haltères', category: 'pull', equipment: 'haltères' },
+  { id: 'dumbbell_pullover', name: 'Pull-over haltère', category: 'pull', equipment: 'haltères' },
+  { id: 'dumbbell_curl', name: 'Curl haltères', category: 'pull', equipment: 'haltères' },
+  { id: 'alternating_dumbbell_curl', name: 'Curl haltères alterné', category: 'pull', equipment: 'haltères' },
+  { id: 'hammer_curl', name: 'Curl marteau', category: 'pull', equipment: 'haltères' },
+  { id: 'incline_dumbbell_curl', name: 'Curl incliné haltères', category: 'pull', equipment: 'haltères' },
+  { id: 'concentration_curl', name: 'Curl concentration', category: 'pull', equipment: 'haltères' },
+  { id: 'reverse_fly_dumbbell', name: 'Oiseau haltères', category: 'pull', equipment: 'haltères' },
+  { id: 'lat_pulldown', name: 'Tirage vertical poitrine', category: 'pull', equipment: 'poulie' },
+  { id: 'close_grip_lat_pulldown', name: 'Tirage vertical prise serrée', category: 'pull', equipment: 'poulie' },
+  { id: 'neutral_grip_lat_pulldown', name: 'Tirage vertical prise neutre', category: 'pull', equipment: 'poulie' },
+  { id: 'straight_arm_pulldown', name: 'Pull-over poulie bras tendus', category: 'pull', equipment: 'poulie' },
+  { id: 'seated_cable_row', name: 'Tirage horizontal poulie', category: 'pull', equipment: 'poulie' },
+  { id: 'wide_grip_cable_row', name: 'Tirage horizontal prise large', category: 'pull', equipment: 'poulie' },
+  { id: 'single_arm_cable_row', name: 'Tirage horizontal unilatéral poulie', category: 'pull', equipment: 'poulie' },
+  { id: 'face_pull', name: 'Face Pull', category: 'pull', equipment: 'poulie' },
+  { id: 'cable_reverse_fly', name: 'Oiseau poulie', category: 'pull', equipment: 'poulie' },
+  { id: 'cable_curl', name: 'Curl poulie', category: 'pull', equipment: 'poulie' },
+  { id: 'rope_hammer_curl', name: 'Curl marteau corde', category: 'pull', equipment: 'poulie' },
+  { id: 'bayesian_curl', name: 'Curl Bayesian', category: 'pull', equipment: 'poulie' },
+  { id: 'machine_row', name: 'Rowing machine', category: 'pull', equipment: 'machine' },
+  { id: 'chest_supported_machine_row', name: 'Rowing machine poitrine appuyée', category: 'pull', equipment: 'machine' },
+  { id: 'machine_high_row', name: 'High Row machine', category: 'pull', equipment: 'machine' },
+  { id: 'reverse_pec_deck', name: 'Reverse Pec Deck', category: 'pull', equipment: 'machine' },
+  { id: 'machine_pullover', name: 'Pull-over machine', category: 'pull', equipment: 'machine' },
+  { id: 'preacher_curl_machine', name: 'Curl pupitre machine', category: 'pull', equipment: 'machine' },
+  { id: 'assisted_pull_up', name: 'Tractions assistées', category: 'pull', equipment: 'machine' },
+  { id: 'pull_up', name: 'Tractions pronation', category: 'pull', equipment: 'poids du corps' },
+  { id: 'chin_up', name: 'Tractions supination', category: 'pull', equipment: 'poids du corps' },
+  { id: 'neutral_grip_pull_up', name: 'Tractions prise neutre', category: 'pull', equipment: 'poids du corps' },
+  { id: 'inverted_row', name: 'Rowing inversé', category: 'pull', equipment: 'poids du corps' },
+  { id: 'back_squat', name: 'Squat barre arrière', category: 'legs', equipment: 'barre' },
+  { id: 'front_squat', name: 'Front Squat', category: 'legs', equipment: 'barre' },
+  { id: 'box_squat', name: 'Box Squat', category: 'legs', equipment: 'barre' },
+  { id: 'romanian_deadlift', name: 'Soulevé de terre roumain', category: 'legs', equipment: 'barre' },
+  { id: 'conventional_deadlift', name: 'Soulevé de terre conventionnel', category: 'legs', equipment: 'barre' },
+  { id: 'sumo_deadlift', name: 'Soulevé de terre sumo', category: 'legs', equipment: 'barre' },
+  { id: 'good_morning', name: 'Good Morning', category: 'legs', equipment: 'barre' },
+  { id: 'barbell_hip_thrust', name: 'Hip Thrust barre', category: 'legs', equipment: 'barre' },
+  { id: 'barbell_glute_bridge', name: 'Glute Bridge barre', category: 'legs', equipment: 'barre' },
+  { id: 'barbell_reverse_lunge', name: 'Fentes arrière barre', category: 'legs', equipment: 'barre' },
+  { id: 'goblet_squat', name: 'Goblet Squat', category: 'legs', equipment: 'haltères' },
+  { id: 'dumbbell_squat', name: 'Squat haltères', category: 'legs', equipment: 'haltères' },
+  { id: 'dumbbell_romanian_deadlift', name: 'Soulevé de terre roumain haltères', category: 'legs', equipment: 'haltères' },
+  { id: 'dumbbell_walking_lunge', name: 'Fentes marchées haltères', category: 'legs', equipment: 'haltères' },
+  { id: 'dumbbell_reverse_lunge', name: 'Fentes arrière haltères', category: 'legs', equipment: 'haltères' },
+  { id: 'bulgarian_split_squat', name: 'Bulgarian Split Squat', category: 'legs', equipment: 'haltères' },
+  { id: 'dumbbell_step_up', name: 'Step-up haltères', category: 'legs', equipment: 'haltères' },
+  { id: 'dumbbell_calf_raise', name: 'Mollets debout haltères', category: 'legs', equipment: 'haltères' },
+  { id: 'leg_press', name: 'Presse à cuisses', category: 'legs', equipment: 'machine' },
+  { id: 'hack_squat', name: 'Hack Squat', category: 'legs', equipment: 'machine' },
+  { id: 'pendulum_squat', name: 'Pendulum Squat', category: 'legs', equipment: 'machine' },
+  { id: 'leg_extension', name: 'Leg Extension', category: 'legs', equipment: 'machine' },
+  { id: 'seated_leg_curl', name: 'Leg Curl assis', category: 'legs', equipment: 'machine' },
+  { id: 'lying_leg_curl', name: 'Leg Curl allongé', category: 'legs', equipment: 'machine' },
+  { id: 'standing_leg_curl', name: 'Leg Curl debout', category: 'legs', equipment: 'machine' },
+  { id: 'hip_abduction_machine', name: 'Abduction de hanche machine', category: 'legs', equipment: 'machine' },
+  { id: 'hip_adduction_machine', name: 'Adduction de hanche machine', category: 'legs', equipment: 'machine' },
+  { id: 'glute_kickback_machine', name: 'Kickback fessier machine', category: 'legs', equipment: 'machine' },
+  { id: 'standing_calf_raise_machine', name: 'Mollets debout machine', category: 'legs', equipment: 'machine' },
+  { id: 'seated_calf_raise_machine', name: 'Mollets assis machine', category: 'legs', equipment: 'machine' },
+  { id: 'cable_pull_through', name: 'Pull Through poulie', category: 'legs', equipment: 'poulie' },
+  { id: 'cable_glute_kickback', name: 'Kickback fessier poulie', category: 'legs', equipment: 'poulie' },
+  { id: 'cable_hip_abduction', name: 'Abduction de hanche poulie', category: 'legs', equipment: 'poulie' },
+  { id: 'cable_hip_adduction', name: 'Adduction de hanche poulie', category: 'legs', equipment: 'poulie' },
+  { id: 'bodyweight_squat', name: 'Squat poids du corps', category: 'legs', equipment: 'poids du corps' },
+  { id: 'bodyweight_lunge', name: 'Fentes poids du corps', category: 'legs', equipment: 'poids du corps' },
+  { id: 'reverse_lunge', name: 'Fentes arrière poids du corps', category: 'legs', equipment: 'poids du corps' },
+  { id: 'walking_lunge', name: 'Fentes marchées poids du corps', category: 'legs', equipment: 'poids du corps' },
+  { id: 'step_up', name: 'Step-up', category: 'legs', equipment: 'poids du corps' },
+  { id: 'single_leg_glute_bridge', name: 'Glute Bridge une jambe', category: 'legs', equipment: 'poids du corps' },
+  { id: 'glute_bridge', name: 'Glute Bridge', category: 'legs', equipment: 'poids du corps' },
+  { id: 'single_leg_calf_raise', name: 'Mollets une jambe', category: 'legs', equipment: 'poids du corps' },
+  { id: 'wall_sit', name: 'Chaise au mur', category: 'legs', equipment: 'poids du corps' },
+  { id: 'plank', name: 'Planche', category: 'core', equipment: 'poids du corps' },
+  { id: 'side_plank', name: 'Planche latérale', category: 'core', equipment: 'poids du corps' },
+  { id: 'dead_bug', name: 'Dead Bug', category: 'core', equipment: 'poids du corps' },
+  { id: 'bird_dog', name: 'Bird Dog', category: 'core', equipment: 'poids du corps' },
+  { id: 'hollow_hold', name: 'Hollow Hold', category: 'core', equipment: 'poids du corps' },
+  { id: 'crunch', name: 'Crunch', category: 'core', equipment: 'poids du corps' },
+  { id: 'reverse_crunch', name: 'Crunch inversé', category: 'core', equipment: 'poids du corps' },
+  { id: 'bicycle_crunch', name: 'Bicycle Crunch', category: 'core', equipment: 'poids du corps' },
+  { id: 'mountain_climber', name: 'Mountain Climbers', category: 'core', equipment: 'poids du corps' },
+  { id: 'hanging_knee_raise', name: 'Relevé de genoux suspendu', category: 'core', equipment: 'poids du corps' },
+  { id: 'hanging_leg_raise', name: 'Relevé de jambes suspendu', category: 'core', equipment: 'poids du corps' },
+  { id: 'lying_leg_raise', name: 'Relevé de jambes au sol', category: 'core', equipment: 'poids du corps' },
+  { id: 'russian_twist', name: 'Russian Twist', category: 'core', equipment: 'poids du corps' },
+  { id: 'v_up', name: 'V-Up', category: 'core', equipment: 'poids du corps' },
+  { id: 'bear_crawl', name: 'Bear Crawl', category: 'core', equipment: 'poids du corps' },
+  { id: 'cable_crunch', name: 'Crunch poulie', category: 'core', equipment: 'poulie' },
+  { id: 'pallof_press', name: 'Pallof Press', category: 'core', equipment: 'poulie' },
+  { id: 'cable_woodchop', name: 'Woodchop poulie', category: 'core', equipment: 'poulie' },
+  { id: 'cable_rotation', name: 'Rotation du buste poulie', category: 'core', equipment: 'poulie' },
+  { id: 'ab_wheel_rollout', name: 'Ab Wheel Rollout', category: 'core', equipment: 'roue abdominale' },
+  { id: 'treadmill_walk', name: 'Marche sur tapis', category: 'conditioning', equipment: 'cardio' },
+  { id: 'incline_treadmill_walk', name: 'Marche inclinée sur tapis', category: 'conditioning', equipment: 'cardio' },
+  { id: 'treadmill_run', name: 'Course sur tapis', category: 'conditioning', equipment: 'cardio' },
+  { id: 'stationary_bike', name: 'Vélo stationnaire', category: 'conditioning', equipment: 'cardio' },
+  { id: 'rowing_ergometer', name: 'Rameur', category: 'conditioning', equipment: 'cardio' },
+  { id: 'elliptical', name: 'Vélo elliptique', category: 'conditioning', equipment: 'cardio' },
+  { id: 'stair_climber', name: 'Stair Climber', category: 'conditioning', equipment: 'cardio' },
+  { id: 'jump_rope', name: 'Corde à sauter', category: 'conditioning', equipment: 'cardio' },
+  { id: 'sled_push', name: 'Poussée de traîneau', category: 'conditioning', equipment: 'cardio' },
+  { id: 'sled_pull', name: 'Tirage de traîneau', category: 'conditioning', equipment: 'cardio' },
+  { id: 'farmers_walk', name: 'Farmer Walk', category: 'conditioning', equipment: 'cardio' },
+  { id: 'battle_rope', name: 'Battle Rope', category: 'conditioning', equipment: 'cardio' },
+];
+
+const NOX_EXERCISE_BY_ID = new Map(NOX_EXERCISE_LIBRARY.map((exercise) => [exercise.id, exercise]));
+const NOX_EXERCISE_BY_NAME = new Map(NOX_EXERCISE_LIBRARY.map((exercise) => [exercise.name.toLocaleLowerCase('fr-FR'), exercise]));
+
+const NOX_EXERCISE_CATALOG_FOR_PROMPT = NOX_EXERCISE_LIBRARY
+  .map((exercise) => `${exercise.id} | ${exercise.name} | ${exercise.category} | ${exercise.equipment}`)
+  .join('\n');
+
+function resolveNoxExercise(exercise: any): NoxExercise | null {
+  const id = typeof exercise?.exercise_id === 'string' ? exercise.exercise_id.trim() : '';
+  if (id && NOX_EXERCISE_BY_ID.has(id)) return NOX_EXERCISE_BY_ID.get(id)!;
+
+  const name = typeof exercise?.name === 'string' ? exercise.name.trim().toLocaleLowerCase('fr-FR') : '';
+  return name ? NOX_EXERCISE_BY_NAME.get(name) || null : null;
+}
+
 const VALID_DAY_LABELS = new Set([
   'LUN',
   'MAR',
@@ -233,9 +412,18 @@ function normalizeAndValidateProgram(
               );
             }
 
+            const catalogExercise = resolveNoxExercise(exercise);
+
+            if (!catalogExercise) {
+              throw new Error(`EXERCISE_NOT_IN_CATALOG:${exercise.name}`);
+            }
+
             return {
               ...exercise,
-              name: exercise.name.trim(),
+              exercise_id: catalogExercise.id,
+              name: catalogExercise.name,
+              category: catalogExercise.category,
+              equipment: catalogExercise.equipment,
               sets: String(sets),
               reps: String(exercise.reps).trim(),
               order_index: exerciseIndex + 1,
@@ -290,6 +478,10 @@ function readableGenerationError(error: unknown): string {
     return 'Un exercice généré était invalide.';
   }
 
+  if (message.startsWith('EXERCISE_NOT_IN_CATALOG:')) {
+    return 'Un exercice généré ne faisait pas partie du catalogue NOX.';
+  }
+
   if (message.startsWith('SETS_INVALID:')) {
     return 'Un exercice contenait un nombre de séries invalide.';
   }
@@ -317,6 +509,7 @@ function shouldRetryGeneration(error: unknown): boolean {
     message.startsWith('SESSION_NAME_MISSING:') ||
     message.startsWith('SESSION_EXERCISES_MISSING:') ||
     message.startsWith('EXERCISE_INVALID:') ||
+    message.startsWith('EXERCISE_NOT_IN_CATALOG:') ||
     message.startsWith('SETS_INVALID:') ||
     message.startsWith('REPS_MISSING:')
   );
@@ -483,7 +676,8 @@ STRUCTURE JSON OBLIGATOIRE :
       "duration": ${sessionLength},
       "exercises": [
         {
-          "name": "Nom exact de l'exercice",
+          "exercise_id": "ID exact du catalogue NOX",
+          "name": "Nom exact du catalogue NOX",
           "muscles": "Muscles ciblés",
           "sets": "3",
           "reps": "8-12",
@@ -498,11 +692,22 @@ STRUCTURE JSON OBLIGATOIRE :
   ]
 }
 
+CATALOGUE NOX OBLIGATOIRE :
+Chaque ligne suit le format : exercise_id | nom exact | catégorie | équipement.
+Tu dois choisir EXCLUSIVEMENT dans ce catalogue.
+Pour chaque exercice, recopie exactement exercise_id et name.
+N'invente jamais, ne traduis jamais et ne modifie jamais un nom.
+Si le matériel ou une contrainte rend un exercice inadapté, choisis un autre exercice compatible du catalogue.
+
+${NOX_EXERCISE_CATALOG_FOR_PROMPT}
+
 RÈGLES DE PROGRAMMATION :
 
 - Génère exactement ${sessionCount} séances.
 - Utilise en priorité les jours disponibles fournis.
-- Chaque séance doit contenir au minimum 3 exercices.
+- Chaque séance doit contenir entre 3 et 6 exercices.
+- Ne répète pas deux fois le même exercise_id dans une même séance.
+- Tous les exercise_id et name doivent correspondre exactement au catalogue NOX ci-dessus.
 - Adapte la structure au nombre réel de séances.
 - Ne force pas automatiquement un split push/pull/legs.
 - Choisis la structure la plus pertinente selon l'objectif, le niveau et la fréquence.
