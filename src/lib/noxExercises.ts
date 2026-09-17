@@ -1413,6 +1413,23 @@ export function getNoxExerciseMuscles(
   };
 }
 
+export function getNoxExerciseHdCover(
+  source: NoxExerciseSource | string | null | undefined,
+): string | null {
+  const exercise = resolveNoxExercise(source);
+  return exercise ? `/exercises-hd/${exercise.id}/cover.webp` : null;
+}
+
+export function getNoxExerciseHdPositions(
+  source: NoxExerciseSource | string | null | undefined,
+): [string, string, string] | [] {
+  const exercise = resolveNoxExercise(source);
+  if (!exercise) return [];
+  return [1, 2, 3].map(
+    index => `/exercises-hd/${exercise.id}/position${index}.webp`,
+  ) as [string, string, string];
+}
+
 export function getNoxExerciseIds(): string[] {
   return NOX_EXERCISES.map(exercise => exercise.id);
 }

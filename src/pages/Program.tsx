@@ -5,6 +5,7 @@ import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 import {
   getNoxExerciseCoachTips,
+  getNoxExerciseHdCover,
   getNoxExerciseMuscles,
   getNoxExerciseSteps,
   getNoxExerciseThumbnail,
@@ -677,6 +678,7 @@ function ExerciseListRow({
   const tags = muscleTags(exercise);
   const nox = resolvedNoxExercise(exercise);
   const thumbnail = getNoxExerciseThumbnail(exercise);
+  const hdCover = getNoxExerciseHdCover(exercise);
 
   return (
     <button
@@ -697,9 +699,10 @@ function ExerciseListRow({
         cursor: 'pointer',
       }}
     >
-      {thumbnail ? (
+      {hdCover || thumbnail ? (
         <NoxExerciseImage
-          src={thumbnail}
+          src={hdCover || thumbnail}
+          fallbackSrc={hdCover ? thumbnail : null}
           alt={`Aperçu ${nox?.name || exercise.name}`}
           compact
         />
@@ -739,6 +742,7 @@ function ExerciseDetail({
   const nox = resolvedNoxExercise(exercise);
   const technique = exerciseTechnique(exercise);
   const thumbnail = getNoxExerciseThumbnail(exercise);
+  const hdCover = getNoxExerciseHdCover(exercise);
   const displayName = nox?.name || exercise.name;
   const description = exercise.description?.trim() || technique.description;
   const steps =
@@ -760,9 +764,10 @@ function ExerciseDetail({
         </div>
 
         <div style={{ marginTop: 18, borderRadius: 14, overflow: 'hidden', background: '#F1F1ED' }}>
-          {thumbnail ? (
+          {hdCover || thumbnail ? (
             <NoxExerciseImage
-              src={thumbnail}
+              src={hdCover || thumbnail}
+              fallbackSrc={hdCover ? thumbnail : null}
               alt={`Démonstration ${displayName}`}
             />
           ) : (
@@ -823,16 +828,20 @@ function NoxExerciseImage({
   src,
   alt,
   compact = false,
+  fallbackSrc = null,
 }: {
   src: string;
   alt: string;
   compact?: boolean;
+  fallbackSrc?: string | null;
 }) {
   const [failed, setFailed] = useState(false);
+  const [usingFallback, setUsingFallback] = useState(false);
 
   useEffect(() => {
     setFailed(false);
-  }, [src]);
+    setUsingFallback(false);
+  }, [src, fallbackSrc]);
 
   if (!src || failed) {
     return <NoxExerciseFallback compact={compact} />;
@@ -840,14 +849,20 @@ function NoxExerciseImage({
 
   return (
     <img
-      src={src}
+      src={usingFallback && fallbackSrc ? fallbackSrc : src}
       alt={alt}
       loading="lazy"
-      onError={() => setFailed(true)}
+      onError={() => {
+        if (!usingFallback && fallbackSrc && fallbackSrc !== src) {
+          setUsingFallback(true);
+          return;
+        }
+        setFailed(true);
+      }}
       style={
         compact
-          ? { width: 64, height: 58, objectFit: 'cover', borderRadius: 9, background: '#F0F0EC', display: 'block' }
-          : { width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', display: 'block' }
+          ? { width: 64, height: 58, objectFit: 'contain', objectPosition: 'center', borderRadius: 9, background: '#fff', display: 'block' }
+          : { width: '100%', aspectRatio: '4 / 3', objectFit: 'contain', objectPosition: 'center', background: '#fff', display: 'block' }
       }
     />
   );

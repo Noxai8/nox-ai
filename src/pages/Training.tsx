@@ -6,6 +6,8 @@ import { useAuth } from '../lib/AuthContext';
 import {
   getNoxExerciseAnatomyImage,
   getNoxExerciseCoachTips,
+  getNoxExerciseHdCover,
+  getNoxExerciseHdPositions,
   getNoxExerciseMistakes,
   getNoxExerciseMovementImages,
   getNoxExerciseMuscles,
@@ -892,7 +894,7 @@ function NoxVisualFallback({ height = 150, label = 'VISUEL PÉDAGOGIQUE' }: { he
 function NoxExerciseCover({ exercise, tags }: { exercise: any; tags: string[] }) {
   const nox = resolvedNoxExercise(exercise);
   const equipment = nox?.equipment || exercise?.equipment || 'Exercice';
-  const hdVisual = nox?.id === 'barbell_bench_press' ? '/exercises-hd/barbell_bench_press/cover.webp' : '';
+  const hdVisual = getNoxExerciseHdCover(nox?.id) || '';
 
   return (
     <div style={{ position: 'relative', background: '#FFFFFF', borderBottom: '1px solid #ECECE7', overflow: 'hidden', padding: '14px 14px 16px' }}>
@@ -903,8 +905,12 @@ function NoxExerciseCover({ exercise, tags }: { exercise: any; tags: string[] })
 
       <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', maxHeight: 390, minHeight: 235, display: 'grid', placeItems: 'center', background: '#FFFFFF', overflow: 'hidden' }}>
         {hdVisual ? (
-          <img src={hdVisual} alt={nox?.name || exercise?.name || 'Exercice'} loading="eager"
-            style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', display: 'block' }} />
+          <NoxExerciseImage
+            src={hdVisual}
+            alt={nox?.name || exercise?.name || 'Exercice'}
+            height={Math.min(390, typeof window !== 'undefined' ? window.innerWidth * 0.72 : 360)}
+            fallbackLabel="DÉMO NOX"
+          />
         ) : (
           <div style={{ width: '72%', maxWidth: 280, aspectRatio: '1.35 / 1', borderRadius: 28, background: 'linear-gradient(145deg,#FBFBF8,#F2F2ED)', border: '1px solid #ECECE7', display: 'grid', placeItems: 'center' }}>
             <div style={{ width: 70, height: 70, borderRadius: '50%', background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 25, fontWeight: 1000 }}>▶</div>
@@ -976,23 +982,11 @@ function DemoNox({ exercise, tags, onClose }: { exercise: any; tags: string[]; o
   const [activeStep, setActiveStep] = useState(0);
   const currentStep = steps[activeStep] || steps[0];
 
-  // Une vraie démo guidée exige trois assets distincts. La bibliothèque actuelle
-  // ne doit jamais recycler la miniature/position1 sur les trois étapes.
-  const rawStepImages = nox
-    ? [nox.visuals?.position1, nox.visuals?.position2, nox.visuals?.position3].filter(Boolean) as string[]
-    : [];
-  const hasTrueStepVisuals = rawStepImages.length === 3 && new Set(rawStepImages).size === 3;
-  const stepImages: Array<string | undefined> = hasTrueStepVisuals
-    ? [nox?.visuals?.position1, nox?.visuals?.position2, nox?.visuals?.position3]
-    : [undefined, undefined, undefined];
-  const benchPressStepImages = [
-    '/exercises-hd/barbell_bench_press/position1.webp',
-    '/exercises-hd/barbell_bench_press/position2.webp',
-    '/exercises-hd/barbell_bench_press/position3.webp',
-  ];
-  const currentImage = nox?.id === 'barbell_bench_press'
-    ? benchPressStepImages[activeStep]
-    : stepImages[activeStep];
+  // Architecture HD commune aux 152 exercices.
+  // Une phase absente déclenche le fallback blanc de NoxExerciseImage :
+  // aucune ancienne miniature n'est agrandie ou recyclée.
+  const stepImages: Array<string | undefined> = getNoxExerciseHdPositions(nox?.id);
+  const currentImage = stepImages[activeStep];
 
   const muscleRows = [
     ...muscleData.primary.map(name => ({ name, level: 0 })),
