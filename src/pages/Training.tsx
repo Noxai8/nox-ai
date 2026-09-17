@@ -711,40 +711,34 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
       />
     ) : (
       <div style={{ flex: 1, padding: '0 20px 28px', display: 'flex', flexDirection: 'column' }}>
-        {/* Carte coach — volontairement compacte comme la maquette validée */}
-        <div style={{ position: 'relative', minHeight: 178, border: '1px solid #E7E7E2', borderRadius: 24, padding: '22px 138px 20px 22px', marginBottom: 16, boxShadow: '0 8px 24px rgba(0,0,0,.055)', overflow: 'hidden' }}>
-          <div style={{ fontSize: 10, color: '#8A8A83', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 8, fontWeight: 900 }}>EXERCICE {currentIdx + 1}</div>
-          <div style={{ fontSize: 29, fontWeight: 1000, color: '#111', letterSpacing: '-.05em', lineHeight: .98 }}>{ex?.name}</div>
-          <div style={{ fontSize: 14, color: '#74746D', lineHeight: 1.35, marginTop: 14, fontWeight: 650 }}>{exerciseCoachCopy(ex)}</div>
-          <div style={{ position: 'absolute', right: 14, bottom: 15 }}><NoxMascot /></div>
-          <div style={{ position: 'absolute', right: 12, top: 20, maxWidth: 118, background: '#F0FFD0', borderRadius: '18px 18px 18px 5px', padding: '9px 10px', fontSize: 9.5, fontWeight: 900, lineHeight: 1.15 }}>Chaque rep te rapproche de ton objectif !</div>
+        {/* Fiche exercice NOX — blanche, visuelle, sans mascotte. */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 10, color: '#8A8A83', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 7, fontWeight: 900 }}>EXERCICE {currentIdx + 1}</div>
+          <div style={{ fontSize: 31, fontWeight: 1000, color: '#111', letterSpacing: '-.05em', lineHeight: .98 }}>{ex?.name}</div>
+          <div style={{ fontSize: 13, color: '#74746D', lineHeight: 1.4, marginTop: 10, fontWeight: 650 }}>{exerciseCoachCopy(ex)}</div>
         </div>
 
-        {/* Aperçu DÉMO NOX — même identité visuelle que la fiche complète. */}
+        {/* Grande maquette de l'exercice. Le PLAY ouvre la démo guidée 1/3 → 3/3. */}
         <button onClick={() => setShowDemo(true)} aria-label={`Voir la démonstration de ${ex?.name || 'cet exercice'}`}
-          style={{ width: '100%', border: '1px solid #E7E7E2', padding: 0, borderRadius: 24, overflow: 'hidden', background: '#fff', cursor: 'pointer', marginBottom: 12, textAlign: 'left', boxShadow: '0 8px 24px rgba(0,0,0,.045)' }}>
-          <div style={{ position: 'relative', background: '#F7F7F4' }}>
+          style={{ width: '100%', border: '1px solid #E7E7E2', padding: 0, borderRadius: 26, overflow: 'hidden', background: '#FFFFFF', cursor: 'pointer', marginBottom: 12, textAlign: 'left', boxShadow: '0 10px 30px rgba(0,0,0,.055)' }}>
+          <div style={{ position: 'relative', background: '#F6F6F2' }}>
             {thumbnail ? <NoxExerciseImage
                   src={thumbnail}
                   alt={`Aperçu ${noxExercise?.name || ex?.name || 'exercice'}`}
-                  height={244}
+                  height={300}
                 /> :
-              <NoxVisualFallback height={244} />}
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 58%,rgba(0,0,0,.58))' }} />
-            <div style={{ position: 'absolute', left: 14, top: 14, background: ACCENT, color: '#111', borderRadius: 999, padding: '7px 11px', fontSize: 9.5, fontWeight: 1000, letterSpacing: '.04em' }}>DÉMO NOX</div>
-            <div style={{ position: 'absolute', right: 14, bottom: 14, width: 52, height: 52, borderRadius: '50%', background: '#fff', display: 'grid', placeItems: 'center', color: '#111', fontSize: 20, boxShadow: '0 7px 20px rgba(0,0,0,.2)' }}>▶</div>
-            <div style={{ position: 'absolute', left: 14, bottom: 16, right: 80, color: '#fff' }}>
-              <div style={{ fontSize: 16, fontWeight: 1000, lineHeight: 1.05 }}>{ex?.name}</div>
-              <div style={{ marginTop: 5, fontSize: 10.5, fontWeight: 800, opacity: .9 }}>Voir mouvement · muscles · conseils</div>
+              <NoxVisualFallback height={300} />}
+            <div style={{ position: 'absolute', left: 14, top: 14, background: '#FFFFFF', color: '#111', border: '1px solid #E7E7E2', borderRadius: 999, padding: '7px 11px', fontSize: 9.5, fontWeight: 1000, letterSpacing: '.04em' }}>DÉMO NOX</div>
+            <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
+              <div style={{ width: 70, height: 70, borderRadius: '50%', background: ACCENT, display: 'grid', placeItems: 'center', color: '#111', fontSize: 25, paddingLeft: 4, boxShadow: '0 10px 28px rgba(0,0,0,.16)', border: '5px solid rgba(255,255,255,.94)' }}>▶</div>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0, padding: '11px 8px 12px', background: '#fff' }}>
-            {demoSteps(ex).map((step, i) => (
-              <div key={step.title} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 6px', minWidth: 0, borderLeft: i ? '1px solid #ECECE7' : 'none' }}>
-                <span style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', background: i === 1 ? ACCENT : '#F0F0ED', color: '#111', fontSize: 10.5, fontWeight: 1000 }}>{i + 1}</span>
-                <span style={{ minWidth: 0, fontSize: 9.5, lineHeight: 1.1, color: '#111', fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis' }}>{step.title}</span>
-              </div>
-            ))}
+          <div style={{ padding: '14px 16px 15px', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 1000, color: '#111' }}>Voir la démonstration</div>
+              <div style={{ marginTop: 3, fontSize: 10.5, color: '#77776F', fontWeight: 750 }}>3 étapes · placement · mouvement · retour</div>
+            </div>
+            <div style={{ color: '#111', fontSize: 21, fontWeight: 1000 }}>→</div>
           </div>
         </button>
 
@@ -909,7 +903,7 @@ function NoxVisualFallback({ height = 150, label = 'DÉMO NOX' }: { height?: num
 
 function DemoNox({ exercise, tags, onClose }: { exercise: any; tags: string[]; onClose: () => void }) {
   const nox = resolvedNoxExercise(exercise);
-  const steps = demoSteps(exercise);
+  const steps = demoSteps(exercise).slice(0, 3);
   const movementImages = nox ? getNoxExerciseMovementImages(nox.id) : [];
   const coachTips = nox ? getNoxExerciseCoachTips(nox.id) : steps.map(step => step.cue);
   const muscleData = nox ? getNoxExerciseMuscles(nox.id) : { primary: tags, secondary: [], stabilizers: [] };
@@ -923,6 +917,9 @@ function DemoNox({ exercise, tags, onClose }: { exercise: any; tags: string[]; o
       ];
   const variants = nox ? getNoxExerciseVariants(nox.id) : [];
   const displayName = nox?.name || exercise?.name || 'Exercice';
+  const [activeStep, setActiveStep] = useState(0);
+  const currentStep = steps[activeStep] || steps[0];
+  const currentImage = movementImages[activeStep] || movementImages[0] || getNoxExerciseThumbnail(exercise);
   const muscleRows = [
     ...muscleData.primary.map(name => ({ name, level: 0 })),
     ...muscleData.secondary.map(name => ({ name, level: 1 })),
@@ -930,85 +927,82 @@ function DemoNox({ exercise, tags, onClose }: { exercise: any; tags: string[]; o
   ].filter((item, index, all) => all.findIndex(other => other.name === item.name) === index).slice(0, 6);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#fff', overflowY: 'auto', color: '#111' }}>
-      <div style={{ width: '100%', maxWidth: 620, margin: '0 auto', padding: '18px 16px 30px' }}>
-        <div style={{ position: 'relative', textAlign: 'center', marginBottom: 14 }}>
-          <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: '.12em' }}>DÉMO NOX</div>
-          <div style={{ fontSize: 11, color: '#77776F', marginTop: 3 }}>{displayName}</div>
-          <button onClick={onClose} aria-label="Fermer" style={{ position: 'absolute', right: 0, top: -3, width: 34, height: 34, borderRadius: '50%', border: 'none', background: '#F0F0ED', fontSize: 22, cursor: 'pointer' }}>×</button>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#FFFFFF', overflowY: 'auto', color: '#111' }}>
+      <div style={{ width: '100%', maxWidth: 620, margin: '0 auto', padding: '16px 16px 34px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '42px 1fr 42px', alignItems: 'center', marginBottom: 18 }}>
+          <button onClick={onClose} aria-label="Fermer" style={{ width: 40, height: 40, borderRadius: '50%', border: '1px solid #E7E7E2', background: '#FFFFFF', fontSize: 25, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>×</button>
+          <div style={{ textAlign: 'center', minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 1000, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</div>
+            <div style={{ fontSize: 9.5, color: '#8A8A83', fontWeight: 900, letterSpacing: '.1em', marginTop: 3 }}>DÉMO NOX</div>
+          </div>
+          <div style={{ textAlign: 'right', fontSize: 12, fontWeight: 1000 }}>{activeStep + 1} / 3</div>
         </div>
 
-        <div style={{ position: 'relative', borderRadius: 24, border: '1px solid #E9E9E4', padding: '18px 122px 18px 18px', minHeight: 122, marginBottom: 14, overflow: 'hidden' }}>
-          <div style={{ display: 'inline-block', background: ACCENT, borderRadius: 999, padding: '5px 9px', fontSize: 9, fontWeight: 1000, marginBottom: 8 }}>EXERCICE NOX</div>
-          <div style={{ fontSize: 25, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.045em', color: '#111' }}>{displayName}</div>
-          <div style={{ fontSize: 11, color: '#77776F', marginTop: 8, lineHeight: 1.35 }}>Force · {exercise?.reps || '8–12 reps'} · {exercise?.rest || '90 sec'}</div>
-          <div style={{ position: 'absolute', right: 8, bottom: 3 }}><NoxMascot /></div>
-        </div>
-
-        {/* Un seul asset NOX par exercice : la planche complète est affichée une seule fois.
-            Les 3 étapes restent séparées en texte afin d'éviter les doublons et les faux visuels. */}
-        <div style={{ borderRadius: 24, overflow: 'hidden', border: '1px solid #E9E9E4', background: '#111', marginBottom: 12 }}>
-          {movementImages[0]
-            ? <NoxExerciseImage
-                src={movementImages[0]}
-                alt={`Démonstration complète — ${displayName}`}
-                height={320}
-                fallbackLabel="DÉMO NOX"
-              />
-            : <NoxVisualFallback height={320} label="DÉMO NOX" />}
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 7, marginBottom: 12 }}>
-          {steps.slice(0, 3).map((step, i) => (
-            <div key={`${step.title}-${i}`} style={{ borderRadius: 18, background: '#F7F7F5', border: '1px solid #ECECE8', padding: '12px 10px 13px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
-                <div style={{ width: 30, height: 30, borderRadius: '50%', background: i === 1 ? ACCENT : '#ECECE9', display: 'grid', placeItems: 'center', fontWeight: 1000, fontSize: 13, flexShrink: 0 }}>{i + 1}</div>
-                <div style={{ fontSize: 10, lineHeight: 1.08, fontWeight: 1000 }}>{step.title}</div>
-              </div>
-              <div style={{ fontSize: 9.5, lineHeight: 1.4, color: '#66665F' }}>{step.cue}</div>
-            </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7, alignItems: 'center', marginBottom: 22 }}>
+          {steps.map((_, index) => (
+            <button key={index} type="button" onClick={() => setActiveStep(index)} aria-label={`Étape ${index + 1}`}
+              style={{ height: 6, border: 'none', borderRadius: 999, background: index <= activeStep ? ACCENT : '#E9E9E5', cursor: 'pointer', padding: 0 }} />
           ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9, marginBottom: 10 }}>
-          <div style={{ background: '#F3FFE1', borderRadius: 20, padding: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 1000, marginBottom: 11 }}>💡 CONSEILS DU COACH</div>
-            {coachTips.slice(0, 5).map(tip => <div key={tip} style={{ display: 'grid', gridTemplateColumns: '22px 1fr', gap: 7, marginTop: 8, alignItems: 'start' }}><span style={{ width: 21, height: 21, borderRadius: '50%', background: '#5FD000', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 1000, fontSize: 11 }}>✓</span><span style={{ fontSize: 9.8, lineHeight: 1.35, color: '#333' }}>{tip}</span></div>)}
-          </div>
-          <div style={{ background: '#F7F7F5', borderRadius: 20, padding: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 1000, marginBottom: 9 }}>💪 MUSCLES SOLLICITÉS</div>
-            {anatomyImage && <img src={anatomyImage} alt={`Anatomie ${displayName}`} style={{ width: '100%', height: 130, objectFit: 'cover', borderRadius: 14, display: 'block', marginBottom: 10 }} />}
-            {muscleRows.map(({ name, level }) => <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 7, fontSize: 10, fontWeight: 850 }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: level === 0 ? ACCENT : level === 1 ? '#CFFF80' : '#B9B9B4' }} />{name}</div>)}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 10, color: '#8A8A83', fontWeight: 1000, letterSpacing: '.09em', textTransform: 'uppercase' }}>ÉTAPE {activeStep + 1}</div>
+          <div style={{ fontSize: 27, fontWeight: 1000, letterSpacing: '-.04em', lineHeight: 1.02, marginTop: 6 }}>{currentStep?.title || 'Mouvement'}</div>
+          <div style={{ fontSize: 13, color: '#66665F', lineHeight: 1.5, marginTop: 9 }}>{currentStep?.cue}</div>
+        </div>
+
+        <div style={{ position: 'relative', borderRadius: 28, overflow: 'hidden', border: '1px solid #E7E7E2', background: '#F6F6F2', marginBottom: 12 }}>
+          {currentImage
+            ? <NoxExerciseImage src={currentImage} alt={`${displayName} — ${currentStep?.title || `étape ${activeStep + 1}`}`} height={390} fallbackLabel={`ÉTAPE ${activeStep + 1}`} />
+            : <NoxVisualFallback height={390} label={`ÉTAPE ${activeStep + 1}`} />}
+          <div style={{ position: 'absolute', left: 14, bottom: 14, display: 'flex', gap: 7, flexWrap: 'wrap', maxWidth: 'calc(100% - 28px)' }}>
+            {muscleData.primary.slice(0, 3).map(name => <span key={name} style={{ background: ACCENT, color: '#111', borderRadius: 999, padding: '7px 10px', fontSize: 9.5, fontWeight: 1000 }}>{name}</span>)}
           </div>
         </div>
 
-        <div style={{ background: '#FFF6F1', borderRadius: 20, padding: 14, marginBottom: 10 }}>
-          <div style={{ color: '#E84A1C', fontSize: 12, fontWeight: 1000, marginBottom: 9 }}>⚠ ERREURS FRÉQUENTES</div>
-          {mistakes.slice(0, 4).map(([title, correction]) => <div key={title} style={{ background: '#fff', borderRadius: 14, padding: '10px 11px', marginTop: 7 }}><div style={{ fontSize: 10.5, fontWeight: 1000, color: '#111' }}>✕ {title}</div><div style={{ fontSize: 9.5, lineHeight: 1.35, color: '#77776F', marginTop: 3 }}>{correction}</div></div>)}
+        <div style={{ background: '#F7FFE7', border: `1px solid ${ACCENT}`, borderRadius: 20, padding: '13px 14px', marginBottom: 14, display: 'grid', gridTemplateColumns: '34px 1fr', gap: 10, alignItems: 'start' }}>
+          <div style={{ width: 34, height: 34, borderRadius: 11, background: ACCENT, display: 'grid', placeItems: 'center', fontWeight: 1000 }}>N</div>
+          <div><div style={{ fontSize: 9.5, fontWeight: 1000, letterSpacing: '.08em' }}>CONSEIL NOX</div><div style={{ fontSize: 11.5, lineHeight: 1.45, color: '#55554F', marginTop: 4 }}>{coachTips[activeStep] || coachTips[0] || currentStep?.cue}</div></div>
         </div>
 
-        {variants.length > 0 && <div style={{ background: '#F7F7F5', borderRadius: 20, padding: 14, marginBottom: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 1000, marginBottom: 9 }}>VARIANTES</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>{variants.map(variant => <span key={variant} style={{ background: '#fff', border: '1px solid #E7E7E2', borderRadius: 999, padding: '7px 10px', fontSize: 9.5, fontWeight: 850 }}>{variant}</span>)}</div>
-        </div>}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9, marginBottom: 18 }}>
+          <button type="button" disabled={activeStep === 0} onClick={() => setActiveStep(step => Math.max(0, step - 1))}
+            style={{ minHeight: 56, borderRadius: 18, border: '1px solid #E2E2DD', background: '#F4F4F1', color: activeStep === 0 ? '#B7B7B0' : '#111', fontWeight: 1000, cursor: activeStep === 0 ? 'not-allowed' : 'pointer' }}>← PRÉCÉDENT</button>
+          {activeStep < 2
+            ? <button type="button" onClick={() => setActiveStep(step => Math.min(2, step + 1))}
+                style={{ minHeight: 56, borderRadius: 18, border: 'none', background: ACCENT, color: '#111', fontWeight: 1000, cursor: 'pointer' }}>SUIVANT →</button>
+            : <button type="button" onClick={onClose}
+                style={{ minHeight: 56, borderRadius: 18, border: 'none', background: ACCENT, color: '#111', fontWeight: 1000, cursor: 'pointer' }}>J’AI COMPRIS ✓</button>}
+        </div>
 
-        <button onClick={onClose} style={{ width: '100%', border: 'none', borderRadius: 18, padding: 17, background: ACCENT, color: '#111', fontSize: 14, fontWeight: 1000, cursor: 'pointer' }}>J’AI COMPRIS ! →</button>
+        {activeStep === 2 && (
+          <div style={{ animation: 'fadeIn .25s ease' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9, marginBottom: 10 }}>
+              <div style={{ background: '#F7FFE7', borderRadius: 20, padding: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 1000, marginBottom: 10 }}>CONSEILS</div>
+                {coachTips.slice(0, 4).map(tip => <div key={tip} style={{ display: 'grid', gridTemplateColumns: '20px 1fr', gap: 7, marginTop: 8 }}><span style={{ width: 20, height: 20, borderRadius: '50%', background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 1000 }}>✓</span><span style={{ fontSize: 9.8, lineHeight: 1.4, color: '#44443F' }}>{tip}</span></div>)}
+              </div>
+              <div style={{ background: '#F7F7F5', borderRadius: 20, padding: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 1000, marginBottom: 9 }}>MUSCLES</div>
+                {anatomyImage && <img src={anatomyImage} alt={`Anatomie ${displayName}`} style={{ width: '100%', height: 125, objectFit: 'cover', borderRadius: 14, display: 'block', marginBottom: 9 }} />}
+                {muscleRows.map(({ name, level }) => <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 7, fontSize: 10, fontWeight: 850 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: level === 0 ? ACCENT : level === 1 ? '#D9FF8C' : '#C8C8C2' }} />{name}</div>)}
+              </div>
+            </div>
+
+            <div style={{ background: '#FFF7F2', borderRadius: 20, padding: 14, marginBottom: 10 }}>
+              <div style={{ color: '#D84A1B', fontSize: 12, fontWeight: 1000, marginBottom: 9 }}>ERREURS FRÉQUENTES</div>
+              {mistakes.slice(0, 4).map(([title, correction]) => <div key={title} style={{ background: '#FFFFFF', borderRadius: 14, padding: '10px 11px', marginTop: 7 }}><div style={{ fontSize: 10.5, fontWeight: 1000 }}>✕ {title}</div><div style={{ fontSize: 9.5, lineHeight: 1.4, color: '#77776F', marginTop: 3 }}>{correction}</div></div>)}
+            </div>
+
+            {variants.length > 0 && <div style={{ background: '#F7F7F5', borderRadius: 20, padding: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 1000, marginBottom: 9 }}>VARIANTES</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>{variants.map(variant => <span key={variant} style={{ background: '#FFFFFF', border: '1px solid #E7E7E2', borderRadius: 999, padding: '7px 10px', fontSize: 9.5, fontWeight: 850 }}>{variant}</span>)}</div>
+            </div>}
+          </div>
+        )}
       </div>
     </div>
   );
-}
-
-function NoxMascot() {
-  return <div aria-hidden="true" style={{ width: 104, height: 116, position: 'relative' }}>
-    <div style={{ position: 'absolute', left: 21, top: 18, width: 64, height: 55, borderRadius: 23, background: '#111' }}>
-      <i style={{ position: 'absolute', left: 18, top: 22, width: 11, height: 6, borderRadius: 9, background: ACCENT }} />
-      <i style={{ position: 'absolute', right: 18, top: 22, width: 11, height: 6, borderRadius: 9, background: ACCENT }} />
-      <i style={{ position: 'absolute', left: 27, top: 36, width: 13, height: 5, borderRadius: 9, background: ACCENT }} />
-    </div>
-    <div style={{ position: 'absolute', left: 28, top: 68, width: 50, height: 43, borderRadius: '8px 8px 18px 18px', background: '#111', color: ACCENT, display: 'grid', placeItems: 'center', fontWeight: 1000, fontSize: 24 }}>N</div>
-    <div style={{ position: 'absolute', left: 11, top: 69, width: 27, height: 10, borderRadius: 10, background: '#111', transform: 'rotate(-28deg)' }} />
-    <div style={{ position: 'absolute', right: 9, top: 69, width: 27, height: 10, borderRadius: 10, background: '#111', transform: 'rotate(28deg)' }} />
-  </div>;
 }
 
 function RestScreen({
