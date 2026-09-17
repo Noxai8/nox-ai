@@ -892,7 +892,7 @@ function NoxVisualFallback({ height = 150, label = 'VISUEL PÉDAGOGIQUE' }: { he
 function NoxExerciseCover({ exercise, tags }: { exercise: any; tags: string[] }) {
   const nox = resolvedNoxExercise(exercise);
   const equipment = nox?.equipment || exercise?.equipment || 'Exercice';
-  const hdVisual = nox?.id === 'barbell_bench_press' ? '/exercises-hd/barbell_bench_press_nox.png' : '';
+  const hdVisual = nox?.id === 'barbell_bench_press' ? '/exercises-hd/barbell_bench_press/cover.webp' : '';
 
   return (
     <div style={{ position: 'relative', background: '#FFFFFF', borderBottom: '1px solid #ECECE7', overflow: 'hidden', padding: '14px 14px 16px' }}>
@@ -985,8 +985,13 @@ function DemoNox({ exercise, tags, onClose }: { exercise: any; tags: string[]; o
   const stepImages: Array<string | undefined> = hasTrueStepVisuals
     ? [nox?.visuals?.position1, nox?.visuals?.position2, nox?.visuals?.position3]
     : [undefined, undefined, undefined];
-  const currentImage = nox?.id === 'barbell_bench_press' && activeStep === 0
-    ? '/exercises-hd/barbell_bench_press_nox.png'
+  const benchPressStepImages = [
+    '/exercises-hd/barbell_bench_press/position1.webp',
+    '/exercises-hd/barbell_bench_press/position2.webp',
+    '/exercises-hd/barbell_bench_press/position3.webp',
+  ];
+  const currentImage = nox?.id === 'barbell_bench_press'
+    ? benchPressStepImages[activeStep]
     : stepImages[activeStep];
 
   const muscleRows = [
