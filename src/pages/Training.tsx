@@ -873,7 +873,7 @@ function NoxExerciseImage({
       alt={alt}
       loading="lazy"
       onError={() => setFailed(true)}
-      style={{ width: '100%', height, objectFit: 'cover', display: 'block' }}
+      style={{ width: '100%', height, objectFit: 'contain', objectPosition: 'center', display: 'block', background: '#FFFFFF' }}
     />
   );
 }
@@ -892,31 +892,28 @@ function NoxVisualFallback({ height = 150, label = 'VISUEL PÉDAGOGIQUE' }: { he
 function NoxExerciseCover({ exercise, tags }: { exercise: any; tags: string[] }) {
   const nox = resolvedNoxExercise(exercise);
   const equipment = nox?.equipment || exercise?.equipment || 'Exercice';
+  const hdVisual = nox?.id === 'barbell_bench_press' ? '/exercises-hd/barbell_bench_press_nox.png' : '';
+
   return (
-    <div style={{ position: 'relative', minHeight: 270, background: '#FFFFFF', borderBottom: '1px solid #ECECE7', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '18px 18px 20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-        <span style={{ border: '1px solid #E7E7E2', background: '#FFFFFF', borderRadius: 999, padding: '7px 11px', fontSize: 9.5, fontWeight: 1000, letterSpacing: '.05em' }}>DÉMO NOX</span>
-        <span style={{ fontSize: 9.5, color: '#8A8A83', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.08em' }}>{equipment}</span>
+    <div style={{ position: 'relative', background: '#FFFFFF', borderBottom: '1px solid #ECECE7', overflow: 'hidden', padding: '14px 14px 16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+        <span style={{ fontSize: 9.5, color: '#8A8A83', fontWeight: 950, textTransform: 'uppercase', letterSpacing: '.08em' }}>MOUVEMENT</span>
+        <span style={{ background: '#F5F5F2', borderRadius: 999, padding: '6px 10px', fontSize: 9, color: '#74746D', fontWeight: 900, textTransform: 'uppercase' }}>{equipment}</span>
       </div>
 
-      <div style={{ display: 'grid', placeItems: 'center', padding: '18px 0 10px' }}>
-        <div style={{ position: 'relative', width: 170, height: 118 }}>
-          <div style={{ position: 'absolute', left: 12, right: 12, top: 56, height: 6, background: '#111', borderRadius: 999 }} />
-          <div style={{ position: 'absolute', left: 29, top: 43, width: 18, height: 32, border: '5px solid #111', borderRadius: 8 }} />
-          <div style={{ position: 'absolute', right: 29, top: 43, width: 18, height: 32, border: '5px solid #111', borderRadius: 8 }} />
-          <div style={{ position: 'absolute', left: '50%', top: 20, width: 72, height: 72, transform: 'translateX(-50%)', borderRadius: '50%', background: '#F3F3EF', border: '1px solid #E5E5DF', display: 'grid', placeItems: 'center' }}>
-            <div style={{ width: 42, height: 42, borderRadius: '50%', background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 1000, paddingLeft: 2 }}>▶</div>
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', maxHeight: 390, minHeight: 235, display: 'grid', placeItems: 'center', background: '#FFFFFF', overflow: 'hidden' }}>
+        {hdVisual ? (
+          <img src={hdVisual} alt={nox?.name || exercise?.name || 'Exercice'} loading="eager"
+            style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', display: 'block' }} />
+        ) : (
+          <div style={{ width: '72%', maxWidth: 280, aspectRatio: '1.35 / 1', borderRadius: 28, background: 'linear-gradient(145deg,#FBFBF8,#F2F2ED)', border: '1px solid #ECECE7', display: 'grid', placeItems: 'center' }}>
+            <div style={{ width: 70, height: 70, borderRadius: '50%', background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 25, fontWeight: 1000 }}>▶</div>
           </div>
-          <div style={{ position: 'absolute', left: 5, top: 52, width: 18, height: 18, borderRadius: '50%', background: ACCENT }} />
-          <div style={{ position: 'absolute', right: 5, top: 52, width: 18, height: 18, borderRadius: '50%', background: ACCENT }} />
-        </div>
+        )}
       </div>
 
-      <div>
-        <div style={{ fontSize: 10, color: '#8A8A83', fontWeight: 1000, letterSpacing: '.09em', textTransform: 'uppercase', textAlign: 'center', marginBottom: 9 }}>VISUEL PÉDAGOGIQUE</div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
-          {tags.slice(0, 3).map((tag, index) => <span key={tag} style={{ padding: '6px 9px', borderRadius: 999, background: index === 0 ? '#F2FFD8' : '#F3F3F0', border: index === 0 ? `1px solid ${ACCENT}` : '1px solid transparent', fontSize: 9.5, fontWeight: 900 }}>{tag}</span>)}
-        </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+        {tags.slice(0, 3).map((tag, index) => <span key={tag} style={{ padding: '6px 9px', borderRadius: 999, background: index === 0 ? '#F2FFD8' : '#F3F3F0', border: index === 0 ? `1px solid ${ACCENT}` : '1px solid transparent', fontSize: 9.5, fontWeight: 900 }}>{tag}</span>)}
       </div>
     </div>
   );
@@ -937,8 +934,8 @@ function NoxStepVisual({
 }) {
   if (image) {
     return (
-      <div style={{ position: 'relative', height: 390, background: '#FFFFFF' }}>
-        <NoxExerciseImage src={image} alt={`${exerciseName} — ${stepTitle}`} height={390} fallbackLabel={`ÉTAPE ${stepIndex + 1}`} />
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', maxHeight: 430, background: '#FFFFFF' }}>
+        <NoxExerciseImage src={image} alt={`${exerciseName} — ${stepTitle}`} height={Math.min(430, typeof window !== 'undefined' ? window.innerWidth * 0.72 : 390)} fallbackLabel={`ÉTAPE ${stepIndex + 1}`} />
         <div style={{ position: 'absolute', left: 14, bottom: 14, display: 'flex', gap: 7, flexWrap: 'wrap', maxWidth: 'calc(100% - 28px)' }}>
           {primaryMuscles.slice(0, 3).map(name => <span key={name} style={{ background: ACCENT, color: '#111', borderRadius: 999, padding: '7px 10px', fontSize: 9.5, fontWeight: 1000 }}>{name}</span>)}
         </div>
@@ -952,7 +949,7 @@ function NoxStepVisual({
         <div style={{ width: 78, height: 78, margin: '0 auto 22px', borderRadius: 26, background: '#F2FFD8', border: `1px solid ${ACCENT}`, display: 'grid', placeItems: 'center', fontSize: 30, fontWeight: 1000 }}>{stepIndex + 1}</div>
         <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: '.1em', color: '#111', textTransform: 'uppercase' }}>{stepTitle}</div>
         <div style={{ width: 118, height: 3, borderRadius: 999, background: ACCENT, margin: '18px auto' }} />
-        <div style={{ fontSize: 11, lineHeight: 1.5, color: '#77776F' }}>Le visuel HD de cette position n’est pas encore disponible. NOX n’agrandit pas une ancienne image floue.</div>
+        <div style={{ fontSize: 11, lineHeight: 1.5, color: '#77776F' }}>Suis la consigne ci-dessus et garde le mouvement contrôlé.</div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap', marginTop: 20 }}>
           {primaryMuscles.slice(0, 3).map(name => <span key={name} style={{ background: '#F2FFD8', border: `1px solid ${ACCENT}`, borderRadius: 999, padding: '7px 10px', fontSize: 9.5, fontWeight: 1000 }}>{name}</span>)}
         </div>
@@ -988,7 +985,9 @@ function DemoNox({ exercise, tags, onClose }: { exercise: any; tags: string[]; o
   const stepImages: Array<string | undefined> = hasTrueStepVisuals
     ? [nox?.visuals?.position1, nox?.visuals?.position2, nox?.visuals?.position3]
     : [undefined, undefined, undefined];
-  const currentImage = stepImages[activeStep];
+  const currentImage = nox?.id === 'barbell_bench_press' && activeStep === 0
+    ? '/exercises-hd/barbell_bench_press_nox.png'
+    : stepImages[activeStep];
 
   const muscleRows = [
     ...muscleData.primary.map(name => ({ name, level: 0 })),
