@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-import { BottomNav } from './Home';
+import { BottomNav } from '../components/BottomNav';
 import {
   getNoxExerciseCoachTips,
   getNoxExerciseHdCover,
