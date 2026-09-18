@@ -20,11 +20,11 @@ const MODES:{id:ScanMode;label:string;detail:string;icon:any}[]=[
 
 export default function FoodScan(){
  const {user}=useAuth(); const navigate=useNavigate(); const location=useLocation();
- const [mode,setMode]=useState<ScanMode>('meal'); const [meal,setMeal]=useState((location.state as any)?.meal||'Déjeuner');
+ const [mode,setMode]=useState<ScanMode|null>(null); const [meal,setMeal]=useState((location.state as any)?.meal||'Déjeuner');
  const [photo,setPhoto]=useState<string|null>(null); const [result,setResult]=useState<any>(null); const [busy,setBusy]=useState(false); const [error,setError]=useState('');
  const input=useRef<HTMLInputElement>(null);
 
- const pick=(m:ScanMode)=>{setMode(m);setPhoto(null);setResult(null);setError('');setTimeout(()=>input.current?.click(),0)};
+ const pick=(m:ScanMode)=>{setMode(m);setPhoto(null);setResult(null);setError('');setTimeout(()=>input.current?.click(),120)};
  const onPhoto=(e:React.ChangeEvent<HTMLInputElement>)=>{const file=e.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{const data=String(reader.result);setPhoto(data);void analyze(data.split(',')[1]||'')};reader.readAsDataURL(file);e.target.value=''};
  const analyze=async(base64:string)=>{
   setBusy(true);setError('');setResult(null);
@@ -63,8 +63,8 @@ export default function FoodScan(){
    {busy&&<div style={{padding:24,textAlign:'center',fontWeight:900}}>Analyse en cours…</div>}
    {error&&<div style={{marginTop:12,padding:13,borderRadius:13,background:'#fff0f0',color:'#b42318',fontSize:12}}>{error}</div>}
    {result&&!busy&&mode==='meal'&&<div style={{background:'#fff',border:'1px solid '+BORDER,borderRadius:20,padding:17,marginTop:14}}><div style={{fontSize:10,fontWeight:900,color:MUTED}}>REPAS DÉTECTÉ · {result.fiabilite||'à vérifier'}</div><div style={{fontSize:18,fontWeight:950,marginTop:5}}>{result.description||'Repas'}</div><div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginTop:15,textAlign:'center'}}>{[['kcal',Math.round(result.total?.kcal||0)],['prot.',Math.round(result.total?.protein||0)+'g'],['gluc.',Math.round(result.total?.carbs||0)+'g'],['lip.',Math.round(result.total?.fat||0)+'g']].map(([l,v])=><div key={String(l)} style={{background:'#F5F5F5',borderRadius:12,padding:'10px 3px'}}><b>{v}</b><div style={{fontSize:9,color:MUTED,marginTop:3}}>{l}</div></div>)}</div><button onClick={addMeal} style={{width:'100%',border:0,borderRadius:14,background:ACCENT,padding:15,fontWeight:950,marginTop:15,cursor:'pointer'}}>VÉRIFIER → AJOUTER AU JOURNAL</button></div>}
-   {result&&!busy&&mode!=='meal'&&<div style={{background:'#fff',border:'1px solid '+BORDER,borderRadius:20,padding:18,marginTop:14}}><div style={{display:'flex',alignItems:'center',gap:9,fontWeight:950}}><ScanLine size={19}/> FLUX NOX SCAN PRÉPARÉ</div><p style={{fontSize:12,color:MUTED,lineHeight:1.55,marginBottom:0}}>{pendingText[mode]}</p></div>}
-   <button onClick={()=>input.current?.click()} style={{width:'100%',border:0,borderRadius:16,background:BLACK,color:'#fff',padding:17,fontWeight:950,marginTop:15,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><Camera size={19}/> {photo?'REPRENDRE UNE PHOTO':'OUVRIR LA CAMÉRA'}</button>
+   {result&&!busy&&mode&&mode!=='meal'&&<div style={{background:'#fff',border:'1px solid '+BORDER,borderRadius:20,padding:18,marginTop:14}}><div style={{display:'flex',alignItems:'center',gap:9,fontWeight:950}}><ScanLine size={19}/> FLUX NOX SCAN PRÉPARÉ</div><p style={{fontSize:12,color:MUTED,lineHeight:1.55,marginBottom:0}}>{pendingText[mode as Exclude<ScanMode,'meal'>]}</p></div>}
+   {mode&&<button onClick={()=>input.current?.click()} style={{width:'100%',border:0,borderRadius:16,background:BLACK,color:'#fff',padding:17,fontWeight:950,marginTop:15,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><Camera size={19}/> {photo?'REPRENDRE UNE PHOTO':'OUVRIR LA CAMÉRA'}</button>}
   </main>
  </div>
 }
