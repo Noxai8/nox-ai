@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-import { BottomNav } from './Home';
+import { BottomNav } from '../components/BottomNav';
 
 const ACCENT = '#B7FF00';
 const BG = '#FFFFFF';
