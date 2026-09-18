@@ -2,6 +2,7 @@ import { calculateNoxScore, calculateRealTDEE } from '../lib/noxBrain';
 import NoxMascot from '../components/NoxMascot';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BottomNav } from '../components/BottomNav';
 import {
   Activity,
   Apple,
@@ -25,132 +26,22 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
-const ACCENT = '#c8ff00';
-const BG = '#070707';
-const SURFACE = '#111111';
-const SURFACE_2 = '#151515';
-const BORDER = '#232323';
-const MUTED = '#8b8b8b';
-const TEXT = '#f7f7f7';
+const ACCENT = '#B7FF00';
+const BG = '#F7F7F7';
+const SURFACE = '#FFFFFF';
+const SURFACE_2 = '#F3F3F3';
+const BORDER = '#E9E9E9';
+const MUTED = '#777777';
+const TEXT = '#0A0A0A';
 
 const cardStyle: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(22,22,22,.98) 0%, rgba(15,15,15,.98) 100%)',
+  background: '#FFFFFF',
   border: `1px solid ${BORDER}`,
   borderRadius: 22,
-  boxShadow: '0 12px 36px rgba(0,0,0,.22)',
+  boxShadow: '0 10px 30px rgba(0,0,0,.05)',
 };
 
-export function BottomNav({ active }: { active: string }) {
-  const navigate = useNavigate();
-  const [showMore, setShowMore] = useState(false);
-
-  const items = [
-    { id: 'home', label: 'Home', icon: House, path: '/home' },
-    { id: 'training', label: 'Train', icon: Dumbbell, path: '/program' },
-    { id: 'fuel', label: 'Fuel', icon: Apple, path: '/fuel' },
-    { id: 'coach', label: 'Coach', icon: Bot, path: '/coach' },
-    { id: 'more', label: 'Plus', icon: null, path: '' },
-  ];
-
-  const moreCategories = [
-    {
-      title: 'CORPS & SUIVI',
-      items: [
-        { icon: BarChart3, label: 'Body', path: '/body' },
-        { icon: WandSparkles, label: 'Future', path: '/future' },
-        { icon: '🌙', label: 'Recovery', path: '/recovery' },
-        { icon: '😊', label: 'Humeur', path: '/mood' },
-      ],
-    },
-    {
-      title: 'NUTRITION',
-      items: [
-        { icon: '🧊', label: 'Fuel IA', path: '/fuel-ai' },
-        { icon: '👨‍🍳', label: 'Recettes', path: '/recipes' },
-        { icon: '📅', label: 'Planifier', path: '/meal-planner' },
-        { icon: '⏱️', label: 'Jeûne', path: '/fasting' },
-      ],
-    },
-    {
-      title: 'COMPÉTITION',
-      items: [
-        { icon: Medal, label: 'Play', path: '/play' },
-        { icon: '🏆', label: 'Classement', path: '/leaderboard' },
-        { icon: '👥', label: 'Partenaire', path: '/partner' },
-        { icon: '📋', label: 'Bilan hebdo', path: '/weekly-review' },
-      ],
-    },
-    {
-      title: 'PARTAGE & RÉGLAGES',
-      items: [
-        { icon: '📤', label: 'Timeline', path: '/share-timeline' },
-        { icon: '⚙️', label: 'Réglages', path: '/settings' },
-        { icon: '🔔', label: 'Notifications', path: '/notification-settings' },
-        { icon: '🎯', label: 'Calibration', path: '/calibration' },
-      ],
-    },
-  ];
-  const moreItems = moreCategories.flatMap(c => c.items);
-
-  return (
-    <>
-      {showMore && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.93)', zIndex: 200, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
-          onClick={() => setShowMore(false)}>
-          <div style={{ background: '#0d0d0d', borderRadius: '20px 20px 0 0', padding: '20px 20px 90px', maxHeight: '75vh', overflowY: 'auto' }}
-            onClick={e => e.stopPropagation()}>
-            {moreCategories.map(cat => (
-              <div key={cat.title} style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 10, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 10, fontWeight: 800 }}>{cat.title}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                  {cat.items.map(item => {
-                    const isString = typeof item.icon === 'string';
-                    return (
-                      <button key={item.path} onClick={() => { navigate(item.path); setShowMore(false); }}
-                        style={{ background: '#111', border: '1px solid #1a1a1a', borderRadius: 14, padding: '14px 8px', textAlign: 'center', cursor: 'pointer', touchAction: 'manipulation' }}>
-                        {isString
-                          ? <div style={{ fontSize: 22, marginBottom: 5 }}>{item.icon as string}</div>
-                          : (() => { const I = item.icon as any; return <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 5 }}><I size={22} color={ACCENT} /></div>; })()
-                        }
-                        <div style={{ fontSize: 9.5, color: '#888', fontWeight: 700, lineHeight: 1.2 }}>{item.label}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 0, width: '100%', maxWidth: 560, zIndex: 100, padding: '8px 10px max(10px, env(safe-area-inset-bottom))', background: 'rgba(7,7,7,.94)', backdropFilter: 'blur(18px)', borderTop: '1px solid rgba(255,255,255,.07)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 2, alignItems: 'end' }}>
-          {items.map(item => {
-            const selected = active === item.id || (item.id === 'more' && showMore);
-            const Icon = item.icon;
-            return (
-              <button key={item.id}
-                onClick={() => item.id === 'more' ? setShowMore(s => !s) : navigate(item.path)}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '8px 0 3px', color: selected ? ACCENT : '#6f6f6f', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0, touchAction: 'manipulation' }}>
-                <div style={{ width: 28, height: 28, borderRadius: 10, display: 'grid', placeItems: 'center', background: selected ? 'rgba(200,255,0,.11)' : 'transparent', border: '1px solid transparent' }}>
-                  {Icon
-                    ? <Icon size={18} strokeWidth={selected ? 2.4 : 1.9} />
-                    : <span style={{ fontSize: 18 }}>☰</span>
-                  }
-                </div>
-                <span style={{ fontSize: 8.5, lineHeight: 1, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', whiteSpace: 'nowrap', color: selected ? ACCENT : '#6f6f6f' }}>
-                  {item.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </>
-  );
-}
-
-
+export { BottomNav } from '../components/BottomNav';
 function NoxScore({ score }: { score: number }) {
   const safe = Math.max(0, Math.min(100, score));
   const degrees = safe * 3.6;
@@ -162,7 +53,7 @@ function NoxScore({ score }: { score: number }) {
         height: 82,
         borderRadius: '50%',
         padding: 5,
-        background: `conic-gradient(${ACCENT} 0deg ${degrees}deg, #242424 ${degrees}deg 360deg)`,
+        background: `conic-gradient(${ACCENT} 0deg ${degrees}deg, #EAEAEA ${degrees}deg 360deg)`,
         boxShadow: '0 0 28px rgba(200,255,0,.08)',
         flexShrink: 0,
       }}
@@ -172,7 +63,7 @@ function NoxScore({ score }: { score: number }) {
           width: '100%',
           height: '100%',
           borderRadius: '50%',
-          background: '#0b0b0b',
+          background: '#FFFFFF',
           display: 'grid',
           placeItems: 'center',
           textAlign: 'center',
@@ -391,7 +282,7 @@ export default function Home() {
           style={{
             padding: '22px 20px 18px',
             background:
-              'radial-gradient(circle at 90% 0%, rgba(200,255,0,.065), transparent 32%), linear-gradient(180deg,#0b0b0b 0%,#070707 100%)',
+              'radial-gradient(circle at 90% 0%, rgba(200,255,0,.065), transparent 32%), linear-gradient(180deg,#FFFFFF 0%,#F7F7F7 100%)',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 18 }}>
@@ -561,7 +452,7 @@ export default function Home() {
                       minHeight: 46,
                       borderRadius: 13,
                       border: `1px solid ${BORDER}`,
-                      background: '#121212',
+                      background: '#FFFFFF',
                       color: TEXT,
                       fontWeight: 900,
                       fontSize: 11,
@@ -618,7 +509,7 @@ export default function Home() {
           >
             <div>
               <div style={{ fontSize: 15, fontWeight: 900, letterSpacing: '-.02em' }}>Vue d'ensemble</div>
-              <div style={{ marginTop: 3, fontSize: 11, color: '#727272' }}>Tes indicateurs utiles aujourd'hui</div>
+              <div style={{ marginTop: 3, fontSize: 11, color: '#777777' }}>Tes indicateurs utiles aujourd'hui</div>
             </div>
           </div>
 
@@ -674,7 +565,7 @@ export default function Home() {
                 display: 'flex',
                 alignItems: 'flex-end',
                 background:
-                  'radial-gradient(circle at 82% 35%, rgba(200,255,0,.16), transparent 24%), linear-gradient(135deg,#121212 0%,#0b0b0b 100%)',
+                  'radial-gradient(circle at 82% 35%, rgba(200,255,0,.16), transparent 24%), linear-gradient(135deg,#FFFFFF 0%,#FFFFFF 100%)',
               }}
             >
               <div
@@ -698,7 +589,7 @@ export default function Home() {
 
               <div style={{ maxWidth: '78%' }}>
                 <div style={{ fontSize: 21, fontWeight: 950, letterSpacing: '-.03em' }}>NOX FUTURE</div>
-                <div style={{ fontSize: 12.5, color: '#969696', lineHeight: 1.5, marginTop: 6 }}>
+                <div style={{ fontSize: 12.5, color: '#777777', lineHeight: 1.5, marginTop: 6 }}>
                   Visualise une projection indicative de ta trajectoire et suis l’écart entre ton plan et ta réalité.
                 </div>
               </div>
@@ -750,7 +641,7 @@ export default function Home() {
                 }}
               >
                 <Icon size={18} color={ACCENT} />
-                <span style={{ fontSize: 10.5, fontWeight: 850, color: '#b7b7b7' }}>{label}</span>
+                <span style={{ fontSize: 10.5, fontWeight: 850, color: '#555555' }}>{label}</span>
               </button>
             ))}
           </div>
@@ -760,8 +651,8 @@ export default function Home() {
               marginTop: 16,
               padding: '14px 16px',
               borderRadius: 16,
-              border: '1px solid rgba(255,255,255,.055)',
-              background: 'rgba(255,255,255,.018)',
+              border: '1px solid rgba(0,0,0,.06)',
+              background: 'rgba(0,0,0,.02)',
               display: 'flex',
               alignItems: 'center',
               gap: 10,
@@ -771,7 +662,7 @@ export default function Home() {
             <div style={{ flex: 1, fontSize: 11.5, lineHeight: 1.45, color: '#777' }}>
               Chaque donnée améliore les recommandations de NOX.
             </div>
-            <ChevronRight size={16} color="#4a4a4a" />
+            <ChevronRight size={16} color="#999999" />
           </div>
         </section>
       </main>
