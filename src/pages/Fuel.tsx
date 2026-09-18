@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-import { BottomNav } from './Home';
+import { BottomNav } from '../components/BottomNav';
 import BarcodeScanner from './BarcodeScanner';
 
 const ACCENT = '#c8ff00';
@@ -1054,7 +1054,7 @@ export default function Fuel() {
         </div>
       )}
 
-      <BottomNav active="fuel" />
+      <BottomNav active="nutrition" />
     </div>
   );
 }
