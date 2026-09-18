@@ -33,6 +33,7 @@ const Recipes = lazy(() => import('./pages/Recipes'));
 const MealPlanner = lazy(() => import('./pages/MealPlanner'));
 const FoodScan = lazy(() => import('./pages/FoodScan'));
 const Reschedule = lazy(() => import('./pages/Reschedule'));
+const ActivityHub = lazy(() => import('./pages/ActivityHub'));
 
 const Loader = () => <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#c8ff00', fontWeight: 900, letterSpacing: '.15em', fontSize: 18 }}>NOX</div></div>;
 
@@ -56,6 +57,7 @@ function AppRoutes() {
         <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/training/:sessionId" element={<ProtectedRoute><Training /></ProtectedRoute>} />
         <Route path="/program" element={<ProtectedRoute><Program /></ProtectedRoute>} />
+        <Route path="/activity" element={<ProtectedRoute><ActivityHub /></ProtectedRoute>} />
         <Route path="/body" element={<ProtectedRoute><Body /></ProtectedRoute>} />
         <Route path="/coach" element={<ProtectedRoute><Coach /></ProtectedRoute>} />
         <Route path="/fuel" element={<ProtectedRoute><Fuel /></ProtectedRoute>} />
