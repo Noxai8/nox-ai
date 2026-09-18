@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-import { BottomNav } from './Home';
+import { BottomNav } from '../components/BottomNav';
 
 const ACCENT = '#c8ff00';
 const BG = '#0a0a0a';
@@ -680,7 +680,7 @@ export default function Body() {
         </div>
       )}
 
-      <BottomNav active="body" />
+      <BottomNav active="progress" />
     </div>
   );
 }
