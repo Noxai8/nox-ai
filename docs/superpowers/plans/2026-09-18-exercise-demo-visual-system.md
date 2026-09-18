@@ -307,8 +307,8 @@ Generate `seated_cable_row` with the female athlete. The four panels are: recogn
 Run:
 
 ```bash
-NOX_ALLOW_ASSET_OVERWRITE=1 npm run split:exercise-sheet -- <bench-contact-sheet> barbell_bench_press
-NOX_ALLOW_ASSET_OVERWRITE=1 npm run split:exercise-sheet -- <row-contact-sheet> seated_cable_row
+NOX_ALLOW_ASSET_OVERWRITE=1 npm run split:exercise-sheet -- generated_images/barbell_bench_press-contact-sheet.png barbell_bench_press
+NOX_ALLOW_ASSET_OVERWRITE=1 npm run split:exercise-sheet -- generated_images/seated_cable_row-contact-sheet.png seated_cable_row
 npm run validate:exercise-assets
 npm run build
 ```
@@ -412,7 +412,7 @@ Use the male athlete for `treadmill_walk`, `treadmill_run`, `rowing_ergometer`, 
 ### Task 11: Final acceptance and documentation
 
 **Files:**
-- Modify: `README.md` if present; otherwise create `docs/exercise-assets/README.md`
+- Create: `docs/exercise-assets/README.md`
 - Verify: `public/exercises-hd/**`
 - Verify: `src/pages/Program.tsx`
 - Verify: `src/pages/Training.tsx`
@@ -448,6 +448,6 @@ Confirm no authentication, Supabase, routing, workout-programming, or unrelated 
 - [ ] **Step 5: Commit final documentation**
 
 ```bash
-git add docs/exercise-assets README.md
+git add docs/exercise-assets/README.md
 git commit -m "docs: document exercise demo asset workflow"
 ```
