@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BottomNav } from './Home';
+import { BottomNav } from '../components/BottomNav';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
