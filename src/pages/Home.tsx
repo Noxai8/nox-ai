@@ -41,7 +41,6 @@ const cardStyle: React.CSSProperties = {
   boxShadow: '0 10px 30px rgba(0,0,0,.05)',
 };
 
-export { BottomNav } from '../components/BottomNav';
 function NoxScore({ score }: { score: number }) {
   const safe = Math.max(0, Math.min(100, score));
   const degrees = safe * 3.6;
