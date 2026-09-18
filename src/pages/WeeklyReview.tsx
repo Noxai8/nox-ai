@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-import { BottomNav } from './Home';
+import { BottomNav } from '../components/BottomNav';
 
 const ACCENT = '#c8ff00';
 const BG = '#0a0a0a';
