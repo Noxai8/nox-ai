@@ -36,7 +36,6 @@ export default function FastingTracker() {
         setFastStart(start);
         setIsFasting(true);
         setProtocol(PROTOCOLS.find(p => p.id === data.protocolId) || PROTOCOLS[0]);
-        if (data.customFastHours) setCustomFastHours(Math.min(23, Math.max(1, Number(data.customFastHours))));
         if (data.protocolId === 'custom' && Number(data.customFastHours) >= 10 && Number(data.customFastHours) <= 20) setCustomFastHours(Number(data.customFastHours));
       }
     }
