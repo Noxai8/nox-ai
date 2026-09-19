@@ -162,6 +162,7 @@ export default function Home() {
   const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
   const [dayPeriod, setDayPeriod] = useState<'morning'|'day'|'evening'>(() => { const h=new Date().getHours(); return h<12?'morning':h<18?'day':'evening'; });
   const [todayFoodCount, setTodayFoodCount] = useState(0);
+  const [weekFoodDays, setWeekFoodDays] = useState(0);
   const [todayMealTypes, setTodayMealTypes] = useState<string[]>([]);
   const [todayMeals, setTodayMeals] = useState<any[]>([]);
   const [todayWaterMl, setTodayWaterMl] = useState(0);
@@ -222,6 +223,7 @@ export default function Home() {
         { data: weekLogs },
         { data: todayWorkoutLogs },
         { data: fuel },
+        { data: weekFuel },
         { data: bodyLogs },
         { data: todayActivity },
         { data: nutritionTarget },
@@ -252,6 +254,11 @@ export default function Home() {
           .eq('user_id', user.id)
           .gte('created_at', today + 'T00:00:00').lt('created_at', tomorrow + 'T00:00:00'),
         supabase
+          .from('food_entries')
+          .select('created_at')
+          .eq('user_id', user.id)
+          .gte('created_at', weekStart),
+        supabase
           .from('body_logs')
           .select('weight')
           .eq('user_id', user.id)
@@ -276,6 +283,7 @@ export default function Home() {
       setTodayCarbs(fuel?.reduce((sum: number, item: any) => sum + Number(item.carbs || 0), 0) || 0);
       setTodayFat(fuel?.reduce((sum: number, item: any) => sum + Number(item.fat || 0), 0) || 0);
       setTodayFoodCount(fuel?.length || 0);
+      setWeekFoodDays(new Set((weekFuel || []).map((item: any) => String(item.created_at || '').slice(0, 10)).filter(Boolean)).size);
       setTodayMeals(fuel || []);
       setTodayMealTypes(Array.from(new Set((fuel || []).map((item: any) => String(item.meal_type || '')).filter(Boolean))));
       const storedHabits = localStorage.getItem('nox_habits_' + user.id + '_' + today);
@@ -371,7 +379,7 @@ export default function Home() {
       hasFuel: todayKcal > 0,
       todayKcal,
       targetKcal: targetKcal || undefined,
-      streak: profile?.streak_days || 0,
+      streak: Math.max(Number(profile?.streak_days || 0), weekFoodDays),
       xp,
     }).score;
   };
