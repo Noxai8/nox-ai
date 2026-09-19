@@ -416,6 +416,14 @@ export default function Body() {
   const weeklyNutritionDays = new Set(weeklyFoods.map(e => new Date(e.created_at).toLocaleDateString('en-CA'))).size;
   const weeklyMinutes = Math.round(weeklyActivities.reduce((s,a)=>s+Number(a.duration_minutes||0),0));
   const weeklyReportReady = weeklyNutritionDays > 0 || weeklyActivities.length > 0 || weeklyWorkouts.length > 0 || sevenDayAverage !== null;
+  const monthlyWindow = Date.now() - 30 * 86400000;
+  const monthlyFoods = foodEntries.filter(e => new Date(e.created_at).getTime() >= monthlyWindow);
+  const monthlyActivities = activities.filter(a => new Date(a.performed_at || a.created_at).getTime() >= monthlyWindow);
+  const monthlyWorkouts = workouts.filter(w => new Date(w.completed_at || w.created_at).getTime() >= monthlyWindow && (w.status === 'completed' || w.completed_at));
+  const monthlyNutritionDays = new Set(monthlyFoods.map(e => new Date(e.created_at).toLocaleDateString('en-CA'))).size;
+  const monthlyMinutes = Math.round(monthlyActivities.reduce((s,a)=>s+Number(a.duration_minutes||0),0));
+  const monthlyWeights = logs.filter(l => Number(l.weight)>0 && new Date(l.created_at).getTime() >= monthlyWindow).reverse();
+  const monthlyWeightChange = monthlyWeights.length > 1 ? Number(monthlyWeights.at(-1).weight) - Number(monthlyWeights[0].weight) : null;
   const progressSummary = [
     weightChange === null ? null : `Poids : ${weightChange > 0 ? '+' : ''}${weightChange.toFixed(1)} kg sur la période.`,
     rangeFoods.length ? `Nutrition suivie sur ${trackedDays} jour(s), moyenne ${avgCalories} kcal et ${avgProtein} g de protéines par jour.` : null,
@@ -615,6 +623,19 @@ export default function Body() {
                   <div style={{background:'#F7F7F7',borderRadius:13,padding:11}}><div style={{fontSize:9,color:'#888'}}>POIDS MOY. 7J</div><strong>{sevenDayAverage !== null ? sevenDayAverage.toFixed(1)+' kg' : '—'}</strong></div>
                 </div>
                 <button onClick={()=>navigate('/weekly-review')} style={{width:'100%',border:0,borderRadius:13,background:'#0A0A0A',color:'#fff',padding:13,marginTop:12,fontSize:11,fontWeight:950,cursor:'pointer'}}>OUVRIR LE WEEKLY REVIEW</button>
+              </div>
+
+              <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>RAPPORT 30 JOURS</div>
+              <div style={{ background:'#0A0A0A', color:'#fff', borderRadius:20, padding:17, marginBottom:18 }}>
+                <div style={{fontSize:10,color:ACCENT,fontWeight:950,letterSpacing:'.1em'}}>NOX MONTHLY</div>
+                <div style={{fontSize:18,fontWeight:950,marginTop:4}}>TON MOIS EN UN COUP D'ŒIL</div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:8,marginTop:14}}>
+                  <div style={{background:'#171717',borderRadius:13,padding:11}}><div style={{fontSize:9,color:'#888'}}>NUTRITION</div><strong>{monthlyNutritionDays} j suivis</strong></div>
+                  <div style={{background:'#171717',borderRadius:13,padding:11}}><div style={{fontSize:9,color:'#888'}}>ACTIVITÉ</div><strong>{monthlyMinutes} min</strong></div>
+                  <div style={{background:'#171717',borderRadius:13,padding:11}}><div style={{fontSize:9,color:'#888'}}>TRAINING</div><strong>{monthlyWorkouts.length} séance(s)</strong></div>
+                  <div style={{background:'#171717',borderRadius:13,padding:11}}><div style={{fontSize:9,color:'#888'}}>POIDS</div><strong>{monthlyWeightChange !== null ? (monthlyWeightChange>0?'+':'')+monthlyWeightChange.toFixed(1)+' kg' : '—'}</strong></div>
+                </div>
+                <div style={{fontSize:9.5,color:'#777',lineHeight:1.45,marginTop:12}}>Résumé descriptif des 30 derniers jours à partir des données enregistrées dans NOX.</div>
               </div>
 
               <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>ÉVOLUTION DES MENSURATIONS</div>
