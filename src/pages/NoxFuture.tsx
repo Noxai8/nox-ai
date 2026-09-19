@@ -213,13 +213,15 @@ Réponds UNIQUEMENT en JSON valide :
   "avertissement": "Projection IA illustrative et non garantie. Le résultat réel peut être différent."
 }`;
 
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Session expirée. Reconnecte-toi pour générer une projection.');
+
       const _futureResp = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/nox-future', {
         method: 'POST',
         headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4',
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4',
-      },
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           prompt: futurPrompt,
           photos,
