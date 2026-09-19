@@ -22,6 +22,7 @@ export default function FastingTracker() {
   const [elapsed, setElapsed] = useState(0);
   const [eatStart, setEatStart] = useState<string>('12:00');
   const [customFastHours, setCustomFastHours] = useState(16);
+  const [customFastHours, setCustomFastHours] = useState(16);
   const [waterGoal] = useState(2500);
   const [waterIntake, setWaterIntake] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -192,7 +193,7 @@ export default function FastingTracker() {
               </button>
             ))}
             {waterIntake > 0 && (
-              <button onTouchEnd={e => { e.preventDefault(); setWaterIntake(0); }} onClick={() => setWaterIntake(0)}
+              <button onTouchEnd={e => { e.preventDefault(); addWater(-waterIntake); }} onClick={() => addWater(-waterIntake)}
                 style={{ padding: '10px 12px', background: 'transparent', border: '1px solid #333', borderRadius: 10, color: '#555', fontSize: 12, cursor: 'pointer', touchAction: 'manipulation' }}>
                 Reset
               </button>
