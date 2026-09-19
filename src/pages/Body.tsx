@@ -67,6 +67,7 @@ export default function Body() {
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [compareMeasurements, setCompareMeasurements] = useState(false);
+  const [sevenDayAverage, setSevenDayAverage] = useState<number | null>(null);
 
   const [showActivity, setShowActivity] = useState(false);
   const [activityMode, setActivityMode] = useState<ActivityMode>('manual');
@@ -119,6 +120,8 @@ export default function Body() {
       setSaveError(bodyResult.error.message);
     } else {
       setLogs(bodyResult.data || []);
+      const recentWeights = (bodyResult.data || []).filter((l:any)=>Number(l.weight)>0 && new Date(l.created_at).getTime() >= Date.now()-7*86400000).map((l:any)=>Number(l.weight));
+      setSevenDayAverage(recentWeights.length ? recentWeights.reduce((a:number,b:number)=>a+b,0)/recentWeights.length : null);
     }
 
     if (activityResult.error) {
@@ -524,7 +527,8 @@ export default function Body() {
                   </div>
 
                   <div style={{ borderRadius: 15, padding: '12px 10px 4px', background: '#F7F7F7', border: '1px solid #EAEAEA' }}>
-                    {weightLogs.length >= 2 ? <MiniChart /> : (
+                    {weightLogs.length >= 2 ? <div style={{fontSize:10.5,color:'#777',marginBottom:10}}>Moyenne 7 jours · <strong style={{color:'#0A0A0A'}}>{sevenDayAverage !== null ? sevenDayAverage.toFixed(1)+' kg' : '—'}</strong></div>
+              <MiniChart /> : (
                       <div style={{ height: 80, display: 'grid', placeItems: 'center', color: '#555', fontSize: 11.5 }}>Encore un check-in pour afficher ta courbe</div>
                     )}
                   </div>
