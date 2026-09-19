@@ -29,6 +29,7 @@ export default function Recovery() {
     resting_hr: '',
   });
   const [saved, setSaved] = useState(false);
+  const [recentCheckins, setRecentCheckins] = useState<any[]>([]);
   const [todayCheckin, setTodayCheckin] = useState<any>(null);
   const [readiness, setReadiness] = useState<{ score: number; label: string; color: string; advice: string } | null>(null);
 
@@ -36,10 +37,10 @@ export default function Recovery() {
 
   const loadToday = async () => {
     const today = new Date().toISOString().split('T')[0];
-    const { data } = await supabase.from('recovery_checkins')
-      .select('*').eq('user_id', user!.id)
-      .gte('created_at', today + 'T00:00:00')
-      .maybeSingle();
+    const { data: recent } = await supabase.from('recovery_checkins')
+      .select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(7);
+    setRecentCheckins(recent || []);
+    const data = (recent || []).find((entry: any) => String(entry.created_at || '').startsWith(today));
     if (data) {
       setTodayCheckin(data);
       computeReadiness(data);
@@ -84,6 +85,7 @@ export default function Recovery() {
     await supabase.from('recovery_checkins').insert(entry);
     setSaved(true);
     setTodayCheckin(entry);
+    setRecentCheckins(prev => [entry, ...prev].slice(0,7));
     computeReadiness(entry);
   };
 
@@ -114,7 +116,17 @@ export default function Recovery() {
 
         <div style={{background:'#fff',border:'1px solid '+BORDER,borderRadius:14,padding:'12px 14px',marginBottom:16,fontSize:11.5,color:'#777',lineHeight:1.5}}>Les indicateurs de récupération sont des repères de suivi non médicaux. Ils décrivent les données que tu renseignes et ne posent aucun diagnostic.</div>
 
-        {/* Score readiness */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:9,marginBottom:16}}>
+          {[
+            ['Sommeil', avgSleep != null ? avgSleep.toFixed(1)+' h' : '—'],
+            ['Régularité', sleepRegularity != null ? sleepRegularity+'%' : '—'],
+            ['FC repos', latestHr ? latestHr+' bpm' : '—'],
+            ['HRV', latestHrv ? latestHrv+' ms' : '—'],
+          ].map(([label,value])=><div key={label} style={{background:SURFACE,border:'1px solid '+BORDER,borderRadius:14,padding:14}}><div style={{fontSize:9,color:'#777',fontWeight:850,textTransform:'uppercase'}}>{label}</div><div style={{fontSize:20,fontWeight:950,color:'#0A0A0A',marginTop:5}}>{value}</div></div>)}
+        </div>
+        <div style={{fontSize:10.5,color:'#777',lineHeight:1.45,margin:'-6px 2px 16px'}}>Sommeil moyen et régularité calculés sur les derniers check-ins disponibles. Les données connectées apparaîtront ici lorsqu’une intégration réelle sera activée.</div>
+
+                {/* Score readiness */}
         {readiness && (
           <div style={{ background: SURFACE, border: '1px solid ' + readiness.color + '44', borderRadius: 16, padding: 20, marginBottom: 16, textAlign: 'center' }}>
             <div style={{ fontSize: 56, fontWeight: 900, color: readiness.color, lineHeight: 1 }}>{readiness.score}</div>
