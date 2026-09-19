@@ -262,20 +262,35 @@ export default function Body() {
       setActivitySaving(true);
       setActivityError('');
 
-      if (activitySource === 'machine_scan') {
-        const normalizedType = activityForm.activity_type.trim().toLowerCase();
-        const duplicate = activities.find((item: any) => {
-          const itemTime = new Date(item.performed_at || item.created_at).getTime();
-          const recent = Number.isFinite(itemTime) && Math.abs(Date.now() - itemTime) <= 15 * 60 * 1000;
-          const sameType = String(item.activity_type || '').trim().toLowerCase() === normalizedType;
-          const sameDuration = Math.abs(Number(item.duration_minutes || 0) - Math.round(duration)) <= 1;
-          const sameDistance = distance === null || item.distance_km == null || Math.abs(Number(item.distance_km) - distance) <= 0.1;
-          return recent && sameType && sameDuration && sameDistance;
-        });
-        if (duplicate) {
-          setActivityError('Cette activité ressemble à une session déjà enregistrée récemment. Vérifie ton historique avant de l’ajouter à nouveau.');
-          return;
-        }
+      // NOX Health Engine · première couche anti-doublon.
+      // Elle s'applique à toute nouvelle activité, quelle que soit sa source
+      // (manuel, machine_scan, puis imports Connect), afin d'éviter de compter
+      // deux fois une même séance provenant de plusieurs appareils.
+      const normalizedType = activityForm.activity_type.trim().toLowerCase();
+      const candidateTime = Date.now();
+      const duplicate = activities.find((item: any) => {
+        const itemTime = new Date(item.performed_at || item.created_at).getTime();
+        if (!Number.isFinite(itemTime)) return false;
+
+        const timeDelta = Math.abs(candidateTime - itemTime);
+        const sameType = String(item.activity_type || '').trim().toLowerCase() === normalizedType;
+        const itemDuration = Number(item.duration_minutes || 0);
+        const sameDuration = Math.abs(itemDuration - Math.round(duration)) <= Math.max(2, Math.round(duration * 0.08));
+        const sameDistance = distance === null || item.distance_km == null || Math.abs(Number(item.distance_km) - distance) <= Math.max(0.2, distance * 0.05);
+        const sameCalories = calories === null || item.calories_burned == null || Math.abs(Number(item.calories_burned) - calories) <= Math.max(25, calories * 0.12);
+
+        // Fenêtre serrée si le type correspond ; fenêtre plus large uniquement
+        // lorsque durée + distance/calories rendent la session très similaire.
+        const strongMatch = sameType && sameDuration && sameDistance && sameCalories;
+        const likelyCrossSourceMatch = sameDuration && sameDistance && sameCalories;
+        return (strongMatch && timeDelta <= 30 * 60 * 1000) ||
+          (likelyCrossSourceMatch && timeDelta <= 10 * 60 * 1000);
+      });
+
+      if (duplicate) {
+        const existingSource = String(duplicate.source || 'activité existante').replaceAll('_', ' ');
+        setActivityError(`Doublon probable : une séance très similaire existe déjà (${existingSource}). NOX ne l’ajoute pas une seconde fois.`);
+        return;
       }
 
       const { error } = await supabase.from('activity_logs').insert({
