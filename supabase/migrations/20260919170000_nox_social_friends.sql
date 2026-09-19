@@ -64,3 +64,36 @@ $$;
 
 revoke all on function public.nox_friend_profile(text) from public;
 grant execute on function public.nox_friend_profile(text) to authenticated;
+
+create or replace function public.nox_accept_friend_request(request_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare req public.friend_requests;
+begin
+  select * into req from public.friend_requests where id = request_id and status = 'pending' for update;
+  if req.id is null or req.receiver_id <> auth.uid() then raise exception 'Friend request not found'; end if;
+  update public.friend_requests set status = 'accepted', responded_at = now() where id = request_id;
+  insert into public.friendships(user_id, friend_id) values (req.sender_id, req.receiver_id) on conflict do nothing;
+end;
+$$;
+
+create or replace function public.nox_remove_friend(friend uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  delete from public.friendships
+  where (user_id = auth.uid() and friend_id = friend)
+     or (friend_id = auth.uid() and user_id = friend);
+end;
+$$;
+
+revoke all on function public.nox_accept_friend_request(uuid) from public;
+revoke all on function public.nox_remove_friend(uuid) from public;
+grant execute on function public.nox_accept_friend_request(uuid) to authenticated;
+grant execute on function public.nox_remove_friend(uuid) to authenticated;
