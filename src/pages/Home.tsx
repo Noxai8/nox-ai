@@ -160,6 +160,7 @@ export default function Home() {
   const [todayProtein, setTodayProtein] = useState(0);
   const [targetProtein, setTargetProtein] = useState<number | null>(null);
   const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
+  const [dayPeriod] = useState<'morning'|'day'|'evening'>(() => { const h=new Date().getHours(); return h<12?'morning':h<18?'day':'evening'; });
   const [todayFoodCount, setTodayFoodCount] = useState(0);
   const [todayWaterMl, setTodayWaterMl] = useState(0);
   const [todaySteps, setTodaySteps] = useState(0);
@@ -299,6 +300,8 @@ export default function Home() {
   const firstName = profile?.display_name?.split(' ')[0] || 'ATHLÈTE';
   const sessionGoal = program?.days_per_week || program?.program_json?.days_per_week || 3;
   const remainingKcal = targetKcal ? Math.max(0, targetKcal - todayKcal) : null;
+  const briefLabel = dayPeriod==='morning' ? 'NOX MORNING BRIEF' : dayPeriod==='evening' ? 'NOX EVENING RECAP' : 'NOX DAILY BRIEF';
+  const briefTitle = dayPeriod==='morning' ? 'TA JOURNÉE COMMENCE ICI' : dayPeriod==='evening' ? 'LE RÉCAP DE TA JOURNÉE' : 'TA JOURNÉE EN 10 SECONDES';
 
   return (
     <div style={{ minHeight: '100vh', background: BG, color: TEXT, paddingBottom: 104 }}>
@@ -535,8 +538,8 @@ export default function Home() {
           </div>
 
           <div style={{...cardStyle,padding:18,marginBottom:14}}>
-            <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>NOX DAILY BRIEF</div>
-            <div style={{fontSize:19,fontWeight:950,marginTop:5}}>TA JOURNÉE EN 10 SECONDES</div>
+            <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>{briefLabel}</div>
+            <div style={{fontSize:19,fontWeight:950,marginTop:5}}>{briefTitle}</div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:13}}>
               <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayKcal)} / {targetKcal ? Math.round(targetKcal) : '—'}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>KCAL</div></div>
               <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayProtein)}{targetProtein ? ` / ${Math.round(targetProtein)}` : ''}g</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>PROTÉINES</div></div>
