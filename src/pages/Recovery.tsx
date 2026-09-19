@@ -9,11 +9,12 @@ const SURFACE = '#FFFFFF';
 const BORDER = '#EAEAEA';
 
 const WEARABLES = [
-  { id: 'apple_watch', name: 'Apple Watch', icon: '⌚', color: '#555', connected: false },
-  { id: 'oura', name: 'Oura Ring', icon: '💍', color: '#555', connected: false },
-  { id: 'whoop', name: 'WHOOP', icon: '📿', color: '#555', connected: false },
-  { id: 'garmin', name: 'Garmin', icon: '🏃', color: '#555', connected: false },
-  { id: 'fitbit', name: 'Fitbit', icon: '⌚', color: '#555', connected: false },
+  { id: 'apple_health', name: 'Apple Health / Apple Watch', icon: '⌚' },
+  { id: 'health_connect', name: 'Android Health Connect', icon: '📱' },
+  { id: 'fitbit', name: 'Fitbit', icon: '⌚' },
+  { id: 'whoop', name: 'WHOOP', icon: '📿' },
+  { id: 'garmin', name: 'Garmin', icon: '🏃' },
+  { id: 'oura', name: 'Oura', icon: '💍' },
 ];
 
 export default function Recovery() {
@@ -94,7 +95,7 @@ export default function Recovery() {
       <div style={{ display: 'flex', gap: 8 }}>
         {[1, 2, 3, 4, 5].map(v => (
           <button key={v} onClick={() => setCheckin(p => ({ ...p, [stateKey]: String(v) }))}
-            style={{ flex: 1, padding: '12px 0', background: checkin[stateKey as keyof typeof checkin] === String(v) ? ACCENT : SURFACE, border: '1px solid ' + (checkin[stateKey as keyof typeof checkin] === String(v) ? ACCENT : BORDER), borderRadius: 10, color: checkin[stateKey as keyof typeof checkin] === String(v) ? '#000' : '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+            style={{ flex: 1, padding: '12px 0', background: checkin[stateKey as keyof typeof checkin] === String(v) ? ACCENT : SURFACE, border: '1px solid ' + (checkin[stateKey as keyof typeof checkin] === String(v) ? ACCENT : BORDER), borderRadius: 10, color: checkin[stateKey as keyof typeof checkin] === String(v) ? '#000' : '#555', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
             {v}
           </button>
         ))}
@@ -162,7 +163,7 @@ export default function Recovery() {
           </div>
         ) : (
           <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 14, padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: ACCENT }}>✓ Check-in récupération enregistré aujourd'hui</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#4F7100' }}>✓ Check-in récupération enregistré aujourd'hui</div>
           </div>
         )}
 
@@ -188,7 +189,7 @@ export default function Recovery() {
         <div style={{ background: '#4488ff11', border: '1px solid #4488ff22', borderRadius: 14, padding: 16 }}>
           <div style={{ fontSize: 12, color: '#4488ff', fontWeight: 800, marginBottom: 6 }}>À VENIR</div>
           <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6 }}>
-            Les connexions dépendent des intégrations réellement activées. NOX pourra utiliser les données autorisées de sommeil, fréquence cardiaque, HRV et activité comme contexte de suivi.
+            Aucune connexion n’est simulée ici : chaque source reste indiquée comme bientôt disponible tant que son intégration réelle n’est pas activée. Avec ton autorisation, NOX pourra ensuite utiliser sommeil, fréquence cardiaque, HRV et activité comme contexte de suivi.
           </div>
         </div>
       </div>
