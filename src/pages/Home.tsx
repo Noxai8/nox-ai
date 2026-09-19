@@ -157,6 +157,8 @@ export default function Home() {
   const [prCount, setPrCount] = useState(0);
   const [weekWorkouts, setWeekWorkouts] = useState(0);
   const [todayKcal, setTodayKcal] = useState(0);
+  const [todayProtein, setTodayProtein] = useState(0);
+  const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
   const [xp, setXp] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -179,6 +181,7 @@ export default function Home() {
         { data: weekLogs },
         { data: fuel },
         { data: bodyLogs },
+        { data: todayActivity },
       ] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase.from('workout_programs').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
@@ -192,7 +195,7 @@ export default function Home() {
           .gte('created_at', weekStart),
         supabase
           .from('food_entries')
-          .select('calories')
+          .select('calories, protein')
           .eq('user_id', user.id)
           .gte('created_at', today + 'T00:00:00'),
         supabase
@@ -201,6 +204,7 @@ export default function Home() {
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1),
+        supabase.from('activity_logs').select('duration_minutes').eq('user_id', user.id).gte('performed_at', today + 'T00:00:00'),
       ]);
 
       setProfile(prof);
@@ -209,6 +213,8 @@ export default function Home() {
       setPrCount(prs?.length || 0);
       setWeekWorkouts(weekLogs?.length || 0);
       setTodayKcal(fuel?.reduce((sum: number, item: any) => sum + (item.calories || 0), 0) || 0);
+      setTodayProtein(fuel?.reduce((sum: number, item: any) => sum + Number(item.protein || 0), 0) || 0);
+      setTodayActivityMinutes(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.duration_minutes || 0), 0) || 0);
       setLatestWeight(bodyLogs?.[0]?.weight || null);
       setXp(prof?.xp || 0);
 
@@ -496,6 +502,17 @@ export default function Home() {
                 </button>
               )}
             </div>
+          </div>
+
+          <div style={{...cardStyle,padding:18,marginBottom:14}}>
+            <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>NOX MORNING BRIEF</div>
+            <div style={{fontSize:19,fontWeight:950,marginTop:5}}>TA JOURNÉE EN 10 SECONDES</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:13}}>
+              <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayKcal)}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>KCAL</div></div>
+              <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayProtein)}g</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>PROTÉINES</div></div>
+              <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayActivityMinutes)}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>MIN ACTIVES</div></div>
+            </div>
+            <div style={{fontSize:11.5,color:MUTED,lineHeight:1.5,marginTop:11}}>{todayKcal===0&&todayActivityMinutes===0?'Commence ta journée : ajoute ton premier repas ou une activité.':remainingKcal>0?`Il te reste environ ${Math.round(remainingKcal)} kcal sur ton repère actuel. Continue à enregistrer ta journée pour garder une vue complète.`:'Tes apports enregistrés ont atteint ton repère calorique actuel. Consulte Nutrition pour le détail.'}</div>
           </div>
 
           <div
