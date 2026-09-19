@@ -159,6 +159,7 @@ export default function Home() {
   const [todayKcal, setTodayKcal] = useState(0);
   const [todayProtein, setTodayProtein] = useState(0);
   const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
+  const [todayFoodCount, setTodayFoodCount] = useState(0);
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
   const [xp, setXp] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -214,6 +215,7 @@ export default function Home() {
       setWeekWorkouts(weekLogs?.length || 0);
       setTodayKcal(fuel?.reduce((sum: number, item: any) => sum + (item.calories || 0), 0) || 0);
       setTodayProtein(fuel?.reduce((sum: number, item: any) => sum + Number(item.protein || 0), 0) || 0);
+      setTodayFoodCount(fuel?.length || 0);
       setTodayActivityMinutes(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.duration_minutes || 0), 0) || 0);
       setLatestWeight(bodyLogs?.[0]?.weight || null);
       setXp(prof?.xp || 0);
@@ -513,6 +515,18 @@ export default function Home() {
               <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayActivityMinutes)}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>MIN ACTIVES</div></div>
             </div>
             <div style={{fontSize:11.5,color:MUTED,lineHeight:1.5,marginTop:11}}>{todayKcal===0&&todayActivityMinutes===0?'Commence ta journée : ajoute ton premier repas ou une activité.':remainingKcal>0?`Il te reste environ ${Math.round(remainingKcal)} kcal sur ton repère actuel. Continue à enregistrer ta journée pour garder une vue complète.`:'Tes apports enregistrés ont atteint ton repère calorique actuel. Consulte Nutrition pour le détail.'}</div>
+          </div>
+
+          <div style={{...cardStyle,padding:18,marginBottom:14,background:TEXT,color:'#fff'}}>
+            <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:ACCENT}}>NOX DAILY SCORE</div>
+            <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:12,marginTop:5}}><div><span style={{fontSize:34,fontWeight:950,lineHeight:1}}>{noxScore}</span><span style={{fontSize:12,color:'#777'}}> / 100</span></div><div style={{fontSize:10,color:'#999',textAlign:'right'}}>RÉGULARITÉ<br/>PERSONNELLE</div></div>
+            <div style={{height:7,borderRadius:99,background:'#242424',overflow:'hidden',marginTop:13}}><div style={{height:'100%',width:`${Math.max(0,Math.min(100,noxScore))}%`,background:ACCENT,borderRadius:99}}/></div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:12}}>
+              <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{todayFoodCount}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>ENTRÉES NUTRITION</div></div>
+              <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{Math.round(todayActivityMinutes)}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>MIN ACTIVES</div></div>
+              <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{weekWorkouts}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>SÉANCES 7J</div></div>
+            </div>
+            <div style={{fontSize:9.5,color:'#777',lineHeight:1.45,marginTop:10}}>Score de constance personnel basé sur les données enregistrées dans NOX. Ce n’est pas un score médical.</div>
           </div>
 
           <div
