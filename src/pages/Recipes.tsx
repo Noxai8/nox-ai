@@ -49,13 +49,13 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'cut-chicken-bowl',
     goal: 'cut',
     name: 'Bowl poulet, riz & légumes',
-    subtitle: 'Riche en protéines et facile à préparer.',
+    subtitle: 'Une option riche en protéines et facile à préparer.',
     servings: 1,
     calories_per_serving: 515,
     protein_per_serving: 52,
     carbs_per_serving: 51,
     fat_per_serving: 11,
-    tags: ['PROTÉINÉ', 'OBJECTIF', '20 MIN'],
+    tags: ['PROTÉINÉ', '20 MIN'],
     ingredients: [
       { name: 'Blanc de poulet', calories: '110', protein: '23', carbs: '0', fat: '1.2', qty: '170' },
       { name: 'Riz basmati cuit', calories: '121', protein: '2.5', carbs: '25', fat: '0.3', qty: '150' },
@@ -68,13 +68,13 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'cut-skyr-oats',
     goal: 'cut',
     name: 'Skyr bowl fruits rouges',
-    subtitle: 'Petit-déjeuner rapide avec beaucoup de protéines.',
+    subtitle: 'Une option rapide avec une quantité élevée de protéines.',
     servings: 1,
     calories_per_serving: 390,
     protein_per_serving: 35,
     carbs_per_serving: 49,
     fat_per_serving: 7,
-    tags: ['PETIT-DÉJ', 'OBJECTIF', '5 MIN'],
+    tags: ['PETIT-DÉJ', '5 MIN'],
     ingredients: [
       { name: 'Skyr nature', calories: '65', protein: '11', carbs: '4', fat: '0.2', qty: '250' },
       { name: "Flocons d'avoine", calories: '379', protein: '13', carbs: '68', fat: '6.9', qty: '45' },
@@ -92,7 +92,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     protein_per_serving: 42,
     carbs_per_serving: 52,
     fat_per_serving: 20,
-    tags: ['DÎNER', 'OMEGA-3', 'OBJECTIF'],
+    tags: ['DÎNER', 'OMEGA-3'],
     ingredients: [
       { name: 'Saumon', calories: '208', protein: '20', carbs: '0', fat: '13', qty: '160' },
       { name: 'Pomme de terre cuite', calories: '87', protein: '1.9', carbs: '20', fat: '0.1', qty: '260' },
@@ -477,10 +477,10 @@ export default function Recipes() {
                 </div>
               )}
               <div style={{ padding: 17, borderRadius: 18, background: '#0A0A0A', border: '1px solid #0A0A0A', marginBottom: 22 }}>
-                <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 950, letterSpacing: '.1em' }}>RECETTES POUR TON OBJECTIF</div>
+                <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 950, letterSpacing: '.1em' }}>RECETTES · SUGGESTIONS</div>
                 <div style={{ fontSize: 18, fontWeight: 950, marginTop: 6, color: '#fff' }}>{goalLabel(goal)}</div>
                 <div style={{ fontSize: 11.5, color: '#AAA', lineHeight: 1.5, marginTop: 6 }}>
-                  NOX te propose des idées de repas selon ton objectif et ta cible nutritionnelle. Les valeurs restent des estimations à vérifier.
+                  Idées de repas adaptées à ton objectif et à ta cible nutritionnelle. Les valeurs sont indicatives et restent modifiables avant ajout.
                   {dailyCalories ? ` Même cible que Nutrition : ${Math.round(dailyCalories)} kcal/jour` : ''}
                   {dailyProtein ? ` · ${Math.round(dailyProtein)} g protéines` : ''}.
                   {!dailyCalories ? ' Enregistre une cible dans Nutrition pour personnaliser davantage ces suggestions.' : ''}
@@ -490,7 +490,7 @@ export default function Recipes() {
               <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 950 }}>Suggestions NOX</div>
-                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Selon {goalLabel(goal).toLowerCase()}</div>
+                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Filtrées pour {goalLabel(goal).toLowerCase()}</div>
                 </div>
               </div>
 
@@ -688,7 +688,7 @@ export default function Recipes() {
             <div>
               {selected.suggested && (
                 <div style={{ marginBottom: 12, padding: 12, borderRadius: 12, background: '#F4FFE0', border: '1px solid #D8F29B', color: '#3F5F00', fontSize: 10.5, fontWeight: 850 }}>
-                  SUGGESTION NOX · À VÉRIFIER · {goalLabel(goal)}
+                  SUGGESTION · MODIFIABLE · {goalLabel(goal)}
                 </div>
               )}
 
