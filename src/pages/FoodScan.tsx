@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Activity, Apple, Barcode, Camera, ChevronLeft, Dumbbell, QrCode, Refrigerator, ScanLine, Utensils, X, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -28,9 +28,11 @@ const COPY:Record<ScanMode,{title:string;hint:string}> = {
 
 export default function FoodScan(){
  const {user}=useAuth(); const navigate=useNavigate(); const location=useLocation();
- const [mode,setMode]=useState<ScanMode|null>(null); const [meal,setMeal]=useState((location.state as any)?.meal||'Déjeuner');
+ const requestedMode=(location.state as any)?.scanMode as ScanMode|undefined;
+ const [mode,setMode]=useState<ScanMode|null>(requestedMode&&MODES.some(m=>m.id===requestedMode)?requestedMode:null); const [meal,setMeal]=useState((location.state as any)?.meal||'Déjeuner');
  const [photo,setPhoto]=useState<string|null>(null); const [result,setResult]=useState<any>(null); const [busy,setBusy]=useState(false); const [error,setError]=useState('');
  const input=useRef<HTMLInputElement>(null);
+ useEffect(()=>{if(requestedMode&&MODES.some(m=>m.id===requestedMode)){const timer=window.setTimeout(()=>input.current?.click(),180);return()=>window.clearTimeout(timer)}},[requestedMode]);
  const pick=(m:ScanMode)=>{setMode(m);setPhoto(null);setResult(null);setError('');setTimeout(()=>input.current?.click(),100)};
  const reset=()=>{setPhoto(null);setResult(null);setError('')};
  const onPhoto=(e:React.ChangeEvent<HTMLInputElement>)=>{const file=e.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{const data=String(reader.result);setPhoto(data);void analyze(data.split(',')[1]||'')};reader.readAsDataURL(file);e.target.value=''};
