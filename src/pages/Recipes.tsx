@@ -218,6 +218,7 @@ export default function Recipes() {
   const [profile, setProfile] = useState<any>(null);
   const [nutritionTarget, setNutritionTarget] = useState<any>(null);
   const [recentFoods, setRecentFoods] = useState<any[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
   const [form, setForm] = useState({
     name: '',
     servings: '1',
@@ -230,7 +231,10 @@ export default function Recipes() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (user) load();
+    if (!user) return;
+    const saved = localStorage.getItem('nox_recipe_favorites_' + user.id);
+    if (saved) { try { setFavorites(JSON.parse(saved)); } catch { setFavorites([]); } }
+    load();
   }, [user]);
 
   const load = async () => {
@@ -278,6 +282,15 @@ export default function Recipes() {
     });
     return scored.sort((a,b) => b.familiarity - a.familiarity).map(x => x.recipe);
   }, [goal, recentFoods]);
+
+  const toggleFavorite = (id: string) => {
+    if (!user) return;
+    setFavorites(current => {
+      const next = current.includes(id) ? current.filter(x => x !== id) : [...current, id];
+      localStorage.setItem('nox_recipe_favorites_' + user.id, JSON.stringify(next));
+      return next;
+    });
+  };
 
   const addIngredient = () =>
     setForm(f => ({ ...f, ingredients: [...f.ingredients, emptyIngredient()] }));
@@ -500,12 +513,12 @@ export default function Recipes() {
               <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 950 }}>Idées pour toi</div>
-                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Selon ton objectif et les aliments déjà enregistrés</div>
+                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Selon ton objectif et les aliments déjà enregistrés · favoris en premier</div>
                 </div>
               </div>
 
               <div style={{ display: 'grid', gap: 9, marginBottom: 26 }}>
-                {suggestions.map(recipe => (
+                {[...suggestions].sort((a,b) => Number(favorites.includes(b.id)) - Number(favorites.includes(a.id))).map(recipe => (
                   <button
                     key={recipe.id}
                     onClick={() => openSuggestion(recipe)}
@@ -520,7 +533,7 @@ export default function Recipes() {
                             </span>
                           ))}
                         </div>
-                        <div style={{ fontSize: 14.5, fontWeight: 900 }}>{recipe.name}</div>
+                        <div style={{ fontSize: 14.5, fontWeight: 900 }}>{favorites.includes(recipe.id) ? '★ ' : ''}{recipe.name}</div>
                         <div style={{ fontSize: 10.5, color: '#666', marginTop: 4, lineHeight: 1.4 }}>{recipe.subtitle}</div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -767,6 +780,8 @@ export default function Recipes() {
               >
                 AJOUTER AU JOURNAL · {Math.round((selected.calories_per_serving || 0) * portions)} KCAL
               </button>
+
+              {selected.suggested && <button onClick={() => toggleFavorite(selected.id)} style={{ width: '100%', padding: 14, marginBottom: 9, background: favorites.includes(selected.id) ? '#F4FFE0' : SURFACE, border: `1px solid ${favorites.includes(selected.id) ? '#D8F29B' : BORDER}`, borderRadius: 12, color: '#333', fontWeight: 850, cursor: 'pointer' }}>{favorites.includes(selected.id) ? '★ RETIRER DES FAVORIS' : '☆ AJOUTER AUX FAVORIS'}</button>}
 
               {selected.suggested ? (
                 <button
