@@ -55,7 +55,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     protein_per_serving: 52,
     carbs_per_serving: 51,
     fat_per_serving: 11,
-    tags: ['PROTÉINÉ', '20 MIN'],
+    tags: ['RICHE EN PROTÉINES', '20 MIN'],
     ingredients: [
       { name: 'Blanc de poulet', calories: '110', protein: '23', carbs: '0', fat: '1.2', qty: '170' },
       { name: 'Riz basmati cuit', calories: '121', protein: '2.5', carbs: '25', fat: '0.3', qty: '150' },
@@ -104,13 +104,13 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'maintain-wrap',
     goal: 'maintain',
     name: 'Wrap poulet avocat',
-    subtitle: 'Équilibré et pratique pour un déjeuner complet.',
+    subtitle: 'Pratique pour un déjeuner avec protéines, glucides et lipides.',
     servings: 1,
     calories_per_serving: 620,
     protein_per_serving: 48,
     carbs_per_serving: 61,
     fat_per_serving: 21,
-    tags: ['ÉQUILIBRÉ', 'RAPIDE', 'DÉJEUNER'],
+    tags: ['RAPIDE', 'DÉJEUNER'],
     ingredients: [
       { name: 'Tortilla blé', calories: '292', protein: '7.6', carbs: '48', fat: '7', qty: '100' },
       { name: 'Blanc de poulet', calories: '110', protein: '23', carbs: '0', fat: '1.2', qty: '150' },
@@ -123,13 +123,13 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'maintain-pasta',
     goal: 'maintain',
     name: 'Pâtes au thon protéinées',
-    subtitle: 'Simple, équilibré et adapté aux journées actives.',
+    subtitle: 'Simple, riche en protéines et pratique les journées actives.',
     servings: 1,
     calories_per_serving: 650,
     protein_per_serving: 50,
     carbs_per_serving: 78,
     fat_per_serving: 15,
-    tags: ['PROTÉINÉ', 'ÉQUILIBRÉ', '20 MIN'],
+    tags: ['RICHE EN PROTÉINES', '20 MIN'],
     ingredients: [
       { name: 'Pâtes cuites', calories: '158', protein: '5.5', carbs: '31', fat: '0.9', qty: '220' },
       { name: 'Thon au naturel', calories: '116', protein: '26', carbs: '0', fat: '1', qty: '140' },
@@ -167,7 +167,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     protein_per_serving: 55,
     carbs_per_serving: 96,
     fat_per_serving: 20,
-    tags: ['PRISE DE MUSCLE', 'PROTÉINÉ', 'POST-TRAIN'],
+    tags: ['PRISE DE MUSCLE', 'RICHE EN PROTÉINES', 'POST-TRAIN'],
     ingredients: [
       { name: 'Steak haché 5%', calories: '137', protein: '21', carbs: '0', fat: '5', qty: '180' },
       { name: 'Riz basmati cuit', calories: '121', protein: '2.5', carbs: '25', fat: '0.3', qty: '300' },
@@ -480,7 +480,7 @@ export default function Recipes() {
                 <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 950, letterSpacing: '.1em' }}>RECETTES · SUGGESTIONS</div>
                 <div style={{ fontSize: 18, fontWeight: 950, marginTop: 6, color: '#fff' }}>{goalLabel(goal)}</div>
                 <div style={{ fontSize: 11.5, color: '#AAA', lineHeight: 1.5, marginTop: 6 }}>
-                  Idées de repas adaptées à ton objectif et à ta cible nutritionnelle. Les valeurs sont indicatives et restent modifiables avant ajout.
+                  Idées de repas filtrées selon ton objectif et ta cible nutritionnelle. Ce ne sont pas des notes de qualité alimentaire : les valeurs sont indicatives et restent modifiables avant ajout.
                   {dailyCalories ? ` Même cible que Nutrition : ${Math.round(dailyCalories)} kcal/jour` : ''}
                   {dailyProtein ? ` · ${Math.round(dailyProtein)} g protéines` : ''}.
                   {!dailyCalories ? ' Enregistre une cible dans Nutrition pour personnaliser davantage ces suggestions.' : ''}
@@ -489,7 +489,7 @@ export default function Recipes() {
 
               <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 950 }}>Suggestions NOX</div>
+                  <div style={{ fontSize: 15, fontWeight: 950 }}>Idées pour toi</div>
                   <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Filtrées pour {goalLabel(goal).toLowerCase()}</div>
                 </div>
               </div>
