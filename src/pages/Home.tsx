@@ -1,5 +1,4 @@
-import { calculateNoxScore, calculateRealTDEE } from '../lib/noxBrain';
-import NoxMascot from '../components/NoxMascot';
+import { calculateNoxScore } from '../lib/noxBrain';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BottomNav } from '../components/BottomNav';
@@ -9,12 +8,9 @@ import {
   ArrowRight,
   BarChart3,
   Droplets,
-  CalendarDays,
   ChevronRight,
   Dumbbell,
   Flame,
-  House,
-  Medal,
   MoonStar,
   Play,
   ScanLine,
@@ -241,11 +237,12 @@ export default function Home() {
 
       if (prog?.program_json) {
         const sessions = prog.program_json.sessions || [];
-        const found = sessions.find(
+        const foundIdx = sessions.findIndex(
           (session: any) =>
             session.day === todayDay || (session.days && session.days.includes(todayDay)),
         );
-        setTodaySession(found || null);
+        setTodaySessionIdx(foundIdx >= 0 ? foundIdx : 0);
+        setTodaySession(foundIdx >= 0 ? sessions[foundIdx] : null);
       }
 
       setLoading(false);
@@ -443,7 +440,7 @@ export default function Home() {
 
               <div style={{ color: MUTED, fontSize: 13, lineHeight: 1.55, marginTop: 9 }}>
                 {isRestDay
-                  ? 'Aujourd’hui, priorité à la récupération. Mobilité légère, hydratation et sommeil pour repartir plus fort.'
+                  ? 'Aucune séance n’est planifiée aujourd’hui. Tu peux suivre ta nutrition, ton activité et ta récupération comme d’habitude.'
                   : `${todaySession?.exercises?.length || 0} exercices · ${
                       todaySession?.duration || program?.program_json?.session_length_min || 60
                     } min · séance adaptée à ton plan.`}
@@ -458,7 +455,7 @@ export default function Home() {
                       borderRadius: 13,
                       border: '1px solid rgba(200,255,0,.2)',
                       background: 'rgba(200,255,0,.07)',
-                      color: ACCENT,
+                      color: TEXT,
                       fontWeight: 900,
                       fontSize: 11,
                       textTransform: 'uppercase',
