@@ -4,39 +4,30 @@ import { BottomNav } from '../components/BottomNav';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const ACCENT = '#B7FF00';
+const BG = '#F7F7F7';
+const SURFACE = '#FFFFFF';
+const BORDER = '#EAEAEA';
 
 const PLANS = [
   {
-    id: 'nox',
+    id: 'free',
     name: 'NOX',
-    monthly: '3,99 €',
-    annual: '34,99 €',
-    annualMonthly: '2,92 €',
-    color: '#4488ff',
-    features: ['Programme personnalisé', 'Entraînements illimités', 'Suivi des PR', 'BODY basique', 'FUEL basique'],
+    monthly: '0 €',
+    annual: '0 €',
+    annualMonthly: '0 €',
+    color: '#0A0A0A',
+    features: ['Suivi quotidien', 'Journal nutrition essentiel', 'Calories & macros', 'Poids & hydratation', 'Activité de base', 'Training & progrès essentiels'],
   },
   {
-    id: 'pro',
-    name: 'NOX PRO',
+    id: 'plus',
+    name: 'NOX+',
     monthly: '8,99 €',
     annual: '79,99 €',
     annualMonthly: '6,67 €',
     color: ACCENT,
-    badge: 'RECOMMANDÉ',
-    features: ['Tout NOX inclus', 'Coach IA avancé', 'NOX FUTURE illimité', 'BODY complet + mensurations', 'FUEL avancé', 'Bilan hebdomadaire IA', 'Adaptations intelligentes'],
-  },
-  {
-    id: 'ultra',
-    name: 'NOX ULTRA',
-    monthly: '14,99 €',
-    annual: '99,99 €',
-    annualMonthly: '8,33 €',
-    color: '#ff6644',
-    features: ['Tout PRO inclus', 'Analyses avancées', 'Projections premium', 'Rapports mensuels IA', 'Intégrations wearables (bientôt)', 'Support prioritaire'],
+    badge: 'PLUS COMPLET',
+    features: ['Tout NOX inclus', 'Scan nourriture avancé', 'Analyses longue durée', 'Meal Planner avancé', 'Training & statistiques avancés', 'Synthèses personnalisées', 'Fonctions premium selon intégrations disponibles'],
   },
 ];
 
@@ -44,7 +35,7 @@ export default function Subscribe() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [billing, setBilling] = useState<'monthly' | 'annual'>('annual');
-  const [selected, setSelected] = useState('pro');
+  const [selected, setSelected] = useState('plus');
 
   const startTrial = async () => {
     const trialEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -63,8 +54,8 @@ export default function Subscribe() {
       <div style={{ padding: '40px 24px 24px', textAlign: 'center', borderBottom: '1px solid ' + BORDER }}>
         <button onClick={() => navigate(-1)} style={{ position: 'absolute', top: 24, left: 20, background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 14 }}>← Retour</button>
         <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.15em', marginBottom: 8 }}>Passe au niveau supérieur</div>
-        <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-.02em' }}>CHOISIS TON EXPÉRIENCE NOX</div>
-        <div style={{ fontSize: 14, color: ACCENT, marginTop: 8, fontWeight: 700 }}>30 jours gratuits · Sans engagement</div>
+        <div style={{ fontSize: 28, fontWeight: 900, color: '#0A0A0A', letterSpacing: '-.02em' }}>CHOISIS TON EXPÉRIENCE NOX</div>
+        <div style={{ fontSize: 14, color: ACCENT, marginTop: 8, fontWeight: 700 }}>NOX reste utile gratuitement · NOX+ ajoute les fonctions avancées</div>
       </div>
 
       {/* Billing toggle */}
@@ -93,7 +84,7 @@ export default function Subscribe() {
                 <div style={{ fontSize: 20, fontWeight: 900, color: p.color }}>{p.name}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 24, fontWeight: 900, color: '#fff' }}>{billing === 'annual' ? p.annualMonthly : p.monthly}</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: '#0A0A0A' }}>{billing === 'annual' ? p.annualMonthly : p.monthly}</div>
                 <div style={{ fontSize: 11, color: '#555' }}>{billing === 'annual' ? 'par mois · ' + p.annual + '/an' : 'par mois'}</div>
               </div>
             </div>
@@ -101,7 +92,7 @@ export default function Subscribe() {
               {p.features.map(f => (
                 <div key={f} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span style={{ color: p.color, fontSize: 14 }}>✓</span>
-                  <span style={{ fontSize: 13, color: '#ccc' }}>{f}</span>
+                  <span style={{ fontSize: 13, color: '#444' }}>{f}</span>
                 </div>
               ))}
             </div>
@@ -112,19 +103,19 @@ export default function Subscribe() {
       {/* CTA */}
       <div style={{ padding: '24px 20px' }}>
         <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 16, marginBottom: 16, textAlign: 'center' }}>
-          <div style={{ fontSize: 24, fontWeight: 900, color: ACCENT }}>Aujourd'hui : 0 €</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: ACCENT }}>NOX+ · 30 jours d’essai</div>
           <div style={{ fontSize: 13, color: '#555', marginTop: 4 }}>
-            30 jours gratuits · Puis {billing === 'annual' ? plan.annual + '/an' : plan.monthly + '/mois'}
+            {selected === 'free' ? 'Le suivi essentiel reste gratuit.' : <>Puis {billing === 'annual' ? plan.annual + '/an' : plan.monthly + '/mois'}.</>}
           </div>
         </div>
 
         <button onClick={startTrial}
           style={{ width: '100%', padding: 18, background: ACCENT, border: 'none', borderRadius: 16, color: '#000', fontWeight: 900, fontSize: 16, cursor: 'pointer', marginBottom: 12 }}>
-          DÉMARRER MES 30 JOURS GRATUITS
+          {selected === 'free' ? 'CONTINUER AVEC NOX' : 'ESSAYER NOX+ 30 JOURS'}
         </button>
 
         <div style={{ fontSize: 11, color: '#333', textAlign: 'center', lineHeight: 1.6 }}>
-          Aucune carte requise pour l'instant · Annulable à tout moment
+          L’activation actuelle enregistre le choix dans ton profil. Le paiement réel doit être connecté avant commercialisation.
         </div>
       </div>
       <BottomNav active="settings" />
