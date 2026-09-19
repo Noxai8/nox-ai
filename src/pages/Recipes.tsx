@@ -92,7 +92,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     protein_per_serving: 42,
     carbs_per_serving: 52,
     fat_per_serving: 20,
-    tags: ['DÎNER', 'OMEGA-3'],
+    tags: ['DÎNER', 'SAUMON'],
     ingredients: [
       { name: 'Saumon', calories: '208', protein: '20', carbs: '0', fat: '13', qty: '160' },
       { name: 'Pomme de terre cuite', calories: '87', protein: '1.9', carbs: '20', fat: '0.1', qty: '260' },
@@ -167,7 +167,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     protein_per_serving: 55,
     carbs_per_serving: 96,
     fat_per_serving: 20,
-    tags: ['PRISE DE MUSCLE', 'RICHE EN PROTÉINES', 'POST-TRAIN'],
+    tags: ['PRISE DE MUSCLE', 'RICHE EN PROTÉINES', 'REPAS'],
     ingredients: [
       { name: 'Steak haché 5%', calories: '137', protein: '21', carbs: '0', fat: '5', qty: '180' },
       { name: 'Riz basmati cuit', calories: '121', protein: '2.5', carbs: '25', fat: '0.3', qty: '300' },
@@ -179,8 +179,8 @@ const SUGGESTIONS: SuggestedRecipe[] = [
   {
     id: 'bulk-smoothie',
     goal: 'bulk',
-    name: 'Smoothie protéiné calorique',
-    subtitle: 'Une option liquide plus calorique pour varier les collations.',
+    name: 'Smoothie banane, avoine & protéines',
+    subtitle: 'Une option liquide pour varier les collations et ajuster facilement la portion.',
     servings: 1,
     calories_per_serving: 680,
     protein_per_serving: 45,
@@ -273,7 +273,7 @@ export default function Recipes() {
     const recentNames = recentFoods.map(f => String(f.food_name || '').toLowerCase()).filter(Boolean);
     const scored = SUGGESTIONS.filter(r => r.goal === goal || r.goal === 'all').map(recipe => {
       const haystack = [recipe.name, ...recipe.ingredients.map(i => i.name)].join(' ').toLowerCase();
-      const familiarity = recentNames.reduce((score, name) => score + (haystack.includes(name) || name.includes(recipe.name.toLowerCase()) ? 1 : 0), 0);
+      const familiarity = recentNames.reduce((score, name) => score + (haystack.includes(name) ? 1 : 0), 0);
       return { recipe, familiarity };
     });
     return scored.sort((a,b) => b.familiarity - a.familiarity).map(x => x.recipe);
@@ -490,7 +490,7 @@ export default function Recipes() {
                 <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 950, letterSpacing: '.1em' }}>RECETTES · SUGGESTIONS</div>
                 <div style={{ fontSize: 18, fontWeight: 950, marginTop: 6, color: '#fff' }}>{goalLabel(goal)}</div>
                 <div style={{ fontSize: 11.5, color: '#AAA', lineHeight: 1.5, marginTop: 6 }}>
-                  Idées de repas adaptées à ton objectif, à ta cible nutritionnelle et, quand c’est possible, aux aliments déjà présents dans ton journal. Aucune recette n’est classée « bonne » ou « mauvaise » : les valeurs sont indicatives et restent modifiables avant ajout.
+                  Idées de repas filtrées selon ton objectif et rapprochées des aliments déjà présents dans ton journal quand une correspondance existe. Aucune recette n’est classée « bonne » ou « mauvaise » : les valeurs sont indicatives et restent modifiables avant ajout.
                   {dailyCalories ? ` Même cible que Nutrition : ${Math.round(dailyCalories)} kcal/jour` : ''}
                   {dailyProtein ? ` · ${Math.round(dailyProtein)} g protéines` : ''}.
                   {!dailyCalories ? ' Enregistre une cible dans Nutrition pour personnaliser davantage ces suggestions.' : ''}
