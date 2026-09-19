@@ -18,7 +18,6 @@ export default function FastingTracker() {
   const { user } = useAuth();
   const [protocol, setProtocol] = useState(PROTOCOLS[0]);
   const [customFastHours, setCustomFastHours] = useState(16);
-  const [customFastHours, setCustomFastHours] = useState(16);
   const [fastStart, setFastStart] = useState<Date | null>(null);
   const [isFasting, setIsFasting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
