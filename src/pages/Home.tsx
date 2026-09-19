@@ -517,7 +517,7 @@ export default function Home() {
                     }}
                   >
                     <ScanLine size={16} />
-                    Body check
+                    Progrès
                   </button>
 
                   <button
@@ -731,13 +731,13 @@ export default function Home() {
                 }}
               >
                 <WandSparkles size={14} />
-                Signature NOX
+                Projection NOX
               </div>
 
               <div style={{ maxWidth: '78%' }}>
                 <div style={{ fontSize: 21, fontWeight: 950, letterSpacing: '-.03em' }}>NOX FUTURE</div>
                 <div style={{ fontSize: 12.5, color: '#777777', lineHeight: 1.5, marginTop: 6 }}>
-                  Visualise une projection indicative de ta trajectoire et suis l’écart entre ton plan et ta réalité.
+                  Suis une tendance indicative construite à partir de tes données enregistrées. Elle évolue avec ton suivi et ne constitue pas une date garantie.
                 </div>
               </div>
 
@@ -807,7 +807,7 @@ export default function Home() {
           >
             <Sparkles size={15} color={ACCENT} />
             <div style={{ flex: 1, fontSize: 11.5, lineHeight: 1.45, color: '#777' }}>
-              Tes données enregistrées permettent à NOX de personnaliser progressivement tes repères et tes synthèses.
+              Tout ton progrès. Un seul endroit. Tes données enregistrées personnalisent progressivement tes repères et tes synthèses.
             </div>
             <ChevronRight size={16} color="#999999" />
           </div>
