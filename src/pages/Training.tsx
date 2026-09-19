@@ -99,6 +99,7 @@ const [restTime, setRestTime] = useState(0);
 const [restMax, setRestMax] = useState(90);
 const [completedSets, setCompletedSets] = useState<any[]>([]);
 const [newPR, setNewPR] = useState<any>(null);
+const [sessionPRs, setSessionPRs] = useState<any[]>([]);
 const [overloadSuggestion, setOverloadSuggestion] = useState<any>(null);
 const [stagnation, setStagnation] = useState<any>(null);
 const [trainingError, setTrainingError] = useState('');
@@ -449,7 +450,9 @@ try {
 
     if (prError) throw prError;
 
-    setNewPR({ name: ex.name, weight: parsedWeight, reps: parsedReps });
+    const pr = { name: ex.name, weight: parsedWeight, reps: parsedReps };
+    setNewPR(pr);
+    setSessionPRs(prev => [...prev, pr]);
     window.setTimeout(() => setNewPR(null), 3000);
   }
 
@@ -596,6 +599,7 @@ CRÉER UN PROGRAMME →
 // ─── DONE ───────────────────────────────────────────────────
 if (done) {
 const duration = Math.max(1, Math.round((Date.now() - startTime) / 60000));
+const sessionVolume = Math.round(completedSets.reduce((sum, set) => sum + Number(set.weight || 0) * Number(set.reps || 0), 0));
 
 return (
   <div style={{ minHeight: '100vh', background: '#FFFFFF', color: '#111', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 28, textAlign: 'center' }}>
@@ -604,11 +608,24 @@ return (
     <div style={{ fontSize: 10, color: '#77776F', textTransform: 'uppercase', letterSpacing: '.18em', marginTop: 22, marginBottom: 7, fontWeight: 900 }}>Complété</div>
     <div style={{ fontSize: 29, lineHeight: .95, fontWeight: 1000, color: '#111', marginBottom: 28, letterSpacing: '-.045em' }}>SÉANCE TERMINÉE</div>
 
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, width: '100%', maxWidth: 340, marginBottom: 14 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, width: '100%', maxWidth: 340, marginBottom: 14 }}>
       <DoneMetric label="Durée" value={`${duration} min`} symbol="◷" />
-      <DoneMetric label="Exercices" value={String(exercises.length)} symbol="▥" />
       <DoneMetric label="Séries" value={String(completedSets.length)} symbol="✓" />
+      <DoneMetric label="Volume" value={sessionVolume > 0 ? `${sessionVolume.toLocaleString('fr-FR')} kg` : '—'} symbol="↗" />
+      <DoneMetric label="PR" value={String(sessionPRs.length)} symbol="★" />
     </div>
+
+    {sessionPRs.length > 0 && (
+      <div style={{ width: '100%', maxWidth: 340, background: '#111', color: '#fff', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'left' }}>
+        <div style={{ color: ACCENT, fontSize: 9.5, fontWeight: 1000, letterSpacing: '.1em' }}>PERSONAL BEST</div>
+        {sessionPRs.slice(-3).map((pr, index) => (
+          <div key={`${pr.name}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 8, fontSize: 11.5 }}>
+            <span style={{ fontWeight: 850, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pr.name}</span>
+            <strong style={{ color: ACCENT, flexShrink: 0 }}>{pr.weight} kg × {pr.reps}</strong>
+          </div>
+        ))}
+      </div>
+    )}
 
     <div style={{ background: '#F8FFE5', border: `1px solid ${ACCENT}`, borderRadius: 13, padding: 14, marginBottom: 24, width: '100%', maxWidth: 340 }}>
       <div style={{ fontSize: 12, color: '#111', fontWeight: 900 }}>+50 XP · Streak recalculé</div>
