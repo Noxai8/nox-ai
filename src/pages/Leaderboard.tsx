@@ -4,10 +4,10 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const ACCENT = '#B7FF00';
+const BG = '#F7F7F7';
+const SURFACE = '#FFFFFF';
+const BORDER = '#EAEAEA';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -20,6 +20,8 @@ export default function Leaderboard() {
   const [myProfile, setMyProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [inviteCode, setInviteCode] = useState('');
+  const [optedIn, setOptedIn] = useState(false);
+  const [savingOptIn, setSavingOptIn] = useState(false);
 
   useEffect(() => { if (user) load(); }, [user, tab]);
 
@@ -28,15 +30,24 @@ export default function Leaderboard() {
 
     const { data: me } = await supabase.from('profiles').select('*').eq('id', user!.id).maybeSingle();
     setMyProfile(me);
+    setOptedIn(me?.notification_prefs?.leaderboard_opt_in === true);
     setInviteCode(user!.id.slice(0, 8).toUpperCase());
 
+    if (me?.notification_prefs?.leaderboard_opt_in !== true) {
+      setPlayers([]);
+      setMyRank(null);
+      setLoading(false);
+      return;
+    }
+
     // Récupérer les stats selon l'onglet
-    let query = supabase.from('profiles').select('id, display_name, xp, streak_days, level');
+    let query = supabase.from('profiles').select('id, display_name, xp, streak_days, level, notification_prefs');
 
     if (tab === 'xp') query = query.order('xp', { ascending: false }).limit(50);
     else if (tab === 'streak') query = query.order('streak_days', { ascending: false }).limit(50);
 
-    const { data: allProfiles } = await query;
+    const { data: allProfilesRaw } = await query;
+    const allProfiles = (allProfilesRaw || []).filter((p: any) => p.notification_prefs?.leaderboard_opt_in === true);
 
     if (tab === 'workouts' || tab === 'prs') {
       // Compter séances ou PR pour chaque joueur
@@ -78,6 +89,19 @@ export default function Leaderboard() {
     return p.score || 0;
   };
 
+  const setLeaderboardOptIn = async (enabled: boolean) => {
+    if (!user || savingOptIn) return;
+    setSavingOptIn(true);
+    const nextPrefs = { ...(myProfile?.notification_prefs || {}), leaderboard_opt_in: enabled };
+    const { error } = await supabase.from('profiles').update({ notification_prefs: nextPrefs }).eq('id', user.id);
+    if (!error) {
+      setMyProfile((p: any) => ({ ...(p || {}), notification_prefs: nextPrefs }));
+      setOptedIn(enabled);
+      if (enabled) await load(); else { setPlayers([]); setMyRank(null); }
+    }
+    setSavingOptIn(false);
+  };
+
   const copyInvite = () => {
     navigator.clipboard.writeText(`Rejoins-moi sur NOX ! Mon code : ${inviteCode} — noxai.fr`);
   };
@@ -105,6 +129,11 @@ export default function Leaderboard() {
       </div>
 
       <div style={{ padding: '16px 20px 0' }}>
+        <div style={{background:'#fff',border:'1px solid '+BORDER,borderRadius:16,padding:16,marginBottom:16}}>
+          <div style={{fontSize:13,fontWeight:900,color:'#0A0A0A'}}>CLASSEMENT OPTIONNEL</div>
+          <div style={{fontSize:11,color:'#777',lineHeight:1.5,marginTop:5}}>Ton profil et tes statistiques n’apparaissent ici que si tu choisis explicitement de participer. Seuls les membres ayant activé cette option sont classés.</div>
+          <button onClick={()=>void setLeaderboardOptIn(!optedIn)} disabled={savingOptIn} style={{width:'100%',marginTop:12,padding:12,borderRadius:11,border:'1px solid '+(optedIn?'#DADADA':ACCENT),background:optedIn?'#F4F4F4':ACCENT,color:'#0A0A0A',fontWeight:900,cursor:'pointer'}}>{savingOptIn?'ENREGISTREMENT…':optedIn?'QUITTER LE CLASSEMENT':'PARTICIPER AU CLASSEMENT'}</button>
+        </div>
         {/* Mon rang */}
         {myRank && myProfile && (
           <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 14, padding: '14px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -120,7 +149,7 @@ export default function Leaderboard() {
         )}
 
         {/* Top 3 podium */}
-        {!loading && players.length >= 3 && (
+        {optedIn && !loading && players.length >= 3 && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 20, alignItems: 'flex-end' }}>
             {[1, 0, 2].map(i => {
               const p = players[i];
@@ -142,7 +171,9 @@ export default function Leaderboard() {
         )}
 
         {/* Liste complète */}
-        {loading ? (
+        {!optedIn ? (
+          <div style={{textAlign:'center',padding:'28px 16px',color:'#777',fontSize:12}}>Active ta participation pour voir le classement des membres qui ont eux aussi choisi d’y apparaître.</div>
+        ) : loading ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: '#555' }}>Chargement...</div>
         ) : (
           <div>
@@ -188,7 +219,7 @@ export default function Leaderboard() {
               COPIER
             </button>
           </div>
-          <div style={{ fontSize: 11, color: '#555', marginTop: 8 }}>Partage ce code pour que tes amis rejoignent NOX et apparaissent dans le classement</div>
+          <div style={{ fontSize: 11, color: '#555', marginTop: 8 }}>Partage ce code pour inviter tes amis. Leur apparition dans le classement reste soumise à leur propre opt-in</div>
         </div>
       </div>
 
