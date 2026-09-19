@@ -74,6 +74,7 @@ export default function Body() {
   const [activities, setActivities] = useState<any[]>([]);
   const [foodEntries, setFoodEntries] = useState<any[]>([]);
   const [workouts, setWorkouts] = useState<any[]>([]);
+  const [mealPlans, setMealPlans] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ weight: '', chest_cm: '', waist_cm: '', hips_cm: '', arms_cm: '', thighs_cm: '', notes: '' });
   const [loading, setLoading] = useState(true);
@@ -124,11 +125,12 @@ export default function Body() {
     if (!user) return;
     setLoading(true);
 
-    const [bodyResult, activityResult, foodResult, workoutResult] = await Promise.all([
+    const [bodyResult, activityResult, foodResult, workoutResult, mealPlanResult] = await Promise.all([
       supabase.from('body_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('activity_logs').select('*').eq('user_id', user.id).order('performed_at', { ascending: false }).limit(200),
       supabase.from('food_entries').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(500),
       supabase.from('workouts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100),
+      supabase.from('meal_plans').select('id, planned_date, logged').eq('user_id', user.id).order('planned_date', { ascending: false }).limit(500),
     ]);
 
     if (bodyResult.error) {
@@ -152,6 +154,7 @@ export default function Body() {
     }
     setFoodEntries(foodResult.data || []);
     setWorkouts(workoutResult.data || []);
+    setMealPlans(mealPlanResult.data || []);
 
     setLoading(false);
   };
@@ -404,6 +407,10 @@ export default function Body() {
   const previousWeight = rangeWeightLogs.length > 1 ? Number(rangeWeightLogs[rangeWeightLogs.length - 2].weight) : null;
   const recentWeightChange = previousWeight !== null && latestRangeWeight !== null ? latestRangeWeight - previousWeight : null;
   const avgActiveMinutesPerDay = rangeDays ? Math.round(activeMinutesRange / Math.max(1, rangeDays)) : null;
+  const rangeMealPlans = mealPlans.filter(p => !rangeDays || new Date(String(p.planned_date)+'T12:00:00').getTime() >= rangeCutoff);
+  const plannedMealsCount = rangeMealPlans.length;
+  const loggedPlannedMeals = rangeMealPlans.filter(p => p.logged).length;
+  const mealPlanFollowThrough = plannedMealsCount > 0 ? Math.round((loggedPlannedMeals / plannedMealsCount) * 100) : null;
   const weeklyWindow = Date.now() - 7 * 86400000;
   const weeklyFoods = foodEntries.filter(e => new Date(e.created_at).getTime() >= weeklyWindow);
   const weeklyActivities = activities.filter(a => new Date(a.performed_at || a.created_at).getTime() >= weeklyWindow);
@@ -700,6 +707,17 @@ export default function Body() {
                   )}
                 </div>
               )}
+
+              <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>PLANIFICATION NUTRITION</div>
+              <div style={{ background:'#fff', border:`1px solid ${BORDER}`, borderRadius:20, padding:16, marginBottom:18 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,minmax(0,1fr))', gap:8 }}>
+                  <div><div style={{fontSize:9,color:'#888'}}>PLANIFIÉS</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{plannedMealsCount}</div></div>
+                  <div><div style={{fontSize:9,color:'#888'}}>ENREGISTRÉS</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{loggedPlannedMeals}</div></div>
+                  <div><div style={{fontSize:9,color:'#888'}}>SUIVI</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{mealPlanFollowThrough !== null ? mealPlanFollowThrough+'%' : '—'}</div></div>
+                </div>
+                <div style={{fontSize:10.5,color:'#777',lineHeight:1.5,marginTop:11}}>Mesure uniquement le suivi des repas que tu as planifiés sur la période sélectionnée. Ce n’est pas une note de qualité alimentaire.</div>
+                <button onClick={()=>navigate('/meal-planner')} style={{width:'100%',border:0,borderRadius:12,background:ACCENT,color:'#050505',padding:12,fontSize:10.5,fontWeight:950,cursor:'pointer',marginTop:12}}>OUVRIR MON PLAN REPAS</button>
+              </div>
 
               <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>MENSURATIONS</div>
               {logs.filter(l => l.waist_cm || l.chest_cm).length === 0 ? (
