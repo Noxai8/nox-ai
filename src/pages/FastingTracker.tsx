@@ -35,7 +35,8 @@ export default function FastingTracker() {
         const start = new Date(data.fastStart);
         setFastStart(start);
         setIsFasting(true);
-        setProtocol(PROTOCOLS.find(p => p.id === data.protocolId) || PROTOCOLS[0]);
+        const savedProtocol = PROTOCOLS.find(p => p.id === data.protocolId) || PROTOCOLS[0];
+        setProtocol(data.protocolId === 'custom' ? { ...savedProtocol, fast: Number(data.fast || 16), eat: Number(data.eat || 8) } : savedProtocol);
         if (data.protocolId === 'custom' && Number(data.customFastHours) >= 10 && Number(data.customFastHours) <= 20) setCustomFastHours(Number(data.customFastHours));
       }
     }
