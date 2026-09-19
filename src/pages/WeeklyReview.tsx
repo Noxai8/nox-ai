@@ -8,6 +8,7 @@ const ACCENT = '#B7FF00';
 const BG = '#F7F7F7';
 const SURFACE = '#FFFFFF';
 const BORDER = '#EAEAEA';
+const ACCENT_TEXT = '#4F7100';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -354,7 +355,7 @@ FORMAT :
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: ACCENT, fontWeight: 900, letterSpacing: '.12em' }}>NOX ANALYSE TA SEMAINE...</div>
+        <div style={{ color: '#0A0A0A', fontWeight: 900, letterSpacing: '.12em' }}>NOX ANALYSE TA SEMAINE...</div>
       </div>
     );
   }
@@ -365,7 +366,7 @@ FORMAT :
         <button onClick={() => navigate('/home')} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: 14, marginBottom: 14, padding: 0 }}>
           ← Retour
         </button>
-        <div style={{ fontSize: 11, color: ACCENT, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.11em' }}>Weekly Review</div>
+        <div style={{ fontSize: 11, color: ACCENT_TEXT, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.11em' }}>Weekly Review</div>
         <div style={{ fontSize: 24, fontWeight: 950, color: '#0A0A0A', marginTop: 4 }}>TA SEMAINE NOX</div>
         <div style={{ color: '#666', fontSize: 12, lineHeight: 1.5, marginTop: 6 }}>
           Entraînement, corps, nutrition et récupération réunis dans un seul bilan.
@@ -437,8 +438,8 @@ FORMAT :
 
               {(data.calorie_adherence != null || data.protein_adherence != null) && (
                 <div style={{ borderTop: '1px solid ' + BORDER, marginTop: 14, paddingTop: 13, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                  {data.calorie_adherence != null && <div style={{ color: '#777', fontSize: 11 }}>Proximité calories · <strong style={{ color: ACCENT }}>{data.calorie_adherence}%</strong></div>}
-                  {data.protein_adherence != null && <div style={{ color: '#777', fontSize: 11 }}>Couverture protéines · <strong style={{ color: ACCENT }}>{data.protein_adherence}%</strong></div>}
+                  {data.calorie_adherence != null && <div style={{ color: '#777', fontSize: 11 }}>Proximité calories · <strong style={{ color: ACCENT_TEXT }}>{data.calorie_adherence}%</strong></div>}
+                  {data.protein_adherence != null && <div style={{ color: '#777', fontSize: 11 }}>Couverture protéines · <strong style={{ color: ACCENT_TEXT }}>{data.protein_adherence}%</strong></div>}
                 </div>
               )}
             </div>
@@ -463,7 +464,7 @@ FORMAT :
 
             {data.pr_details?.length > 0 && (
               <div style={{ background: ACCENT + '08', border: '1px solid ' + ACCENT + '22', borderRadius: 15, padding: 15, marginBottom: 16 }}>
-                <div style={{ color: ACCENT, fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 9 }}>PROGRESSION · RECORDS</div>
+                <div style={{ color: ACCENT_TEXT, fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 9 }}>PROGRESSION · RECORDS</div>
                 {data.pr_details.map((record: string) => (
                   <div key={record} style={{ color: '#555', fontSize: 12, lineHeight: 1.55, marginTop: 4 }}>
                     <span style={{ color: ACCENT, marginRight: 7 }}>↑</span>{record}
@@ -477,7 +478,7 @@ FORMAT :
         {analysis?.decision && (
           <div style={{ background: analysis.decision.includes('ADAPTATION') ? '#ffaa000d' : ACCENT + '0a', border: '1px solid ' + (analysis.decision.includes('ADAPTATION') ? '#ffaa0038' : ACCENT + '33'), borderRadius: 16, padding: 17, marginBottom: 14 }}>
             <div style={{ color: '#555', fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 6 }}>LECTURE NOX</div>
-            <div style={{ color: analysis.decision.includes('ADAPTATION') ? '#ffaa00' : ACCENT, fontSize: 18, fontWeight: 950 }}>
+            <div style={{ color: analysis.decision.includes('ADAPTATION') ? '#9A6500' : ACCENT_TEXT, fontSize: 18, fontWeight: 950 }}>
               {analysis.decision}
             </div>
             {analysis.raison_decision && <div style={{ color: '#888', fontSize: 12, lineHeight: 1.55, marginTop: 7 }}>{analysis.raison_decision}</div>}
@@ -500,7 +501,7 @@ FORMAT :
 
         {analysis?.points_forts?.length > 0 && (
           <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 16, marginBottom: 12 }}>
-            <div style={{ color: ACCENT, fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 9 }}>CE QUI A MARCHÉ</div>
+            <div style={{ color: ACCENT_TEXT, fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 9 }}>CE QUI A MARCHÉ</div>
             {analysis.points_forts.map((point: string) => (
               <div key={point} style={{ display: 'flex', gap: 8, color: '#444', fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>
                 <span style={{ color: ACCENT }}>✓</span><span>{point}</span>
@@ -522,7 +523,7 @@ FORMAT :
 
         {analysis?.priorites_semaine_prochaine?.length > 0 && (
           <div style={{ background: ACCENT + '09', border: '1px solid ' + ACCENT + '2c', borderRadius: 16, padding: 17, marginBottom: 14 }}>
-            <div style={{ color: ACCENT, fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 10 }}>PLAN · SEMAINE PROCHAINE</div>
+            <div style={{ color: ACCENT_TEXT, fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 10 }}>PLAN · SEMAINE PROCHAINE</div>
             {analysis.priorites_semaine_prochaine.slice(0, 3).map((priority: string, index: number) => (
               <div key={priority} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: index ? 9 : 0 }}>
                 <div style={{ width: 21, height: 21, borderRadius: 7, background: ACCENT, color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 950, flexShrink: 0 }}>{index + 1}</div>
