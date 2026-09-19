@@ -175,6 +175,7 @@ export default function Home() {
   const [todayWorkouts, setTodayWorkouts] = useState(0);
   const [todayWorkoutMinutes, setTodayWorkoutMinutes] = useState(0);
   const [targetKcal, setTargetKcal] = useState<number | null>(null);
+  const [hasNutritionTarget, setHasNutritionTarget] = useState(false);
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
   const [goalWeight, setGoalWeight] = useState<number | null>(null);
   const [latestSleepHours, setLatestSleepHours] = useState<number | null>(null);
@@ -293,6 +294,7 @@ export default function Home() {
       setTodayActiveCalories(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.calories_burned || 0), 0) || 0);
       const centralizedTarget = Number(nutritionTarget?.calories || 0);
       const profileTarget = Number(prof?.daily_calories || prof?.calorie_target || 0);
+      setHasNutritionTarget(centralizedTarget > 0);
       setTargetKcal(centralizedTarget > 0 ? centralizedTarget : profileTarget > 0 ? profileTarget : null);
       const centralizedProtein = Number(nutritionTarget?.protein || 0);
       const profileProtein = Number(prof?.protein_target || 0);
@@ -395,7 +397,7 @@ export default function Home() {
   const noxScore = getNoxScore();
   const firstName = profile?.display_name?.split(' ')[0] || 'ATHLÈTE';
   const effectiveTargetKcal = targetKcal && targetKcal > 0 ? targetKcal : null;
-  const hasPersonalTarget = effectiveTargetKcal !== null;
+  const hasPersonalTarget = hasNutritionTarget;
   const remainingKcal = effectiveTargetKcal === null ? null : Math.max(0, effectiveTargetKcal - todayKcal);
   const briefLabel = dayPeriod==='morning' ? 'NOX MORNING BRIEF' : dayPeriod==='evening' ? 'NOX EVENING RECAP' : 'NOX DAILY BRIEF';
   const briefTitle = dayPeriod==='morning' ? 'TA JOURNÉE COMMENCE ICI' : dayPeriod==='evening' ? 'LE RÉCAP DE TA JOURNÉE' : 'TA JOURNÉE EN 10 SECONDES';
@@ -425,6 +427,8 @@ export default function Home() {
     ? { label: 'Voir mes repas planifiés', detail: `${todayPlannedMeals} repas planifié${todayPlannedMeals>1?'s':''} reste${todayPlannedMeals>1?'nt':''} à enregistrer aujourd’hui.`, route: '/meal-planner' }
     : !todayFoodCount
     ? { label: 'Enregistrer un repas', detail: 'Commence ton suivi nutritionnel du jour.', route: '/fuel' }
+    : !hasPersonalTarget
+      ? { label: 'Définir ma cible nutrition', detail: 'Ajoute ta cible dans Nutrition pour personnaliser le suivi calories et macros.', route: '/fuel' }
     : nutritionProgress < .7
       ? { label: 'Compléter ma nutrition', detail: effectiveTargetKcal ? `${Math.max(0, Math.round(effectiveTargetKcal-todayKcal))} kcal restent sur ta cible du jour.` : 'Ajoute ce que tu as mangé aujourd’hui.', route: '/fuel' }
       : proteinProgress < .7
