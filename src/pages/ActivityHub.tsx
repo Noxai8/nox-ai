@@ -28,6 +28,13 @@ export default function ActivityHub() {
   const distance=todayActivities.reduce((s,a)=>s+Number(a.distance_km||0),0);
   const calories=todayActivities.reduce((s,a)=>s+Number(a.calories_burned||0),0);
   const completed=workouts.filter(w=>w.status==='completed').length;
+  const now=Date.now();
+  const sevenDays=now-7*86400000;
+  const weekActivities=activities.filter(a=>new Date(a.performed_at||a.created_at).getTime()>=sevenDays);
+  const weekWorkouts=workouts.filter(w=>new Date(w.completed_at||w.created_at).getTime()>=sevenDays&&(w.status==='completed'||w.completed_at));
+  const weekMinutes=Math.round(weekActivities.reduce((s,a)=>s+Number(a.duration_minutes||0),0));
+  const weekDistance=weekActivities.reduce((s,a)=>s+Number(a.distance_km||0),0);
+  const weekCalories=Math.round(weekActivities.reduce((s,a)=>s+Number(a.calories_burned||0),0));
 
   const Metric=({icon:Icon,label,value}:{icon:any,label:string,value:string})=><div style={{background:'#fff',border:'1px solid '+BORDER,borderRadius:20,padding:16,minHeight:116}}><span style={{width:36,height:36,borderRadius:12,background:'#F3F3F3',display:'grid',placeItems:'center'}}><Icon size={18}/></span><div style={{fontSize:22,fontWeight:950,marginTop:15,letterSpacing:'-.03em'}}>{value}</div><div style={{fontSize:11,color:MUTED,marginTop:3}}>{label}</div></div>;
 
@@ -52,6 +59,17 @@ export default function ActivityHub() {
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:10}}>
         <button onClick={()=>navigate('/body?add=activity')} style={{border:'1px solid '+BORDER,borderRadius:18,background:'#fff',padding:16,textAlign:'left',cursor:'pointer'}}><Activity size={20}/><div style={{fontWeight:900,marginTop:12}}>Ajouter une activité</div><div style={{fontSize:11,color:MUTED,marginTop:4}}>Course, vélo, cardio…</div></button>
         <button onClick={()=>navigate('/food-scan',{state:{scanMode:'cardio'}})} style={{border:'1px solid '+BORDER,borderRadius:18,background:'#fff',padding:16,textAlign:'left',cursor:'pointer'}}><ScanLine size={20}/><div style={{fontWeight:900,marginTop:12}}>Scanner un écran cardio</div><div style={{fontSize:11,color:MUTED,marginTop:4}}>Passe par NOX Scan · tapis, vélo, rameur…</div></button>
+      </div>
+
+      <div style={{marginTop:24,fontSize:10,fontWeight:950,letterSpacing:'.1em',color:MUTED}}>7 DERNIERS JOURS</div>
+      <div style={{marginTop:9,background:BLACK,color:'#fff',borderRadius:20,padding:17}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><div><div style={{fontSize:10,color:ACCENT,fontWeight:950,letterSpacing:'.1em'}}>NOX ACTIVITY</div><div style={{fontSize:18,fontWeight:950,marginTop:4}}>TA SEMAINE</div></div><div style={{fontSize:11,color:'#999'}}>{weekWorkouts.length} séance(s)</div></div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:14}}>
+          <div style={{background:'#171717',borderRadius:13,padding:11}}><strong style={{fontSize:16}}>{weekMinutes}</strong><div style={{fontSize:9,color:'#888',marginTop:3}}>MINUTES</div></div>
+          <div style={{background:'#171717',borderRadius:13,padding:11}}><strong style={{fontSize:16}}>{weekDistance.toFixed(1)}</strong><div style={{fontSize:9,color:'#888',marginTop:3}}>KM</div></div>
+          <div style={{background:'#171717',borderRadius:13,padding:11}}><strong style={{fontSize:16}}>{weekCalories}</strong><div style={{fontSize:9,color:'#888',marginTop:3}}>KCAL AFF.</div></div>
+        </div>
+        <div style={{fontSize:9.5,color:'#777',lineHeight:1.45,marginTop:11}}>Résumé des activités enregistrées dans NOX. Les calories de machine restent des estimations.</div>
       </div>
 
       <div style={{marginTop:24,fontSize:13,fontWeight:950}}>ACTIVITÉ RÉCENTE</div>
