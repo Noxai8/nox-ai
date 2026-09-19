@@ -207,6 +207,7 @@ export default function Home() {
         { data: logs },
         { data: prs },
         { data: weekLogs },
+        { data: todayWorkoutLogs },
         { data: fuel },
         { data: bodyLogs },
         { data: todayActivity },
@@ -224,6 +225,13 @@ export default function Home() {
           .eq('user_id', user.id)
           .eq('status', 'completed')
           .gte('created_at', weekStart),
+        supabase
+          .from('workouts')
+          .select('id, completed_at, created_at')
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .gte('created_at', today + 'T00:00:00')
+          .lt('created_at', tomorrow + 'T00:00:00'),
         supabase
           .from('food_entries')
           .select('id, meal_type, food_name, calories, protein, carbs, fat, created_at')
@@ -246,7 +254,7 @@ export default function Home() {
       setWorkoutCount(logs?.length || 0);
       setPrCount(prs?.length || 0);
       setWeekWorkouts(weekLogs?.length || 0);
-      setTodayWorkouts((weekLogs || []).filter((item: any) => new Date(item.created_at).toDateString() === new Date().toDateString()).length);
+      setTodayWorkouts(todayWorkoutLogs?.length || 0);
       setTodayKcal(fuel?.reduce((sum: number, item: any) => sum + (item.calories || 0), 0) || 0);
       setTodayProtein(fuel?.reduce((sum: number, item: any) => sum + Number(item.protein || 0), 0) || 0);
       setTodayCarbs(fuel?.reduce((sum: number, item: any) => sum + Number(item.carbs || 0), 0) || 0);
