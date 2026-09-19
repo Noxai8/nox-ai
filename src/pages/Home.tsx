@@ -159,6 +159,7 @@ export default function Home() {
   const [dayPeriod] = useState<'morning'|'day'|'evening'>(() => { const h=new Date().getHours(); return h<12?'morning':h<18?'day':'evening'; });
   const [todayFoodCount, setTodayFoodCount] = useState(0);
   const [todayWaterMl, setTodayWaterMl] = useState(0);
+  const [waterGoal, setWaterGoal] = useState(2500);
   const [todaySteps, setTodaySteps] = useState(0);
   const [todayDistanceKm, setTodayDistanceKm] = useState(0);
   const [todayActiveCalories, setTodayActiveCalories] = useState(0);
@@ -222,7 +223,9 @@ export default function Home() {
       setTodayProtein(fuel?.reduce((sum: number, item: any) => sum + Number(item.protein || 0), 0) || 0);
       setTodayFoodCount(fuel?.length || 0);
       const storedWater = Number(localStorage.getItem('nox_water_' + user.id + '_' + today) || 0);
+      const storedWaterGoal = Number(localStorage.getItem('nox_water_goal_' + user.id) || 2500);
       setTodayWaterMl(Number.isFinite(storedWater) ? storedWater : 0);
+      setWaterGoal(Number.isFinite(storedWaterGoal) && storedWaterGoal > 0 ? storedWaterGoal : 2500);
       setTodayActivityMinutes(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.duration_minutes || 0), 0) || 0);
       setTodaySteps(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.steps || 0), 0) || 0);
       setTodayDistanceKm(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.distance_km || 0), 0) || 0);
@@ -540,8 +543,8 @@ export default function Home() {
               <div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>HYDRATATION</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{Math.round(todayWaterMl)} <span style={{fontSize:12,color:MUTED}}>ml</span></div></div>
               <span style={{width:40,height:40,borderRadius:13,background:'#EEF5FF',color:'#4488ff',display:'grid',placeItems:'center'}}><Droplets size={20}/></span>
             </div>
-            <div style={{height:7,borderRadius:99,background:SURFACE_2,overflow:'hidden',marginTop:13}}><div style={{height:'100%',width:`${Math.min(100,(todayWaterMl/2500)*100)}%`,background:'#4488ff',borderRadius:99}}/></div>
-            <div style={{fontSize:10.5,color:MUTED,marginTop:8}}>Repère actuel : 2 500 ml · toucher pour ajouter de l’eau</div>
+            <div style={{height:7,borderRadius:99,background:SURFACE_2,overflow:'hidden',marginTop:13}}><div style={{height:'100%',width:`${Math.min(100,(todayWaterMl/waterGoal)*100)}%`,background:'#4488ff',borderRadius:99}}/></div>
+            <div style={{fontSize:10.5,color:MUTED,marginTop:8}}>Repère actuel : {waterGoal.toLocaleString('fr-FR')} ml · toucher pour ajouter de l’eau</div>
           </button>
 
           <div style={{...cardStyle,padding:18,marginBottom:14}}>
