@@ -179,6 +179,11 @@ export default function Home() {
   const [tomorrowMealPlanned, setTomorrowMealPlanned] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dataErrors, setDataErrors] = useState<string[]>([]);
+  const [habits] = useState(() => [
+    { id: 'nutrition', label: 'Suivre ma nutrition' },
+    { id: 'activity', label: 'Bouger au moins 20 min' },
+    { id: 'water', label: 'Atteindre mon hydratation' },
+  ]);
 
   const days = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'];
   const todayDay = days[new Date().getDay()];
@@ -374,6 +379,12 @@ export default function Home() {
   const daySignals = [todayFoodCount > 0, nutritionProgress >= .7, proteinProgress >= .7, todayActivityMinutes >= 20 || todayWorkouts > 0, todayWaterMl >= waterGoal * .7];
   const consistencySignals = daySignals.filter(Boolean).length;
   const tomorrowSessionPlanned = Boolean(program?.program_json?.sessions?.some((session:any)=>{const tomorrowDay=days[tomorrowDate.getDay()];return session.day===tomorrowDay||(session.days&&session.days.includes(tomorrowDay));}));
+  const habitDone:Record<string,boolean> = {
+    nutrition: todayFoodCount > 0,
+    activity: todayActivityMinutes >= 20 || todayWorkouts > 0,
+    water: todayWaterMl >= waterGoal,
+  };
+  const habitsDone = habits.filter(h => habitDone[h.id]).length;
 
   return (
     <div style={{ minHeight: '100vh', background: BG, color: TEXT, paddingBottom: 104 }}>
@@ -597,6 +608,15 @@ export default function Home() {
                 </button>
               )}
             </div>
+          </div>
+
+
+          <div style={{...cardStyle,padding:18,marginBottom:14}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+              <div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>OBJECTIFS DU JOUR</div><div style={{fontSize:18,fontWeight:950,marginTop:4}}>TES HABITUDES</div></div>
+              <div style={{fontSize:12,fontWeight:950,background:ACCENT,borderRadius:999,padding:'7px 10px'}}>{habitsDone}/{habits.length}</div>
+            </div>
+            <div style={{display:'grid',gap:7,marginTop:12}}>{habits.map(h=><div key={h.id} style={{display:'flex',alignItems:'center',gap:10,background:SURFACE_2,borderRadius:13,padding:'11px 12px'}}><span style={{width:22,height:22,borderRadius:'50%',display:'grid',placeItems:'center',background:habitDone[h.id]?ACCENT:'#E2E2E2',fontSize:11,fontWeight:950}}>{habitDone[h.id]?'✓':''}</span><span style={{fontSize:11.5,fontWeight:850}}>{h.label}</span></div>)}</div>
           </div>
 
           {dayPeriod==='evening'&&<div style={{...cardStyle,padding:18,marginBottom:14}}>
