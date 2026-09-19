@@ -184,6 +184,7 @@ export default function Home() {
   const [latestSleepDate, setLatestSleepDate] = useState<string | null>(null);
   const [xp, setXp] = useState(0);
   const [tomorrowMealPlanned, setTomorrowMealPlanned] = useState(false);
+  const [todayWeightLogged, setTodayWeightLogged] = useState(false);
   const [tomorrowMealCount, setTomorrowMealCount] = useState(0);
   const [todayPlannedMeals, setTodayPlannedMeals] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -226,6 +227,7 @@ export default function Home() {
         { data: fuel },
         { data: weekFuel },
         { data: bodyLogs },
+        { data: todayBodyLogs },
         { data: todayActivity },
         { data: nutritionTarget },
         { data: recoveryLogs },
@@ -265,6 +267,7 @@ export default function Home() {
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1),
+        supabase.from('body_logs').select('id').eq('user_id', user.id).gte('created_at', today + 'T00:00:00').lt('created_at', tomorrow + 'T00:00:00'),
         supabase.from('activity_logs').select('duration_minutes, distance_km, calories_burned, steps').eq('user_id', user.id).gte('performed_at', today + 'T00:00:00').lt('performed_at', tomorrow + 'T00:00:00'),
         supabase.from('nutrition_targets').select('calories, protein, carbs, fat').eq('user_id', user.id).maybeSingle(),
         supabase.from('recovery_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
@@ -314,6 +317,7 @@ export default function Home() {
       setTargetCarbs(centralizedCarbs > 0 ? centralizedCarbs : null);
       setTargetFat(centralizedFat > 0 ? centralizedFat : null);
       setLatestWeight(bodyLogs?.[0]?.weight || null);
+      setTodayWeightLogged((todayBodyLogs?.length || 0) > 0);
       const profileGoalWeight = Number(prof?.goal_weight_kg ?? prof?.goal_weight ?? prof?.target_weight ?? 0);
       setGoalWeight(Number.isFinite(profileGoalWeight) && profileGoalWeight > 0 ? profileGoalWeight : null);
       const recovery = recoveryLogs?.[0];
@@ -434,7 +438,9 @@ export default function Home() {
     { label: 'Activité', done: totalActiveMinutes >= 20 || todayWorkouts > 0 },
     { label: 'Hydratation', done: todayWaterMl >= waterGoal * .7 },
   ];
-  const nextBestAction = todayPlannedMeals > 0
+  const nextBestAction = !todayWeightLogged && latestWeight === null
+    ? { label: 'Ajouter mon poids', detail: 'Crée ton premier repère de progression.', route: '/body?add=weight' }
+    : todayPlannedMeals > 0
     ? { label: 'Voir mes repas planifiés', detail: `${todayPlannedMeals} repas planifié${todayPlannedMeals>1?'s':''} reste${todayPlannedMeals>1?'nt':''} à enregistrer aujourd’hui.`, route: '/meal-planner' }
     : !todayFoodCount
     ? { label: 'Enregistrer un repas', detail: 'Commence ton suivi nutritionnel du jour.', route: '/fuel' }
