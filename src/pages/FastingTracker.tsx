@@ -22,7 +22,6 @@ export default function FastingTracker() {
   const [elapsed, setElapsed] = useState(0);
   const [eatStart, setEatStart] = useState<string>('12:00');
   const [customFastHours, setCustomFastHours] = useState(16);
-  const [customFastHours, setCustomFastHours] = useState(16);
   const [waterGoal] = useState(2500);
   const [waterIntake, setWaterIntake] = useState(0);
   const [streak, setStreak] = useState(0);
