@@ -57,6 +57,23 @@ export default function FoodScan(){
    }catch(e:any){setError(e.message||"Lecture du code-barres impossible")}
    setBusy(false);return;
   }
+  if(mode==='qr'){
+   try{
+    if(!('BarcodeDetector' in window)) throw new Error("Le lecteur QR automatique n'est pas disponible sur cet appareil.");
+    const blob=await (await fetch('data:image/jpeg;base64,'+base64)).blob();
+    const bitmap=await createImageBitmap(blob);
+    const detector=new (window as any).BarcodeDetector({formats:['qr_code']});
+    const codes=await detector.detect(bitmap); const value=String(codes?.[0]?.rawValue||'').trim();
+    if(!value) throw new Error("QR code non détecté. Reprends la photo en cadrant le QR.");
+    let action:'link'|'route'|'text'='text'; let target=value;
+    try{const url=new URL(value);action='link';target=url.toString()}catch{
+      if(value.startsWith('/')){action='route';target=value}
+      else if(value.startsWith('nox://')){action='route';target='/'+value.slice(6).replace(/^\//,'')}
+    }
+    setResult({qrValue:value,qrAction:action,qrTarget:target});
+   }catch(e:any){setError(e.message||"Lecture du QR code impossible")}
+   setBusy(false);return;
+  }
   if(mode!=='meal'){setResult({pending:true});setBusy(false);return;}
   try{const {data:{session}}=await supabase.auth.getSession();const resp=await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/analyze-meal',{method:'POST',headers:{'Content-Type':'application/json',...(session?.access_token?{Authorization:`Bearer ${session.access_token}`}:{})},body:JSON.stringify({base64,mime:'image/jpeg'})});if(!resp.ok)throw new Error('Analyse indisponible');const data=await resp.json();if(data.error)throw new Error(data.error);setResult(data);}catch(e:any){setError(e.message||'Analyse impossible')}setBusy(false);
  };
@@ -83,13 +100,18 @@ export default function FoodScan(){
     <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginTop:13}}>{[['Calories',Math.round(result.total?.kcal||0)],['Protéines',Math.round(result.total?.protein||0)+'g'],['Glucides',Math.round(result.total?.carbs||0)+'g'],['Lipides',Math.round(result.total?.fat||0)+'g']].map(([l,v])=><div key={String(l)} style={{background:'#F6F6F6',borderRadius:12,padding:'10px 3px',textAlign:'center'}}><b style={{fontSize:15}}>{v}</b><div style={{fontSize:8.5,color:MUTED,marginTop:3}}>{l}</div></div>)}</div>
     <button onClick={addMeal} style={{width:'100%',border:0,borderRadius:12,background:LIME,padding:14,fontWeight:950,marginTop:14}}>AJOUTER À MA NUTRITION</button>
    </div>}
-   {result&&!busy&&mode==='barcode'&&!result.pending&&<div style={{background:'#fff',color:BLACK,borderRadius:'24px 24px 0 0',padding:20,marginTop:12}}>
+   {result&&!busy&&mode==='qr'&&!result.pending&&<div style={{background:'#fff',color:BLACK,borderRadius:'24px 24px 0 0',padding:20,marginTop:12}}>
+    <div style={{fontSize:10,color:MUTED,fontWeight:900}}>QR CODE · À VÉRIFIER</div><div style={{fontSize:14,fontWeight:850,marginTop:7,wordBreak:'break-word'}}>{result.qrValue}</div>
+    <div style={{fontSize:11,color:MUTED,lineHeight:1.5,marginTop:7}}>{result.qrAction==='route'?'Contenu NOX détecté.':result.qrAction==='link'?'Lien détecté. Vérifie la destination avant de continuer.':'Contenu texte détecté.'}</div>
+    {(result.qrAction==='route'||result.qrAction==='link')&&<button onClick={()=>result.qrAction==='route'?navigate(result.qrTarget):window.location.assign(result.qrTarget)} style={{width:'100%',border:0,borderRadius:12,background:LIME,padding:14,fontWeight:950,marginTop:14}}>CONTINUER</button>}
+   </div>}
+      {result&&!busy&&mode==='barcode'&&!result.pending&&<div style={{background:'#fff',color:BLACK,borderRadius:'24px 24px 0 0',padding:20,marginTop:12}}>
     <div style={{fontSize:10,color:MUTED,fontWeight:900}}>PRODUIT · À VÉRIFIER</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{result.description}</div>{result.brand&&<div style={{fontSize:11,color:MUTED,marginTop:3}}>{result.brand}</div>}
     <div style={{fontSize:10,color:MUTED,marginTop:10}}>Valeurs pour 100 g · code {result.barcode}</div>
     <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginTop:10}}>{[['Calories',Math.round(result.total?.kcal||0)],['Protéines',Math.round(result.total?.protein||0)+'g'],['Glucides',Math.round(result.total?.carbs||0)+'g'],['Lipides',Math.round(result.total?.fat||0)+'g']].map(([l,v])=><div key={String(l)} style={{background:'#F6F6F6',borderRadius:12,padding:'10px 3px',textAlign:'center'}}><b style={{fontSize:15}}>{v}</b><div style={{fontSize:8.5,color:MUTED,marginTop:3}}>{l}</div></div>)}</div>
     <button onClick={addBarcode} style={{width:'100%',border:0,borderRadius:12,background:LIME,padding:14,fontWeight:950,marginTop:14}}>AJOUTER À MA NUTRITION</button>
    </div>}
-   {result&&!busy&&mode!=='meal'&&mode!=='barcode'&&<div style={{background:'#fff',color:BLACK,borderRadius:'24px 24px 0 0',padding:20,marginTop:12}}><b>Scan capturé</b><div style={{fontSize:12,color:MUTED,lineHeight:1.5,marginTop:5}}>Le moteur {COPY[mode].title.toLowerCase()} sera branché ici. Aucune donnée n’est enregistrée sans vérification.</div></div>}
+   {result&&!busy&&mode!=='meal'&&mode!=='barcode'&&mode!=='qr'&&<div style={{background:'#fff',color:BLACK,borderRadius:'24px 24px 0 0',padding:20,marginTop:12}}><b>Scan capturé</b><div style={{fontSize:12,color:MUTED,lineHeight:1.5,marginTop:5}}>Le moteur {COPY[mode].title.toLowerCase()} sera branché ici. Aucune donnée n’est enregistrée sans vérification.</div></div>}
    <div style={{height:116,display:'grid',gridTemplateColumns:'1fr 90px 1fr',alignItems:'center',padding:'0 24px max(8px,env(safe-area-inset-bottom))'}}>
     <div/><button aria-label="Prendre la photo" onClick={()=>input.current?.click()} style={{width:72,height:72,borderRadius:'50%',background:'#fff',border:'5px solid #222',boxShadow:'0 0 0 3px #fff',justifySelf:'center',cursor:'pointer'}}/><button onClick={()=>{reset();input.current?.click()}} style={{border:0,background:'transparent',color:'#fff',fontSize:11,fontWeight:800}}>REPRENDRE</button>
    </div>
