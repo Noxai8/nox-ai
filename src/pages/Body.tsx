@@ -28,6 +28,20 @@ const EMPTY_ACTIVITY: ActivityForm = {
   notes: '',
 };
 
+function normalizeActivityType(value: string): string {
+  const raw = String(value || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const aliases: Array<[RegExp, string]> = [
+    [/tapis|treadmill|course tapis/, 'treadmill'],
+    [/velo|bike|cycling|cyclisme/, 'cycling'],
+    [/rameur|rowing|rower/, 'rowing'],
+    [/elliptique|elliptical/, 'elliptical'],
+    [/stepper|stair|escalier/, 'stair_climber'],
+    [/marche|walk/, 'walking'],
+    [/course|running|run/, 'running'],
+  ];
+  return aliases.find(([pattern]) => pattern.test(raw))?.[1] || raw.replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'other';
+}
+
 function parseOptionalNumber(value: string): number | null {
   const raw = String(value || '').trim().replace(',', '.');
   if (!raw) return null;
@@ -74,6 +88,7 @@ export default function Body() {
   const [activityMode, setActivityMode] = useState<ActivityMode>('manual');
   const [activityForm, setActivityForm] = useState<ActivityForm>(EMPTY_ACTIVITY);
   const [activitySource, setActivitySource] = useState<'manual' | 'machine_scan'>('manual');
+  const [activityExternalId, setActivityExternalId] = useState<string | null>(null);
   const [activityError, setActivityError] = useState('');
   const [activitySuccess, setActivitySuccess] = useState(false);
   const [activitySaving, setActivitySaving] = useState(false);
@@ -197,6 +212,7 @@ export default function Body() {
   const openManualActivity = () => {
     setActivityForm(EMPTY_ACTIVITY);
     setActivitySource('manual');
+    setActivityExternalId(null);
     setActivityMode('manual');
     setActivityError('');
     setActivitySuccess(false);
@@ -219,6 +235,7 @@ export default function Body() {
       notes: String(activity.notes || ''),
     });
     setActivitySource('machine_scan');
+    setActivityExternalId(String(scan.external_id || scan.externalId || scan.source_record_id || scan.sourceRecordId || '').trim() || null);
     setActivityMode('confirm');
     setActivityError('');
     setActivitySuccess(false);
@@ -266,14 +283,16 @@ export default function Body() {
       // Elle s'applique à toute nouvelle activité, quelle que soit sa source
       // (manuel, machine_scan, puis imports Connect), afin d'éviter de compter
       // deux fois une même séance provenant de plusieurs appareils.
-      const normalizedType = activityForm.activity_type.trim().toLowerCase();
+      const normalizedType = normalizeActivityType(activityForm.activity_type);
       const candidateTime = Date.now();
       const duplicate = activities.find((item: any) => {
         const itemTime = new Date(item.performed_at || item.created_at).getTime();
         if (!Number.isFinite(itemTime)) return false;
 
         const timeDelta = Math.abs(candidateTime - itemTime);
-        const sameType = String(item.activity_type || '').trim().toLowerCase() === normalizedType;
+        const sameExternalId = Boolean(activityExternalId && String(item.external_id || item.source_record_id || '').trim() === activityExternalId);
+        if (sameExternalId) return true;
+        const sameType = normalizeActivityType(String(item.activity_type || '')) === normalizedType;
         const itemDuration = Number(item.duration_minutes || 0);
         const sameDuration = Math.abs(itemDuration - Math.round(duration)) <= Math.max(2, Math.round(duration * 0.08));
         const sameDistance = distance === null || item.distance_km == null || Math.abs(Number(item.distance_km) - distance) <= Math.max(0.2, distance * 0.05);
@@ -295,7 +314,7 @@ export default function Body() {
 
       const { error } = await supabase.from('activity_logs').insert({
         user_id: user.id,
-        activity_type: activityForm.activity_type.trim(),
+        activity_type: normalizedType,
         duration_minutes: Math.round(duration),
         calories_burned: calories === null ? null : Math.round(calories),
         distance_km: distance,
