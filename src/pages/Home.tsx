@@ -461,6 +461,8 @@ export default function Home() {
   const freshSleepHours = sleepAgeHours!==null && sleepAgeHours>=0 && sleepAgeHours<=48 ? latestSleepHours : null;
   const nutritionProgress = effectiveTargetKcal ? Math.min(1, todayKcal / effectiveTargetKcal) : 0;
   const nutritionTargetLabel = nutritionTargetLoading ? 'Chargement cible' : nutritionTargetSource === 'nutrition' ? 'Cible Nutrition' : nutritionTargetSource === 'profile' ? 'Cible profil' : 'Cible à définir';
+  const hasNutritionTarget = nutritionTargetSource === 'nutrition';
+  const hasPersonalTarget = effectiveTargetKcal !== null && targetProtein !== null;
   const proteinProgress = targetProtein ? Math.min(1, todayProtein / targetProtein) : 0;
   const carbsProgress = targetCarbs ? Math.min(1, todayCarbs / targetCarbs) : 0;
   const fatProgress = targetFat ? Math.min(1, todayFat / targetFat) : 0;
