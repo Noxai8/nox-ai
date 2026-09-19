@@ -151,6 +151,7 @@ export default function Program() {
   const [tab, setTab] = useState<'plan' | 'exercises'>('plan');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('Tous');
+  const [trainingMode, setTrainingMode] = useState<'gym' | 'travel'>('gym');
 
   useEffect(() => {
     if (user) load();
@@ -289,6 +290,14 @@ export default function Program() {
             </div>
           </div>
 
+          <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <button onClick={() => setTrainingMode('gym')} style={{border:'1px solid '+(trainingMode==='gym'?ACCENT:BORDER),borderRadius:11,background:trainingMode==='gym'?ACCENT:'#fff',padding:'10px 8px',fontSize:10,fontWeight:950,cursor:'pointer'}}>GYM MODE</button>
+            <button onClick={() => setTrainingMode('travel')} style={{border:'1px solid '+(trainingMode==='travel'?ACCENT:BORDER),borderRadius:11,background:trainingMode==='travel'?ACCENT:'#fff',padding:'10px 8px',fontSize:10,fontWeight:950,cursor:'pointer'}}>TRAVEL / HOTEL</button>
+          </div>
+          <div style={{marginTop:9,padding:'11px 12px',border:'1px solid '+BORDER,borderRadius:12,background:'#FAFAF8',fontSize:10.5,color:MUTED,lineHeight:1.45}}>
+            {trainingMode==='gym'?'Salle complète · machines, charges et progression disponibles.':'Mode déplacement · privilégie les substitutions faisables avec peu de matériel.'}
+          </div>
+
           {program && (
             <div style={{ marginTop: 17 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -381,6 +390,18 @@ export default function Program() {
                   onStart={() => navigate('/training/' + (session.id || si))}
                 />
               ))}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
+              <button onClick={() => navigate('/generate-program')} style={{border:'1px solid '+BORDER,borderRadius:12,background:'#fff',padding:12,textAlign:'left',cursor:'pointer'}}><b style={{fontSize:11}}>WORKOUT BUILDER</b><div style={{fontSize:9.5,color:MUTED,marginTop:4}}>Créer ou adapter une séance.</div></button>
+              <button onClick={() => navigate('/reschedule')} style={{border:'1px solid '+BORDER,borderRadius:12,background:'#fff',padding:12,textAlign:'left',cursor:'pointer'}}><b style={{fontSize:11}}>CALENDRIER</b><div style={{fontSize:9.5,color:MUTED,marginTop:4}}>Planifier et reprogrammer.</div></button>
+              <button onClick={() => navigate('/rest-day')} style={{border:'1px solid '+BORDER,borderRadius:12,background:'#fff',padding:12,textAlign:'left',cursor:'pointer'}}><b style={{fontSize:11}}>PAUSE / REPRISE</b><div style={{fontSize:9.5,color:MUTED,marginTop:4}}>Repos, maladie ou vacances.</div></button>
+              <button onClick={() => navigate('/play')} style={{border:'1px solid '+BORDER,borderRadius:12,background:'#fff',padding:12,textAlign:'left',cursor:'pointer'}}><b style={{fontSize:11}}>PERSONAL BESTS</b><div style={{fontSize:9.5,color:MUTED,marginTop:4}}>PR, milestones et progression.</div></button>
+            </div>
+            <div style={{marginTop:8,padding:'12px 13px',borderRadius:12,background:'#0A0A0A',color:'#fff'}}>
+              <div style={{fontSize:9,color:ACCENT,fontWeight:950,letterSpacing:'.08em'}}>NOX TRAINING</div>
+              <div style={{fontSize:11,fontWeight:900,marginTop:4}}>Live Workout · progression · plateau · adaptations</div>
+              <div style={{fontSize:9.5,color:'#999',lineHeight:1.45,marginTop:4}}>Les charges, répétitions, substitutions et séries d’échauffement restent intégrées à l’exécution de séance. Comeback Mode adapte la reprise après une pause.</div>
             </div>
 
             <button
@@ -502,7 +523,7 @@ function NoxMark() {
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
         <span style={{ fontSize: 16.5, fontWeight: 1000, letterSpacing: '-.04em' }}>NOX</span>
-        <span style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: '.1em', color: '#5E5E59' }}>AI</span>
+        
       </div>
     </div>
   );
