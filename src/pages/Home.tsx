@@ -169,6 +169,7 @@ export default function Home() {
   const [stepGoal, setStepGoal] = useState(10000);
   const [todayDistanceKm, setTodayDistanceKm] = useState(0);
   const [todayActiveCalories, setTodayActiveCalories] = useState(0);
+  const [todayWorkouts, setTodayWorkouts] = useState(0);
   const [targetKcal, setTargetKcal] = useState<number | null>(null);
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
   const [goalWeight, setGoalWeight] = useState<number | null>(null);
@@ -216,7 +217,7 @@ export default function Home() {
         supabase.from('personal_records').select('id').eq('user_id', user.id),
         supabase
           .from('workouts')
-          .select('id')
+          .select('id, created_at')
           .eq('user_id', user.id)
           .eq('status', 'completed')
           .gte('created_at', weekStart),
@@ -241,6 +242,7 @@ export default function Home() {
       setWorkoutCount(logs?.length || 0);
       setPrCount(prs?.length || 0);
       setWeekWorkouts(weekLogs?.length || 0);
+      setTodayWorkouts((weekLogs || []).filter((item: any) => new Date(item.created_at).toDateString() === new Date().toDateString()).length);
       setTodayKcal(fuel?.reduce((sum: number, item: any) => sum + (item.calories || 0), 0) || 0);
       setTodayProtein(fuel?.reduce((sum: number, item: any) => sum + Number(item.protein || 0), 0) || 0);
       setTodayCarbs(fuel?.reduce((sum: number, item: any) => sum + Number(item.carbs || 0), 0) || 0);
@@ -350,7 +352,7 @@ export default function Home() {
   const proteinProgress = targetProtein ? Math.min(1, todayProtein / targetProtein) : 0;
   const activityProgress = Math.min(1, todayActivityMinutes / 30);
   const stepProgress = stepGoal > 0 ? Math.min(1, todaySteps / stepGoal) : 0;
-  const daySignals = [todayFoodCount > 0, nutritionProgress >= .7, proteinProgress >= .7, todayActivityMinutes >= 20, todayWaterMl >= waterGoal * .7];
+  const daySignals = [todayFoodCount > 0, nutritionProgress >= .7, proteinProgress >= .7, todayActivityMinutes >= 20 || todayWorkouts > 0, todayWaterMl >= waterGoal * .7];
   const consistencySignals = daySignals.filter(Boolean).length;
 
   return (
@@ -649,7 +651,7 @@ export default function Home() {
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:12}}>
               <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{todayFoodCount}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>ENTRÉES NUTRITION</div></div>
               <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{Math.round(todayActivityMinutes)}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>MIN ACTIVES</div></div>
-              <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{weekWorkouts}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>SÉANCES 7J</div></div>
+              <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{todayWorkouts}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>SÉANCES AUJ.</div></div>
             </div>
             <div style={{fontSize:9.5,color:'#777',lineHeight:1.45,marginTop:10}}>Score de constance personnel basé sur les données enregistrées dans NOX. Ce n’est pas un score médical.</div>
           </div>
