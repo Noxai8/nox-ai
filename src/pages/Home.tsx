@@ -23,6 +23,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
 const ACCENT = '#B7FF00';
+const FALLBACK_CALORIE_TARGET = 2200;
 const BG = '#F7F7F7';
 const SURFACE = '#FFFFFF';
 const SURFACE_2 = '#F3F3F3';
@@ -341,7 +342,7 @@ export default function Home() {
       hasWeight: !!latestWeight,
       hasFuel: todayKcal > 0,
       todayKcal,
-      targetKcal: targetKcal || 0,
+      targetKcal: targetKcal || FALLBACK_CALORIE_TARGET,
       streak: profile?.streak_days || 0,
       xp,
     }).score;
@@ -368,11 +369,13 @@ export default function Home() {
   const noxScore = getNoxScore();
   const firstName = profile?.display_name?.split(' ')[0] || 'ATHLÈTE';
   const sessionGoal = program?.days_per_week || program?.program_json?.days_per_week || 3;
-  const remainingKcal = targetKcal ? Math.max(0, targetKcal - todayKcal) : null;
+  const effectiveTargetKcal = targetKcal && targetKcal > 0 ? targetKcal : FALLBACK_CALORIE_TARGET;
+  const hasPersonalTarget = Boolean(targetKcal && targetKcal > 0);
+  const remainingKcal = Math.max(0, effectiveTargetKcal - todayKcal);
   const briefLabel = dayPeriod==='morning' ? 'NOX MORNING BRIEF' : dayPeriod==='evening' ? 'NOX EVENING RECAP' : 'NOX DAILY BRIEF';
   const briefTitle = dayPeriod==='morning' ? 'TA JOURNÉE COMMENCE ICI' : dayPeriod==='evening' ? 'LE RÉCAP DE TA JOURNÉE' : 'TA JOURNÉE EN 10 SECONDES';
   const weightToGoal = latestWeight!==null&&goalWeight!==null ? latestWeight-goalWeight : null;
-  const nutritionProgress = targetKcal ? Math.min(1, todayKcal / targetKcal) : 0;
+  const nutritionProgress = Math.min(1, todayKcal / effectiveTargetKcal);
   const proteinProgress = targetProtein ? Math.min(1, todayProtein / targetProtein) : 0;
   const activityProgress = Math.min(1, todayActivityMinutes / 30);
   const stepProgress = stepGoal > 0 ? Math.min(1, todaySteps / stepGoal) : 0;
@@ -629,14 +632,14 @@ export default function Home() {
           </div>}
 
           <button onClick={()=>navigate('/fuel')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>NUTRITION AUJOURD'HUI</div><div style={{fontSize:20,fontWeight:950,marginTop:4}}>{Math.round(todayKcal)} <span style={{fontSize:12,color:MUTED}}>/ {targetKcal ? Math.round(targetKcal) : '—'} kcal</span></div></div><ChevronRight size={18}/></div>
-            <div style={{height:7,borderRadius:99,background:SURFACE_2,overflow:'hidden',marginTop:13}}><div style={{height:'100%',width:`${targetKcal?Math.min(100,(todayKcal/targetKcal)*100):0}%`,background:ACCENT,borderRadius:99}}/></div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>NUTRITION AUJOURD'HUI</div><div style={{fontSize:20,fontWeight:950,marginTop:4}}>{Math.round(todayKcal)} <span style={{fontSize:12,color:MUTED}}>/ {Math.round(effectiveTargetKcal)} kcal</span></div></div><ChevronRight size={18}/></div>
+            <div style={{height:7,borderRadius:99,background:SURFACE_2,overflow:'hidden',marginTop:13}}><div style={{height:'100%',width:`${Math.min(100,(todayKcal/effectiveTargetKcal)*100)}%`,background:ACCENT,borderRadius:99}}/></div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:12}}>
               <div style={{background:SURFACE_2,borderRadius:12,padding:10}}><b>{Math.round(todayProtein)}g</b><div style={{fontSize:8.5,color:MUTED,marginTop:3}}>PROTÉINES</div></div>
               <div style={{background:SURFACE_2,borderRadius:12,padding:10}}><b>{Math.round(todayCarbs)}g</b><div style={{fontSize:8.5,color:MUTED,marginTop:3}}>GLUCIDES</div></div>
               <div style={{background:SURFACE_2,borderRadius:12,padding:10}}><b>{Math.round(todayFat)}g</b><div style={{fontSize:8.5,color:MUTED,marginTop:3}}>LIPIDES</div></div>
             </div>
-            <div style={{fontSize:10.5,color:MUTED,marginTop:9}}>{remainingKcal===null?'Ajoute ta cible dans Nutrition pour afficher le restant.':`${Math.round(remainingKcal)} kcal restantes sur ton repère actuel`}</div>
+            <div style={{fontSize:10.5,color:MUTED,marginTop:9}}>{`${Math.round(remainingKcal)} kcal restantes sur ton repère ${hasPersonalTarget?'personnalisé':'provisoire'}`}</div>
           </button>
 
           <div style={{...cardStyle,padding:18,marginBottom:14}}>
@@ -683,11 +686,11 @@ export default function Home() {
             <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>{briefLabel}</div>
             <div style={{fontSize:19,fontWeight:950,marginTop:5}}>{briefTitle}</div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:13}}>
-              <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayKcal)} / {targetKcal ? Math.round(targetKcal) : '—'}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>KCAL</div></div>
+              <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayKcal)} / {Math.round(effectiveTargetKcal)}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>KCAL</div></div>
               <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayProtein)}{targetProtein ? ` / ${Math.round(targetProtein)}` : ''}g</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>PROTÉINES</div></div>
               <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayActivityMinutes)}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>MIN ACTIVES</div></div>
             </div>
-            <div style={{fontSize:11.5,color:MUTED,lineHeight:1.5,marginTop:11}}>{todayKcal===0&&todayActivityMinutes===0?'Commence ta journée : ajoute ton premier repas ou une activité.':dayPeriod==='evening'?`${consistencySignals}/5 repères de suivi renseignés aujourd’hui${todayMealTypes.length ? ` · ${todayMealTypes.length} type${todayMealTypes.length>1?'s':''} de repas enregistré${todayMealTypes.length>1?'s':''}` : ''}. Consulte les cartes ci-dessus pour compléter ce qui compte pour toi.`:remainingKcal===null?'Ajoute ta cible dans Nutrition pour afficher ton repère calorique quotidien.':remainingKcal>0?`Il te reste environ ${Math.round(remainingKcal)} kcal sur ton repère actuel. Continue à enregistrer ta journée pour garder une vue complète.`:'Tes apports enregistrés ont atteint ton repère calorique actuel. Consulte Nutrition pour le détail.'}</div>
+            <div style={{fontSize:11.5,color:MUTED,lineHeight:1.5,marginTop:11}}>{todayKcal===0&&todayActivityMinutes===0?'Commence ta journée : ajoute ton premier repas ou une activité.':dayPeriod==='evening'?`${consistencySignals}/5 repères de suivi renseignés aujourd’hui${todayMealTypes.length ? ` · ${todayMealTypes.length} type${todayMealTypes.length>1?'s':''} de repas enregistré${todayMealTypes.length>1?'s':''}` : ''}. Consulte les cartes ci-dessus pour compléter ce qui compte pour toi.`:remainingKcal>0?`Il te reste environ ${Math.round(remainingKcal)} kcal sur ton repère actuel. Continue à enregistrer ta journée pour garder une vue complète.`:'Tes apports enregistrés ont atteint ton repère calorique actuel. Consulte Nutrition pour le détail.'}</div>
           </div>
 
           {latestWeight!==null&&<button onClick={()=>navigate('/body')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
@@ -740,7 +743,7 @@ export default function Home() {
               icon={Apple}
               eyebrow="Nutrition"
               value={todayKcal ? `${todayKcal}` : '0'}
-              detail={todayKcal ? (remainingKcal===null ? 'Définis ta cible dans Nutrition' : `${Math.round(remainingKcal)} kcal restantes`) : 'Commence ton suivi nutrition'}
+              detail={todayKcal ? `${Math.round(remainingKcal)} kcal restantes` : 'Commence ton suivi nutrition'}
               onClick={() => navigate('/fuel')}
             />
             <MetricCard
