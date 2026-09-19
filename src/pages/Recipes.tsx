@@ -141,14 +141,14 @@ const SUGGESTIONS: SuggestedRecipe[] = [
   {
     id: 'bulk-oats',
     goal: 'all',
-    name: 'Porridge prise de muscle',
-    subtitle: 'Une option plus calorique avec une portion importante de protéines.',
+    name: 'Porridge banane, avoine & cacahuète',
+    subtitle: 'Une option énergétique avec une portion importante de protéines.',
     servings: 1,
     calories_per_serving: 720,
     protein_per_serving: 42,
     carbs_per_serving: 91,
     fat_per_serving: 22,
-    tags: ['PRISE DE MUSCLE', 'PETIT-DÉJ', 'ÉNERGIE'],
+    tags: ['PETIT-DÉJ', 'ÉNERGIE', 'PROTÉINES'],
     ingredients: [
       { name: "Flocons d'avoine", calories: '379', protein: '13', carbs: '68', fat: '6.9', qty: '90' },
       { name: 'Lait demi-écrémé', calories: '46', protein: '3.2', carbs: '4.7', fat: '1.6', qty: '300' },
@@ -161,13 +161,13 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'bulk-beef-rice',
     goal: 'all',
     name: 'Bowl bœuf & riz',
-    subtitle: 'Un repas plus calorique et protéiné, proposé pour une cible de prise de muscle.',
+    subtitle: 'Un repas énergétique et protéiné, à ajuster selon ta cible du jour.',
     servings: 1,
     calories_per_serving: 790,
     protein_per_serving: 55,
     carbs_per_serving: 96,
     fat_per_serving: 20,
-    tags: ['PRISE DE MUSCLE', 'RICHE EN PROTÉINES', 'REPAS'],
+    tags: ['RICHE EN PROTÉINES', 'REPAS', 'ÉNERGIE'],
     ingredients: [
       { name: 'Steak haché 5%', calories: '137', protein: '21', carbs: '0', fat: '5', qty: '180' },
       { name: 'Riz basmati cuit', calories: '121', protein: '2.5', carbs: '25', fat: '0.3', qty: '300' },
@@ -186,7 +186,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     protein_per_serving: 45,
     carbs_per_serving: 78,
     fat_per_serving: 21,
-    tags: ['PRISE DE MUSCLE', 'COLLATION', '5 MIN'],
+    tags: ['COLLATION', '5 MIN', 'ÉNERGIE'],
     ingredients: [
       { name: 'Lait demi-écrémé', calories: '46', protein: '3.2', carbs: '4.7', fat: '1.6', qty: '350' },
       { name: 'Banane', calories: '89', protein: '1.1', carbs: '23', fat: '0.3', qty: '140' },
@@ -574,7 +574,7 @@ export default function Recipes() {
               <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 950 }}>Idées pour toi</div>
-                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Suggestions classées selon ta cible, ce qu’il te reste aujourd’hui et tes aliments récents · toutes restent accessibles</div>
+                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Suggestions classées selon ta cible, ce qu’il te reste aujourd’hui et tes aliments récents · valeurs indicatives, toutes restent accessibles</div>
                 </div>
               </div>
 
@@ -773,7 +773,7 @@ export default function Recipes() {
             <div>
               {selected.suggested && (
                 <div style={{ marginBottom: 12, padding: 12, borderRadius: 12, background: '#F4FFE0', border: '1px solid #D8F29B', color: '#3F5F00', fontSize: 10.5, fontWeight: 850 }}>
-                  SUGGESTION NOX · MODIFIABLE · {goalLabel(goal)}
+                  SUGGESTION NOX · MODIFIABLE · {goalLabel(goal)} · VALEURS INDICATIVES
                 </div>
               )}
 
