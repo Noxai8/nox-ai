@@ -51,7 +51,7 @@ export default function ActivityHub() {
 
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:10}}>
         <button onClick={()=>navigate('/body?add=activity')} style={{border:'1px solid '+BORDER,borderRadius:18,background:'#fff',padding:16,textAlign:'left',cursor:'pointer'}}><Activity size={20}/><div style={{fontWeight:900,marginTop:12}}>Ajouter une activité</div><div style={{fontSize:11,color:MUTED,marginTop:4}}>Course, vélo, cardio…</div></button>
-        <button onClick={()=>navigate('/body?add=scan')} style={{border:'1px solid '+BORDER,borderRadius:18,background:'#fff',padding:16,textAlign:'left',cursor:'pointer'}}><ScanLine size={20}/><div style={{fontWeight:900,marginTop:12}}>Scanner un écran</div><div style={{fontSize:11,color:MUTED,marginTop:4}}>Tapis, vélo, rameur…</div></button>
+        <button onClick={()=>navigate('/food-scan',{state:{scanMode:'cardio'}})} style={{border:'1px solid '+BORDER,borderRadius:18,background:'#fff',padding:16,textAlign:'left',cursor:'pointer'}}><ScanLine size={20}/><div style={{fontWeight:900,marginTop:12}}>Scanner un écran cardio</div><div style={{fontSize:11,color:MUTED,marginTop:4}}>Passe par NOX Scan · tapis, vélo, rameur…</div></button>
       </div>
 
       <div style={{marginTop:24,fontSize:13,fontWeight:950}}>ACTIVITÉ RÉCENTE</div>
