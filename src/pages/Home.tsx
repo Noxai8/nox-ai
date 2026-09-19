@@ -404,6 +404,13 @@ export default function Home() {
   const consistencySignals = daySignals.filter(Boolean).length;
   const dailyScore = Math.round((consistencySignals / daySignals.length) * 100);
   const dailyScoreLabel = consistencySignals===5?'5/5 REPÈRES':consistencySignals===4?'4/5 REPÈRES':consistencySignals>=2?consistencySignals+'/5 REPÈRES':consistencySignals+'/5 REPÈRE'+(consistencySignals===1?'':'S');
+  const scoreSignals = [
+    { label: 'Nutrition', done: todayFoodCount > 0 },
+    { label: 'Calories', done: nutritionProgress >= .7 },
+    { label: 'Protéines', done: proteinProgress >= .7 },
+    { label: 'Activité', done: totalActiveMinutes >= 20 || todayWorkouts > 0 },
+    { label: 'Hydratation', done: todayWaterMl >= waterGoal * .7 },
+  ];
   const tomorrowSessionPlanned = Boolean(program?.program_json?.sessions?.some((session:any)=>{const tomorrowDay=days[tomorrowDate.getDay()];return session.day===tomorrowDay||(session.days&&session.days.includes(tomorrowDay));}));
   const automaticHabitDone:Record<string,boolean> = {
     nutrition: todayFoodCount > 0,
@@ -645,10 +652,11 @@ export default function Home() {
             <div style={{height:7,borderRadius:99,background:'#252525',overflow:'hidden',marginTop:13}}><div style={{height:'100%',width:dailyScore+'%',background:ACCENT,borderRadius:99}}/></div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:12}}>
               <div style={{background:'#171717',borderRadius:12,padding:10}}><b>{todayFoodCount}</b><div style={{fontSize:8.5,color:'#888',marginTop:3}}>ENTRÉES NUTRITION</div></div>
-              <div style={{background:'#171717',borderRadius:12,padding:10}}><b>{Math.round(todayActivityMinutes)} min</b><div style={{fontSize:8.5,color:'#888',marginTop:3}}>ACTIVITÉ</div></div>
+              <div style={{background:'#171717',borderRadius:12,padding:10}}><b>{Math.round(totalActiveMinutes)} min</b><div style={{fontSize:8.5,color:'#888',marginTop:3}}>ACTIVITÉ</div></div>
               <div style={{background:'#171717',borderRadius:12,padding:10}}><b>{weekWorkouts}</b><div style={{fontSize:8.5,color:'#888',marginTop:3}}>SÉANCES 7J</div></div>
             </div>
-            <div style={{fontSize:9.5,color:'#777',lineHeight:1.45,marginTop:10}}>Score personnel de régularité basé sur tes données enregistrées. Ce n’est pas un score médical.</div>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:10}}>{scoreSignals.map(signal=><span key={signal.label} style={{fontSize:8.5,fontWeight:850,padding:'5px 7px',borderRadius:999,background:signal.done?'rgba(183,255,0,.14)':'#171717',color:signal.done?ACCENT:'#777'}}>{signal.done?'✓ ':''}{signal.label}</span>)}</div>
+            <div style={{fontSize:9.5,color:'#777',lineHeight:1.45,marginTop:10}}>{dailyScoreLabel} · score personnel de régularité basé sur tes données enregistrées. Ce n’est pas un score médical.</div>
           </div>
 
           <div style={{...cardStyle,padding:18,marginBottom:14}}>
