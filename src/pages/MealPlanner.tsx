@@ -132,7 +132,7 @@ function normalizeGoal(raw?: string | null): GoalKey {
 }
 
 function goalLabel(goal: GoalKey) {
-  return goal === 'cut' ? 'Sèche' : goal === 'bulk' ? 'Prise de masse' : 'Maintien';
+  return goal === 'cut' ? 'Perte de poids' : goal === 'bulk' ? 'Prise de muscle' : 'Maintien';
 }
 
 function isoDate(date: Date) {
@@ -339,7 +339,7 @@ export default function MealPlanner() {
       if (error) throw error;
 
       await load();
-      setMessage(`Plan ${goalLabel(goal).toLowerCase()} généré pour 7 jours.`);
+      setMessage(`Semaine suggérée pour 7 jours. Tu peux modifier chaque repas.`);
     } catch (e: any) {
       console.error('MEAL_PLAN_GENERATE_ERROR', e);
       setError(e?.message || 'Impossible de générer le plan repas.');
@@ -430,10 +430,10 @@ export default function MealPlanner() {
     <div style={{ minHeight: '100vh', background: BG, color: '#111', paddingBottom: 88 }}>
       <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
         <header style={{ padding: '22px 20px 18px', borderBottom: `1px solid ${BORDER}` }}>
-          <div style={{ fontSize: 10, color: '#85857D', fontWeight: 900, letterSpacing: '.13em' }}>NUTRITION · NOX AI</div>
+          <div style={{ fontSize: 10, color: '#85857D', fontWeight: 900, letterSpacing: '.13em' }}>NUTRITION · NOX</div>
           <div style={{ marginTop: 4, fontSize: 29, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.05em' }}>PLAN REPAS</div>
           <div style={{ marginTop: 7, color: '#777770', fontSize: 12.5, lineHeight: 1.5 }}>
-            Une semaine construite autour de ton objectif et de ton budget calorique.
+            Planifie ta semaine autour de ta cible nutritionnelle. Les suggestions restent modifiables avant d’être enregistrées.
           </div>
 
           <div style={{ marginTop: 15, display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 7 }}>
@@ -456,8 +456,8 @@ export default function MealPlanner() {
 
           <div style={{ marginTop: 8, color: '#8A8A83', fontSize: 9.5, lineHeight: 1.45 }}>
             {nutritionTarget
-              ? 'Même cible nutritionnelle que Fuel · recalibrée par NOX quand tes données réelles deviennent suffisantes.'
-              : 'Cible provisoire estimée depuis ton profil · Fuel deviendra la source de vérité dès sa première synchronisation.'}
+              ? 'Même cible nutritionnelle que Nutrition · les suggestions s’adaptent à tes données enregistrées.'
+              : 'Cible provisoire estimée depuis ton profil · Nutrition devient la source de vérité dès qu’une cible est enregistrée.'}
           </div>
 
           {message && <Notice text={message} success />}
