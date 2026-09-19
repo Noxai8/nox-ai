@@ -167,8 +167,17 @@ export default function MealPlanner() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [showShoppingList, setShowShoppingList] = useState(false);
 
   const goal = normalizeGoal(profile?.goal_type || profile?.goal || profile?.objective);
+  const shoppingItems = useMemo(() => {
+    const counts = new Map<string, number>();
+    week.flatMap(day => day.entries).filter(entry => !entry.logged).forEach(entry => {
+      const name = String(entry.food_name || '').trim();
+      if (name) counts.set(name, (counts.get(name) || 0) + 1);
+    });
+    return Array.from(counts.entries()).map(([name, count]) => ({ name, count }));
+  }, [week]);
 
   useEffect(() => {
     if (!user) return;
@@ -442,6 +451,7 @@ export default function MealPlanner() {
             <Stat label="PROTÉINES" value={`${targetProtein} g`} />
           </div>
 
+          <div style={{ marginTop: 11, display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
           <button
             onClick={generatePlan}
             disabled={generating || loading}
@@ -453,6 +463,20 @@ export default function MealPlanner() {
           >
             {generating ? 'GÉNÉRATION...' : week.some(d => d.entries.length) ? 'COMPLÉTER MA SEMAINE' : 'GÉNÉRER MA SEMAINE'}
           </button>
+          <button onClick={() => setShowShoppingList(v => !v)} disabled={!shoppingItems.length} style={{ padding: '0 13px', border: `1px solid ${BORDER}`, borderRadius: 12, background: '#fff', color: '#111', fontWeight: 900, fontSize: 10.5, cursor: shoppingItems.length ? 'pointer' : 'not-allowed' }}>
+            LISTE · {shoppingItems.length}
+          </button>
+          </div>
+
+          {showShoppingList && shoppingItems.length > 0 && (
+            <div style={{ marginTop: 10, padding: 13, border: `1px solid ${BORDER}`, borderRadius: 12, background: SURFACE }}>
+              <div style={{ fontSize: 9, fontWeight: 900, color: '#777770', letterSpacing: '.08em' }}>LISTE DE COURSES · REPAS PLANIFIÉS</div>
+              <div style={{ marginTop: 8, display: 'grid', gap: 6 }}>
+                {shoppingItems.map(item => <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11.5 }}><span>{item.name}</span><strong>×{item.count}</strong></div>)}
+              </div>
+              <div style={{ marginTop: 8, fontSize: 9.5, color: '#8A8A83', lineHeight: 1.4 }}>Liste générée depuis les repas planifiés non encore enregistrés. Vérifie les ingrédients et quantités avant tes achats.</div>
+            </div>
+          )}
 
           <div style={{ marginTop: 8, color: '#8A8A83', fontSize: 9.5, lineHeight: 1.45 }}>
             {nutritionTarget
