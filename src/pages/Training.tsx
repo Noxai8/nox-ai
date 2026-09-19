@@ -1,6 +1,6 @@
 import { calculateProgressiveOverload, detectStagnation } from '../lib/noxBrain';
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import {
@@ -84,6 +84,10 @@ export default function Training() {
 const { sessionId } = useParams();
 const { user } = useAuth();
 const navigate = useNavigate();
+const location = useLocation();
+const equipmentScan = (location.state as any)?.equipmentScan;
+const [scanMatch, setScanMatch] = useState<{ index: number; name: string } | null>(null);
+const [scanChecked, setScanChecked] = useState(false);
 const [exercises, setExercises] = useState<any[]>([]);
 const [sessionName, setSessionName] = useState('');
 const [currentIdx, setCurrentIdx] = useState(0);
@@ -111,6 +115,23 @@ if (!user) return;
 loadSession();
 return () => clearInterval(timerRef.current);
 }, [user, sessionId]);
+
+useEffect(() => {
+if (!equipmentScan || !exercises.length || scanChecked) return;
+const payload = equipmentScan?.activity || equipmentScan;
+const detected = resolveNoxExercise({
+  exercise_id: payload?.exercise_id,
+  id: payload?.exercise_id,
+  name: payload?.activity_type || payload?.exercise_name || payload?.name || payload?.description,
+  exercise_name: payload?.exercise_name,
+});
+if (detected) {
+  const index = exercises.findIndex((exercise: any) => resolvedNoxExercise(exercise)?.id === detected.id);
+  if (index >= 0) setScanMatch({ index, name: detected.name });
+}
+setScanChecked(true);
+}, [equipmentScan, exercises, scanChecked]);
+
 const loadSession = async () => {
 setLoading(true);
 setTrainingError('');
@@ -669,6 +690,20 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
     {trainingError && (
       <div style={{ margin: '0 20px 12px', background: '#FFF2F2', border: '1px solid #FFB8B8', borderRadius: 13, padding: '11px 13px', color: '#9B1C1C', fontSize: 11.5, lineHeight: 1.45, fontWeight: 750 }}>
         {trainingError}
+      </div>
+    )}
+
+    {equipmentScan && scanChecked && !resting && (
+      <div style={{ margin: '0 20px 12px', background: scanMatch ? '#F8FFE4' : '#FAFAF8', border: `1px solid ${scanMatch ? ACCENT : '#E1E1DC'}`, borderRadius: 13, padding: '12px 13px' }}>
+        <div style={{ fontSize: 9.5, color: '#111', fontWeight: 1000, textTransform: 'uppercase', letterSpacing: '.07em' }}>SCAN MACHINE · TRAINING</div>
+        {scanMatch ? (
+          <>
+            <div style={{ fontSize: 11, color: '#55554F', marginTop: 4, lineHeight: 1.45 }}><b>{scanMatch.name}</b> correspond à un exercice de ta séance actuelle.</div>
+            {currentIdx !== scanMatch.index && <button type="button" onClick={() => { setCurrentIdx(scanMatch.index); setCurrentSet(1); setWeight(''); setReps(''); }} style={{ marginTop: 9, border: 0, borderRadius: 10, background: ACCENT, color: '#111', padding: '9px 11px', fontSize: 10, fontWeight: 1000, cursor: 'pointer' }}>ALLER À CET EXERCICE →</button>}
+          </>
+        ) : (
+          <div style={{ fontSize: 11, color: '#66665F', marginTop: 4, lineHeight: 1.45 }}>La machine scannée ne correspond pas avec assez de certitude à un exercice de cette séance. NOX ne remplace rien automatiquement.</div>
+        )}
       </div>
     )}
 
