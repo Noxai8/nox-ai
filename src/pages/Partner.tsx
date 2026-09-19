@@ -3,10 +3,10 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const ACCENT = '#B7FF00';
+const BG = '#F7F7F7';
+const SURFACE = '#FFFFFF';
+const BORDER = '#EAEAEA';
 
 export default function Partner() {
   const { user } = useAuth();
@@ -18,6 +18,7 @@ export default function Partner() {
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [challenge, setChallenge] = useState<'workouts'|'streak'|'prs'>('workouts');
 
   useEffect(() => { if (user) load(); }, [user]);
 
@@ -123,8 +124,8 @@ export default function Partner() {
   return (
     <div style={{ minHeight: '100vh', background: BG, paddingBottom: 80 }}>
       <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid ' + BORDER }}>
-        <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Transformation à deux</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>MODE PARTENAIRE</div>
+        <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Social · optionnel</div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#0A0A0A' }}>CHALLENGES AMIS</div>
       </div>
 
       <div style={{ padding: '20px 20px 0' }}>
@@ -139,19 +140,19 @@ export default function Partner() {
               {copied ? '✓ COPIÉ' : 'COPIER'}
             </button>
           </div>
-          <div style={{ fontSize: 12, color: '#555', marginTop: 8 }}>Partage ce code à ton partenaire d'entraînement</div>
+          <div style={{ fontSize: 12, color: '#555', marginTop: 8 }}>Partage uniquement ce code. Tes données sensibles restent privées.</div>
         </div>
 
         {/* Connecter un partenaire */}
         {!partner && (
           <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 20, marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', marginBottom: 12 }}>CONNECTER UN PARTENAIRE</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#0A0A0A', marginBottom: 12 }}>CONNECTER UN PARTENAIRE</div>
             <div style={{ display: 'flex', gap: 10 }}>
               <input
                 value={input} onChange={e => setInput(e.target.value.toUpperCase())}
                 placeholder="CODE DE TON PARTENAIRE"
                 maxLength={8}
-                style={{ flex: 1, padding: '12px 14px', background: '#0d0d0d', border: '1px solid ' + BORDER, borderRadius: 10, color: '#fff', fontSize: 14, fontFamily: 'monospace', letterSpacing: '.1em', outline: 'none' }}
+                style={{ flex: 1, padding: '12px 14px', background: '#F7F7F7', border: '1px solid ' + BORDER, borderRadius: 10, color: '#0A0A0A', fontSize: 14, fontFamily: 'monospace', letterSpacing: '.1em', outline: 'none' }}
               />
               <button onClick={connectPartner}
                 style={{ padding: '12px 16px', background: ACCENT, border: 'none', borderRadius: 10, color: '#000', fontWeight: 900, fontSize: 13, cursor: 'pointer' }}>
@@ -167,46 +168,34 @@ export default function Partner() {
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <div style={{ flex: 1, textAlign: 'center', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '12px 8px' }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{myProfile?.display_name?.split(' ')[0] || 'Toi'}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#0A0A0A' }}>{myProfile?.display_name?.split(' ')[0] || 'Toi'}</div>
                 <div style={{ fontSize: 11, color: ACCENT, marginTop: 2 }}>{myStats.xp} XP</div>
               </div>
               <div style={{ fontSize: 20, color: '#333', fontWeight: 900 }}>⚡</div>
               <div style={{ flex: 1, textAlign: 'center', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '12px 8px' }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{partner?.display_name?.split(' ')[0] || 'Partenaire'}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#0A0A0A' }}>{partner?.display_name?.split(' ')[0] || 'Partenaire'}</div>
                 <div style={{ fontSize: 11, color: ACCENT, marginTop: 2 }}>{partnerStats.xp} XP</div>
               </div>
             </div>
 
-            <StatRow label="Séances cette semaine" mine={myStats.weekWorkouts} theirs={partnerStats.weekWorkouts} />
-            <StatRow label="Records totaux (PR)" mine={myStats.totalPRs} theirs={partnerStats.totalPRs} />
-            <StatRow label="Streak actuel (jours)" mine={myStats.streak} theirs={partnerStats.streak} />
-            <StatRow label="XP total" mine={myStats.xp} theirs={partnerStats.xp} />
-
-            {/* Qui mène ? */}
-            <div style={{ marginTop: 16, background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 14, padding: 16, textAlign: 'center' }}>
-              {myStats.xp >= partnerStats.xp ? (
-                <>
-                  <div style={{ fontSize: 22 }}>🏆</div>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: ACCENT, marginTop: 8 }}>TU MÈNES LA COURSE</div>
-                  <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>+{myStats.xp - partnerStats.xp} XP d'avance — garde le rythme</div>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: 22 }}>🔥</div>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: '#ff6644', marginTop: 8 }}>
-                    {partner?.display_name?.split(' ')[0]} MÈNE
-                  </div>
-                  <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-                    {partnerStats.xp - myStats.xp} XP de retard — rattrape-toi
-                  </div>
-                </>
-              )}
+            <div style={{background:SURFACE,border:'1px solid '+BORDER,borderRadius:16,padding:16,marginBottom:14}}>
+              <div style={{fontSize:10,fontWeight:900,color:'#777',letterSpacing:'.08em'}}>CHALLENGE ACTIF · 7 JOURS</div>
+              <div style={{fontSize:17,fontWeight:950,marginTop:5}}>Choisis ce que vous suivez</div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7,marginTop:12}}>
+                {([['workouts','Séances'],['streak','Streak'],['prs','PR']] as const).map(([id,label])=><button key={id} onClick={()=>setChallenge(id)} style={{padding:'10px 6px',borderRadius:10,border:'1px solid '+(challenge===id?ACCENT:BORDER),background:challenge===id?ACCENT:'#fff',fontWeight:900,fontSize:10,cursor:'pointer'}}>{label}</button>)}
+              </div>
+              <div style={{fontSize:11,color:'#777',lineHeight:1.45,marginTop:10}}>Challenge privé entre vous deux. NOX affiche uniquement la métrique choisie.</div>
             </div>
+
+            {challenge==='workouts'&&<StatRow label="Challenge · séances cette semaine" mine={myStats.weekWorkouts} theirs={partnerStats.weekWorkouts} />}
+            {challenge==='streak'&&<StatRow label="Challenge · streak actuel" mine={myStats.streak} theirs={partnerStats.streak} />}
+            {challenge==='prs'&&<StatRow label="Challenge · records personnels" mine={myStats.totalPRs} theirs={partnerStats.totalPRs} />}
+            <div style={{marginTop:12,fontSize:10,color:'#888',lineHeight:1.45}}>Les challenges sont facultatifs et n’exposent pas ton poids, ta nutrition, tes photos ou tes données de récupération.</div>
 
             <button onClick={async () => {
               await supabase.from('profiles').update({ partner_id: null }).eq('id', user!.id);
               setPartner(null); setPartnerStats(null);
-            }} style={{ width: '100%', marginTop: 16, padding: 12, background: 'transparent', border: '1px solid #333', borderRadius: 12, color: '#555', fontSize: 12, cursor: 'pointer' }}>
+            }} style={{ width: '100%', marginTop: 16, padding: 12, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#777', fontSize: 12, cursor: 'pointer' }}>
               Déconnecter ce partenaire
             </button>
           </>
