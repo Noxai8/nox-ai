@@ -262,6 +262,22 @@ export default function Body() {
       setActivitySaving(true);
       setActivityError('');
 
+      if (activitySource === 'machine_scan') {
+        const normalizedType = activityForm.activity_type.trim().toLowerCase();
+        const duplicate = activities.find((item: any) => {
+          const itemTime = new Date(item.performed_at || item.created_at).getTime();
+          const recent = Number.isFinite(itemTime) && Math.abs(Date.now() - itemTime) <= 15 * 60 * 1000;
+          const sameType = String(item.activity_type || '').trim().toLowerCase() === normalizedType;
+          const sameDuration = Math.abs(Number(item.duration_minutes || 0) - Math.round(duration)) <= 1;
+          const sameDistance = distance === null || item.distance_km == null || Math.abs(Number(item.distance_km) - distance) <= 0.1;
+          return recent && sameType && sameDuration && sameDistance;
+        });
+        if (duplicate) {
+          setActivityError('Cette activité ressemble à une session déjà enregistrée récemment. Vérifie ton historique avant de l’ajouter à nouveau.');
+          return;
+        }
+      }
+
       const { error } = await supabase.from('activity_logs').insert({
         user_id: user.id,
         activity_type: activityForm.activity_type.trim(),
