@@ -188,6 +188,7 @@ export default function Home() {
   const [latestSleepDate, setLatestSleepDate] = useState<string | null>(null);
   const [xp, setXp] = useState(0);
   const [tomorrowMealPlanned, setTomorrowMealPlanned] = useState(false);
+  const [todayActivitySources, setTodayActivitySources] = useState<string[]>([]);
   const [todayWeightLogged, setTodayWeightLogged] = useState(false);
   const [tomorrowMealCount, setTomorrowMealCount] = useState(0);
   const [todayPlannedMeals, setTodayPlannedMeals] = useState(0);
@@ -274,7 +275,7 @@ export default function Home() {
           .order('created_at', { ascending: false })
           .limit(1),
         supabase.from('body_logs').select('id').eq('user_id', user.id).gte('created_at', todayStart).lt('created_at', tomorrowStart),
-        supabase.from('activity_logs').select('duration_minutes, distance_km, calories_burned, steps').eq('user_id', user.id).gte('performed_at', todayStart).lt('performed_at', tomorrowStart),
+        supabase.from('activity_logs').select('duration_minutes, distance_km, calories_burned, steps, source').eq('user_id', user.id).gte('performed_at', todayStart).lt('performed_at', tomorrowStart),
         supabase.from('nutrition_targets').select('calories, protein, carbs, fat').eq('user_id', user.id).maybeSingle(),
         supabase.from('recovery_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
         supabase.from('meal_plans').select('id').eq('user_id', user.id).eq('planned_date', tomorrow),
@@ -312,6 +313,7 @@ export default function Home() {
       setTodayWaterMl(Number.isFinite(storedWater) ? storedWater : 0);
       setWaterGoal(Number.isFinite(storedWaterGoal) && storedWaterGoal > 0 ? storedWaterGoal : 2500);
       setTodayActivityMinutes(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.duration_minutes || 0), 0) || 0);
+      setTodayActivitySources(Array.from(new Set((todayActivity || []).map((item:any)=>String(item.source||'manual')).filter(Boolean))));
       setTodaySteps(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.steps || 0), 0) || 0);
       const profileStepGoal = Number(prof?.step_goal ?? prof?.daily_steps_goal ?? prof?.steps_goal ?? 10000);
       setStepGoal(Number.isFinite(profileStepGoal) && profileStepGoal > 0 ? profileStepGoal : 10000);
@@ -449,9 +451,11 @@ export default function Home() {
   const proteinProgress = targetProtein ? Math.min(1, todayProtein / targetProtein) : 0;
   const carbsProgress = targetCarbs ? Math.min(1, todayCarbs / targetCarbs) : 0;
   const fatProgress = targetFat ? Math.min(1, todayFat / targetFat) : 0;
-  void carbsProgress; void fatProgress; void hasNutritionTarget;
+  void carbsProgress; void fatProgress; void hasNutritionTarget; void activitySourceLabel;
   const totalActiveMinutes = todayActivityMinutes + todayWorkoutMinutes;
   const totalActiveCalories = todayActiveCalories + todayWorkoutCalories;
+  const hasConnectedActivity = todayActivitySources.some(source => source !== 'manual' && source !== 'machine_scan');
+  const activitySourceLabel = hasConnectedActivity ? 'Données synchronisées + NOX' : todayActivitySources.includes('machine_scan') ? 'NOX + écran cardio' : 'Données enregistrées dans NOX';
   const activityProgress = Math.min(1, totalActiveMinutes / 30);
   const stepProgress = stepGoal > 0 ? Math.min(1, todaySteps / stepGoal) : 0;
   const mealCoverage = Math.min(1, todayMealCount / 3);
