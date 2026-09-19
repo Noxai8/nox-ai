@@ -216,7 +216,23 @@ export default function Fuel() {
   const fileRef = useRef<HTMLInputElement>(null);
   const today = new Date().toISOString().split('T')[0];
 
-  useEffect(() => { if (user) loadData(); }, [user]);
+  useEffect(() => {
+    if (!user) return;
+    loadData();
+    try {
+      const savedFavorites = JSON.parse(localStorage.getItem('nox_food_favorites_' + user.id) || '[]');
+      if (Array.isArray(savedFavorites)) setFavorites(savedFavorites);
+    } catch { setFavorites([]); }
+  }, [user]);
+
+  const toggleFavorite = (name: string) => {
+    if (!user) return;
+    setFavorites(current => {
+      const next = current.includes(name) ? current.filter(item => item !== name) : [...current, name];
+      localStorage.setItem('nox_food_favorites_' + user.id, JSON.stringify(next));
+      return next;
+    });
+  };
 
   const loadData = async () => {
     if (!user) return;
@@ -585,6 +601,21 @@ export default function Fuel() {
     return 0;
   });
   const mealGroups = MEALS.map(m => ({ meal: m, items: entries.filter(e => e.meal_type === m) })).filter(g => g.items.length > 0);
+  const remaining = {
+    kcal: Math.max(0, targets.kcal - totals.kcal),
+    protein: Math.max(0, targets.protein - totals.protein),
+    carbs: Math.max(0, targets.carbs - totals.carbs),
+    fat: Math.max(0, targets.fat - totals.fat),
+  };
+  const foodFitScore = (food: any) => {
+    const kcal = Number(food.kcal || food.calories || 0);
+    const protein = Number(food.protein || 0);
+    if (!kcal) return 0;
+    const calorieFit = remaining.kcal > 0 ? Math.max(0, 1 - Math.abs(remaining.kcal - kcal) / Math.max(remaining.kcal, 1)) : 0;
+    const proteinFit = remaining.protein > 0 ? Math.min(1, protein / Math.max(remaining.protein, 1)) : 0.5;
+    return Math.round((calorieFit * .55 + proteinFit * .45) * 100);
+  };
+  const mealBuilder = [...COMMON_FOODS].sort((a,b)=>foodFitScore(b)-foodFitScore(a)).slice(0,3);
   const pct = (val: number, max: number) => Math.min(100, Math.round((val / max) * 100));
 
   const MacroBar = ({ label, val, max, color }: any) => (
@@ -623,6 +654,14 @@ export default function Fuel() {
         </header>
 
         <section style={{ padding: 20 }}>
+          <div style={{background:'#0A0A0A',color:'#fff',borderRadius:18,padding:16,marginBottom:12}}>
+            <div style={{fontSize:9.5,color:ACCENT,fontWeight:950,letterSpacing:'.1em'}}>MEAL BUILDER · RESTE AUJOURD’HUI</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginTop:10}}>
+              {[['KCAL',Math.round(remaining.kcal)],['PROT.',Math.round(remaining.protein)+'g'],['GLUC.',Math.round(remaining.carbs)+'g'],['LIP.',Math.round(remaining.fat)+'g']].map(([l,v])=><div key={String(l)} style={{background:'#171717',borderRadius:11,padding:'9px 5px',textAlign:'center'}}><strong style={{fontSize:13}}>{v}</strong><div style={{fontSize:8,color:'#888',marginTop:3}}>{l}</div></div>)}
+            </div>
+            <div style={{fontSize:10,color:'#999',marginTop:11}}>Suggestions personnelles selon ce qu’il te reste. Ce score est une pertinence pour ta cible, pas un jugement « bon/mauvais ».</div>
+            <div style={{display:'grid',gap:6,marginTop:10}}>{mealBuilder.map(food=><button key={food.name} onClick={()=>{setShowAdd(true);setAddMode('search');setSelectedFood(food)}} style={{border:0,borderRadius:11,background:'#fff',color:'#0A0A0A',padding:'10px 11px',display:'flex',justifyContent:'space-between',gap:8,textAlign:'left',cursor:'pointer'}}><span style={{fontSize:10.5,fontWeight:850,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{food.name}</span><span style={{fontSize:9.5,fontWeight:950,color:'#4F7100',flexShrink:0}}>{foodFitScore(food)}% pertinent</span></button>)}</div>
+          </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:12}}>
             <button onClick={()=>navigate('/recipes')} style={{border:'1px solid '+BORDER,borderRadius:14,background:'#FFFFFF',color:'#0A0A0A',padding:'12px 8px',fontSize:10,fontWeight:900,cursor:'pointer'}}>RECETTES</button>
             <button onClick={()=>navigate('/meal-planner')} style={{border:'1px solid '+BORDER,borderRadius:14,background:'#FFFFFF',color:'#0A0A0A',padding:'12px 8px',fontSize:10,fontWeight:900,cursor:'pointer'}}>PLAN REPAS</button>
@@ -635,7 +674,7 @@ export default function Fuel() {
           )}
           <div style={{
             background: 'linear-gradient(145deg,#151515,#0e0e0e)',
-            border: '1px solid #232323', borderRadius: 22, padding: 20
+            border: '1px solid #EAEAEA', borderRadius: 22, padding: 20
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
               <div style={{ position: 'relative', width: 104, height: 104, flexShrink: 0 }}>
@@ -684,7 +723,7 @@ export default function Fuel() {
               <div style={{ fontSize: 10.5, color: '#777', marginTop: 4 }}>Photo → calories + macros</div>
             </button>
             <button onClick={() => navigate('/food-scan', { state: { scanMode: 'barcode' } })} style={{
-              minHeight: 84, borderRadius: 18, border: '1px solid #232323',
+              minHeight: 84, borderRadius: 18, border: '1px solid #EAEAEA',
               background: '#FFFFFF', color: '#0A0A0A', textAlign: 'left', padding: 15, cursor: 'pointer'
             }}>
               <div style={{ color: ACCENT, fontSize: 10, fontWeight: 900, letterSpacing: '.08em' }}>CODE-BARRES</div>
@@ -715,7 +754,7 @@ export default function Fuel() {
           )}
 
           {mealGroups.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '42px 22px', borderRadius: 22, background: '#FFFFFF', border: '1px solid #232323' }}>
+            <div style={{ textAlign: 'center', padding: '42px 22px', borderRadius: 22, background: '#FFFFFF', border: '1px solid #EAEAEA' }}>
               <div style={{ width: 52, height: 52, margin: '0 auto 16px', borderRadius: 16, background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.16)', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 23, fontWeight: 300 }}>+</div>
               <div style={{ fontSize: 17, fontWeight: 950 }}>TON JOURNAL EST PRÊT</div>
               <div style={{ fontSize: 12.5, color: '#777', lineHeight: 1.55, margin: '8px auto 19px', maxWidth: 300 }}>
@@ -729,12 +768,12 @@ export default function Fuel() {
             <div key={meal} style={{ marginBottom: 18 }}>
               <div style={{ fontSize: 10, fontWeight: 900, color: '#777', textTransform: 'uppercase', letterSpacing: '.09em', margin: '0 2px 8px' }}>{meal}</div>
               {items.map((item: any) => (
-                <div key={item.id} style={{ background: '#FFFFFF', border: '1px solid #232323', borderRadius: 16, padding: '12px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div key={item.id} style={{ background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 16, padding: '12px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
                   {/* Thumbnail photo si scan, sinon icône */}
                   {item.photo_url ? (
                     <img src={item.photo_url} style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} alt="" />
                   ) : (
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: '#181818', border: '1px solid #232323', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: '#181818', border: '1px solid #EAEAEA', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <div style={{ fontSize: 11, fontWeight: 900, color: ACCENT, lineHeight: 1 }}>{Math.round(item.calories || 0)}</div>
                       <div style={{ fontSize: 8, color: '#777', marginTop: 1 }}>kcal</div>
                     </div>
@@ -747,7 +786,7 @@ export default function Fuel() {
                       {Math.round(item.calories || 0)} kcal · P {item.protein || 0}g · G {item.carbs || 0}g · L {item.fat || 0}g
                     </div>
                   </div>
-                  <button onClick={() => deleteEntry(item.id)} aria-label="Supprimer" style={{ width: 32, height: 32, borderRadius: 10, background: '#151515', border: '1px solid #232323', color: '#666', cursor: 'pointer', fontSize: 18, flexShrink: 0 }}>×</button>
+                  <button onClick={() => deleteEntry(item.id)} aria-label="Supprimer" style={{ width: 32, height: 32, borderRadius: 10, background: '#151515', border: '1px solid #EAEAEA', color: '#666', cursor: 'pointer', fontSize: 18, flexShrink: 0 }}>×</button>
                 </div>
               ))}
             </div>
@@ -939,8 +978,8 @@ export default function Fuel() {
                           style={{ background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 13, padding: 13, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', gap: 10, color: '#0A0A0A' }}
                         >
                           <div>
-                            <div style={{ fontSize: 12.5, fontWeight: 850 }}>{f.food_name}</div>
-                            <div style={{ fontSize: 10, color: '#666', marginTop: 3 }}>Aliment fréquent</div>
+                            <div style={{ fontSize: 12.5, fontWeight: 850 }}>{favorites.includes(f.food_name) ? '★ ' : ''}{f.food_name}</div>
+                            <div style={{ fontSize: 10, color: '#666', marginTop: 3 }}>Fréquent · {foodFitScore({kcal:f.calories,protein:f.protein})}% pertinent</div>
                           </div>
                           <div style={{ color: ACCENT, fontSize: 11.5, fontWeight: 900, flexShrink: 0 }}>{Math.round(f.calories || 0)} kcal</div>
                         </button>
@@ -953,8 +992,8 @@ export default function Fuel() {
                   {filtered.map(f => (
                     <button key={f.name} onClick={() => setSelectedFood(f)} style={{ background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 13, padding: 13, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', gap: 10, color: '#0A0A0A' }}>
                       <div>
-                        <div style={{ fontSize: 12.5, fontWeight: 850 }}>{f.name}</div>
-                        <div style={{ fontSize: 10, color: '#666', marginTop: 3 }}>P {f.protein}g · G {f.carbs}g · L {f.fat}g</div>
+                        <div style={{ fontSize: 12.5, fontWeight: 850 }}>{favorites.includes(f.name) ? '★ ' : ''}{f.name}</div>
+                        <div style={{ fontSize: 10, color: '#666', marginTop: 3 }}>P {f.protein}g · G {f.carbs}g · L {f.fat}g · {foodFitScore(f)}% pertinent</div>
                       </div>
                       <div style={{ color: ACCENT, fontSize: 11.5, fontWeight: 900, flexShrink: 0 }}>{f.kcal} kcal</div>
                     </button>
@@ -971,7 +1010,7 @@ export default function Fuel() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, marginTop: 14 }}>
                     {[
                       ['KCAL', Math.round(selectedFood.kcal * (parseFloat(qty) || 1)), ACCENT],
-                      ['PROT.', Math.round(selectedFood.protein * (parseFloat(qty) || 1) * 10) / 10 + 'g', '#fff'],
+                      ['PROT.', Math.round(selectedFood.protein * (parseFloat(qty) || 1) * 10) / 10 + 'g', '#0A0A0A'],
                       ['GLUC.', Math.round(selectedFood.carbs * (parseFloat(qty) || 1) * 10) / 10 + 'g', '#8da0ff'],
                       ['LIP.', Math.round(selectedFood.fat * (parseFloat(qty) || 1) * 10) / 10 + 'g', '#ff806b'],
                     ].map(([label, value, color]) => (
@@ -983,6 +1022,7 @@ export default function Fuel() {
                   </div>
                 </div>
 
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,marginBottom:10}}><button onClick={()=>toggleFavorite(selectedFood.name)} style={{border:'1px solid #EAEAEA',background:favorites.includes(selectedFood.name)?'#F4FFE0':'#fff',borderRadius:10,padding:'8px 10px',fontSize:10,fontWeight:850,cursor:'pointer'}}>{favorites.includes(selectedFood.name)?'★ FAVORI':'☆ FAVORI'}</button><span style={{fontSize:10,color:'#5A7200',fontWeight:850}}>{foodFitScore(selectedFood)}% pertinent pour aujourd’hui</span></div>
                 <label style={{ fontSize: 9.5, color: '#666', fontWeight: 850 }}>QUANTITÉ · PORTIONS</label>
                 <input value={qty} onChange={e => setQty(e.target.value)} type="number" min="0.1" step="0.1"
                   style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 13, color: '#0A0A0A', fontSize: 14, outline: 'none', margin: '7px 0 13px' }} />
