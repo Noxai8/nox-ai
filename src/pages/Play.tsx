@@ -10,6 +10,19 @@ const BG = '#F7F7F7';
 const SURFACE = '#FFFFFF';
 const BORDER = '#EAEAEA';
 
+export function calculateNoxDailyScore(input: { mealCount:number; nutritionTargetReady:boolean; calorieProgress:number; proteinProgress:number; activeMinutes:number; workouts:number; waterMl:number; waterGoal:number }) {
+  const mealCoverage=Math.min(1,input.mealCount/3);
+  const signals=[
+    {label:'Nutrition',done:mealCoverage>=.67},
+    ...(input.nutritionTargetReady?[{label:'Calories',done:input.calorieProgress>=.7},{label:'Protéines',done:input.proteinProgress>=.7}]:[]),
+    {label:'Activité',done:input.activeMinutes>=20||input.workouts>0},
+    {label:'Hydratation',done:input.waterMl>=input.waterGoal*.7},
+  ];
+  const done=signals.filter(x=>x.done).length;
+  return {score:signals.length?Math.round((done/signals.length)*100):0,signals,done,total:signals.length};
+}
+
+
 const ACHIEVEMENTS = [
   { id: 'first_workout', icon: '🏅', title: 'Première séance', desc: 'Tu as complété ta première séance', xp: 50 },
   { id: 'first_pr', icon: '🏆', title: 'Premier PR', desc: 'Tu as établi ton premier record personnel', xp: 100 },
@@ -45,18 +58,6 @@ const LEVELS = [
   { level: 5, name: 'ÉLITE', minXp: 2000, color: '#ff4444' },
   { level: 6, name: 'LÉGENDE NOX', minXp: 5000, color: ACCENT },
 ];
-
-export function calculateNoxDailyScore(input: { mealCount:number; nutritionTargetReady:boolean; calorieProgress:number; proteinProgress:number; activeMinutes:number; workouts:number; waterMl:number; waterGoal:number }) {
-  const mealCoverage=Math.min(1,input.mealCount/3);
-  const signals=[
-    {label:'Nutrition',done:mealCoverage>=.67},
-    ...(input.nutritionTargetReady?[{label:'Calories',done:input.calorieProgress>=.7},{label:'Protéines',done:input.proteinProgress>=.7}]:[]),
-    {label:'Activité',done:input.activeMinutes>=20||input.workouts>0},
-    {label:'Hydratation',done:input.waterMl>=input.waterGoal*.7},
-  ];
-  const done=signals.filter(x=>x.done).length;
-  return {score:signals.length?Math.round((done/signals.length)*100):0,signals,done,total:signals.length};
-}
 
 function localDayKey(value:string|Date){const d=value instanceof Date?value:new Date(value);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function calculateUnifiedStreak(keys:string[]){const days=new Set(keys);let cursor=new Date();cursor.setHours(12,0,0,0);if(!days.has(localDayKey(cursor))){cursor.setDate(cursor.getDate()-1);if(!days.has(localDayKey(cursor)))return 0;}let count=0;while(days.has(localDayKey(cursor))){count++;cursor.setDate(cursor.getDate()-1);}return count;}
