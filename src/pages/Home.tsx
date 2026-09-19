@@ -259,8 +259,8 @@ export default function Home() {
           .select('id, completed_at, created_at, duration_minutes, calories_burned')
           .eq('user_id', user.id)
           .eq('status', 'completed')
-          .gte('created_at', todayStart)
-          .lt('created_at', tomorrowStart),
+          .gte('completed_at', todayStart)
+          .lt('completed_at', tomorrowStart),
         supabase
           .from('food_entries')
           .select('id, meal_type, food_name, calories, protein, carbs, fat, created_at')
