@@ -4,7 +4,7 @@ import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 
 const ACCENT = '#B7FF00';
-const BG = '#F7F7F7';
+const BG = '#FFFFFF';
 const SURFACE = '#FFFFFF';
 const BORDER = '#EAEAEA';
 
@@ -49,7 +49,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'cut-chicken-bowl',
     goal: 'cut',
     name: 'Bowl poulet, riz & légumes',
-    subtitle: 'Une option riche en protéines et facile à préparer.',
+    subtitle: 'Une option protéinée et facile à préparer.',
     servings: 1,
     calories_per_serving: 515,
     protein_per_serving: 52,
@@ -68,7 +68,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'cut-skyr-oats',
     goal: 'cut',
     name: 'Skyr bowl fruits rouges',
-    subtitle: 'Une option rapide avec une quantité élevée de protéines.',
+    subtitle: 'Une option rapide avec une portion généreuse de protéines.',
     servings: 1,
     calories_per_serving: 390,
     protein_per_serving: 35,
@@ -490,7 +490,7 @@ export default function Recipes() {
                 <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 950, letterSpacing: '.1em' }}>RECETTES · SUGGESTIONS</div>
                 <div style={{ fontSize: 18, fontWeight: 950, marginTop: 6, color: '#fff' }}>{goalLabel(goal)}</div>
                 <div style={{ fontSize: 11.5, color: '#AAA', lineHeight: 1.5, marginTop: 6 }}>
-                  Idées de repas filtrées selon ton objectif, ta cible nutritionnelle et, quand c’est possible, les aliments déjà présents dans ton journal. Ce ne sont pas des notes de qualité alimentaire : les valeurs sont indicatives et restent modifiables avant ajout.
+                  Idées de repas adaptées à ton objectif, à ta cible nutritionnelle et, quand c’est possible, aux aliments déjà présents dans ton journal. Aucune recette n’est classée « bonne » ou « mauvaise » : les valeurs sont indicatives et restent modifiables avant ajout.
                   {dailyCalories ? ` Même cible que Nutrition : ${Math.round(dailyCalories)} kcal/jour` : ''}
                   {dailyProtein ? ` · ${Math.round(dailyProtein)} g protéines` : ''}.
                   {!dailyCalories ? ' Enregistre une cible dans Nutrition pour personnaliser davantage ces suggestions.' : ''}
@@ -500,7 +500,7 @@ export default function Recipes() {
               <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 950 }}>Idées pour toi</div>
-                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Basées sur {goalLabel(goal).toLowerCase()} et ton historique</div>
+                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Selon ton objectif et les aliments déjà enregistrés</div>
                 </div>
               </div>
 
@@ -515,7 +515,7 @@ export default function Recipes() {
                       <div style={{ minWidth: 0 }}>
                         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
                           {recipe.tags.map(tag => (
-                            <span key={tag} style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: '.06em', color: ACCENT, border: '1px solid rgba(200,255,0,.18)', background: 'rgba(200,255,0,.055)', borderRadius: 999, padding: '4px 7px' }}>
+                            <span key={tag} style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: '.06em', color: ACCENT, border: '1px solid rgba(183,255,0,.18)', background: 'rgba(183,255,0,.055)', borderRadius: 999, padding: '4px 7px' }}>
                               {tag}
                             </span>
                           ))}
@@ -542,7 +542,7 @@ export default function Recipes() {
 
               {recipes.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '34px 20px', borderRadius: 18, background: SURFACE, border: `1px solid ${BORDER}` }}>
-                  <div style={{ width: 48, height: 48, margin: '0 auto 14px', borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.16)', color: ACCENT, fontWeight: 950 }}>R</div>
+                  <div style={{ width: 48, height: 48, margin: '0 auto 14px', borderRadius: 15, display: 'grid', placeItems: 'center', background: 'rgba(183,255,0,.08)', border: '1px solid rgba(183,255,0,.16)', color: ACCENT, fontWeight: 950 }}>R</div>
                   <div style={{ fontSize: 16, fontWeight: 950 }}>CRÉE TA BIBLIOTHÈQUE</div>
                   <div style={{ fontSize: 11.5, color: '#777', lineHeight: 1.5, margin: '7px auto 17px', maxWidth: 300 }}>
                     Ajoute une suggestion NOX ou crée ta propre recette pour la réutiliser dans ton journal.
@@ -743,7 +743,7 @@ export default function Recipes() {
                   <button
                     key={m}
                     onClick={() => setSelectedMeal(m)}
-                    style={{ flexShrink: 0, padding: '8px 11px', background: selectedMeal === m ? 'rgba(200,255,0,.08)' : SURFACE, border: `1px solid ${selectedMeal === m ? 'rgba(200,255,0,.35)' : BORDER}`, borderRadius: 999, color: selectedMeal === m ? '#0A0A0A' : '#777', fontSize: 10, fontWeight: 850, cursor: 'pointer' }}
+                    style={{ flexShrink: 0, padding: '8px 11px', background: selectedMeal === m ? 'rgba(183,255,0,.08)' : SURFACE, border: `1px solid ${selectedMeal === m ? 'rgba(183,255,0,.35)' : BORDER}`, borderRadius: 999, color: selectedMeal === m ? '#0A0A0A' : '#777', fontSize: 10, fontWeight: 850, cursor: 'pointer' }}
                   >
                     {m}
                   </button>
