@@ -79,15 +79,15 @@ export default function MoodTracker() {
       const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const { data: workouts, error: workoutError } = await supabase
         .from('workouts')
-        .select('duration_minutes')
+        .select('duration_minutes, calories_burned')
         .eq('user_id', user.id)
         .eq('status', 'completed')
         .gte('created_at', weekStart);
 
       if (workoutError) throw workoutError;
 
-      const totalMin = workouts?.reduce((sum: number, w: any) => sum + (Number(w.duration_minutes) || 0), 0) || 0;
-      setCaloriesBurned(Math.round(totalMin * 7));
+      const recordedCalories = workouts?.reduce((sum: number, w: any) => sum + (Number(w.calories_burned) || 0), 0) || 0;
+      setCaloriesBurned(Math.round(recordedCalories));
     } catch (e: any) {
       console.error(e);
       setError(e?.message || 'Impossible de charger tes données de récupération.');
@@ -285,11 +285,11 @@ export default function MoodTracker() {
 
         <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: '14px 16px', marginBottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>ACTIVITÉ ESTIMÉE · 7 JOURS</div>
+            <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>CALORIES ENREGISTRÉES · 7 JOURS</div>
             <div style={{ fontSize: 24, fontWeight: 900, color: '#ff6644' }}>{caloriesBurned} kcal</div>
           </div>
           <div style={{ fontSize: 11, color: '#555', textAlign: 'right', lineHeight: 1.4 }}>
-            Estimation NOX<br />à partir des séances
+            Somme des calories<br />présentes dans tes séances
           </div>
         </div>
 
