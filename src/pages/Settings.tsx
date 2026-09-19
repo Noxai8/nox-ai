@@ -61,11 +61,14 @@ export default function Settings() {
         </Section>
 
         <Section title="NOX Connect">
-          <Row icon="⌚" label="Apple Health / Apple Watch" value="À connecter" onClick={() => navigate('/recovery')} />
-          <Row icon="🤖" label="Health Connect" value="À connecter" onClick={() => navigate('/recovery')} />
-          <Row icon="💠" label="Fitbit" value="À connecter" onClick={() => navigate('/recovery')} />
-          <Row icon="⚫" label="WHOOP" value="À connecter" onClick={() => navigate('/recovery')} />
-          <div style={{padding:'12px 18px',fontSize:10.5,color:'#777',lineHeight:1.5}}>NOX Connect centralise les données autorisées. Les connexions disponibles dépendent des intégrations réellement activées.</div>
+          <Row icon="🍎" label="Apple Health / Apple Watch" value="Bridge natif requis" onClick={() => navigate('/recovery')} />
+          <Row icon="🤖" label="Health Connect" value="Bridge Android requis" onClick={() => navigate('/recovery')} />
+          <Row icon="💠" label="Fitbit" value="OAuth à activer" onClick={() => navigate('/recovery')} />
+          <Row icon="⚫" label="WHOOP" value="OAuth à activer" onClick={() => navigate('/recovery')} />
+          <Row icon="⚖️" label="Balances connectées" value="Via Health / Fitbit" onClick={() => navigate('/body')} />
+          <div style={{padding:'12px 18px',fontSize:10.5,color:'#777',lineHeight:1.5}}>
+            Architecture cible : NOX importe, avec ton autorisation, poids, composition corporelle, activité, entraînements, fréquence cardiaque, sommeil et récupération selon les données exposées par chaque source. Chaque mesure conserve sa source et son identifiant externe pour éviter les doublons.
+          </div>
         </Section>
 
         <Section title="Données">
