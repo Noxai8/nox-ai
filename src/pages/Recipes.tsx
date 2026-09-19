@@ -285,6 +285,16 @@ export default function Recipes() {
   };
 
   const goal = normalizeGoal(profile?.goal_type || profile?.goal || profile?.objective);
+  const todayKey = new Date().toISOString().split('T')[0];
+  const todayCalories = recentFoods.filter((f:any) => String(f.created_at || '').startsWith(todayKey)).reduce((sum:number,f:any) => sum + Number(f.calories || 0), 0);
+  const dailyCalories = Number(nutritionTarget?.calories || 0) > 0
+    ? Number(nutritionTarget.calories)
+    : null;
+  const remainingCalories = dailyCalories ? Math.max(0, dailyCalories - todayCalories) : null;
+  const dailyProtein = Number(nutritionTarget?.protein || 0) > 0
+    ? Number(nutritionTarget.protein)
+    : null;
+
   const suggestions = useMemo(() => {
     const recentNames = recentFoods.map(f => String(f.food_name || '').toLowerCase()).filter(Boolean);
     const scored = SUGGESTIONS.filter(r => r.goal === goal || r.goal === 'all').map(recipe => {
@@ -468,16 +478,6 @@ export default function Recipes() {
     setError('');
     setPortions(1);
   };
-
-  const todayKey = new Date().toISOString().split('T')[0];
-  const todayCalories = recentFoods.filter((f:any) => String(f.created_at || '').startsWith(todayKey)).reduce((sum:number,f:any) => sum + Number(f.calories || 0), 0);
-  const dailyCalories = Number(nutritionTarget?.calories || 0) > 0
-    ? Number(nutritionTarget.calories)
-    : null;
-  const remainingCalories = dailyCalories ? Math.max(0, dailyCalories - todayCalories) : null;
-  const dailyProtein = Number(nutritionTarget?.protein || 0) > 0
-    ? Number(nutritionTarget.protein)
-    : null;
 
   return (
     <div style={{ minHeight: '100vh', background: BG, color: '#0A0A0A', paddingBottom: 96 }}>
