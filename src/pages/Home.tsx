@@ -190,6 +190,7 @@ export default function Home() {
   const [xp, setXp] = useState(0);
   const [tomorrowMealPlanned, setTomorrowMealPlanned] = useState(false);
   const [todayActivitySources, setTodayActivitySources] = useState<string[]>([]);
+  const [recentActivityKeys, setRecentActivityKeys] = useState<string[]>([]);
   const [todayWeightLogged, setTodayWeightLogged] = useState(false);
   const [tomorrowMealCount, setTomorrowMealCount] = useState(0);
   const [todayPlannedMeals, setTodayPlannedMeals] = useState(0);
@@ -241,6 +242,7 @@ export default function Home() {
         { data: recoveryLogs },
         { data: tomorrowMeals },
         { data: todayPlannedMeals },
+        { data: recentActivities },
       ] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase.from('workout_programs').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
@@ -281,6 +283,7 @@ export default function Home() {
         supabase.from('recovery_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
         supabase.from('meal_plans').select('id').eq('user_id', user.id).eq('planned_date', tomorrow),
         supabase.from('meal_plans').select('id').eq('user_id', user.id).eq('planned_date', today).eq('logged', false),
+        supabase.from('activity_logs').select('activity_type, duration_minutes, performed_at, source').eq('user_id', user.id).gte('performed_at', todayStart).lt('performed_at', tomorrowStart),
       ]);
 
       setProfile(prof);
@@ -315,6 +318,7 @@ export default function Home() {
       setWaterGoal(Number.isFinite(storedWaterGoal) && storedWaterGoal > 0 ? storedWaterGoal : 2500);
       setTodayActivityMinutes(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.duration_minutes || 0), 0) || 0);
       setTodayActivitySources(Array.from(new Set((todayActivity || []).map((item:any)=>String(item.source||'manual')).filter(Boolean))));
+      setRecentActivityKeys((recentActivities || []).map((item:any)=>`${String(item.activity_type||'').toLowerCase()}|${Math.round(Number(item.duration_minutes||0))}|${String(item.performed_at||'').slice(0,13)}`));
       setTodaySteps(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.steps || 0), 0) || 0);
       const profileStepGoal = Number(prof?.step_goal ?? prof?.daily_steps_goal ?? prof?.steps_goal ?? 10000);
       setStepGoal(Number.isFinite(profileStepGoal) && profileStepGoal > 0 ? profileStepGoal : 10000);
@@ -386,6 +390,11 @@ export default function Home() {
   };
 
   const addWater = (ml: number) => updateWater(todayWaterMl + ml);
+
+  const hasPossibleActivityDuplicate = (activityType: string, durationMinutes: number, performedAt: string) => {
+    const key = `${String(activityType||'').toLowerCase()}|${Math.round(Number(durationMinutes||0))}|${String(performedAt||'').slice(0,13)}`;
+    return recentActivityKeys.includes(key);
+  };
 
   const updateWaterGoal = (next: number) => {
     if (!user) return;
@@ -843,6 +852,8 @@ export default function Home() {
             </div>
             <div style={{fontSize:11.5,color:MUTED,lineHeight:1.5,marginTop:11}}>{todayKcal===0&&totalActiveMinutes===0?'Commence ta journée : ajoute ton premier repas ou une activité.':dayPeriod==='evening'?`${consistencySignals}/5 repères de suivi renseignés aujourd’hui${todayMealTypes.length ? ` · ${todayMealTypes.length} type${todayMealTypes.length>1?'s':''} de repas enregistré${todayMealTypes.length>1?'s':''}` : ''}. Consulte les cartes ci-dessus pour compléter ce qui compte pour toi.`:effectiveTargetKcal===null?'Continue à enregistrer ta journée. Définis une cible dans Nutrition pour comparer tes apports à un repère personnalisé.':(remainingKcal||0)>0?`Il te reste environ ${Math.round(remainingKcal || 0)} kcal sur ton repère actuel. Continue à enregistrer ta journée pour garder une vue complète.`:'Tes apports enregistrés ont atteint ton repère calorique actuel. Consulte Nutrition pour le détail.'}</div>
           </div>
+
+          {todayActivitySources.includes('machine_scan')&&<div style={{...cardStyle,padding:14,marginBottom:14,fontSize:10.5,color:MUTED,lineHeight:1.45}}><strong style={{color:TEXT}}>Sources d’activité :</strong> NOX conserve la provenance des données scannées. Lors d’un prochain enregistrement, une activité de même type, durée et heure pourra être signalée comme doublon potentiel avant agrégation.</div>}
 
           {latestWeight!==null&&<button onClick={()=>navigate('/body')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>PROGRÈS PHYSIQUE</div><div style={{fontSize:20,fontWeight:950,marginTop:4}}>{latestWeight} <span style={{fontSize:12,color:MUTED}}>kg</span></div></div><ChevronRight size={18}/></div>
