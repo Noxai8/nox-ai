@@ -515,7 +515,7 @@ export default function Recipes() {
                       <div style={{ minWidth: 0 }}>
                         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
                           {recipe.tags.map(tag => (
-                            <span key={tag} style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: '.06em', color: ACCENT, border: '1px solid rgba(183,255,0,.18)', background: 'rgba(183,255,0,.055)', borderRadius: 999, padding: '4px 7px' }}>
+                            <span key={tag} style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: '.06em', color: '#3F5F00', border: '1px solid #D8F29B', background: '#F4FFE0', borderRadius: 999, padding: '4px 7px' }}>
                               {tag}
                             </span>
                           ))}
@@ -659,7 +659,7 @@ export default function Recipes() {
                     <div style={{ fontSize: 9.5, color: '#666', fontWeight: 850, marginBottom: 10 }}>ESTIMATION PAR PORTION</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
                       {[
-                        ['KCAL', Math.round(t.kcal / servings), ACCENT],
+                        ['KCAL', Math.round(t.kcal / servings), '#0A0A0A'],
                         ['PROT.', `${Math.round(t.protein / servings * 10) / 10}g`, '#0A0A0A'],
                         ['GLUC.', `${Math.round(t.carbs / servings * 10) / 10}g`, '#8da0ff'],
                         ['LIP.', `${Math.round(t.fat / servings * 10) / 10}g`, '#ff806b'],
@@ -705,7 +705,7 @@ export default function Recipes() {
               <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 17, padding: 17, marginBottom: 12 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
                   {[
-                    ['KCAL', selected.calories_per_serving || 0, ACCENT],
+                    ['KCAL', selected.calories_per_serving || 0, '#0A0A0A'],
                     ['PROT.', `${selected.protein_per_serving || 0}g`, '#0A0A0A'],
                     ['GLUC.', `${selected.carbs_per_serving || 0}g`, '#8da0ff'],
                     ['LIP.', `${selected.fat_per_serving || 0}g`, '#ff806b'],
@@ -743,7 +743,7 @@ export default function Recipes() {
                   <button
                     key={m}
                     onClick={() => setSelectedMeal(m)}
-                    style={{ flexShrink: 0, padding: '8px 11px', background: selectedMeal === m ? 'rgba(183,255,0,.08)' : SURFACE, border: `1px solid ${selectedMeal === m ? 'rgba(183,255,0,.35)' : BORDER}`, borderRadius: 999, color: selectedMeal === m ? '#0A0A0A' : '#777', fontSize: 10, fontWeight: 850, cursor: 'pointer' }}
+                    style={{ flexShrink: 0, padding: '8px 11px', background: selectedMeal === m ? ACCENT : SURFACE, border: `1px solid ${selectedMeal === m ? ACCENT : BORDER}`, borderRadius: 999, color: selectedMeal === m ? '#0A0A0A' : '#777', fontSize: 10, fontWeight: 850, cursor: 'pointer' }}
                   >
                     {m}
                   </button>
