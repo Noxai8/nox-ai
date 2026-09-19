@@ -228,6 +228,7 @@ export default function Recipes() {
   const [nutritionTarget, setNutritionTarget] = useState<any>(null);
   const [recentFoods, setRecentFoods] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [form, setForm] = useState({
     name: '',
@@ -295,12 +296,13 @@ export default function Recipes() {
 
   const filteredSuggestions = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return suggestions;
-    return suggestions.filter(recipe =>
+    const base = showFavoritesOnly ? suggestions.filter(recipe => favorites.includes(recipe.id)) : suggestions;
+    if (!q) return base;
+    return base.filter(recipe =>
       [recipe.name, recipe.subtitle, ...recipe.tags, ...recipe.ingredients.map(i => i.name)]
         .join(' ').toLowerCase().includes(q)
     );
-  }, [suggestions, search]);
+  }, [suggestions, search, showFavoritesOnly, favorites]);
 
   const filteredRecipes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -537,15 +539,20 @@ export default function Recipes() {
 
               <div style={{marginBottom:14}}><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher une recette ou un ingrédient" style={{width:'100%',boxSizing:'border-box',padding:'12px 13px',border:'1px solid '+BORDER,borderRadius:12,background:'#F7F7F7',color:'#0A0A0A',fontSize:12,outline:'none'}}/></div>
 
+              <div style={{display:'flex',gap:7,marginBottom:12}}>
+                <button onClick={()=>setShowFavoritesOnly(false)} style={{border:'1px solid '+(!showFavoritesOnly?ACCENT:BORDER),background:!showFavoritesOnly?ACCENT:'#fff',borderRadius:999,padding:'7px 11px',fontSize:9.5,fontWeight:900,cursor:'pointer'}}>POUR TOI</button>
+                <button onClick={()=>setShowFavoritesOnly(true)} style={{border:'1px solid '+(showFavoritesOnly?ACCENT:BORDER),background:showFavoritesOnly?ACCENT:'#fff',borderRadius:999,padding:'7px 11px',fontSize:9.5,fontWeight:900,cursor:'pointer'}}>★ FAVORIS</button>
+              </div>
+
               <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 950 }}>Idées pour toi</div>
-                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Selon ton objectif, ta cible nutritionnelle et tes aliments récents · favoris en premier</div>
+                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Selon ton objectif, ta cible nutritionnelle et tes aliments récents</div>
                 </div>
               </div>
 
               <div style={{ display: 'grid', gap: 9, marginBottom: 26 }}>
-                {[...filteredSuggestions].sort((a,b) => Number(favorites.includes(b.id)) - Number(favorites.includes(a.id))).map(recipe => (
+                {filteredSuggestions.map(recipe => (
                   <button
                     key={recipe.id}
                     onClick={() => openSuggestion(recipe)}
