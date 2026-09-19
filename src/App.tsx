@@ -31,6 +31,7 @@ const FastingTracker = lazy(() => import('./pages/FastingTracker'));
 const MoodTracker = lazy(() => import('./pages/MoodTracker'));
 const Recipes = lazy(() => import('./pages/Recipes'));
 const MealPlanner = lazy(() => import('./pages/MealPlanner'));
+const ShoppingList = lazy(() => import('./pages/ShoppingList'));
 const FoodScan = lazy(() => import('./pages/FoodScan'));
 const Reschedule = lazy(() => import('./pages/Reschedule'));
 const ActivityHub = lazy(() => import('./pages/ActivityHub'));
@@ -61,6 +62,7 @@ function AppRoutes() {
         <Route path="/body" element={<ProtectedRoute><Body /></ProtectedRoute>} />
         <Route path="/coach" element={<ProtectedRoute><Coach /></ProtectedRoute>} />
         <Route path="/fuel" element={<ProtectedRoute><Fuel /></ProtectedRoute>} />
+        <Route path="/shopping-list" element={<ProtectedRoute><ShoppingList /></ProtectedRoute>} />
         <Route path="/play" element={<ProtectedRoute><Play /></ProtectedRoute>} />
         <Route path="/future" element={<ProtectedRoute><NoxFuture /></ProtectedRoute>} />
         <Route path="/weekly-review" element={<ProtectedRoute><WeeklyReview /></ProtectedRoute>} />
