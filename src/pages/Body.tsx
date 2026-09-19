@@ -74,8 +74,6 @@ export default function Body() {
   const [activities, setActivities] = useState<any[]>([]);
   const [foodEntries, setFoodEntries] = useState<any[]>([]);
   const [workouts, setWorkouts] = useState<any[]>([]);
-  const [workoutSets, setWorkoutSets] = useState<any[]>([]);
-  const [personalRecords, setPersonalRecords] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ weight: '', chest_cm: '', waist_cm: '', hips_cm: '', arms_cm: '', thighs_cm: '', notes: '' });
   const [loading, setLoading] = useState(true);
@@ -126,13 +124,11 @@ export default function Body() {
     if (!user) return;
     setLoading(true);
 
-    const [bodyResult, activityResult, foodResult, workoutResult, setResult, prResult] = await Promise.all([
+    const [bodyResult, activityResult, foodResult, workoutResult] = await Promise.all([
       supabase.from('body_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('activity_logs').select('*').eq('user_id', user.id).order('performed_at', { ascending: false }).limit(200),
       supabase.from('food_entries').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(500),
       supabase.from('workouts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100),
-      supabase.from('workout_sets').select('exercise_name, weight, reps, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1000),
-      supabase.from('personal_records').select('exercise_name, weight, reps, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
     ]);
 
     if (bodyResult.error) {
@@ -156,10 +152,6 @@ export default function Body() {
     }
     setFoodEntries(foodResult.data || []);
     setWorkouts(workoutResult.data || []);
-    if (setResult.error) console.warn('PROGRESS_WORKOUT_SETS_ERROR', setResult.error.message);
-    else setWorkoutSets(setResult.data || []);
-    if (prResult.error) console.warn('PROGRESS_PR_ERROR', prResult.error.message);
-    else setPersonalRecords(prResult.data || []);
 
     setLoading(false);
   };
@@ -436,18 +428,6 @@ export default function Body() {
   const avgActivityCalories = Math.round(rangeActivities.reduce((s,a)=>s+Number(a.calories_burned||0),0)/rangeActivityDays);
   const avgActivityMinutes = Math.round(activeMinutesRange/rangeActivityDays);
   const workoutsPerWeek = rangeDays ? Number((rangeWorkouts.length/(rangeDays/7)).toFixed(1)) : null;
-  const rangeSets = workoutSets.filter(s => inRange(s.created_at));
-  const trainingVolume = Math.round(rangeSets.reduce((sum,s)=>sum+(Number(s.weight)||0)*(Number(s.reps)||0),0));
-  const volumeByWeek = Array.from({length: Math.min(8, Math.max(1, Math.ceil((rangeDays || 56)/7)))}, (_,index) => {
-    const end = Date.now() - index*7*86400000;
-    const start = end - 7*86400000;
-    const volume = workoutSets.filter(s => { const t=new Date(s.created_at).getTime(); return t>=start&&t<end; }).reduce((sum,s)=>sum+(Number(s.weight)||0)*(Number(s.reps)||0),0);
-    return {label:index===0?'Cette sem.':`S-${index}`,volume:Math.round(volume)};
-  }).reverse();
-  const maxWeeklyVolume = Math.max(1,...volumeByWeek.map(x=>x.volume));
-  const rangePRs = personalRecords.filter(pr=>inRange(pr.created_at));
-  const recentPRs = rangePRs.slice(0,5);
-
   const progressSummary = [
     weightChange === null ? null : `Poids : ${weightChange > 0 ? '+' : ''}${weightChange.toFixed(1)} kg sur la période.`,
     rangeFoods.length ? `Nutrition suivie sur ${trackedDays} jour(s), moyenne ${avgCalories} kcal et ${avgProtein} g de protéines par jour.` : null,
@@ -720,23 +700,6 @@ export default function Body() {
                   )}
                 </div>
               )}
-
-              <div style={{ fontSize:10.5, color:'#777', fontWeight:900, letterSpacing:'.09em', margin:'22px 2px 10px' }}>PERFORMANCE TRAINING</div>
-              <div style={{ background:'#fff', border:`1px solid ${BORDER}`, borderRadius:20, padding:16, marginBottom:10 }}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:12}}>
-                  <div><div style={{fontSize:10,color:'#777',fontWeight:900}}>VOLUME SUR LA PÉRIODE</div><div style={{fontSize:25,fontWeight:950,marginTop:4}}>{trainingVolume.toLocaleString('fr-FR')} <span style={{fontSize:10,color:'#777'}}>kg·rep</span></div></div>
-                  <div style={{fontSize:10,color:'#777'}}>{rangeSets.length} série(s)</div>
-                </div>
-                <div style={{height:86,display:'flex',alignItems:'flex-end',gap:5,marginTop:15}}>
-                  {volumeByWeek.map(point=><div key={point.label} style={{flex:1,textAlign:'center'}}><div title={String(point.volume)} style={{height:Math.max(3,(point.volume/maxWeeklyVolume)*62),background:point.label==='Cette sem.'?ACCENT:'#DCDCDC',borderRadius:'5px 5px 2px 2px'}}/><div style={{fontSize:8,color:'#999',marginTop:5}}>{point.label}</div></div>)}
-                </div>
-                <div style={{fontSize:9.5,color:'#888',lineHeight:1.45,marginTop:8}}>Volume calculé à partir des séries enregistrées : charge × répétitions. Il sert à visualiser l’évolution de ton entraînement.</div>
-              </div>
-              <div style={{ background:'#fff', border:`1px solid ${BORDER}`, borderRadius:20, padding:16, marginBottom:18 }}>
-                <div style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center'}}><div><div style={{fontSize:10,color:'#777',fontWeight:900}}>RECORDS PERSONNELS</div><div style={{fontSize:18,fontWeight:950,marginTop:4}}>ÉVOLUTION DES PR</div></div><div style={{background:'#0A0A0A',color:ACCENT,borderRadius:12,padding:'8px 10px',fontWeight:950,fontSize:12}}>{rangePRs.length}</div></div>
-                {recentPRs.length===0?<div style={{fontSize:11,color:'#888',marginTop:13}}>Aucun PR enregistré sur cette période.</div>:<div style={{display:'grid',gap:7,marginTop:13}}>{recentPRs.map((pr:any)=><div key={pr.exercise_name} style={{display:'flex',justifyContent:'space-between',gap:12,background:'#F7F7F7',borderRadius:12,padding:'10px 11px'}}><div><div style={{fontSize:11.5,fontWeight:900}}>{pr.exercise_name}</div><div style={{fontSize:9,color:'#888',marginTop:3}}>{new Date(pr.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</div></div><div style={{fontSize:13,fontWeight:950,whiteSpace:'nowrap'}}>{Number(pr.weight)} kg × {Number(pr.reps)}</div></div>)}</div>}
-                <div style={{fontSize:9.5,color:'#888',lineHeight:1.45,marginTop:10}}>Les PR affichés correspondent aux records actuellement enregistrés par exercice.</div>
-              </div>
 
               <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>MENSURATIONS</div>
               {logs.filter(l => l.waist_cm || l.chest_cm).length === 0 ? (
