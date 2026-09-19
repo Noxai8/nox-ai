@@ -9,7 +9,7 @@ const BG = '#F7F7F7';
 const SURFACE = '#FFFFFF';
 const BORDER = '#EAEAEA';
 
-type Mode = 'menu' | 'grocery' | 'tips' | 'dinner' | 'quick';
+type Mode = 'menu' | 'grocery' | 'tips' | 'dinner' | 'quick' | 'log';
 
 export default function FuelAI() {
   const { user } = useAuth();
@@ -23,6 +23,7 @@ export default function FuelAI() {
   const [goal, setGoal] = useState('');
   const [error, setError] = useState('');
   const [command, setCommand] = useState('');
+  const [logText, setLogText] = useState('');
 
 
   const loadNutritionContext = async () => {
@@ -77,6 +78,25 @@ export default function FuelAI() {
     return JSON.parse(match[0]);
   };
 
+  const parseFoodLog = async () => {
+    const q=logText.trim(); if(!q||!user)return;
+    setLoading(true);setResult(null);setError('');
+    try{
+      const text=await callAI(`Tu transformes une description alimentaire en entrée structurée NOX. Description utilisateur: "${q}". N'invente pas une précision absente: estime seulement si nécessaire et indique confidence "faible", "moyenne" ou "élevée". Réponds uniquement en JSON valide: {"food_name":"description courte","meal_type":"Déjeuner","calories":500,"protein":30,"carbs":50,"fat":15,"confidence":"moyenne","note":"valeurs estimées à vérifier"}`);
+      setResult({type:'log',data:parseAIJson(text)});
+    }catch(e:any){setError(e?.message||'Impossible d’analyser ce repas.')}finally{setLoading(false)}
+  };
+
+  const saveFoodLog = async () => {
+    if(!user||result?.type!=='log')return;
+    const d=result.data||{}; const kcal=Number(d.calories);
+    if(!d.food_name||!Number.isFinite(kcal)||kcal<=0){setError('Vérifie le repas et les calories avant de l’enregistrer.');return}
+    const allowed=['Petit-déjeuner','Déjeuner','Dîner','Snacks'];
+    const mealType=allowed.includes(d.meal_type)?d.meal_type:'Déjeuner';
+    const {error:e}=await supabase.from('food_entries').insert({user_id:user.id,meal_type:mealType,food_name:String(d.food_name),calories:Math.round(kcal),protein:Number(d.protein||0),carbs:Number(d.carbs||0),fat:Number(d.fat||0),created_at:new Date().toISOString()});
+    if(e)setError(e.message);else navigate('/fuel');
+  };
+
   const generateDinner = async (question = 'Que puis-je manger ce soir ?') => {
     if (!user) return;
     setLoading(true); setResult(null); setError('');
@@ -100,6 +120,7 @@ Propose 3 options de repas réalistes alignées avec les macros restantes. N'inv
   const runQuickCommand = async () => {
     const q=command.trim(); if(!q)return;
     const lower=q.toLowerCase();
+    if(lower.startsWith('j’ai mangé')||lower.startsWith("j'ai mangé")||lower.startsWith('ajoute ')||lower.startsWith('log ')){setLogText(q);setMode('log');setResult(null);return;}
     if(lower.includes('manger')||lower.includes('repas')||lower.includes('macro')){setMode('dinner');await generateDinner(q);return;}
     if(lower.includes('courses')){setMode('grocery');setResult(null);return;}
     if(lower.includes('semaine')||lower.includes('plan')){navigate('/meal-planner');return;}
@@ -318,6 +339,7 @@ FORMAT :
               <div style={{fontSize:10,color:ACCENT,fontWeight:900,letterSpacing:'.1em'}}>QUICK COMMAND</div>
               <div style={{display:'flex',gap:8,marginTop:9}}><input value={command} onChange={e=>setCommand(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')void runQuickCommand()}} placeholder="Ex : Que puis-je manger ce soir ?" style={{flex:1,minWidth:0,border:'1px solid #2A2A2A',borderRadius:11,background:'#171717',color:'#fff',padding:'11px 12px',outline:0}}/><button onClick={()=>void runQuickCommand()} style={{border:0,borderRadius:11,background:ACCENT,color:'#000',fontWeight:900,padding:'0 13px'}}>GO</button></div>
             </div>
+            <MenuCard icon="✍️" title="Ajouter un repas en une phrase" desc="Ex : J’ai mangé 2 œufs, deux tartines et un café au lait" onClick={() => { setMode('log'); setResult(null); }} />
             <MenuCard icon="🌙" title="Que puis-je manger ce soir ?" desc="3 idées selon ce qu’il te reste aujourd’hui en calories et macros" onClick={() => { setMode('dinner'); void generateDinner(); }} />
             <MenuCard icon="🔎" title="Recherche & commandes" desc="Repas, scan, planification, replanification ou analyse depuis une seule commande" onClick={() => document.querySelector<HTMLInputElement>('input[placeholder^="Ex :"]')?.focus()} />
             <MenuCard icon="🔄" title="Replanifier ma semaine" desc="Décale intelligemment une séance quand ton planning change" onClick={() => navigate('/reschedule')} />
@@ -331,6 +353,21 @@ FORMAT :
           <MenuCard icon="👨‍🍳" title="Mes recettes" desc="Créer et sauvegarder tes propres recettes réutilisables" onClick={() => navigate('/recipes')} />
           <MenuCard icon="📅" title="Planifier mes repas" desc="Organise ta semaine alimentaire à l'avance" onClick={() => navigate('/meal-planner')} />
           </>
+        )}
+
+        {mode === 'log' && (
+          <div>
+            <div style={{fontSize:13,color:'#666',lineHeight:1.5,marginBottom:12}}>Décris simplement ce que tu as mangé. NOX prépare une entrée structurée que tu vérifies avant l’enregistrement.</div>
+            <textarea value={logText} onChange={e=>setLogText(e.target.value)} placeholder="Ex : J’ai mangé 2 œufs, deux tartines complètes et un café au lait" style={{width:'100%',minHeight:110,boxSizing:'border-box',border:'1px solid '+BORDER,borderRadius:14,background:'#fff',padding:14,fontSize:14,resize:'vertical',outline:0}}/>
+            <button onClick={()=>void parseFoodLog()} disabled={loading||!logText.trim()} style={{width:'100%',marginTop:10,padding:15,border:0,borderRadius:13,background:ACCENT,fontWeight:950}}>{loading?'ANALYSE...':'ANALYSER LE REPAS'}</button>
+            {!loading&&result?.type==='log'&&<div style={{background:'#fff',border:'1px solid '+BORDER,borderRadius:16,padding:16,marginTop:12}}>
+              <div style={{fontSize:10,color:'#777',fontWeight:900}}>À VÉRIFIER · CONFIANCE {String(result.data.confidence||'non précisée').toUpperCase()}</div>
+              <div style={{fontSize:18,fontWeight:950,marginTop:5}}>{result.data.food_name}</div>
+              <div style={{fontSize:12,color:'#666',marginTop:6}}>≈ {Math.round(Number(result.data.calories||0))} kcal · {Math.round(Number(result.data.protein||0))} g prot. · {Math.round(Number(result.data.carbs||0))} g gluc. · {Math.round(Number(result.data.fat||0))} g lip.</div>
+              {result.data.note&&<div style={{fontSize:10.5,color:'#888',marginTop:8,lineHeight:1.45}}>{result.data.note}</div>}
+              <button onClick={()=>void saveFoodLog()} style={{width:'100%',marginTop:12,padding:14,border:0,borderRadius:12,background:'#0A0A0A',color:'#fff',fontWeight:950}}>CONFIRMER ET AJOUTER</button>
+            </div>}
+          </div>
         )}
 
         {mode === 'dinner' && (
