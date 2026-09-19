@@ -162,6 +162,7 @@ export default function Home() {
   const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
   const [dayPeriod, setDayPeriod] = useState<'morning'|'day'|'evening'>(() => { const h=new Date().getHours(); return h<12?'morning':h<18?'day':'evening'; });
   const [todayFoodCount, setTodayFoodCount] = useState(0);
+  const [todayMealCount, setTodayMealCount] = useState(0);
   const [weekFoodDays, setWeekFoodDays] = useState(0);
   const [todayMealTypes, setTodayMealTypes] = useState<string[]>([]);
   const [todayMeals, setTodayMeals] = useState<any[]>([]);
@@ -296,6 +297,7 @@ export default function Home() {
       setTodayCarbs(fuel?.reduce((sum: number, item: any) => sum + Number(item.carbs || 0), 0) || 0);
       setTodayFat(fuel?.reduce((sum: number, item: any) => sum + Number(item.fat || 0), 0) || 0);
       setTodayFoodCount(fuel?.length || 0);
+      setTodayMealCount(new Set((fuel || []).map((item:any)=>String(item.meal_type||'')).filter(Boolean)).size);
       setWeekFoodDays(new Set((weekFuel || []).map((item: any) => String(item.created_at || '').slice(0, 10)).filter(Boolean)).size);
       setTodayMeals(fuel || []);
       setTodayMealTypes(Array.from(new Set((fuel || []).map((item: any) => String(item.meal_type || '')).filter(Boolean))));
@@ -437,12 +439,13 @@ export default function Home() {
   const totalActiveCalories = todayActiveCalories + todayWorkoutCalories;
   const activityProgress = Math.min(1, totalActiveMinutes / 30);
   const stepProgress = stepGoal > 0 ? Math.min(1, todaySteps / stepGoal) : 0;
-  const daySignals = [todayFoodCount > 0, nutritionProgress >= .7, proteinProgress >= .7, totalActiveMinutes >= 20 || todayWorkouts > 0, todayWaterMl >= waterGoal * .7];
+  const daySignals = [mealCoverage >= .67, nutritionProgress >= .7, proteinProgress >= .7, totalActiveMinutes >= 20 || todayWorkouts > 0, todayWaterMl >= waterGoal * .7];
   const consistencySignals = daySignals.filter(Boolean).length;
   const dailyScore = Math.round((consistencySignals / daySignals.length) * 100);
   const dailyScoreLabel = consistencySignals===5?'5/5 REPÈRES':consistencySignals===4?'4/5 REPÈRES':consistencySignals>=2?consistencySignals+'/5 REPÈRES':consistencySignals+'/5 REPÈRE'+(consistencySignals===1?'':'S');
+  const mealCoverage = Math.min(1, todayMealCount / 3);
   const scoreSignals = [
-    { label: 'Nutrition', done: todayFoodCount > 0 },
+    { label: 'Nutrition', done: mealCoverage >= .67 },
     { label: 'Calories', done: nutritionProgress >= .7 },
     { label: 'Protéines', done: proteinProgress >= .7 },
     { label: 'Activité', done: totalActiveMinutes >= 20 || todayWorkouts > 0 },
