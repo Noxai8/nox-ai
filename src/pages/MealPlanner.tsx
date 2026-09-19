@@ -7,6 +7,7 @@ const ACCENT = '#B7FF00';
 const BG = '#FFFFFF';
 const SURFACE = '#F7F7F4';
 const BORDER = '#E7E7E2';
+// NOX Nutrition · meal planning
 const MEALS = ['Petit-déjeuner', 'Déjeuner', 'Dîner', 'Snacks'];
 
 type GoalKey = 'cut' | 'maintain' | 'bulk';
