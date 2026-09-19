@@ -49,7 +49,7 @@ function NoxScore({ score }: { score: number }) {
         borderRadius: '50%',
         padding: 5,
         background: `conic-gradient(${ACCENT} 0deg ${degrees}deg, #EAEAEA ${degrees}deg 360deg)`,
-        boxShadow: '0 0 28px rgba(200,255,0,.08)',
+        boxShadow: '0 0 28px rgba(183,255,0,.08)',
         flexShrink: 0,
       }}
     >
@@ -914,7 +914,7 @@ export default function Home() {
                 display: 'flex',
                 alignItems: 'flex-end',
                 background:
-                  'radial-gradient(circle at 82% 35%, rgba(200,255,0,.16), transparent 24%), linear-gradient(135deg,#FFFFFF 0%,#FFFFFF 100%)',
+                  'radial-gradient(circle at 82% 35%, rgba(183,255,0,.16), transparent 24%), linear-gradient(135deg,#FFFFFF 0%,#FFFFFF 100%)',
               }}
             >
               <div
@@ -925,7 +925,7 @@ export default function Home() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  color: ACCENT,
+                  color: '#4D6800',
                   fontSize: 9.5,
                   fontWeight: 900,
                   letterSpacing: '.11em',
