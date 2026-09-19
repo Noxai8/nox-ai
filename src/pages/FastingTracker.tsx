@@ -20,7 +20,6 @@ export default function FastingTracker() {
   const [fastStart, setFastStart] = useState<Date | null>(null);
   const [isFasting, setIsFasting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const [eatStart, setEatStart] = useState<string>('12:00');
   const [customFastHours, setCustomFastHours] = useState(16);
   const [waterGoal] = useState(2500);
   const [waterIntake, setWaterIntake] = useState(0);
