@@ -76,7 +76,7 @@ function NoxScore({ score }: { score: number }) {
               letterSpacing: '.1em',
             }}
           >
-            NOX Score
+            DAILY SCORE
           </div>
         </div>
       </div>
@@ -934,7 +934,7 @@ export default function Home() {
               icon={Trophy}
               eyebrow="Progression"
               value={`${prCount} PR`}
-              detail={`${xp} XP · régularité NOX`}
+              detail={`${xp} XP · progression NOX`}
               onClick={() => navigate('/play')}
             />
           </div>
@@ -1055,7 +1055,7 @@ export default function Home() {
           >
             <Sparkles size={15} color={ACCENT} />
             <div style={{ flex: 1, fontSize: 11.5, lineHeight: 1.45, color: '#777' }}>
-              Tout ton progrès. Un seul endroit. Tes données enregistrées personnalisent progressivement tes repères et tes synthèses.
+              CONÇU POUR TOI. PENSÉ POUR PROGRESSER. Tes données enregistrées personnalisent progressivement tes repères et tes synthèses.
             </div>
             <ChevronRight size={16} color="#999999" />
           </div>
