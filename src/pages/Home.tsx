@@ -459,8 +459,9 @@ export default function Home() {
   const totalActiveCalories = todayActiveCalories + todayWorkoutCalories;
   const hasConnectedActivity = todayActivitySources.some(source => source !== 'manual' && source !== 'machine_scan');
   const nutritionTargetsReady = effectiveTargetKcal !== null && targetProtein !== null;
-  const activitySourceLabel = (hasConnectedActivity ? 'Données synchronisées + NOX' : todayActivitySources.includes('machine_scan') ? 'NOX + écran cardio' : 'Données enregistrées dans NOX') + (activityDuplicatesSkipped > 0 ? ` · ${activityDuplicatesSkipped} doublon${activityDuplicatesSkipped>1?'s':''} ignoré${activityDuplicatesSkipped>1?'s':''}` : '');
+  const activitySourceLabel = (hasConnectedActivity ? 'Données importées + NOX' : todayActivitySources.includes('machine_scan') ? 'NOX + écran cardio' : 'Données enregistrées dans NOX') + (activityDuplicatesSkipped > 0 ? ` · ${activityDuplicatesSkipped} doublon${activityDuplicatesSkipped>1?'s':''} ignoré${activityDuplicatesSkipped>1?'s':''}` : '');
   const activityProgress = Math.min(1, totalActiveMinutes / 30);
+  const activityCaloriesNote = todayImportedCalories > 0 ? `${Math.round(todayImportedCalories)} kcal proviennent de sources importées ou d’appareils.` : 'Les calories actives affichées correspondent uniquement aux activités enregistrées.';
   const stepProgress = stepGoal > 0 ? Math.min(1, todaySteps / stepGoal) : 0;
   const mealCoverage = Math.min(1, todayMealCount / 3);
   const dailyProgress = calculateNoxDailyScore({
@@ -502,7 +503,7 @@ export default function Home() {
       : proteinProgress < .7
         ? { label: 'Voir mes protéines', detail: targetProtein ? `${Math.max(0, Math.round(targetProtein-todayProtein))} g restent sur ta cible du jour.` : 'Vérifie ton apport en protéines.', route: '/fuel' }
         : totalActiveMinutes < 20 && todayWorkouts===0
-          ? { label: 'Bouger aujourd’hui', detail: 'Ajoute une activité ou lance ta séance prévue.', route: '/activity' }
+          ? { label: 'Bouger aujourd’hui', detail: 'Ajoute une activité enregistrée ou lance ta séance prévue.', route: '/activity' }
           : todayWaterMl < waterGoal*.7
             ? { label: 'Ajouter de l’eau', detail: `${Math.max(0, waterGoal-todayWaterMl)} ml avant ton objectif d’hydratation.`, route: '/fuel' }
             : { label: 'Journée bien suivie', detail: 'Tes principaux repères du jour sont enregistrés.', route: '/body' };
