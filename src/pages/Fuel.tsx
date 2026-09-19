@@ -613,7 +613,7 @@ export default function Fuel() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
             <div>
               <div style={{ fontSize: 10, color: '#777', textTransform: 'uppercase', letterSpacing: '.14em', fontWeight: 850 }}>Nutrition quotidienne</div>
-              <div style={{ fontSize: 27, fontWeight: 950, letterSpacing: '-.04em', marginTop: 4 }}>FUEL</div>
+              <div style={{ fontSize: 27, fontWeight: 950, letterSpacing: '-.04em', marginTop: 4 }}>NUTRITION</div>
             </div>
             <button onClick={() => setShowAdd(true)} style={{
               border: 0, borderRadius: 13, background: ACCENT, color: '#050505', padding: '11px 15px',
@@ -623,6 +623,11 @@ export default function Fuel() {
         </header>
 
         <section style={{ padding: 20 }}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:12}}>
+            <button onClick={()=>navigate('/recipes')} style={{border:'1px solid '+BORDER,borderRadius:14,background:'#111',color:'#fff',padding:'12px 8px',fontSize:10,fontWeight:900,cursor:'pointer'}}>RECETTES</button>
+            <button onClick={()=>navigate('/meal-planner')} style={{border:'1px solid '+BORDER,borderRadius:14,background:'#111',color:'#fff',padding:'12px 8px',fontSize:10,fontWeight:900,cursor:'pointer'}}>PLAN REPAS</button>
+            <button onClick={()=>navigate('/fasting')} style={{border:'1px solid '+BORDER,borderRadius:14,background:'#111',color:'#fff',padding:'12px 8px',fontSize:10,fontWeight:900,cursor:'pointer'}}>JEÛNE</button>
+          </div>
           {fuelError && (
             <div style={{ marginBottom: 12, background: 'rgba(255,90,80,.08)', border: '1px solid rgba(255,90,80,.28)', borderRadius: 14, padding: 13, color: '#ff8c82', fontSize: 11.5, lineHeight: 1.45 }}>
               {fuelError}
@@ -759,7 +764,7 @@ export default function Fuel() {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 18 }}>
               <div>
-                <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 950, letterSpacing: '.11em' }}>NOX FUEL</div>
+                <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 950, letterSpacing: '.11em' }}>NOX NUTRITION</div>
                 <div style={{ fontSize: 18, fontWeight: 950, marginTop: 3 }}>
                   {addMode === 'choose' ? 'AJOUTER UN REPAS' : addMode === 'photo' ? 'SCAN IA' : addMode === 'search' ? 'RECHERCHER' : addMode === 'barcode' ? 'CODE-BARRES' : 'SAISIE MANUELLE'}
                 </div>
