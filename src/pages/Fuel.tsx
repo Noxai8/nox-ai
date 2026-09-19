@@ -685,7 +685,7 @@ export default function Fuel() {
             </button>
             <button onClick={() => { setShowAdd(true); setAddMode('barcode'); }} style={{
               minHeight: 84, borderRadius: 18, border: '1px solid #232323',
-              background: '#111', color: '#0A0A0A', textAlign: 'left', padding: 15, cursor: 'pointer'
+              background: '#FFFFFF', color: '#0A0A0A', textAlign: 'left', padding: 15, cursor: 'pointer'
             }}>
               <div style={{ color: ACCENT, fontSize: 10, fontWeight: 900, letterSpacing: '.08em' }}>CODE-BARRES</div>
               <div style={{ fontSize: 14, fontWeight: 900, marginTop: 6 }}>Scanner un produit</div>
@@ -715,7 +715,7 @@ export default function Fuel() {
           )}
 
           {mealGroups.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '42px 22px', borderRadius: 22, background: '#111', border: '1px solid #232323' }}>
+            <div style={{ textAlign: 'center', padding: '42px 22px', borderRadius: 22, background: '#FFFFFF', border: '1px solid #232323' }}>
               <div style={{ width: 52, height: 52, margin: '0 auto 16px', borderRadius: 16, background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.16)', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 23, fontWeight: 300 }}>+</div>
               <div style={{ fontSize: 17, fontWeight: 950 }}>TON JOURNAL EST PRÊT</div>
               <div style={{ fontSize: 12.5, color: '#777', lineHeight: 1.55, margin: '8px auto 19px', maxWidth: 300 }}>
@@ -729,7 +729,7 @@ export default function Fuel() {
             <div key={meal} style={{ marginBottom: 18 }}>
               <div style={{ fontSize: 10, fontWeight: 900, color: '#777', textTransform: 'uppercase', letterSpacing: '.09em', margin: '0 2px 8px' }}>{meal}</div>
               {items.map((item: any) => (
-                <div key={item.id} style={{ background: '#111', border: '1px solid #232323', borderRadius: 16, padding: '12px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div key={item.id} style={{ background: '#FFFFFF', border: '1px solid #232323', borderRadius: 16, padding: '12px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
                   {/* Thumbnail photo si scan, sinon icône */}
                   {item.photo_url ? (
                     <img src={item.photo_url} style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} alt="" />
@@ -757,7 +757,7 @@ export default function Fuel() {
 
       {showAdd && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.84)', backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
-          <div style={{ width: '100%', maxWidth: 560, background: '#0d0d0d', border: '1px solid #242424', borderBottom: 0, borderRadius: '24px 24px 0 0', display: 'flex', flexDirection: 'column', maxHeight: '88vh' }}>
+          <div style={{ width: '100%', maxWidth: 560, background: '#FFFFFF', border: '1px solid #EAEAEA', borderBottom: 0, borderRadius: '24px 24px 0 0', display: 'flex', flexDirection: 'column', maxHeight: '88vh' }}>
           {/* Zone scrollable */}
           <div style={{ padding: '10px 20px 0', overflowY: 'auto', overflowX: 'hidden', flex: 1, WebkitOverflowScrolling: 'touch', boxSizing: 'border-box' }}>
             <div style={{ width: 38, height: 4, background: '#2c2c2c', borderRadius: 999, margin: '2px auto 17px' }} />
@@ -769,7 +769,7 @@ export default function Fuel() {
                   {addMode === 'choose' ? 'AJOUTER UN REPAS' : addMode === 'photo' ? 'SCAN IA' : addMode === 'search' ? 'RECHERCHER' : addMode === 'barcode' ? 'CODE-BARRES' : 'SAISIE MANUELLE'}
                 </div>
               </div>
-              <button onClick={closeAdd} style={{ width: 36, height: 36, borderRadius: 12, border: '1px solid #242424', background: '#151515', color: '#888', fontSize: 21, cursor: 'pointer' }}>×</button>
+              <button onClick={closeAdd} style={{ width: 36, height: 36, borderRadius: 12, border: '1px solid #EAEAEA', background: '#151515', color: '#888', fontSize: 21, cursor: 'pointer' }}>×</button>
             </div>
 
             {addMode !== 'choose' && (
@@ -806,23 +806,23 @@ export default function Fuel() {
                     border: '1px solid rgba(200,255,0,.25)', color: '#0A0A0A'
                   }}>
                     <div style={{ color: ACCENT, fontSize: 10, fontWeight: 950, letterSpacing: '.09em' }}>RECOMMANDÉ</div>
-                    <div style={{ fontSize: 16, fontWeight: 950, marginTop: 7 }}>Scanner avec NOX IA</div>
+                    <div style={{ fontSize: 16, fontWeight: 950, marginTop: 7 }}>Scanner avec NOX</div>
                     <div style={{ fontSize: 11.5, color: '#888', lineHeight: 1.45, marginTop: 4 }}>Prends une photo. NOX estime les aliments, calories et macros.</div>
                   </button>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 9 }}>
-                    <button onClick={() => setAddMode('search')} style={{ minHeight: 82, padding: 14, background: '#111', border: '1px solid #242424', borderRadius: 15, cursor: 'pointer', textAlign: 'left', color: '#0A0A0A' }}>
+                    <button onClick={() => setAddMode('search')} style={{ minHeight: 82, padding: 14, background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 15, cursor: 'pointer', textAlign: 'left', color: '#0A0A0A' }}>
                       <div style={{ fontSize: 13.5, fontWeight: 900 }}>Rechercher</div>
                       <div style={{ fontSize: 10.5, color: '#666', marginTop: 4 }}>Base d'aliments</div>
                     </button>
 
-                    <button onClick={() => setAddMode('barcode')} style={{ minHeight: 82, padding: 14, background: '#111', border: '1px solid #242424', borderRadius: 15, cursor: 'pointer', textAlign: 'left', color: '#0A0A0A' }}>
+                    <button onClick={() => setAddMode('barcode')} style={{ minHeight: 82, padding: 14, background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 15, cursor: 'pointer', textAlign: 'left', color: '#0A0A0A' }}>
                       <div style={{ fontSize: 13.5, fontWeight: 900 }}>Code-barres</div>
                       <div style={{ fontSize: 10.5, color: '#666', marginTop: 4 }}>Scanner un produit</div>
                     </button>
                   </div>
 
-                  <button onClick={() => setAddMode('custom')} style={{ padding: 15, background: '#111', border: '1px solid #242424', borderRadius: 15, cursor: 'pointer', textAlign: 'left', color: '#0A0A0A' }}>
+                  <button onClick={() => setAddMode('custom')} style={{ padding: 15, background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 15, cursor: 'pointer', textAlign: 'left', color: '#0A0A0A' }}>
                     <div style={{ fontSize: 13.5, fontWeight: 900 }}>Saisie manuelle</div>
                     <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>Entrer directement calories et macros</div>
                   </button>
@@ -833,13 +833,13 @@ export default function Fuel() {
             {addMode === 'photo' && (
               <div>
                 {photoBase64 && (
-                  <div style={{ marginBottom: 15, borderRadius: 17, overflow: 'hidden', height: 230, background: '#050505', border: '1px solid #242424' }}>
+                  <div style={{ marginBottom: 15, borderRadius: 17, overflow: 'hidden', height: 230, background: '#050505', border: '1px solid #EAEAEA' }}>
                     <img src={photoBase64} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Repas à analyser" />
                   </div>
                 )}
 
                 {scanning && (
-                  <div style={{ padding: '34px 18px', textAlign: 'center', borderRadius: 18, background: '#111', border: '1px solid #242424' }}>
+                  <div style={{ padding: '34px 18px', textAlign: 'center', borderRadius: 18, background: '#FFFFFF', border: '1px solid #EAEAEA' }}>
                     <div style={{ width: 42, height: 42, margin: '0 auto 15px', borderRadius: 14, border: '1px solid rgba(200,255,0,.25)', background: 'rgba(200,255,0,.08)', display: 'grid', placeItems: 'center', color: ACCENT, fontWeight: 950 }}>AI</div>
                     <div style={{ fontSize: 15, fontWeight: 950 }}>NOX ANALYSE TON REPAS</div>
                     <div style={{ fontSize: 11.5, color: '#666', marginTop: 7 }}>Détection des aliments et estimation nutritionnelle…</div>
@@ -867,7 +867,7 @@ export default function Fuel() {
                         ['GLUC.', Math.round(scanResult.total?.carbs ?? scanResult.total?.glucides ?? 0) + 'g', '#8da0ff'],
                         ['LIP.', Math.round(scanResult.total?.fat ?? scanResult.total?.lipides ?? 0) + 'g', '#ff806b'],
                       ].map(([label, value, color]) => (
-                        <div key={String(label)} style={{ background: '#111', border: '1px solid #242424', borderRadius: 13, padding: '11px 5px', textAlign: 'center' }}>
+                        <div key={String(label)} style={{ background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 13, padding: '11px 5px', textAlign: 'center' }}>
                           <div style={{ color: String(color), fontSize: 16, fontWeight: 950 }}>{value}</div>
                           <div style={{ color: '#777', fontSize: 8.5, fontWeight: 850, marginTop: 4 }}>{label}</div>
                         </div>
@@ -878,7 +878,7 @@ export default function Fuel() {
                       <div style={{ marginBottom: 14 }}>
                         <div style={{ fontSize: 9.5, color: '#666', fontWeight: 900, letterSpacing: '.08em', marginBottom: 7 }}>ALIMENTS DÉTECTÉS</div>
                         {scanResult.aliments.map((a: any, i: number) => (
-                          <div key={i} style={{ background: '#111', border: '1px solid #242424', borderRadius: 13, padding: 12, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div key={i} style={{ background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 13, padding: 12, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
                             <div style={{ flex: 1 }}>
                               <div style={{ fontSize: 12.5, fontWeight: 850 }}>{a.nom}</div>
                               <div style={{ fontSize: 10, color: '#666', marginTop: 3 }}>{a.quantite} · P {a.protein}g · G {a.carbs}g · L {a.fat}g</div>
@@ -899,10 +899,10 @@ export default function Fuel() {
                 )}
 
                 {!photoBase64 && !scanning && !scanResult && (
-                  <div style={{ padding: '34px 18px', textAlign: 'center', borderRadius: 18, background: '#111', border: '1px solid #242424' }}>
+                  <div style={{ padding: '34px 18px', textAlign: 'center', borderRadius: 18, background: '#FFFFFF', border: '1px solid #EAEAEA' }}>
                     <div style={{ width: 56, height: 56, margin: '0 auto 16px', borderRadius: 18, background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.18)', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 11, fontWeight: 950 }}>SCAN</div>
                     <div style={{ fontSize: 16, fontWeight: 950 }}>PHOTOGRAPHIE TON REPAS</div>
-                    <div style={{ fontSize: 11.5, color: '#777', lineHeight: 1.5, margin: '7px auto 18px', maxWidth: 300 }}>NOX identifiera les aliments et estimera automatiquement les calories et macros.</div>
+                    <div style={{ fontSize: 11.5, color: '#777', lineHeight: 1.5, margin: '7px auto 18px', maxWidth: 300 }}>NOX identifie les aliments et estime les calories et macros. Vérifie le résultat avant de l’ajouter.</div>
                     <button onClick={() => fileRef.current?.click()} style={{ width: '100%', padding: 14, background: ACCENT, border: 0, borderRadius: 13, color: '#050505', fontWeight: 950, cursor: 'pointer' }}>OUVRIR L'APPAREIL PHOTO</button>
                     <button onClick={() => setAddMode('choose')} style={{ marginTop: 12, background: 'none', border: 0, color: '#666', cursor: 'pointer', fontSize: 11 }}>← Retour</button>
                   </div>
@@ -913,7 +913,7 @@ export default function Fuel() {
             {addMode === 'search' && !selectedFood && (
               <>
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un aliment…" autoFocus
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', background: '#111', border: '1px solid #242424', borderRadius: 13, color: '#0A0A0A', fontSize: 13, outline: 'none', marginBottom: 8 }} />
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 13, color: '#0A0A0A', fontSize: 13, outline: 'none', marginBottom: 8 }} />
                 <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: 6 }}>
                   {categories.map(cat => (
                     <button key={cat} onClick={() => setCategory(cat)}
@@ -936,7 +936,7 @@ export default function Fuel() {
                             carbs: f.carbs || 0,
                             fat: f.fat || 0,
                           })}
-                          style={{ background: '#111', border: '1px solid #242424', borderRadius: 13, padding: 13, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', gap: 10, color: '#0A0A0A' }}
+                          style={{ background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 13, padding: 13, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', gap: 10, color: '#0A0A0A' }}
                         >
                           <div>
                             <div style={{ fontSize: 12.5, fontWeight: 850 }}>{f.food_name}</div>
@@ -951,7 +951,7 @@ export default function Fuel() {
 
                 <div style={{ display: 'grid', gap: 7 }}>
                   {filtered.map(f => (
-                    <button key={f.name} onClick={() => setSelectedFood(f)} style={{ background: '#111', border: '1px solid #242424', borderRadius: 13, padding: 13, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', gap: 10, color: '#0A0A0A' }}>
+                    <button key={f.name} onClick={() => setSelectedFood(f)} style={{ background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 13, padding: 13, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', gap: 10, color: '#0A0A0A' }}>
                       <div>
                         <div style={{ fontSize: 12.5, fontWeight: 850 }}>{f.name}</div>
                         <div style={{ fontSize: 10, color: '#666', marginTop: 3 }}>P {f.protein}g · G {f.carbs}g · L {f.fat}g</div>
@@ -966,7 +966,7 @@ export default function Fuel() {
 
             {addMode === 'search' && selectedFood && (
               <div>
-                <div style={{ background: '#111', border: '1px solid #242424', borderRadius: 16, padding: 16, marginBottom: 13 }}>
+                <div style={{ background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 16, padding: 16, marginBottom: 13 }}>
                   <div style={{ fontSize: 15, fontWeight: 900 }}>{selectedFood.name}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, marginTop: 14 }}>
                     {[
@@ -975,7 +975,7 @@ export default function Fuel() {
                       ['GLUC.', Math.round(selectedFood.carbs * (parseFloat(qty) || 1) * 10) / 10 + 'g', '#8da0ff'],
                       ['LIP.', Math.round(selectedFood.fat * (parseFloat(qty) || 1) * 10) / 10 + 'g', '#ff806b'],
                     ].map(([label, value, color]) => (
-                      <div key={String(label)} style={{ background: '#0b0b0b', borderRadius: 11, padding: '10px 4px', textAlign: 'center' }}>
+                      <div key={String(label)} style={{ background: '#F7F7F7', borderRadius: 11, padding: '10px 4px', textAlign: 'center' }}>
                         <div style={{ color: String(color), fontSize: 15, fontWeight: 950 }}>{value}</div>
                         <div style={{ color: '#777', fontSize: 8, marginTop: 3 }}>{label}</div>
                       </div>
@@ -985,9 +985,9 @@ export default function Fuel() {
 
                 <label style={{ fontSize: 9.5, color: '#666', fontWeight: 850 }}>QUANTITÉ · PORTIONS</label>
                 <input value={qty} onChange={e => setQty(e.target.value)} type="number" min="0.1" step="0.1"
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', background: '#111', border: '1px solid #242424', borderRadius: 13, color: '#0A0A0A', fontSize: 14, outline: 'none', margin: '7px 0 13px' }} />
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 13, color: '#0A0A0A', fontSize: 14, outline: 'none', margin: '7px 0 13px' }} />
                 <div style={{ display: 'grid', gridTemplateColumns: '.8fr 1.2fr', gap: 8 }}>
-                  <button onClick={() => setSelectedFood(null)} style={{ padding: 13, background: '#111', border: '1px solid #242424', borderRadius: 12, color: '#aaa', fontWeight: 850, cursor: 'pointer' }}>RETOUR</button>
+                  <button onClick={() => setSelectedFood(null)} style={{ padding: 13, background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 12, color: '#666', fontWeight: 850, cursor: 'pointer' }}>RETOUR</button>
                   <button onClick={() => addEntry(selectedFood)} style={{ padding: 13, background: ACCENT, border: 0, borderRadius: 12, color: '#050505', fontWeight: 950, cursor: 'pointer' }}>AJOUTER</button>
                 </div>
               </div>
@@ -995,7 +995,7 @@ export default function Fuel() {
 
             {addMode === 'barcode' && (
               <div>
-                <div style={{ borderRadius: 18, overflow: 'hidden', border: '1px solid #242424', background: '#111' }}>
+                <div style={{ borderRadius: 18, overflow: 'hidden', border: '1px solid #EAEAEA', background: '#FFFFFF' }}>
                   <BarcodeScanner
                     onResult={(food: any) => {
                       if (!food) return;
@@ -1011,7 +1011,7 @@ export default function Fuel() {
                     onClose={() => setAddMode('choose')}
                   />
                 </div>
-                <button onClick={() => setAddMode('choose')} style={{ width: '100%', marginTop: 12, padding: 12, background: '#111', border: '1px solid #242424', borderRadius: 12, color: '#888', cursor: 'pointer', fontWeight: 800 }}>
+                <button onClick={() => setAddMode('choose')} style={{ width: '100%', marginTop: 12, padding: 12, background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 12, color: '#888', cursor: 'pointer', fontWeight: 800 }}>
                   RETOUR
                 </button>
               </div>
@@ -1029,11 +1029,11 @@ export default function Fuel() {
                   <label key={key} style={{ display: 'block' }}>
                     <div style={{ fontSize: 9.5, color: '#666', fontWeight: 850, marginBottom: 5 }}>{label.toUpperCase()}</div>
                     <input value={(custom as any)[key]} onChange={e => setCustom(p => ({ ...p, [key]: e.target.value }))} type={type} placeholder={placeholder}
-                      style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', background: '#111', border: '1px solid #242424', borderRadius: 13, color: '#0A0A0A', fontSize: 13, outline: 'none' }} />
+                      style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 13, color: '#0A0A0A', fontSize: 13, outline: 'none' }} />
                   </label>
                 ))}
                 <div style={{ display: 'grid', gridTemplateColumns: '.8fr 1.2fr', gap: 8, marginTop: 4 }}>
-                  <button onClick={() => setAddMode('choose')} style={{ padding: 13, background: '#111', border: '1px solid #242424', borderRadius: 12, color: '#aaa', fontWeight: 850, cursor: 'pointer' }}>RETOUR</button>
+                  <button onClick={() => setAddMode('choose')} style={{ padding: 13, background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 12, color: '#666', fontWeight: 850, cursor: 'pointer' }}>RETOUR</button>
                   <button onClick={addCustom} style={{ padding: 13, background: ACCENT, border: 0, borderRadius: 12, color: '#050505', fontWeight: 950, cursor: 'pointer' }}>AJOUTER</button>
                 </div>
               </div>
@@ -1042,7 +1042,7 @@ export default function Fuel() {
 
           {/* BOUTONS SCAN FIXES EN BAS */}
           {addMode === 'photo' && scanResult && (
-            <div style={{ flexShrink: 0, padding: '12px 20px 20px', background: '#0d0d0d', borderTop: '1px solid #1a1a1a' }}>
+            <div style={{ flexShrink: 0, padding: '12px 20px 20px', background: '#FFFFFF', borderTop: '1px solid #1a1a1a' }}>
               <button
                 onTouchEnd={e => { e.preventDefault(); addScanResult(); }}
                 onClick={addScanResult}
@@ -1052,7 +1052,7 @@ export default function Fuel() {
               <button
                 onTouchEnd={e => { e.preventDefault(); setPhotoBase64(null); setScanResult(null); }}
                 onClick={() => { setPhotoBase64(null); setScanResult(null); }}
-                style={{ width: '100%', padding: 12, background: 'transparent', border: '1px solid #242424', borderRadius: 12, color: '#888', fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' }}>
+                style={{ width: '100%', padding: 12, background: 'transparent', border: '1px solid #EAEAEA', borderRadius: 12, color: '#888', fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' }}>
                 Nouvelle photo
               </button>
             </div>
