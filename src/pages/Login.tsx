@@ -43,30 +43,34 @@ export default function Login() {
       return;
     }
 
-    // Vérifier si l'onboarding NOX est terminé
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('onboarding_completed')
-      .eq('id', data.user.id)
-      .maybeSingle();
+    // La connexion ne doit jamais rester bloquée sur une requête profil.
+    // On donne la priorité à la session valide, puis on affine la destination
+    // avec une vérification profil bornée dans le temps.
+    const fallback = window.setTimeout(() => navigate('/home', { replace: true }), 2500);
 
-    if (profileError) {
-      console.error(
-        'Erreur lors de la vérification du profil NOX :',
-        profileError
-      );
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('onboarding_completed')
+        .eq('id', data.user.id)
+        .maybeSingle();
 
-      // En cas de doute, on envoie vers l'onboarding
-      // plutôt que de laisser passer un profil incomplet.
-      navigate('/onboarding');
-      return;
+      window.clearTimeout(fallback);
+
+      if (profileError) {
+        console.error('Erreur lors de la vérification du profil NOX :', profileError);
+        navigate('/home', { replace: true });
+        return;
+      }
+
+      navigate(profile?.onboarding_completed === true ? '/home' : '/onboarding', { replace: true });
+    } catch (profileError) {
+      window.clearTimeout(fallback);
+      console.error('Erreur lors de la vérification du profil NOX :', profileError);
+      navigate('/home', { replace: true });
+    } finally {
+      setLoading(false);
     }
-
-    navigate(
-      profile?.onboarding_completed === true
-        ? '/home'
-        : '/onboarding'
-    );
   };
 
   return (
