@@ -6,7 +6,7 @@ import { useAuth } from '../lib/AuthContext';
 
 const LIME='#B7FF00', BLACK='#090909', MUTED='#777', BORDER='#EAEAEA';
 const MEALS=['Petit-déjeuner','Déjeuner','Dîner','Snacks'];
-type ScanMode='meal'|'barcode'|'qr'|'equipment'|'cardio'|'menu'|'fridge';
+type ScanMode='meal'|'barcode'|'qr'|'equipment'|'cardio'|'menu'|'fridge'|'batch';
 const MODES:{id:ScanMode;label:string;detail:string;icon:any;accent:string}[]=[
  {id:'meal',label:'Scanner nourriture',detail:'Repas, plat, aliment',icon:Utensils,accent:'#24D66F'},
  {id:'barcode',label:'Scanner code-barres',detail:'Produit alimentaire',icon:Barcode,accent:'#A95CFF'},
@@ -15,6 +15,7 @@ const MODES:{id:ScanMode;label:string;detail:string;icon:any;accent:string}[]=[
  {id:'cardio',label:'Scanner un écran cardio',detail:'Tapis, vélo, rameur…',icon:Activity,accent:'#FF8A00'},
  {id:'menu',label:'Scanner un menu',detail:'Restaurant, livraison',icon:ScanLine,accent:'#FF8A00'},
  {id:'fridge',label:'Scanner mon frigo',detail:'Ingrédients et idées de repas',icon:Refrigerator,accent:'#18B8D8'},
+ {id:'batch',label:'Batch Scan',detail:'Plusieurs aliments en une seule photo',icon:Camera,accent:'#111111'},
 ];
 const COPY:Record<ScanMode,{title:string;hint:string}> = {
  meal:{title:'Scanner nourriture',hint:'Place ton repas dans le cadre'},
@@ -24,6 +25,7 @@ const COPY:Record<ScanMode,{title:string;hint:string}> = {
  cardio:{title:'Scanner un écran cardio',hint:'Cadre les chiffres affichés par la machine'},
  menu:{title:'Scanner un menu',hint:'Cadre le menu pour que le texte soit lisible'},
  fridge:{title:'Scanner mon frigo',hint:'Prends une photo claire des ingrédients visibles'},
+ batch:{title:'Batch Scan',hint:'Cadre tous les aliments à détecter'},
 };
 
 export default function FoodScan(){
@@ -77,7 +79,7 @@ export default function FoodScan(){
   if(mode==='equipment'||mode==='cardio'||mode==='menu'||mode==='fridge'){
    try{const {data:{session}}=await supabase.auth.getSession();const resp=await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/analyze-activity',{method:'POST',headers:{'Content-Type':'application/json',...(session?.access_token?{Authorization:`Bearer ${session.access_token}`}:{})},body:JSON.stringify({base64,mime:'image/jpeg',scan_mode:mode})});if(!resp.ok)throw new Error('Analyse indisponible');const data=await resp.json();if(data.error)throw new Error(data.error);setResult({...data,scanMode:mode,needsConfirmation:true})}catch(e:any){setError(e.message||'Analyse impossible')}setBusy(false);return;
   }
-  try{const {data:{session}}=await supabase.auth.getSession();const resp=await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/analyze-meal',{method:'POST',headers:{'Content-Type':'application/json',...(session?.access_token?{Authorization:`Bearer ${session.access_token}`}:{})},body:JSON.stringify({base64,mime:'image/jpeg'})});if(!resp.ok)throw new Error('Analyse indisponible');const data=await resp.json();if(data.error)throw new Error(data.error);setResult(data);setDetectedFoods((data.aliments||[]).map((x:any,i:number)=>{const grams=Number(x.quantity_grams||String(x.quantite||'').match(/[\d.,]+/)?.[0]?.replace(',','.')||100);return{id:i,name:x.nom||x.name||`Aliment ${i+1}`,grams:Number.isFinite(grams)&&grams>0?grams:100,baseGrams:Number.isFinite(grams)&&grams>0?grams:100,kcal:Number(x.kcal||0),protein:Number(x.protein||0),carbs:Number(x.carbs||0),fat:Number(x.fat||0)}}));}catch(e:any){setError(e.message||'Analyse impossible')}setBusy(false);
+  try{const {data:{session}}=await supabase.auth.getSession();const resp=await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/analyze-meal',{method:'POST',headers:{'Content-Type':'application/json',...(session?.access_token?{Authorization:`Bearer ${session.access_token}`}:{})},body:JSON.stringify({base64,mime:'image/jpeg',scan_mode:mode==='batch'?'batch':'meal'})});if(!resp.ok)throw new Error('Analyse indisponible');const data=await resp.json();if(data.error)throw new Error(data.error);setResult(data);setDetectedFoods((data.aliments||[]).map((x:any,i:number)=>{const grams=Number(x.quantity_grams||String(x.quantite||'').match(/[\d.,]+/)?.[0]?.replace(',','.')||100);return{id:i,name:x.nom||x.name||`Aliment ${i+1}`,grams:Number.isFinite(grams)&&grams>0?grams:100,baseGrams:Number.isFinite(grams)&&grams>0?grams:100,kcal:Number(x.kcal||0),protein:Number(x.protein||0),carbs:Number(x.carbs||0),fat:Number(x.fat||0)}}));}catch(e:any){setError(e.message||'Analyse impossible')}setBusy(false);
  };
  const advanced=result?.activity||result||{};
  const addAdvancedMeal=async()=>{if(!user||!result)return;const t=advanced.total||advanced.nutrition||{};const rawKcal=t.kcal??t.calories??advanced.calories;const hasNutrition=rawKcal!==undefined&&rawKcal!==null&&Number.isFinite(Number(rawKcal))&&Number(rawKcal)>0;if(!hasNutrition){setError(mode==='fridge'?'NOX a trouvé une idée de repas, mais pas assez de données nutritionnelles fiables pour l’enregistrer.':'Les données nutritionnelles détectées sont insuffisantes. Vérifie le résultat ou reprends le scan.');return}const name=advanced.description||advanced.name||(mode==='menu'?'Plat du menu':'Repas suggéré');const {error:e}=await supabase.from('food_entries').insert({user_id:user.id,meal_type:meal,food_name:String(name),calories:Math.round(Number(rawKcal)),protein:Number(t.protein??advanced.protein??0),carbs:Number(t.carbs??advanced.carbs??0),fat:Number(t.fat??advanced.fat??0),created_at:new Date().toISOString()});if(e)setError(e.message);else navigate('/fuel')};
@@ -97,11 +99,11 @@ export default function FoodScan(){
     <div style={{position:'absolute',inset:'13% 9% 22%',border:'3px solid rgba(255,255,255,.9)',borderRadius:22,boxShadow:'0 0 0 999px rgba(0,0,0,.14)'}}/>
     <div style={{position:'absolute',bottom:28,left:20,right:20,textAlign:'center',fontSize:13,fontWeight:800,textShadow:'0 2px 8px #000'}}>{busy?'NOX analyse…':COPY[mode].hint}</div>
    </div>
-   {(mode==='meal'||mode==='menu'||mode==='fridge')&&<div style={{display:'flex',gap:7,overflowX:'auto',padding:'11px 14px 0'}}>{MEALS.map(m=><button key={m} onClick={()=>setMeal(m)} style={{whiteSpace:'nowrap',border:'1px solid '+(meal===m?LIME:'#333'),borderRadius:99,background:meal===m?LIME:'#151515',color:meal===m?BLACK:'#aaa',padding:'7px 11px',fontSize:10,fontWeight:850}}>{m}</button>)}</div>}
+   {(mode==='meal'||mode==='batch'||mode==='menu'||mode==='fridge')&&<div style={{display:'flex',gap:7,overflowX:'auto',padding:'11px 14px 0'}}>{MEALS.map(m=><button key={m} onClick={()=>setMeal(m)} style={{whiteSpace:'nowrap',border:'1px solid '+(meal===m?LIME:'#333'),borderRadius:99,background:meal===m?LIME:'#151515',color:meal===m?BLACK:'#aaa',padding:'7px 11px',fontSize:10,fontWeight:850}}>{m}</button>)}</div>}
    {mode==='barcode'&&<div style={{display:'flex',gap:8,padding:'11px 14px 0'}}><input value={barcodeManual} onChange={e=>setBarcodeManual(e.target.value)} inputMode="numeric" placeholder="EAN / UPC" style={{flex:1,minWidth:0,border:'1px solid #333',borderRadius:12,background:'#151515',color:'#fff',padding:'11px 12px',fontSize:12,outline:0}}/><button onClick={()=>void lookupBarcode(barcodeManual)} disabled={busy} style={{border:0,borderRadius:12,background:LIME,color:BLACK,padding:'0 14px',fontSize:10,fontWeight:950}}>RECHERCHER</button></div>}
       {error&&<div style={{margin:'10px 18px 0',padding:11,borderRadius:12,background:'#2b1010',color:'#ff8c8c',fontSize:11}}>{error}</div>}
-   {result&&!busy&&mode==='meal'&&<div style={{background:'#fff',color:BLACK,borderRadius:'24px 24px 0 0',padding:'18px 18px 22px',marginTop:12}}>
-    <div style={{fontSize:10,color:MUTED,fontWeight:900}}>ALIMENTS DÉTECTÉS · À CORRIGER</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{result.description||'Repas détecté'}</div>
+   {result&&!busy&&(mode==='meal'||mode==='batch')&&<div style={{background:'#fff',color:BLACK,borderRadius:'24px 24px 0 0',padding:'18px 18px 22px',marginTop:12}}>
+    <div style={{fontSize:10,color:MUTED,fontWeight:900}}>{mode==='batch'?'BATCH SCAN · À CORRIGER':'ALIMENTS DÉTECTÉS · À CORRIGER'}</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{result.description||'Repas détecté'}</div>
     {detectedFoods.map((x,i)=><div key={x.id} style={{display:'grid',gridTemplateColumns:'1fr 92px',gap:8,marginTop:9}}><input value={x.name} onChange={e=>setDetectedFoods(v=>v.map((a,j)=>j===i?{...a,name:e.target.value}:a))} style={{minWidth:0,border:'1px solid '+BORDER,borderRadius:10,padding:'10px 11px',fontWeight:800}}/><label style={{display:'flex',alignItems:'center',gap:5}}><input type="number" min="1" max="5000" value={x.grams} onChange={e=>setDetectedFoods(v=>v.map((a,j)=>j===i?{...a,grams:Number(e.target.value)}:a))} style={{width:62,border:'1px solid '+BORDER,borderRadius:10,padding:'10px 8px',fontWeight:900,textAlign:'right'}}/>g</label></div>)}
     <div style={{fontSize:9.5,color:MUTED,marginTop:9}}>Les valeurs sont recalculées proportionnellement aux portions détectées. Vérifie les quantités avant l’ajout.</div>
     <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginTop:13}}>{[['Calories',Math.round(mealTotals.kcal||0)],['Protéines',Math.round(mealTotals.protein||0)+'g'],['Glucides',Math.round(mealTotals.carbs||0)+'g'],['Lipides',Math.round(mealTotals.fat||0)+'g']].map(([l,v])=><div key={String(l)} style={{background:'#F6F6F6',borderRadius:12,padding:'10px 3px',textAlign:'center'}}><b style={{fontSize:15}}>{v}</b><div style={{fontSize:8.5,color:MUTED,marginTop:3}}>{l}</div></div>)}</div>
