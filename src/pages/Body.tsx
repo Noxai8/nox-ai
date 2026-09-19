@@ -57,7 +57,7 @@ export default function Body() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ weight: '', chest_cm: '', waist_cm: '', hips_cm: '', arms_cm: '', thighs_cm: '', notes: '' });
   const [loading, setLoading] = useState(true);
-  const [range, setRange] = useState<'7d' | '30d' | '90d'>('30d');
+  const [range, setRange] = useState<'7d' | '30d' | '90d' | '180d' | '365d' | 'all'>('30d');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -327,7 +327,8 @@ export default function Body() {
 
   const getRangeData = () => {
     const now = Date.now();
-    const days = range === '7d' ? 7 : range === '30d' ? 30 : 90;
+    if (range === 'all') return [...logs].reverse();
+    const days = range === '7d' ? 7 : range === '30d' ? 30 : range === '90d' ? 90 : range === '180d' ? 180 : 365;
     const cutoff = now - days * 24 * 60 * 60 * 1000;
     return logs.filter(l => new Date(l.created_at).getTime() > cutoff).reverse();
   };
@@ -444,13 +445,13 @@ export default function Body() {
                   </div>
 
                   <div style={{ display: 'flex', gap: 6, margin: '22px 0 15px' }}>
-                    {(['7d', '30d', '90d'] as const).map(r => (
+                    {(['7d', '30d', '90d', '180d', '365d', 'all'] as const).map(r => (
                       <button key={r} onClick={() => setRange(r)} style={{
                         flex: 1, borderRadius: 9, padding: '7px 0', cursor: 'pointer',
                         border: `1px solid ${range === r ? 'rgba(183,255,0,.28)' : BORDER}`,
                         background: range === r ? 'rgba(183,255,0,.08)' : '#0c0c0c',
                         color: range === r ? ACCENT : '#666', fontSize: 10.5, fontWeight: 850
-                      }}>{r}</button>
+                      }} >{{'7d':'7J','30d':'1M','90d':'3M','180d':'6M','365d':'1A','all':'Tout'}[r]}</button>
                     ))}
                   </div>
 
