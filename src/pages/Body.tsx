@@ -54,6 +54,8 @@ export default function Body() {
   const [tab, setTab] = useState<Tab>('progress');
   const [logs, setLogs] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
+  const [foodEntries, setFoodEntries] = useState<any[]>([]);
+  const [workouts, setWorkouts] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ weight: '', chest_cm: '', waist_cm: '', hips_cm: '', arms_cm: '', thighs_cm: '', notes: '' });
   const [loading, setLoading] = useState(true);
@@ -79,9 +81,11 @@ export default function Body() {
     if (!user) return;
     setLoading(true);
 
-    const [bodyResult, activityResult] = await Promise.all([
+    const [bodyResult, activityResult, foodResult, workoutResult] = await Promise.all([
       supabase.from('body_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-      supabase.from('activity_logs').select('*').eq('user_id', user.id).order('performed_at', { ascending: false }).limit(50),
+      supabase.from('activity_logs').select('*').eq('user_id', user.id).order('performed_at', { ascending: false }).limit(200),
+      supabase.from('food_entries').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(500),
+      supabase.from('workouts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100),
     ]);
 
     if (bodyResult.error) {
@@ -101,6 +105,8 @@ export default function Body() {
     } else {
       setActivities(activityResult.data || []);
     }
+    setFoodEntries(foodResult.data || []);
+    setWorkouts(workoutResult.data || []);
 
     setLoading(false);
   };
@@ -345,6 +351,17 @@ export default function Body() {
   );
   const todayCalories = todayActivities.reduce((sum, activity) => sum + (Number(activity.calories_burned) || 0), 0);
   const todayMinutes = todayActivities.reduce((sum, activity) => sum + (Number(activity.duration_minutes) || 0), 0);
+  const rangeDays = range === '7d' ? 7 : range === '30d' ? 30 : range === '90d' ? 90 : range === '180d' ? 180 : range === '365d' ? 365 : null;
+  const rangeCutoff = rangeDays ? Date.now() - rangeDays * 86400000 : 0;
+  const inRange = (value: any) => !rangeDays || new Date(value).getTime() >= rangeCutoff;
+  const rangeFoods = foodEntries.filter(e => inRange(e.created_at));
+  const rangeActivities = activities.filter(a => inRange(a.performed_at || a.created_at));
+  const rangeWorkouts = workouts.filter(w => inRange(w.completed_at || w.created_at) && (w.status === 'completed' || w.completed_at));
+  const trackedDays = new Set(rangeFoods.map(e => new Date(e.created_at).toLocaleDateString('en-CA'))).size || 1;
+  const avgCalories = Math.round(rangeFoods.reduce((s,e)=>s+Number(e.calories||e.kcal||0),0) / trackedDays);
+  const avgProtein = Math.round(rangeFoods.reduce((s,e)=>s+Number(e.protein||0),0) / trackedDays);
+  const activeMinutesRange = Math.round(rangeActivities.reduce((s,a)=>s+Number(a.duration_minutes||0),0));
+
 
   const MiniChart = () => {
     if (weightLogs.length < 2) return null;
@@ -484,6 +501,22 @@ export default function Body() {
                   ))}
                 </>
               )}
+
+              <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>VUE D'ENSEMBLE</div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:10, marginBottom:18 }}>
+                {[
+                  ['Nutrition', rangeFoods.length ? avgCalories + ' kcal/j' : '—', rangeFoods.length ? avgProtein + ' g protéines/j' : 'Aucune donnée'],
+                  ['Activité', rangeActivities.length ? activeMinutesRange + ' min' : '—', rangeActivities.length + ' activité(s)'],
+                  ['Training', rangeWorkouts.length ? String(rangeWorkouts.length) : '—', 'séance(s) terminée(s)'],
+                  ['Suivi', String(rangeData.length), 'check-in(s) corps'],
+                ].map(([label,value,detail]) => (
+                  <div key={label} style={{ background:'#fff', border:`1px solid ${BORDER}`, borderRadius:18, padding:16 }}>
+                    <div style={{ fontSize:9.5, color:'#777', fontWeight:900, letterSpacing:'.08em', textTransform:'uppercase' }}>{label}</div>
+                    <div style={{ fontSize:21, fontWeight:950, marginTop:8, letterSpacing:'-.03em' }}>{value}</div>
+                    <div style={{ fontSize:10.5, color:'#777', marginTop:4 }}>{detail}</div>
+                  </div>
+                ))}
+              </div>
 
               <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>MENSURATIONS</div>
               {logs.filter(l => l.waist_cm || l.chest_cm).length === 0 ? (
