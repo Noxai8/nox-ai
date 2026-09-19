@@ -215,7 +215,6 @@ export default function Home() {
         { data: nutritionTarget },
         { data: recoveryLogs },
         { data: tomorrowMeals },
-        nutritionTargetResult,
       ] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase.from('workout_programs').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
@@ -251,9 +250,7 @@ export default function Home() {
         supabase.from('meal_plans').select('id').eq('user_id', user.id).eq('planned_date', tomorrow).limit(1),
       ]);
 
-      const loadErrors:string[]=[];
-      if (nutritionTargetResult?.error) loadErrors.push('Cible nutrition indisponible');
-      setDataErrors(loadErrors);
+      setDataErrors([]);
 
       setProfile(prof);
       setProgram(prog);
