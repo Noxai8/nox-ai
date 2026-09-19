@@ -72,6 +72,7 @@ function AppRoutes() {
         <Route path="/subscribe" element={<ProtectedRoute><Subscribe /></ProtectedRoute>} />
         <Route path="/rest-day" element={<ProtectedRoute><RestDay /></ProtectedRoute>} />
         <Route path="/partner" element={<ProtectedRoute><Partner /></ProtectedRoute>} />
+        <Route path="/friend/:code" element={<ProtectedRoute><Partner /></ProtectedRoute>} />
         <Route path="/recovery" element={<ProtectedRoute><Recovery /></ProtectedRoute>} />
         <Route path="/reschedule" element={<ProtectedRoute><Reschedule /></ProtectedRoute>} />
         <Route path="/share-timeline" element={<ProtectedRoute><ShareTimeline /></ProtectedRoute>} />
