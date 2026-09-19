@@ -1,47 +1,64 @@
 import { useEffect, useState } from 'react';
-import NoxMascot from '../components/NoxMascot';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
+import NoxMascot from '../components/NoxMascot';
 
 const ACCENT = '#c8ff00';
 const BG = '#0a0a0a';
 const SURFACE = '#111';
 const BORDER = '#1a1a1a';
 
+// ── ACHIEVEMENTS ──────────────────────────────────────────────────────────────
 const ACHIEVEMENTS = [
-  { id: 'first_workout', icon: '🏅', title: 'Première séance', desc: 'Tu as complété ta première séance', xp: 50 },
-  { id: 'first_pr', icon: '🏆', title: 'Premier PR', desc: 'Tu as établi ton premier record personnel', xp: 100 },
-  { id: 'week_streak', icon: '🔥', title: '7 jours de suite', desc: 'Une semaine de régularité', xp: 200 },
-  { id: 'workouts_10', icon: '💪', title: '10 séances', desc: 'Tu as enchaîné 10 séances', xp: 150 },
-  { id: 'workouts_50', icon: '⚡', title: '50 séances', desc: 'Un vrai athlète NOX', xp: 500 },
-  { id: 'workouts_100', icon: '🌟', title: '100 séances', desc: 'La légende NOX', xp: 1000 },
-  { id: 'pr_5', icon: '🎯', title: '5 records', desc: 'Tu as battu 5 records personnels', xp: 250 },
-  { id: 'body_checkin', icon: '📊', title: 'Check-in BODY', desc: 'Premier suivi de ta progression', xp: 75 },
-  { id: 'fuel_day', icon: '🥗', title: 'Journée FUEL', desc: 'Premier jour de tracking nutrition', xp: 75 },
-  { id: 'month_streak', icon: '🏆', title: '30 jours actif', desc: 'Un mois complet avec NOX', xp: 500 },
+  // Training
+  { id: 'first_workout', icon: '🏅', title: 'Première séance', desc: 'Séance complétée', xp: 50, cat: 'Training' },
+  { id: 'workouts_5', icon: '💪', title: '5 séances', desc: '5 séances complétées', xp: 100, cat: 'Training' },
+  { id: 'workouts_10', icon: '🔟', title: '10 séances', desc: '10 séances complétées', xp: 150, cat: 'Training' },
+  { id: 'workouts_25', icon: '⚡', title: '25 séances', desc: '25 séances complétées', xp: 300, cat: 'Training' },
+  { id: 'workouts_50', icon: '🔥', title: '50 séances', desc: 'Vrai athlète NOX', xp: 500, cat: 'Training' },
+  { id: 'workouts_100', icon: '🌟', title: '100 séances', desc: 'Légende NOX', xp: 1000, cat: 'Training' },
+  // PRs
+  { id: 'first_pr', icon: '🏆', title: 'Premier PR', desc: 'Premier record personnel', xp: 100, cat: 'Records' },
+  { id: 'pr_5', icon: '🎯', title: '5 records', desc: '5 records personnels', xp: 250, cat: 'Records' },
+  { id: 'pr_10', icon: '🥇', title: '10 records', desc: '10 records personnels', xp: 400, cat: 'Records' },
+  { id: 'pr_25', icon: '🏅', title: '25 records', desc: '25 records personnels', xp: 750, cat: 'Records' },
+  // Streak
+  { id: 'streak_3', icon: '🔥', title: '3 jours streak', desc: '3 jours consécutifs', xp: 75, cat: 'Régularité' },
+  { id: 'streak_7', icon: '🗓️', title: '7 jours streak', desc: 'Une semaine parfaite', xp: 200, cat: 'Régularité' },
+  { id: 'streak_14', icon: '📅', title: '14 jours streak', desc: 'Deux semaines de feu', xp: 350, cat: 'Régularité' },
+  { id: 'streak_30', icon: '🏆', title: '30 jours streak', desc: 'Un mois sans failles', xp: 800, cat: 'Régularité' },
+  // Body
+  { id: 'first_body', icon: '📊', title: 'Premier pesée', desc: 'Premier suivi BODY', xp: 50, cat: 'Corps' },
+  { id: 'body_10', icon: '📈', title: '10 pesées', desc: '10 check-ins BODY', xp: 150, cat: 'Corps' },
+  // Nutrition
+  { id: 'first_fuel', icon: '🥗', title: 'Premier repas', desc: 'Premier repas loggé', xp: 50, cat: 'Nutrition' },
+  { id: 'fuel_7days', icon: '🍽️', title: '7 jours fuel', desc: '7 jours de tracking consécutifs', xp: 200, cat: 'Nutrition' },
+  { id: 'fuel_scan', icon: '📸', title: 'Scan IA', desc: 'Premier repas scanné par IA', xp: 100, cat: 'Nutrition' },
+  // Special
+  { id: 'weekly_review', icon: '🔮', title: 'Weekly Review', desc: 'Premier bilan hebdomadaire', xp: 150, cat: 'Spécial' },
+  { id: 'nox_future', icon: '🌌', title: 'NOX Future', desc: 'Première projection IA', xp: 150, cat: 'Spécial' },
+  { id: 'comeback', icon: '⚔️', title: 'Comeback', desc: 'Retour après 10+ jours sans séance', xp: 200, cat: 'Spécial' },
 ];
 
+// ── LEVELS ─────────────────────────────────────────────────────────────────────
 const LEVELS = [
   { level: 1, name: 'NOVICE', minXp: 0, color: '#555' },
   { level: 2, name: 'DÉBUTANT', minXp: 200, color: '#4488ff' },
-  { level: 3, name: 'ATHLÈTE', minXp: 500, color: '#44cc88' },
-  { level: 4, name: 'PERFORMER', minXp: 1000, color: '#ffaa00' },
-  { level: 5, name: 'ÉLITE', minXp: 2000, color: '#ff4444' },
+  { level: 3, name: 'ATHLÈTE', minXp: 600, color: '#44cc88' },
+  { level: 4, name: 'PERFORMER', minXp: 1200, color: '#ffaa00' },
+  { level: 5, name: 'ÉLITE', minXp: 2500, color: '#ff4444' },
   { level: 6, name: 'LÉGENDE NOX', minXp: 5000, color: ACCENT },
 ];
 
 function getLevel(xp: number) {
-  for (let i = LEVELS.length - 1; i >= 0; i--) {
-    if (xp >= LEVELS[i].minXp) return LEVELS[i];
-  }
+  for (let i = LEVELS.length - 1; i >= 0; i--) if (xp >= LEVELS[i].minXp) return LEVELS[i];
   return LEVELS[0];
 }
 function getNextLevel(xp: number) {
   const curr = getLevel(xp);
-  const idx = LEVELS.findIndex(l => l.level === curr.level);
-  return LEVELS[idx + 1] || null;
+  return LEVELS.find(l => l.level === curr.level + 1) || null;
 }
 
 export default function Play() {
@@ -53,56 +70,124 @@ export default function Play() {
   const [totalPRs, setTotalPRs] = useState(0);
   const [earned, setEarned] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'overview' | 'badges' | 'goals' | 'missions'>('overview');
+  const [dailyGoals, setDailyGoals] = useState<any[]>([]);
+  const [weeklyMissions, setWeeklyMissions] = useState<any[]>([]);
+  const [newUnlocked, setNewUnlocked] = useState<any[]>([]);
+  const [bodyCount, setBodyCount] = useState(0);
+  const [fuelDays, setFuelDays] = useState(0);
 
-  useEffect(() => {
-    if (!user) return;
-    loadData();
-  }, [user]);
+  useEffect(() => { if (user) loadData(); }, [user]);
 
   const loadData = async () => {
-    const [{ data: profile }, { data: workouts }, { data: prs }, { data: achievements }] = await Promise.all([
-      supabase.from('profiles').select('xp, streak_days').eq('id', user!.id).maybeSingle(),
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const weekStart = new Date(Date.now() - 7 * 86400000).toISOString();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    const [
+      { data: profile },
+      { data: workouts },
+      { data: prs },
+      { data: achievements },
+      { data: bodyLogs },
+      { data: foodEntries },
+      { data: todayFood },
+      { data: weekWorkouts },
+    ] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', user!.id).maybeSingle(),
       supabase.from('workouts').select('id, created_at').eq('user_id', user!.id).eq('status', 'completed').order('created_at', { ascending: false }),
       supabase.from('personal_records').select('id').eq('user_id', user!.id),
       supabase.from('user_achievements').select('achievement_id').eq('user_id', user!.id),
+      supabase.from('body_logs').select('id, created_at').eq('user_id', user!.id),
+      supabase.from('food_entries').select('created_at').eq('user_id', user!.id),
+      supabase.from('food_entries').select('calories, protein').eq('user_id', user!.id).gte('created_at', todayStr + 'T00:00:00').lte('created_at', todayStr + 'T23:59:59'),
+      supabase.from('workouts').select('id').eq('user_id', user!.id).eq('status', 'completed').gte('created_at', weekStart),
     ]);
 
     const userXp = profile?.xp || 0;
     const userStreak = profile?.streak_days || 0;
-    setXp(userXp);
-    setStreak(userStreak);
-    setTotalWorkouts(workouts?.length || 0);
-    setTotalPRs(prs?.length || 0);
-    setEarned(achievements?.map((a: any) => a.achievement_id) || []);
+    const wCount = workouts?.length || 0;
+    const prCount = prs?.length || 0;
+    const bCount = bodyLogs?.length || 0;
 
-    // Check & award achievements
-    await checkAchievements(workouts?.length || 0, prs?.length || 0, userXp);
-    setLoading(false);
-  };
+    // Jours fuel distincts
+    const fuelDaysSet = new Set((foodEntries || []).map((e: any) => e.created_at?.slice(0, 10)));
+    const fuelDaysCount = fuelDaysSet.size;
 
-  const checkAchievements = async (wCount: number, prCount: number, currentXp: number) => {
-    const { data: existing } = await supabase.from('user_achievements').select('achievement_id').eq('user_id', user!.id);
-    const already = existing?.map((a: any) => a.achievement_id) || [];
+    setXp(userXp); setStreak(userStreak);
+    setTotalWorkouts(wCount); setTotalPRs(prCount);
+    setBodyCount(bCount); setFuelDays(fuelDaysCount);
+    setEarned((achievements || []).map((a: any) => a.achievement_id));
 
+    // ── Attribuer les achievements ──
+    const already = (achievements || []).map((a: any) => a.achievement_id);
     const toUnlock: string[] = [];
-    if (wCount >= 1 && !already.includes('first_workout')) toUnlock.push('first_workout');
-    if (wCount >= 10 && !already.includes('workouts_10')) toUnlock.push('workouts_10');
-    if (wCount >= 50 && !already.includes('workouts_50')) toUnlock.push('workouts_50');
-    if (wCount >= 100 && !already.includes('workouts_100')) toUnlock.push('workouts_100');
-    if (prCount >= 1 && !already.includes('first_pr')) toUnlock.push('first_pr');
-    if (prCount >= 5 && !already.includes('pr_5')) toUnlock.push('pr_5');
+    if (wCount >= 1) toUnlock.push('first_workout');
+    if (wCount >= 5) toUnlock.push('workouts_5');
+    if (wCount >= 10) toUnlock.push('workouts_10');
+    if (wCount >= 25) toUnlock.push('workouts_25');
+    if (wCount >= 50) toUnlock.push('workouts_50');
+    if (wCount >= 100) toUnlock.push('workouts_100');
+    if (prCount >= 1) toUnlock.push('first_pr');
+    if (prCount >= 5) toUnlock.push('pr_5');
+    if (prCount >= 10) toUnlock.push('pr_10');
+    if (prCount >= 25) toUnlock.push('pr_25');
+    if (userStreak >= 3) toUnlock.push('streak_3');
+    if (userStreak >= 7) toUnlock.push('streak_7');
+    if (userStreak >= 14) toUnlock.push('streak_14');
+    if (userStreak >= 30) toUnlock.push('streak_30');
+    if (bCount >= 1) toUnlock.push('first_body');
+    if (bCount >= 10) toUnlock.push('body_10');
+    if (fuelDaysCount >= 1) toUnlock.push('first_fuel');
+    if (fuelDaysCount >= 7) toUnlock.push('fuel_7days');
 
-    if (toUnlock.length > 0) {
-      const rows = toUnlock.map(id => ({ user_id: user!.id, achievement_id: id, earned_at: new Date().toISOString() }));
-      await supabase.from('user_achievements').insert(rows);
-      const addXp = toUnlock.reduce((s, id) => s + (ACHIEVEMENTS.find(a => a.id === id)?.xp || 0), 0);
-      if (addXp > 0) await supabase.from('profiles').update({ xp: currentXp + addXp }).eq('id', user!.id);
+    const genuineNew = toUnlock.filter(id => !already.includes(id));
+    if (genuineNew.length > 0) {
+      await supabase.from('user_achievements').insert(
+        genuineNew.map(id => ({ user_id: user!.id, achievement_id: id, earned_at: new Date().toISOString() }))
+      );
+      const addXp = genuineNew.reduce((s, id) => s + (ACHIEVEMENTS.find(a => a.id === id)?.xp || 0), 0);
+      if (addXp > 0) {
+        await supabase.from('profiles').update({ xp: userXp + addXp }).eq('id', user!.id);
+        setXp(userXp + addXp);
+      }
+      setEarned([...already, ...genuineNew]);
+      setNewUnlocked(genuineNew.map(id => ACHIEVEMENTS.find(a => a.id === id)).filter(Boolean) as any[]);
+      setTimeout(() => setNewUnlocked([]), 5000);
     }
+
+    // ── Daily Goals ──
+    const todayKcal = (todayFood || []).reduce((s: number, e: any) => s + (e.calories || 0), 0);
+    const todayProtein = (todayFood || []).reduce((s: number, e: any) => s + (e.protein || 0), 0);
+    const todayTargetKcal = profile?.nutrition_target_calories || 2200;
+    const todayTargetProtein = profile?.nutrition_target_protein || 160;
+    const todayWorkedOut = (workouts || []).some((w: any) => w.created_at?.startsWith(todayStr));
+
+    setDailyGoals([
+      { label: 'Entraînement', done: todayWorkedOut, desc: todayWorkedOut ? 'Séance complétée ✓' : 'Lance ta séance du jour', xp: 25, icon: '🏋️', action: () => navigate('/program') },
+      { label: 'Calories', done: todayKcal >= todayTargetKcal * 0.8, desc: `${todayKcal} / ${todayTargetKcal} kcal`, xp: 10, icon: '🥗', action: () => navigate('/fuel') },
+      { label: 'Protéines', done: todayProtein >= todayTargetProtein * 0.9, desc: `${Math.round(todayProtein)}g / ${todayTargetProtein}g`, xp: 10, icon: '💪', action: () => navigate('/fuel') },
+      { label: 'Streak maintenu', done: userStreak > 0, desc: userStreak > 0 ? `${userStreak} jours 🔥` : 'Fais quelque chose aujourd\'hui', xp: 5, icon: '🔥', action: () => {} },
+    ]);
+
+    // ── Weekly Missions ──
+    const weekWCount = weekWorkouts?.length || 0;
+    const weekTarget = profile?.available_days?.length || 3;
+    setWeeklyMissions([
+      { label: `${weekTarget} séances cette semaine`, done: weekWCount >= weekTarget, progress: weekWCount, total: weekTarget, xp: 100, icon: '🎯' },
+      { label: 'Logger 5 jours de nutrition', done: fuelDaysCount >= 5, progress: Math.min(fuelDaysCount, 5), total: 5, xp: 75, icon: '📊' },
+      { label: 'Battre un PR', done: (prs || []).some((p: any) => new Date(p.created_at) >= new Date(weekStart)), progress: 0, total: 1, xp: 150, icon: '🏆' },
+      { label: 'Faire un check-in BODY', done: (bodyLogs || []).some((b: any) => new Date(b.created_at) >= new Date(weekStart)), progress: 0, total: 1, xp: 50, icon: '⚖️' },
+    ]);
+
+    setLoading(false);
   };
 
   const level = getLevel(xp);
   const nextLevel = getNextLevel(xp);
   const xpPct = nextLevel ? Math.round(((xp - level.minXp) / (nextLevel.minXp - level.minXp)) * 100) : 100;
+  const cats = [...new Set(ACHIEVEMENTS.map(a => a.cat))];
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: BG, display: 'grid', placeItems: 'center' }}>
@@ -111,154 +196,211 @@ export default function Play() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: '#070707', color: '#fff', paddingBottom: 100 }}>
-      <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
-        <header style={{
-          padding: '24px 20px 18px',
-          background: 'radial-gradient(circle at 88% 0%, rgba(200,255,0,.07), transparent 30%), #090909',
-          borderBottom: '1px solid #202020'
-        }}>
-          <div style={{ fontSize: 10, color: '#777', textTransform: 'uppercase', letterSpacing: '.14em', fontWeight: 850 }}>Progression & récompenses</div>
-          <div style={{ fontSize: 27, fontWeight: 950, letterSpacing: '-.04em', marginTop: 4 }}>PLAY</div>
-        </header>
+    <div style={{ minHeight: '100vh', background: BG, paddingBottom: 90 }}>
+      {/* Nouveau badge notif */}
+      {newUnlocked.length > 0 && (
+        <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 500, background: ACCENT, borderRadius: 14, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 8px 30px rgba(200,255,0,.4)' }}>
+          <span style={{ fontSize: 24 }}>{newUnlocked[0]?.icon}</span>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 900, color: '#000' }}>NOUVEAU BADGE 🎉</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#000' }}>{newUnlocked[0]?.title} · +{newUnlocked[0]?.xp} XP</div>
+          </div>
+        </div>
+      )}
 
-        <section style={{ padding: 20 }}>
-          <div style={{
-            position: 'relative', overflow: 'hidden',
-            background: 'linear-gradient(145deg,#151515,#0e0e0e)',
-            border: '1px solid ' + level.color + '44',
-            borderRadius: 22, padding: 20, marginBottom: 12
-          }}>
-            <div style={{
-              position: 'absolute', width: 160, height: 160, borderRadius: '50%',
-              right: -70, top: -80, background: level.color, opacity: .06, filter: 'blur(8px)'
-            }} />
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ fontSize: 10, color: '#777', fontWeight: 850, letterSpacing: '.09em' }}>NIVEAU {level.level}</div>
-                  <div style={{ fontSize: 28, fontWeight: 950, color: level.color, marginTop: 4, letterSpacing: '-.035em' }}>{level.name}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 31, fontWeight: 950, letterSpacing: '-.04em' }}>{xp}</div>
-                  <div style={{ fontSize: 9.5, color: '#666', fontWeight: 850, marginTop: 2 }}>XP TOTAL</div>
-                </div>
-              </div>
+      {/* Header */}
+      <div style={{ padding: '20px 20px 0', borderBottom: '1px solid ' + BORDER }}>
+        <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Progression</div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 16 }}>PLAY</div>
 
-              {nextLevel ? (
-                <div style={{ marginTop: 20 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 7 }}>
-                    <span style={{ fontSize: 10.5, color: '#777' }}>Prochain niveau · {nextLevel.name}</span>
-                    <span style={{ fontSize: 10.5, color: '#aaa', fontWeight: 850 }}>{xp} / {nextLevel.minXp} XP</span>
-                  </div>
-                  <div style={{ height: 7, borderRadius: 999, background: '#202020', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: xpPct + '%', background: level.color, borderRadius: 999, transition: 'width .5s' }} />
-                  </div>
-                  <div style={{ fontSize: 9.5, color: '#555', marginTop: 7 }}>
-                    {Math.max(0, nextLevel.minXp - xp)} XP avant le niveau suivant
-                  </div>
-                </div>
-              ) : (
-                <div style={{ marginTop: 18, color: ACCENT, fontSize: 11, fontWeight: 900 }}>NIVEAU MAXIMUM ATTEINT</div>
-              )}
+        {/* Level card */}
+        <div style={{ background: `linear-gradient(135deg, ${level.color}18, ${SURFACE})`, border: '1px solid ' + level.color + '44', borderRadius: 18, padding: 18, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 10, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em' }}>NIVEAU {level.level}</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: level.color }}>{level.name}</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: '#fff' }}>{xp.toLocaleString()}</div>
+              <div style={{ fontSize: 10, color: '#555' }}>XP TOTAL</div>
             </div>
           </div>
+          {nextLevel && (
+            <>
+              <div style={{ height: 6, background: '#1a1a1a', borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
+                <div style={{ height: '100%', width: xpPct + '%', background: level.color, borderRadius: 3, transition: 'width .4s' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: 10, color: '#555' }}>{xpPct}% vers {nextLevel.name}</div>
+                <div style={{ fontSize: 10, color: '#555' }}>{nextLevel.minXp - xp} XP restants</div>
+              </div>
+            </>
+          )}
+        </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 9, marginBottom: 22 }}>
-            {[
-              { label: 'Séances', value: totalWorkouts },
-              { label: 'Records', value: totalPRs },
-              { label: 'Streak', value: streak + 'j' },
-            ].map(({ label, value }) => (
-              <div key={label} style={{
-                background: '#111', border: '1px solid #232323', borderRadius: 16,
-                padding: '15px 8px', textAlign: 'center'
-              }}>
-                <div style={{ fontSize: 21, fontWeight: 950 }}>{value}</div>
-                <div style={{ fontSize: 9.5, color: '#666', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: 5, fontWeight: 850 }}>{label}</div>
+        {/* Stats rapides */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, marginBottom: 0 }}>
+          {[
+            { label: 'Streak', value: streak, unit: 'j', color: streak > 0 ? '#ff6600' : '#555' },
+            { label: 'Séances', value: totalWorkouts, unit: '', color: '#fff' },
+            { label: 'PRs', value: totalPRs, unit: '', color: '#fff' },
+            { label: 'Badges', value: earned.length, unit: '', color: ACCENT },
+          ].map(({ label, value, unit, color }) => (
+            <div key={label} style={{ padding: '10px 0', textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color }}>{value}<span style={{ fontSize: 10, color: '#555' }}>{unit}</span></div>
+              <div style={{ fontSize: 9, color: '#555', fontWeight: 700, textTransform: 'uppercase' }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', borderTop: '1px solid ' + BORDER }}>
+          {[
+            ['overview', 'Vue d\'ens.'],
+            ['goals', 'Objectifs'],
+            ['missions', 'Missions'],
+            ['badges', 'Badges'],
+          ].map(([id, label]) => (
+            <button key={id} onClick={() => setActiveTab(id as any)}
+              style={{ flex: 1, padding: '10px 0', background: 'none', border: 'none', borderBottom: '2px solid ' + (activeTab === id ? ACCENT : 'transparent'), color: activeTab === id ? ACCENT : '#555', fontSize: 11, fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' }}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ padding: '16px 20px 0' }}>
+
+        {/* ── OVERVIEW ── */}
+        {activeTab === 'overview' && (
+          <div>
+            <NoxMascot context={streak > 3 ? 'streak' : totalPRs > 0 ? 'pr' : 'default'} compact />
+            <div style={{ height: 16 }} />
+
+            {/* Daily goals résumé */}
+            <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>OBJECTIFS DU JOUR</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
+              {dailyGoals.map(g => (
+                <button key={g.label} onClick={g.action}
+                  style={{ background: g.done ? ACCENT + '11' : SURFACE, border: '1px solid ' + (g.done ? ACCENT + '44' : BORDER), borderRadius: 14, padding: '12px 14px', textAlign: 'left', cursor: 'pointer', touchAction: 'manipulation' }}>
+                  <div style={{ fontSize: 20, marginBottom: 6 }}>{g.icon}</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: g.done ? ACCENT : '#fff' }}>{g.label}</div>
+                  <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>{g.desc}</div>
+                  {g.done && <div style={{ fontSize: 10, color: ACCENT, marginTop: 4, fontWeight: 700 }}>+{g.xp} XP ✓</div>}
+                </button>
+              ))}
+            </div>
+
+            {/* Missions semaine résumé */}
+            <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>MISSIONS DE LA SEMAINE</div>
+            {weeklyMissions.map(m => (
+              <div key={m.label} style={{ background: SURFACE, border: '1px solid ' + (m.done ? ACCENT + '33' : BORDER), borderRadius: 12, padding: '10px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 20 }}>{m.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: m.done ? ACCENT : '#fff' }}>{m.label}</div>
+                  {m.total > 1 && (
+                    <div style={{ height: 3, background: '#1a1a1a', borderRadius: 2, marginTop: 6, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: (m.progress / m.total * 100) + '%', background: ACCENT, borderRadius: 2 }} />
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, color: m.done ? ACCENT : '#555', fontWeight: 700 }}>+{m.xp} XP</div>
+              </div>
+            ))}
+
+            {/* Classement CTA */}
+            <div style={{ marginTop: 16 }}>
+              <button onClick={() => navigate('/leaderboard')}
+                style={{ width: '100%', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: '14px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left', touchAction: 'manipulation' }}>
+                <div style={{ fontSize: 24 }}>🏆</div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>Classement global</div>
+                  <div style={{ fontSize: 11, color: '#555' }}>Compare-toi aux autres athlètes NOX</div>
+                </div>
+                <div style={{ marginLeft: 'auto', color: '#333' }}>→</div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── DAILY GOALS ── */}
+        {activeTab === 'goals' && (
+          <div>
+            <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>OBJECTIFS DU JOUR</div>
+            <div style={{ fontSize: 12, color: '#555', marginBottom: 16 }}>
+              {dailyGoals.filter(g => g.done).length}/{dailyGoals.length} complétés · {dailyGoals.filter(g => g.done).reduce((s, g) => s + g.xp, 0)} XP gagnés
+            </div>
+            {dailyGoals.map(g => (
+              <button key={g.label} onClick={g.action}
+                style={{ width: '100%', background: g.done ? ACCENT + '0d' : SURFACE, border: '1px solid ' + (g.done ? ACCENT + '33' : BORDER), borderRadius: 14, padding: '16px 18px', cursor: 'pointer', textAlign: 'left', marginBottom: 10, touchAction: 'manipulation', display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: g.done ? ACCENT + '22' : '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
+                  {g.done ? '✅' : g.icon}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: g.done ? ACCENT : '#fff' }}>{g.label}</div>
+                  <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>{g.desc}</div>
+                </div>
+                <div style={{ fontSize: 13, color: g.done ? ACCENT : '#333', fontWeight: 800, flexShrink: 0 }}>+{g.xp} XP</div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ── WEEKLY MISSIONS ── */}
+        {activeTab === 'missions' && (
+          <div>
+            <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>MISSIONS DE LA SEMAINE</div>
+            <div style={{ fontSize: 12, color: '#555', marginBottom: 16 }}>
+              {weeklyMissions.filter(m => m.done).length}/{weeklyMissions.length} complétées
+            </div>
+            {weeklyMissions.map(m => (
+              <div key={m.label} style={{ background: m.done ? ACCENT + '0d' : SURFACE, border: '1px solid ' + (m.done ? ACCENT + '33' : BORDER), borderRadius: 16, padding: '16px 18px', marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: m.total > 1 ? 10 : 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 24 }}>{m.done ? '✅' : m.icon}</span>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: m.done ? ACCENT : '#fff' }}>{m.label}</div>
+                  </div>
+                  <div style={{ fontSize: 13, color: m.done ? ACCENT : '#555', fontWeight: 800 }}>+{m.xp} XP</div>
+                </div>
+                {m.total > 1 && (
+                  <>
+                    <div style={{ height: 6, background: '#1a1a1a', borderRadius: 3, overflow: 'hidden', marginBottom: 4 }}>
+                      <div style={{ height: '100%', width: Math.min(100, m.progress / m.total * 100) + '%', background: m.done ? ACCENT : ACCENT + '66', borderRadius: 3 }} />
+                    </div>
+                    <div style={{ fontSize: 11, color: '#555' }}>{m.progress} / {m.total}</div>
+                  </>
+                )}
               </div>
             ))}
           </div>
+        )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', margin: '0 2px 10px' }}>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 950 }}>Achievements</div>
-              <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>{earned.length} débloqué{earned.length > 1 ? 's' : ''} sur {ACHIEVEMENTS.length}</div>
+        {/* ── BADGES ── */}
+        {activeTab === 'badges' && (
+          <div>
+            <div style={{ fontSize: 12, color: '#555', marginBottom: 16 }}>
+              {earned.length} / {ACHIEVEMENTS.length} badges débloqués
             </div>
-            <div style={{ color: ACCENT, fontSize: 11, fontWeight: 950 }}>{Math.round((earned.length / ACHIEVEMENTS.length) * 100)}%</div>
-          </div>
-
-          <div style={{ height: 5, background: '#171717', borderRadius: 999, overflow: 'hidden', marginBottom: 14 }}>
-            <div style={{ height: '100%', width: `${(earned.length / ACHIEVEMENTS.length) * 100}%`, background: ACCENT, borderRadius: 999 }} />
-          </div>
-
-          <div style={{ display: 'grid', gap: 9 }}>
-            {ACHIEVEMENTS.map(a => {
-              const done = earned.includes(a.id);
-              return (
-                <div key={a.id} style={{
-                  background: '#111',
-                  border: '1px solid ' + (done ? 'rgba(200,255,0,.22)' : '#222'),
-                  borderRadius: 16, padding: 14,
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  opacity: done ? 1 : .46
-                }}>
-                  <div style={{
-                    width: 42, height: 42, borderRadius: 13, flexShrink: 0,
-                    background: done ? 'rgba(200,255,0,.08)' : '#171717',
-                    border: '1px solid ' + (done ? 'rgba(200,255,0,.18)' : '#222'),
-                    display: 'grid', placeItems: 'center',
-                    fontSize: 20, filter: done ? 'none' : 'grayscale(1)'
-                  }}>
-                    {a.icon}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 900, color: done ? '#fff' : '#777' }}>{a.title}</div>
-                    <div style={{ fontSize: 10.5, lineHeight: 1.4, color: '#666', marginTop: 4 }}>{a.desc}</div>
-                  </div>
-                  <div style={{
-                    flexShrink: 0, borderRadius: 9, padding: '6px 8px',
-                    background: done ? 'rgba(200,255,0,.07)' : '#151515',
-                    color: done ? ACCENT : '#555', fontSize: 10.5, fontWeight: 950
-                  }}>
-                    +{a.xp} XP
-                  </div>
+            {cats.map(cat => (
+              <div key={cat} style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>{cat}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                  {ACHIEVEMENTS.filter(a => a.cat === cat).map(a => {
+                    const isEarned = earned.includes(a.id);
+                    return (
+                      <div key={a.id} style={{ background: isEarned ? ACCENT + '0d' : SURFACE, border: '1px solid ' + (isEarned ? ACCENT + '33' : BORDER), borderRadius: 14, padding: '14px 14px', opacity: isEarned ? 1 : 0.4 }}>
+                        <div style={{ fontSize: 28, marginBottom: 6 }}>{a.icon}</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: isEarned ? ACCENT : '#fff' }}>{a.title}</div>
+                        <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{a.desc}</div>
+                        <div style={{ fontSize: 10, color: isEarned ? ACCENT : '#333', marginTop: 6, fontWeight: 700 }}>+{a.xp} XP</div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
-        </section>
-      </main>
-
-      {/* Mascotte */}
-      <div style={{ padding: '0 20px 16px' }}>
-        <NoxMascot context={totalWorkouts > 0 ? 'streak' : 'default'} compact />
-      </div>
-
-      {/* Leaderboard */}
-      <div style={{ padding: '0 20px 10px' }}>
-        <button onClick={() => navigate('/leaderboard')}
-          style={{ width: '100%', background: '#111', border: '1px solid #1a1a1a', borderRadius: 14, padding: '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left', touchAction: 'manipulation' }}>
-          <div style={{ fontSize: 28 }}>🏆</div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>CLASSEMENT GLOBAL</div>
-            <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>Compare-toi à tous les athlètes NOX</div>
-          </div>
-          <div style={{ marginLeft: 'auto', color: '#333', fontSize: 16 }}>→</div>
-        </button>
-      </div>
-
-      {/* Mode Partenaire */}
-      <div style={{ padding: '16px 20px 0' }}>
-        <button onClick={() => navigate('/partner')}
-          style={{ width: '100%', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left' }}>
-          <div style={{ fontSize: 28 }}>👥</div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>MODE PARTENAIRE</div>
-            <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>Compare ta progression avec un ami</div>
-          </div>
-          <div style={{ marginLeft: 'auto', color: '#333', fontSize: 16 }}>→</div>
-        </button>
+        )}
       </div>
 
       <BottomNav active="play" />
