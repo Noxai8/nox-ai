@@ -178,7 +178,6 @@ export default function Home() {
   const [xp, setXp] = useState(0);
   const [tomorrowMealPlanned, setTomorrowMealPlanned] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [dataErrors, setDataErrors] = useState<string[]>([]);
   const [habits] = useState(() => [
     { id: 'nutrition', label: 'Suivre ma nutrition' },
     { id: 'activity', label: 'Bouger au moins 20 min' },
@@ -254,8 +253,6 @@ export default function Home() {
         supabase.from('recovery_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
         supabase.from('meal_plans').select('id').eq('user_id', user.id).eq('planned_date', tomorrow).limit(1),
       ]);
-
-      setDataErrors([]);
 
       setProfile(prof);
       setProgram(prog);
@@ -366,9 +363,7 @@ export default function Home() {
   }
 
   const noxScore = getNoxScore();
-  const scoreLabel = noxScore >= 80 ? 'TRÈS RÉGULIER' : noxScore >= 60 ? 'RÉGULIER' : noxScore >= 40 ? 'EN COURS' : 'À CONSTRUIRE';
   const firstName = profile?.display_name?.split(' ')[0] || 'ATHLÈTE';
-  const sessionGoal = program?.days_per_week || program?.program_json?.days_per_week || 3;
   const effectiveTargetKcal = targetKcal && targetKcal > 0 ? targetKcal : null;
   const hasPersonalTarget = effectiveTargetKcal !== null;
   const remainingKcal = effectiveTargetKcal === null ? null : Math.max(0, effectiveTargetKcal - todayKcal);
