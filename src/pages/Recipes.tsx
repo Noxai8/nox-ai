@@ -209,12 +209,12 @@ const goalLabel = (goal: GoalKey) =>
   goal === 'cut' ? 'PERTE DE POIDS' : goal === 'bulk' ? 'PRISE DE MUSCLE' : 'MAINTIEN';
 
 const recipeFit = (recipe: SuggestedRecipe, dailyCalories: number | null, dailyProtein: number | null) => {
-  if (!dailyCalories) return 'Suggestion selon ton objectif';
+  if (!dailyCalories) return 'Suggestion à adapter à ta journée';
   const kcalShare = recipe.calories_per_serving / dailyCalories;
   const proteinShare = dailyProtein ? recipe.protein_per_serving / dailyProtein : 0;
   if (proteinShare >= .25) return 'Contribue fortement à ta cible protéines';
   if (kcalShare <= .25) return 'Facile à intégrer à ta cible du jour';
-  return 'À ajuster selon le reste de ta journée';
+  return 'À ajuster selon ta cible et le reste de ta journée';
 };
 
 export default function Recipes() {
@@ -540,7 +540,7 @@ export default function Recipes() {
               <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 950 }}>Idées pour toi</div>
-                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Selon ton objectif et les aliments déjà enregistrés · favoris en premier</div>
+                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Selon ton objectif, ta cible nutritionnelle et tes aliments récents · favoris en premier</div>
                 </div>
               </div>
 
@@ -738,7 +738,7 @@ export default function Recipes() {
             <div>
               {selected.suggested && (
                 <div style={{ marginBottom: 12, padding: 12, borderRadius: 12, background: '#F4FFE0', border: '1px solid #D8F29B', color: '#3F5F00', fontSize: 10.5, fontWeight: 850 }}>
-                  SUGGESTION · MODIFIABLE · {goalLabel(goal)}
+                  SUGGESTION NOX · MODIFIABLE · {goalLabel(goal)}
                 </div>
               )}
 
