@@ -470,18 +470,21 @@ export default function Home() {
   const totalActiveMinutes = todayActivityMinutes + todayWorkoutMinutes;
   const totalActiveCalories = todayActiveCalories + todayWorkoutCalories;
   const hasConnectedActivity = todayActivitySources.some(source => source !== 'manual' && source !== 'machine_scan');
+  const nutritionTargetsReady = effectiveTargetKcal !== null && targetProtein !== null;
   const activitySourceLabel = (hasConnectedActivity ? 'Données synchronisées + NOX' : todayActivitySources.includes('machine_scan') ? 'NOX + écran cardio' : 'Données enregistrées dans NOX') + (activityDuplicatesSkipped > 0 ? ` · ${activityDuplicatesSkipped} doublon${activityDuplicatesSkipped>1?'s':''} ignoré${activityDuplicatesSkipped>1?'s':''}` : '');
   const activityProgress = Math.min(1, totalActiveMinutes / 30);
   const stepProgress = stepGoal > 0 ? Math.min(1, todaySteps / stepGoal) : 0;
   const mealCoverage = Math.min(1, todayMealCount / 3);
-  const daySignals = [mealCoverage >= .67, nutritionProgress >= .7, proteinProgress >= .7, totalActiveMinutes >= 20 || todayWorkouts > 0, todayWaterMl >= waterGoal * .7];
+  const daySignals = [mealCoverage >= .67, ...(nutritionTargetsReady ? [nutritionProgress >= .7, proteinProgress >= .7] : []), totalActiveMinutes >= 20 || todayWorkouts > 0, todayWaterMl >= waterGoal * .7];
   const consistencySignals = daySignals.filter(Boolean).length;
-  const dailyScore = Math.round((consistencySignals / daySignals.length) * 100);
-  const dailyScoreLabel = consistencySignals===5?'5/5 REPÈRES':consistencySignals===4?'4/5 REPÈRES':consistencySignals>=2?consistencySignals+'/5 REPÈRES':consistencySignals+'/5 REPÈRE'+(consistencySignals===1?'':'S');
+  const dailyScore = daySignals.length ? Math.round((consistencySignals / daySignals.length) * 100) : 0;
+  const dailyScoreLabel = `${consistencySignals}/${daySignals.length} REPÈRE${daySignals.length>1?'S':''}`;
   const scoreSignals = [
     { label: 'Nutrition', done: mealCoverage >= .67 },
-    { label: 'Calories', done: nutritionProgress >= .7 },
-    { label: 'Protéines', done: proteinProgress >= .7 },
+    ...(nutritionTargetsReady ? [
+      { label: 'Calories', done: nutritionProgress >= .7 },
+      { label: 'Protéines', done: proteinProgress >= .7 },
+    ] : []),
     { label: 'Activité', done: totalActiveMinutes >= 20 || todayWorkouts > 0 },
     { label: 'Hydratation', done: todayWaterMl >= waterGoal * .7 },
   ];
