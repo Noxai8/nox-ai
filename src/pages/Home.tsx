@@ -183,6 +183,7 @@ export default function Home() {
     { id: 'activity', label: 'Bouger au moins 20 min' },
     { id: 'water', label: 'Atteindre mon hydratation' },
   ]);
+  const [habitOverrides, setHabitOverrides] = useState<Record<string, boolean>>({});
 
   const days = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'];
   const todayDay = days[new Date().getDay()];
@@ -267,6 +268,10 @@ export default function Home() {
       setTodayFoodCount(fuel?.length || 0);
       setTodayMeals(fuel || []);
       setTodayMealTypes(Array.from(new Set((fuel || []).map((item: any) => String(item.meal_type || '')).filter(Boolean))));
+      const storedHabits = localStorage.getItem('nox_habits_' + user.id + '_' + today);
+      if (storedHabits) {
+        try { setHabitOverrides(JSON.parse(storedHabits)); } catch { setHabitOverrides({}); }
+      } else setHabitOverrides({});
       const storedWater = Number(localStorage.getItem('nox_water_' + user.id + '_' + today) || 0);
       const storedWaterGoal = Number(localStorage.getItem('nox_water_goal_' + user.id) || 2500);
       setTodayWaterMl(Number.isFinite(storedWater) ? storedWater : 0);
@@ -329,6 +334,15 @@ export default function Home() {
 
   const addWater = (ml: number) => updateWater(todayWaterMl + ml);
 
+  const toggleHabit = (id: string, automaticDone: boolean) => {
+    if (!user || automaticDone) return;
+    setHabitOverrides(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      localStorage.setItem('nox_habits_' + user.id + '_' + today, JSON.stringify(next));
+      return next;
+    });
+  };
+
   const getNoxScore = () => {
     return calculateNoxScore({
       workoutCount,
@@ -378,13 +392,13 @@ export default function Home() {
   const consistencySignals = daySignals.filter(Boolean).length;
   const dailyScore = Math.round((consistencySignals / daySignals.length) * 100);
   const tomorrowSessionPlanned = Boolean(program?.program_json?.sessions?.some((session:any)=>{const tomorrowDay=days[tomorrowDate.getDay()];return session.day===tomorrowDay||(session.days&&session.days.includes(tomorrowDay));}));
-  const habitDone:Record<string,boolean> = {
+  const automaticHabitDone:Record<string,boolean> = {
     nutrition: todayFoodCount > 0,
     activity: todayActivityMinutes >= 20 || todayWorkouts > 0,
     water: todayWaterMl >= waterGoal,
   };
+  const habitDone:Record<string,boolean> = Object.fromEntries(habits.map(h => [h.id, automaticHabitDone[h.id] || Boolean(habitOverrides[h.id])]));
   const habitsDone = habits.filter(h => habitDone[h.id]).length;
-
   return (
     <div style={{ minHeight: '100vh', background: BG, color: TEXT, paddingBottom: 104 }}>
       <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
@@ -707,6 +721,18 @@ export default function Home() {
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>PROGRÈS PHYSIQUE</div><div style={{fontSize:20,fontWeight:950,marginTop:4}}>{latestWeight} <span style={{fontSize:12,color:MUTED}}>kg</span></div></div><ChevronRight size={18}/></div>
             <div style={{fontSize:10.5,color:MUTED,marginTop:9}}>{weightToGoal===null?'Dernier poids enregistré · ajoute un objectif dans Progrès pour suivre l’écart.':Math.abs(weightToGoal)<0.05?'Objectif de poids enregistré atteint.':`${Math.abs(weightToGoal).toFixed(1)} kg d’écart avec ton objectif actuel · suis la tendance dans Progrès.`}</div>
           </button>}
+
+          <div style={{...cardStyle,padding:18,marginBottom:14}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+              <div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>OBJECTIFS DU JOUR</div><div style={{fontSize:18,fontWeight:950,marginTop:4}}>{habitsDone} / {habits.length} COMPLÉTÉS</div></div>
+              <div style={{fontSize:11,fontWeight:900,color:MUTED}}>{Math.round((habitsDone/habits.length)*100)}%</div>
+            </div>
+            <div style={{height:7,borderRadius:99,background:SURFACE_2,overflow:'hidden',marginTop:12}}><div style={{height:'100%',width:`${(habitsDone/habits.length)*100}%`,background:ACCENT,borderRadius:99}}/></div>
+            <div style={{marginTop:10}}>
+              {habits.map(h=>{const automatic=automaticHabitDone[h.id];const done=habitDone[h.id];return <button key={h.id} onClick={()=>toggleHabit(h.id,automatic)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'10px 0',border:0,borderTop:'1px solid '+BORDER,background:'transparent',textAlign:'left',cursor:automatic?'default':'pointer',color:TEXT}}><span style={{width:24,height:24,borderRadius:8,background:done?ACCENT:SURFACE_2,border:'1px solid '+(done?ACCENT:BORDER),display:'grid',placeItems:'center',fontSize:12,fontWeight:950}}>{done?'✓':''}</span><span style={{flex:1,fontSize:11.5,fontWeight:850}}>{h.label}</span><span style={{fontSize:9,color:MUTED}}>{automatic?'AUTO':done?'FAIT':'À FAIRE'}</span></button>})}
+            </div>
+            <div style={{fontSize:9.5,color:MUTED,lineHeight:1.45,marginTop:7}}>NOX valide automatiquement ce qu’il peut depuis tes données. Tu peux cocher manuellement le reste pour aujourd’hui.</div>
+          </div>
 
           <div style={{...cardStyle,padding:18,marginBottom:14,background:TEXT,color:'#fff'}}>
             <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:ACCENT}}>NOX DAILY SCORE</div>
