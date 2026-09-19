@@ -157,6 +157,8 @@ export default function Home() {
   const [todayCarbs, setTodayCarbs] = useState(0);
   const [todayFat, setTodayFat] = useState(0);
   const [targetProtein, setTargetProtein] = useState<number | null>(null);
+  const [targetCarbs, setTargetCarbs] = useState<number | null>(null);
+  const [targetFat, setTargetFat] = useState<number | null>(null);
   const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
   const [dayPeriod, setDayPeriod] = useState<'morning'|'day'|'evening'>(() => { const h=new Date().getHours(); return h<12?'morning':h<18?'day':'evening'; });
   const [todayFoodCount, setTodayFoodCount] = useState(0);
@@ -250,7 +252,7 @@ export default function Home() {
           .order('created_at', { ascending: false })
           .limit(1),
         supabase.from('activity_logs').select('duration_minutes, distance_km, calories_burned, steps').eq('user_id', user.id).gte('performed_at', today + 'T00:00:00').lt('performed_at', tomorrow + 'T00:00:00'),
-        supabase.from('nutrition_targets').select('calories, protein').eq('user_id', user.id).maybeSingle(),
+        supabase.from('nutrition_targets').select('calories, protein, carbs, fat').eq('user_id', user.id).maybeSingle(),
         supabase.from('recovery_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
         supabase.from('meal_plans').select('id').eq('user_id', user.id).eq('planned_date', tomorrow).limit(1),
       ]);
@@ -288,6 +290,10 @@ export default function Home() {
       const centralizedProtein = Number(nutritionTarget?.protein || 0);
       const profileProtein = Number(prof?.protein_target || 0);
       setTargetProtein(centralizedProtein > 0 ? centralizedProtein : profileProtein > 0 ? profileProtein : null);
+      const centralizedCarbs = Number(nutritionTarget?.carbs || 0);
+      const centralizedFat = Number(nutritionTarget?.fat || 0);
+      setTargetCarbs(centralizedCarbs > 0 ? centralizedCarbs : null);
+      setTargetFat(centralizedFat > 0 ? centralizedFat : null);
       setLatestWeight(bodyLogs?.[0]?.weight || null);
       const profileGoalWeight = Number(prof?.goal_weight_kg ?? prof?.goal_weight ?? prof?.target_weight ?? 0);
       setGoalWeight(Number.isFinite(profileGoalWeight) && profileGoalWeight > 0 ? profileGoalWeight : null);
@@ -386,6 +392,9 @@ export default function Home() {
   const weightToGoal = latestWeight!==null&&goalWeight!==null ? latestWeight-goalWeight : null;
   const nutritionProgress = effectiveTargetKcal ? Math.min(1, todayKcal / effectiveTargetKcal) : 0;
   const proteinProgress = targetProtein ? Math.min(1, todayProtein / targetProtein) : 0;
+  const carbsProgress = targetCarbs ? Math.min(1, todayCarbs / targetCarbs) : 0;
+  const fatProgress = targetFat ? Math.min(1, todayFat / targetFat) : 0;
+  void carbsProgress; void fatProgress;
   const activityProgress = Math.min(1, todayActivityMinutes / 30);
   const stepProgress = stepGoal > 0 ? Math.min(1, todaySteps / stepGoal) : 0;
   const daySignals = [todayFoodCount > 0, nutritionProgress >= .7, proteinProgress >= .7, todayActivityMinutes >= 20 || todayWorkouts > 0, todayWaterMl >= waterGoal * .7];
