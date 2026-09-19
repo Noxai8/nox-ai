@@ -158,6 +158,7 @@ export default function Home() {
   const [weekWorkouts, setWeekWorkouts] = useState(0);
   const [todayKcal, setTodayKcal] = useState(0);
   const [todayProtein, setTodayProtein] = useState(0);
+  const [targetProtein, setTargetProtein] = useState<number | null>(null);
   const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
   const [todayFoodCount, setTodayFoodCount] = useState(0);
   const [targetKcal, setTargetKcal] = useState<number | null>(null);
@@ -208,7 +209,7 @@ export default function Home() {
           .order('created_at', { ascending: false })
           .limit(1),
         supabase.from('activity_logs').select('duration_minutes').eq('user_id', user.id).gte('performed_at', today + 'T00:00:00'),
-        supabase.from('nutrition_targets').select('calories').eq('user_id', user.id).maybeSingle(),
+        supabase.from('nutrition_targets').select('calories, protein').eq('user_id', user.id).maybeSingle(),
       ]);
 
       setProfile(prof);
@@ -223,6 +224,9 @@ export default function Home() {
       const centralizedTarget = Number(nutritionTarget?.calories || 0);
       const profileTarget = Number(prof?.daily_calories || prof?.calorie_target || 0);
       setTargetKcal(centralizedTarget > 0 ? centralizedTarget : profileTarget > 0 ? profileTarget : null);
+      const centralizedProtein = Number(nutritionTarget?.protein || 0);
+      const profileProtein = Number(prof?.protein_target || 0);
+      setTargetProtein(centralizedProtein > 0 ? centralizedProtein : profileProtein > 0 ? profileProtein : null);
       setLatestWeight(bodyLogs?.[0]?.weight || null);
       setXp(prof?.xp || 0);
 
@@ -517,7 +521,7 @@ export default function Home() {
             <div style={{fontSize:19,fontWeight:950,marginTop:5}}>TA JOURNÉE EN 10 SECONDES</div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:13}}>
               <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayKcal)} / {targetKcal ? Math.round(targetKcal) : '—'}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>KCAL</div></div>
-              <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayProtein)}g</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>PROTÉINES</div></div>
+              <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayProtein)}{targetProtein ? ` / ${Math.round(targetProtein)}` : ''}g</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>PROTÉINES</div></div>
               <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayActivityMinutes)}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>MIN ACTIVES</div></div>
             </div>
             <div style={{fontSize:11.5,color:MUTED,lineHeight:1.5,marginTop:11}}>{todayKcal===0&&todayActivityMinutes===0?'Commence ta journée : ajoute ton premier repas ou une activité.':remainingKcal===null?'Ajoute ta cible dans Nutrition pour afficher ton repère calorique quotidien.':remainingKcal>0?`Il te reste environ ${Math.round(remainingKcal)} kcal sur ton repère actuel. Continue à enregistrer ta journée pour garder une vue complète.`:'Tes apports enregistrés ont atteint ton repère calorique actuel. Consulte Nutrition pour le détail.'}</div>
@@ -696,7 +700,7 @@ export default function Home() {
           >
             <Sparkles size={15} color={ACCENT} />
             <div style={{ flex: 1, fontSize: 11.5, lineHeight: 1.45, color: '#777' }}>
-              Chaque donnée améliore les recommandations de NOX.
+              Tes données enregistrées permettent à NOX de personnaliser progressivement tes repères et tes synthèses.
             </div>
             <ChevronRight size={16} color="#999999" />
           </div>
