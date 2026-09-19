@@ -18,6 +18,7 @@ export default function FastingTracker() {
   const { user } = useAuth();
   const [protocol, setProtocol] = useState(PROTOCOLS[0]);
   const [customFastHours, setCustomFastHours] = useState(16);
+  const [customFastHours, setCustomFastHours] = useState(16);
   const [fastStart, setFastStart] = useState<Date | null>(null);
   const [isFasting, setIsFasting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -36,6 +37,7 @@ export default function FastingTracker() {
         setFastStart(start);
         setIsFasting(true);
         setProtocol(PROTOCOLS.find(p => p.id === data.protocolId) || PROTOCOLS[0]);
+        if (data.customFastHours) setCustomFastHours(Math.min(23, Math.max(1, Number(data.customFastHours))));
         if (data.protocolId === 'custom' && Number(data.customFastHours) >= 10 && Number(data.customFastHours) <= 20) setCustomFastHours(Number(data.customFastHours));
       }
     }
