@@ -105,7 +105,7 @@ export default function FuelAI() {
         // Reformater pour le frigo si besoin
         const fridgeResult = fridgeData.aliments ? {
           ingredients_detectes: fridgeData.aliments.map((a: any) => a.nom),
-          repas: [{ nom: fridgeData.description, temps: '20 min', difficulte: 'Facile', calories_approx: fridgeData.total?.kcal || 0, protein_approx: fridgeData.total?.protein || 0, ingredients_utilises: fridgeData.aliments.map((a: any) => a.nom), ingredients_manquants: [], recette_rapide: 'Prépare les ingrédients détectés selon tes préférences', pourquoi_sain: fridgeData.note || 'Repas équilibré' }]
+          repas: [{ nom: fridgeData.description, temps: '20 min', difficulte: 'Facile', calories_approx: fridgeData.total?.kcal || 0, protein_approx: fridgeData.total?.protein || 0, ingredients_utilises: fridgeData.aliments.map((a: any) => a.nom), ingredients_manquants: [], recette_rapide: 'Prépare les ingrédients détectés selon tes préférences', pourquoi_sain: fridgeData.note || 'Suggestion à vérifier et ajuster selon ta journée' }]
         } : (text ? JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || '{}') : {});
         setResult({ type: 'fridge', data: fridgeResult });
       } else {
@@ -192,7 +192,7 @@ FORMAT :
       const calories = ctx.calories;
       const protein = ctx.protein;
 
-      const text = await callAI(`Tu es l'assistant nutrition sportive de NOX. Génère une liste de courses concrète, réaliste et cohérente avec l'objectif de l'utilisateur.
+      const text = await callAI(`Tu es la couche d'analyse nutritionnelle de NOX. Génère une liste de courses concrète, réaliste et cohérente avec l'objectif de l'utilisateur.
 
 PROFIL :
 - Objectif : ${profileGoal}
@@ -205,8 +205,8 @@ PROFIL :
 RÈGLES :
 - Les cibles calories/protéines ci-dessus viennent de nutrition_targets, la source de vérité de NOX. Ne les recalcule pas et ne les remplace pas par une estimation.
 - Si une cible est indisponible, n'en invente pas une.
-- Adapte les aliments et quantités à l'objectif (perte de gras, maintien ou prise de masse).
-- Priorise des aliments simples, accessibles et riches nutritionnellement.
+- Adapte les aliments et quantités à l'objectif (perte de poids, maintien ou prise de muscle).
+- Priorise des aliments simples et accessibles.
 - Respecte autant que possible le budget indiqué.
 - Les prix sont seulement des estimations : ne prétends pas connaître les prix exacts du magasin.
 - Regroupe les produits par catégories.
@@ -411,11 +411,11 @@ FORMAT :
         {/* MENU */}
         {mode === 'menu' && (
           <>
-            <MenuCard icon="🧊" title="Analyse mon frigo" desc="Photo de ton frigo → NOX propose des repas sains avec ce que t'as" onClick={() => { setMode('fridge'); }} />
+            <MenuCard icon="🧊" title="Analyse mon frigo" desc="Photo de ton frigo → idées de repas à partir des ingrédients détectés" onClick={() => { setMode('fridge'); }} />
             <MenuCard icon="🍽️" title="Plan de repas" desc="Construis ta semaine alimentaire selon ton objectif" onClick={() => navigate('/meal-planner')} />
             <MenuCard icon="🛒" title="Liste de courses" desc="Budget + objectifs → liste optimisée avec prix approximatifs" onClick={() => setMode('grocery')} />
-            <MenuCard icon="💡" title="Astuces nutrition" desc="Conseils personnalisés pour booster tes résultats avec la nutrition" onClick={() => { setMode('tips'); generateTips(); }} />
-          <MenuCard icon="⏱️" title="Jeûne intermittent" desc="Tracker de jeûne avec timer + suivi hydratation" onClick={() => navigate('/fasting')} />
+            <MenuCard icon="💡" title="Astuces nutrition" desc="Repères personnalisés à partir de ta cible et de ton suivi récent" onClick={() => { setMode('tips'); generateTips(); }} />
+          <MenuCard icon="⏱️" title="Jeûne intermittent" desc="Suivi optionnel du jeûne + hydratation" onClick={() => navigate('/fasting')} />
           <MenuCard icon="😊" title="Humeur & bien-être" desc="Journal quotidien humeur, sommeil, fatigue et récupération" onClick={() => navigate('/mood')} />
           <MenuCard icon="👨‍🍳" title="Mes recettes" desc="Créer et sauvegarder tes propres recettes réutilisables" onClick={() => navigate('/recipes')} />
           <MenuCard icon="📅" title="Planifier mes repas" desc="Organise ta semaine alimentaire à l'avance" onClick={() => navigate('/meal-planner')} />
@@ -440,7 +440,7 @@ FORMAT :
                 <div style={{ fontSize: 64, marginBottom: 16 }}>🧊</div>
                 <div style={{ fontSize: 18, fontWeight: 900, color: '#0A0A0A', marginBottom: 8 }}>PHOTO DE TON FRIGO</div>
                 <div style={{ fontSize: 14, color: '#555', marginBottom: 32, lineHeight: 1.5, maxWidth: 300, margin: '0 auto 32px' }}>
-                  Ouvre ton frigo, prends une photo et NOX te propose 3 repas sains avec ce que t'as
+                  Ouvre ton frigo, prends une photo et NOX identifie les ingrédients visibles pour proposer des idées de repas à vérifier.
                 </div>
                 <button onClick={() => fileRef.current?.click()}
                   style={{ width: '100%', padding: 18, background: ACCENT, border: 'none', borderRadius: 14, color: '#000', fontWeight: 900, fontSize: 15, cursor: 'pointer', touchAction: 'manipulation' }}>
@@ -518,8 +518,8 @@ FORMAT :
         {mode === 'meals' && result?.type === 'meals' && (
           <div>
             <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 14, padding: '12px 16px', marginBottom: 16 }}>
-              <div style={{ fontSize: 12, color: ACCENT, fontWeight: 800, marginBottom: 4 }}>OBJECTIF QUOTIDIEN</div>
-              <div style={{ fontSize: 14, color: '#ccc' }}>{result.data.objectif_calorique} kcal · {result.data.objectif_proteines}g protéines</div>
+              <div style={{ fontSize: 12, color: '#4F7100', fontWeight: 800, marginBottom: 4 }}>OBJECTIF QUOTIDIEN</div>
+              <div style={{ fontSize: 14, color: '#444' }}>{result.data.objectif_calorique} kcal · {result.data.objectif_proteines}g protéines</div>
               {result.data.conseil_chef && <div style={{ fontSize: 12, color: '#888', marginTop: 6, fontStyle: 'italic' }}>"{result.data.conseil_chef}"</div>}
             </div>
             {result.data.jours?.map((jour: any) => (
