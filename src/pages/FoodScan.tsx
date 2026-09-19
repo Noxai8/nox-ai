@@ -30,12 +30,18 @@ export default function FoodScan(){
  const {user}=useAuth(); const navigate=useNavigate(); const location=useLocation();
  const requestedMode=(location.state as any)?.scanMode as ScanMode|undefined;
  const [mode,setMode]=useState<ScanMode|null>(requestedMode&&MODES.some(m=>m.id===requestedMode)?requestedMode:null); const [meal,setMeal]=useState((location.state as any)?.meal||'Déjeuner');
- const [photo,setPhoto]=useState<string|null>(null); const [result,setResult]=useState<any>(null); const [busy,setBusy]=useState(false); const [error,setError]=useState('');
+ const [photo,setPhoto]=useState<string|null>(null); const [result,setResult]=useState<any>(null); const [busy,setBusy]=useState(false); const [error,setError]=useState(''); const [barcodeManual,setBarcodeManual]=useState('');
  const input=useRef<HTMLInputElement>(null);
  useEffect(()=>{if(requestedMode&&MODES.some(m=>m.id===requestedMode)){const timer=window.setTimeout(()=>input.current?.click(),180);return()=>window.clearTimeout(timer)}},[requestedMode]);
  const pick=(m:ScanMode)=>{setMode(m);setPhoto(null);setResult(null);setError('');setTimeout(()=>input.current?.click(),100)};
  const reset=()=>{setPhoto(null);setResult(null);setError('')};
  const onPhoto=(e:React.ChangeEvent<HTMLInputElement>)=>{const file=e.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{const data=String(reader.result);setPhoto(data);void analyze(data.split(',')[1]||'')};reader.readAsDataURL(file);e.target.value=''};
+ const lookupBarcode=async(code:string)=>{
+  const clean=code.replace(/\D/g,'');
+  if(!clean){setError('Entre un code-barres valide.');return}
+  setBusy(true);setError('');setResult(null);
+  try{const resp=await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(clean)}.json`);if(!resp.ok)throw new Error('Produit introuvable.');const data=await resp.json();const p=data?.product;if(!p)throw new Error('Produit introuvable dans Open Food Facts.');const n=p.nutriments||{};setResult({barcode:clean,description:p.product_name||p.generic_name||'Produit scanné',brand:p.brands||'',total:{kcal:Number(n['energy-kcal_100g']||0),protein:Number(n.proteins_100g||0),carbs:Number(n.carbohydrates_100g||0),fat:Number(n.fat_100g||0)}})}catch(e:any){setError(e.message||'Produit introuvable')}finally{setBusy(false)}
+ };
  const analyze=async(base64:string)=>{
   setBusy(true);setError('');setResult(null);
   if(mode==='barcode'){
@@ -47,12 +53,7 @@ export default function FoodScan(){
     const codes=await detector.detect(bitmap);
     const code=codes?.[0]?.rawValue;
     if(!code) throw new Error("Code-barres non détecté. Reprends la photo en cadrant uniquement le code.");
-    const resp=await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`);
-    if(!resp.ok) throw new Error("Produit introuvable.");
-    const data=await resp.json(); const p=data?.product;
-    if(!p) throw new Error("Produit introuvable dans Open Food Facts.");
-    const n=p.nutriments||{};
-    setResult({barcode:code,description:p.product_name||p.generic_name||'Produit scanné',brand:p.brands||'',total:{kcal:Number(n['energy-kcal_100g']||0),protein:Number(n.proteins_100g||0),carbs:Number(n.carbohydrates_100g||0),fat:Number(n.fat_100g||0)}});
+    await lookupBarcode(code);
    }catch(e:any){setError(e.message||"Lecture du code-barres impossible")}
    setBusy(false);return;
   }
@@ -75,7 +76,8 @@ export default function FoodScan(){
     <div style={{position:'absolute',bottom:28,left:20,right:20,textAlign:'center',fontSize:13,fontWeight:800,textShadow:'0 2px 8px #000'}}>{busy?'NOX analyse…':COPY[mode].hint}</div>
    </div>
    {mode==='meal'&&<div style={{display:'flex',gap:7,overflowX:'auto',padding:'11px 14px 0'}}>{MEALS.map(m=><button key={m} onClick={()=>setMeal(m)} style={{whiteSpace:'nowrap',border:'1px solid '+(meal===m?LIME:'#333'),borderRadius:99,background:meal===m?LIME:'#151515',color:meal===m?BLACK:'#aaa',padding:'7px 11px',fontSize:10,fontWeight:850}}>{m}</button>)}</div>}
-   {error&&<div style={{margin:'10px 18px 0',padding:11,borderRadius:12,background:'#2b1010',color:'#ff8c8c',fontSize:11}}>{error}</div>}
+   {mode==='barcode'&&<div style={{display:'flex',gap:8,padding:'11px 14px 0'}}><input value={barcodeManual} onChange={e=>setBarcodeManual(e.target.value)} inputMode="numeric" placeholder="EAN / UPC" style={{flex:1,minWidth:0,border:'1px solid #333',borderRadius:12,background:'#151515',color:'#fff',padding:'11px 12px',fontSize:12,outline:0}}/><button onClick={()=>void lookupBarcode(barcodeManual)} disabled={busy} style={{border:0,borderRadius:12,background:LIME,color:BLACK,padding:'0 14px',fontSize:10,fontWeight:950}}>RECHERCHER</button></div>}
+      {error&&<div style={{margin:'10px 18px 0',padding:11,borderRadius:12,background:'#2b1010',color:'#ff8c8c',fontSize:11}}>{error}</div>}
    {result&&!busy&&mode==='meal'&&<div style={{background:'#fff',color:BLACK,borderRadius:'24px 24px 0 0',padding:'18px 18px 22px',marginTop:12}}>
     <div style={{fontSize:10,color:MUTED,fontWeight:900}}>RÉSULTAT · À VÉRIFIER</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{result.description||'Repas détecté'}</div>
     <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginTop:13}}>{[['Calories',Math.round(result.total?.kcal||0)],['Protéines',Math.round(result.total?.protein||0)+'g'],['Glucides',Math.round(result.total?.carbs||0)+'g'],['Lipides',Math.round(result.total?.fat||0)+'g']].map(([l,v])=><div key={String(l)} style={{background:'#F6F6F6',borderRadius:12,padding:'10px 3px',textAlign:'center'}}><b style={{fontSize:15}}>{v}</b><div style={{fontSize:8.5,color:MUTED,marginTop:3}}>{l}</div></div>)}</div>
