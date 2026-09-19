@@ -437,7 +437,7 @@ export default function Recipes() {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14 }}>
             <div>
-              <div style={{ fontSize: 10, color: ACCENT, fontWeight: 900, letterSpacing: '.12em' }}>NUTRITION · NOX</div>
+              <div style={{ fontSize: 10, color: '#555', fontWeight: 900, letterSpacing: '.12em' }}>NUTRITION · NOX</div>
               <div style={{ fontSize: 24, fontWeight: 950, letterSpacing: '-.035em', marginTop: 4 }}>
                 {view === 'list' ? 'MES RECETTES' : view === 'create' ? 'NOUVELLE RECETTE' : selected?.name}
               </div>
@@ -456,13 +456,13 @@ export default function Recipes() {
 
         <section style={{ padding: 20 }}>
           {error && (
-            <div style={{ marginBottom: 14, padding: 13, borderRadius: 13, background: 'rgba(255,80,70,.08)', border: '1px solid rgba(255,80,70,.25)', color: '#ff8d86', fontSize: 12, lineHeight: 1.45 }}>
+            <div style={{ marginBottom: 14, padding: 13, borderRadius: 13, background: 'rgba(255,80,70,.08)', border: '1px solid rgba(255,80,70,.25)', color: '#B42318', fontSize: 12, lineHeight: 1.45 }}>
               {error}
             </div>
           )}
 
           {actionMessage && (
-            <div style={{ marginBottom: 14, padding: 13, borderRadius: 13, background: 'rgba(200,255,0,.07)', border: '1px solid rgba(200,255,0,.22)', color: ACCENT, fontSize: 12, lineHeight: 1.45 }}>
+            <div style={{ marginBottom: 14, padding: 13, borderRadius: 13, background: '#F4FFE0', border: '1px solid #D8F29B', color: '#3F5F00', fontSize: 12, lineHeight: 1.45 }}>
               {actionMessage}
             </div>
           )}
@@ -474,10 +474,10 @@ export default function Recipes() {
                   Chargement de tes données nutritionnelles...
                 </div>
               )}
-              <div style={{ padding: 17, borderRadius: 18, background: 'linear-gradient(135deg,rgba(200,255,0,.12),rgba(200,255,0,.025))', border: '1px solid rgba(200,255,0,.22)', marginBottom: 22 }}>
+              <div style={{ padding: 17, borderRadius: 18, background: '#0A0A0A', border: '1px solid #0A0A0A', marginBottom: 22 }}>
                 <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 950, letterSpacing: '.1em' }}>RECETTES POUR TON OBJECTIF</div>
-                <div style={{ fontSize: 18, fontWeight: 950, marginTop: 6 }}>{goalLabel(goal)}</div>
-                <div style={{ fontSize: 11.5, color: '#888', lineHeight: 1.5, marginTop: 6 }}>
+                <div style={{ fontSize: 18, fontWeight: 950, marginTop: 6, color: '#fff' }}>{goalLabel(goal)}</div>
+                <div style={{ fontSize: 11.5, color: '#AAA', lineHeight: 1.5, marginTop: 6 }}>
                   NOX te propose des repas cohérents avec ton objectif nutritionnel.
                   {dailyCalories ? ` Même cible que Nutrition : ${Math.round(dailyCalories)} kcal/jour` : ''}
                   {dailyProtein ? ` · ${Math.round(dailyProtein)} g protéines` : ''}.
@@ -512,7 +512,7 @@ export default function Recipes() {
                         <div style={{ fontSize: 10.5, color: '#666', marginTop: 4, lineHeight: 1.4 }}>{recipe.subtitle}</div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ color: ACCENT, fontSize: 15, fontWeight: 950 }}>{recipe.calories_per_serving}</div>
+                        <div style={{ color: '#0A0A0A', fontSize: 15, fontWeight: 950 }}>{recipe.calories_per_serving}</div>
                         <div style={{ color: '#555', fontSize: 8.5 }}>KCAL</div>
                       </div>
                     </div>
@@ -554,7 +554,7 @@ export default function Recipes() {
                             P {r.protein_per_serving || 0}g · G {r.carbs_per_serving || 0}g · L {r.fat_per_serving || 0}g
                           </div>
                         </div>
-                        <div style={{ color: ACCENT, fontSize: 12, fontWeight: 900, flexShrink: 0 }}>{r.calories_per_serving || 0} kcal</div>
+                        <div style={{ color: '#0A0A0A', fontSize: 12, fontWeight: 900, flexShrink: 0 }}>{r.calories_per_serving || 0} kcal</div>
                       </div>
                     </button>
                   ))}
@@ -619,7 +619,7 @@ export default function Recipes() {
                         onChange={e => updateIngredient(i, key, e.target.value)}
                         placeholder={label}
                         type="number"
-                        style={{ width: '100%', minWidth: 0, padding: '8px 4px', background: '#F7F7F7', border: `1px solid ${BORDER}`, borderRadius: 8, color: '#ccc', fontSize: 9.5, outline: 'none', textAlign: 'center', boxSizing: 'border-box' }}
+                        style={{ width: '100%', minWidth: 0, padding: '8px 4px', background: '#F7F7F7', border: `1px solid ${BORDER}`, borderRadius: 8, color: '#0A0A0A', fontSize: 9.5, outline: 'none', textAlign: 'center', boxSizing: 'border-box' }}
                       />
                     ))}
                   </div>
@@ -648,7 +648,7 @@ export default function Recipes() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
                       {[
                         ['KCAL', Math.round(t.kcal / servings), ACCENT],
-                        ['PROT.', `${Math.round(t.protein / servings * 10) / 10}g`, '#fff'],
+                        ['PROT.', `${Math.round(t.protein / servings * 10) / 10}g`, '#0A0A0A'],
                         ['GLUC.', `${Math.round(t.carbs / servings * 10) / 10}g`, '#8da0ff'],
                         ['LIP.', `${Math.round(t.fat / servings * 10) / 10}g`, '#ff806b'],
                       ].map(([label, val, color]) => (
@@ -675,7 +675,7 @@ export default function Recipes() {
               <button
                 onClick={save}
                 disabled={!form.name.trim() || saving}
-                style={{ width: '100%', padding: 17, background: form.name.trim() ? ACCENT : '#1a1a1a', border: 0, borderRadius: 13, color: form.name.trim() ? '#050505' : '#444', fontWeight: 950, fontSize: 14, cursor: form.name.trim() ? 'pointer' : 'not-allowed' }}
+                style={{ width: '100%', padding: 17, background: form.name.trim() ? ACCENT : '#E5E5E5', border: 0, borderRadius: 13, color: form.name.trim() ? '#050505' : '#888', fontWeight: 950, fontSize: 14, cursor: form.name.trim() ? 'pointer' : 'not-allowed' }}
               >
                 {saving ? 'ENREGISTREMENT...' : 'SAUVEGARDER LA RECETTE'}
               </button>
@@ -685,7 +685,7 @@ export default function Recipes() {
           {view === 'detail' && selected && (
             <div>
               {selected.suggested && (
-                <div style={{ marginBottom: 12, padding: 12, borderRadius: 12, background: 'rgba(200,255,0,.06)', border: '1px solid rgba(200,255,0,.18)', color: ACCENT, fontSize: 10.5, fontWeight: 850 }}>
+                <div style={{ marginBottom: 12, padding: 12, borderRadius: 12, background: '#F4FFE0', border: '1px solid #D8F29B', color: '#3F5F00', fontSize: 10.5, fontWeight: 850 }}>
                   SUGGESTION NOX · {goalLabel(goal)}
                 </div>
               )}
@@ -694,7 +694,7 @@ export default function Recipes() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
                   {[
                     ['KCAL', selected.calories_per_serving || 0, ACCENT],
-                    ['PROT.', `${selected.protein_per_serving || 0}g`, '#fff'],
+                    ['PROT.', `${selected.protein_per_serving || 0}g`, '#0A0A0A'],
                     ['GLUC.', `${selected.carbs_per_serving || 0}g`, '#8da0ff'],
                     ['LIP.', `${selected.fat_per_serving || 0}g`, '#ff806b'],
                   ].map(([label, val, color]) => (
@@ -731,7 +731,7 @@ export default function Recipes() {
                   <button
                     key={m}
                     onClick={() => setSelectedMeal(m)}
-                    style={{ flexShrink: 0, padding: '8px 11px', background: selectedMeal === m ? 'rgba(200,255,0,.08)' : SURFACE, border: `1px solid ${selectedMeal === m ? 'rgba(200,255,0,.35)' : BORDER}`, borderRadius: 999, color: selectedMeal === m ? ACCENT : '#777', fontSize: 10, fontWeight: 850, cursor: 'pointer' }}
+                    style={{ flexShrink: 0, padding: '8px 11px', background: selectedMeal === m ? 'rgba(200,255,0,.08)' : SURFACE, border: `1px solid ${selectedMeal === m ? 'rgba(200,255,0,.35)' : BORDER}`, borderRadius: 999, color: selectedMeal === m ? '#0A0A0A' : '#777', fontSize: 10, fontWeight: 850, cursor: 'pointer' }}
                   >
                     {m}
                   </button>
