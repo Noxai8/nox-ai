@@ -453,7 +453,7 @@ export default function Home() {
   const proteinProgress = targetProtein ? Math.min(1, todayProtein / targetProtein) : 0;
   const carbsProgress = targetCarbs ? Math.min(1, todayCarbs / targetCarbs) : 0;
   const fatProgress = targetFat ? Math.min(1, todayFat / targetFat) : 0;
-  void carbsProgress; void fatProgress; void hasNutritionTarget; void activitySourceLabel;
+  void carbsProgress; void fatProgress; void hasNutritionTarget;
   const totalActiveMinutes = todayActivityMinutes + todayWorkoutMinutes;
   const totalActiveCalories = todayActiveCalories + todayWorkoutCalories;
   const hasConnectedActivity = todayActivitySources.some(source => source !== 'manual' && source !== 'machine_scan');
