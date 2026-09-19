@@ -26,6 +26,17 @@ const ACHIEVEMENTS = [
   { id: 'month_streak', icon: '🏆', title: '30 jours actif', desc: 'Un mois complet avec NOX', xp: 500 },
 ];
 
+const MILESTONES = [
+  { id:'sessions_10', icon:'10', title:'10 séances', desc:'10 séances terminées', kind:'workouts', target:10 },
+  { id:'sessions_25', icon:'25', title:'25 séances', desc:'25 séances terminées', kind:'workouts', target:25 },
+  { id:'sessions_50', icon:'50', title:'50 séances', desc:'50 séances terminées', kind:'workouts', target:50 },
+  { id:'sessions_100', icon:'100', title:'100 séances', desc:'100 séances terminées', kind:'workouts', target:100 },
+  { id:'records_5', icon:'PR', title:'5 records', desc:'5 records personnels enregistrés', kind:'prs', target:5 },
+  { id:'records_10', icon:'PR', title:'10 records', desc:'10 records personnels enregistrés', kind:'prs', target:10 },
+  { id:'streak_7', icon:'7J', title:'7 jours réguliers', desc:'7 jours consécutifs de suivi NOX', kind:'streak', target:7 },
+  { id:'streak_30', icon:'30J', title:'30 jours réguliers', desc:'30 jours consécutifs de suivi NOX', kind:'streak', target:30 },
+] as const;
+
 const LEVELS = [
   { level: 1, name: 'NOVICE', minXp: 0, color: '#555' },
   { level: 2, name: 'DÉBUTANT', minXp: 200, color: '#4488ff' },
@@ -276,9 +287,15 @@ export default function Play() {
             ))}
           </div>
 
+
+          <div style={{margin:'0 2px 10px'}}><div style={{fontSize:15,fontWeight:950}}>Milestones</div><div style={{fontSize:10.5,color:'#666',marginTop:3}}>Étapes de progression durables · distinctes des badges XP</div></div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:22}}>
+            {MILESTONES.map(m=>{const current=m.kind==='workouts'?totalWorkouts:m.kind==='prs'?totalPRs:streak;const done=current>=m.target;const pct=Math.min(100,Math.round((current/m.target)*100));return <div key={m.id} style={{background:'#fff',border:'1px solid '+(done?'rgba(183,255,0,.7)':BORDER),borderRadius:15,padding:13}}><div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center'}}><span style={{width:34,height:34,borderRadius:10,background:done?ACCENT:'#F1F1F1',display:'grid',placeItems:'center',fontSize:10,fontWeight:950}}>{done?'✓':m.icon}</span><strong style={{fontSize:10}}>{Math.min(current,m.target)}/{m.target}</strong></div><div style={{fontSize:12,fontWeight:950,marginTop:10}}>{m.title}</div><div style={{fontSize:9.5,color:'#777',marginTop:3}}>{m.desc}</div><div style={{height:5,background:'#ECECEC',borderRadius:99,overflow:'hidden',marginTop:9}}><div style={{height:'100%',width:pct+'%',background:ACCENT}}/></div></div>})}
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', margin: '0 2px 10px' }}>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 950 }}>Achievements</div>
+              <div style={{ fontSize: 15, fontWeight: 950 }}>Badges</div>
               <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>{earned.length} débloqué{earned.length > 1 ? 's' : ''} sur {ACHIEVEMENTS.length}</div>
             </div>
             <div style={{ color: ACCENT, fontSize: 11, fontWeight: 950 }}>{Math.round((earned.length / ACHIEVEMENTS.length) * 100)}%</div>
