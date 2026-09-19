@@ -362,6 +362,18 @@ export default function Body() {
   const avgProtein = Math.round(rangeFoods.reduce((s,e)=>s+Number(e.protein||0),0) / trackedDays);
   const activeMinutesRange = Math.round(rangeActivities.reduce((s,a)=>s+Number(a.duration_minutes||0),0));
   const rangeWeightLogs = rangeData.filter(l => Number(l.weight) > 0);
+  const measurementLogs = rangeData.filter(l => l.waist_cm || l.chest_cm || l.hips_cm || l.arms_cm || l.thighs_cm);
+  const measurementDelta = (key: string) => {
+    const points = measurementLogs.filter(l => Number(l[key]) > 0);
+    if (points.length < 2) return null;
+    return Number(points[points.length - 1][key]) - Number(points[0][key]);
+  };
+  const measurementCards = [
+    ['Taille', 'waist_cm'], ['Poitrine', 'chest_cm'], ['Hanches', 'hips_cm'], ['Bras', 'arms_cm'], ['Cuisses', 'thighs_cm'],
+  ].map(([label,key]) => {
+    const current = measurementLogs.filter(l => Number(l[key]) > 0).at(-1);
+    return { label, key, value: current ? Number(current[key]) : null, delta: measurementDelta(key) };
+  });
   const firstRangeWeight = rangeWeightLogs[0]?.weight ? Number(rangeWeightLogs[0].weight) : null;
   const latestRangeWeight = rangeWeightLogs.length ? Number(rangeWeightLogs[rangeWeightLogs.length - 1].weight) : null;
   const weightChange = firstRangeWeight !== null && latestRangeWeight !== null ? latestRangeWeight - firstRangeWeight : null;
@@ -548,6 +560,19 @@ export default function Body() {
                   <div style={{ color:'#888', fontSize:12, lineHeight:1.5, marginTop:14 }}>Continue à enregistrer ton poids, tes repas, tes activités et tes séances pour construire ta synthèse.</div>
                 )}
                 <div style={{ color:'#777', fontSize:9.5, lineHeight:1.45, marginTop:13 }}>Synthèse descriptive basée uniquement sur tes données enregistrées dans NOX. Les tendances ne garantissent pas un résultat futur.</div>
+              </div>
+
+              <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>ÉVOLUTION DES MENSURATIONS</div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:10, marginBottom:18 }}>
+                {measurementCards.map(item => (
+                  <div key={item.key} style={{ background:'#fff', border:`1px solid ${BORDER}`, borderRadius:18, padding:15 }}>
+                    <div style={{ fontSize:9.5, color:'#777', fontWeight:900, textTransform:'uppercase', letterSpacing:'.07em' }}>{item.label}</div>
+                    <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:8, marginTop:8 }}>
+                      <div style={{ fontSize:21, fontWeight:950 }}>{item.value !== null ? item.value.toFixed(1) : '—'}{item.value !== null && <span style={{ fontSize:10, color:'#777', marginLeft:3 }}>cm</span>}</div>
+                      {item.delta !== null && <div style={{ fontSize:11, fontWeight:900, color:'#0A0A0A', background:ACCENT, borderRadius:999, padding:'5px 7px' }}>{item.delta > 0 ? '+' : ''}{item.delta.toFixed(1)}</div>}
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>MENSURATIONS</div>
