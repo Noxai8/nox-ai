@@ -176,6 +176,7 @@ export default function Home() {
   const [goalWeight, setGoalWeight] = useState<number | null>(null);
   const [latestSleepHours, setLatestSleepHours] = useState<number | null>(null);
   const [xp, setXp] = useState(0);
+  const [tomorrowMealPlanned, setTomorrowMealPlanned] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const days = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'];
@@ -211,6 +212,7 @@ export default function Home() {
         { data: todayActivity },
         { data: nutritionTarget },
         { data: recoveryLogs },
+        { data: tomorrowMeals },
       ] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase.from('workout_programs').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
@@ -236,6 +238,7 @@ export default function Home() {
         supabase.from('activity_logs').select('duration_minutes, distance_km, calories_burned, steps').eq('user_id', user.id).gte('performed_at', today + 'T00:00:00').lt('performed_at', tomorrow + 'T00:00:00'),
         supabase.from('nutrition_targets').select('calories, protein').eq('user_id', user.id).maybeSingle(),
         supabase.from('recovery_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
+        supabase.from('meal_plans').select('id').eq('user_id', user.id).eq('planned_date', tomorrow).limit(1),
       ]);
 
       setProfile(prof);
@@ -274,6 +277,7 @@ export default function Home() {
       const sleepHours = Number(recovery?.sleep_hours ?? recovery?.sleep_duration_hours ?? recovery?.sleep_duration ?? 0);
       setLatestSleepHours(Number.isFinite(sleepHours) && sleepHours > 0 ? sleepHours : null);
       setXp(prof?.xp || 0);
+      setTomorrowMealPlanned((tomorrowMeals?.length || 0) > 0);
 
       if (prog?.program_json) {
         const sessions = prog.program_json.sessions || [];
@@ -358,6 +362,7 @@ export default function Home() {
   const stepProgress = stepGoal > 0 ? Math.min(1, todaySteps / stepGoal) : 0;
   const daySignals = [todayFoodCount > 0, nutritionProgress >= .7, proteinProgress >= .7, todayActivityMinutes >= 20 || todayWorkouts > 0, todayWaterMl >= waterGoal * .7];
   const consistencySignals = daySignals.filter(Boolean).length;
+  const tomorrowSessionPlanned = Boolean(program?.program_json?.sessions?.some((session:any)=>{const tomorrowDay=days[tomorrowDate.getDay()];return session.day===tomorrowDay||(session.days&&session.days.includes(tomorrowDay));}));
 
   return (
     <div style={{ minHeight: '100vh', background: BG, color: TEXT, paddingBottom: 104 }}>
@@ -582,6 +587,15 @@ export default function Home() {
               )}
             </div>
           </div>
+
+          {dayPeriod==='evening'&&<div style={{...cardStyle,padding:18,marginBottom:14}}>
+            <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>DEMAIN</div>
+            <div style={{fontSize:18,fontWeight:950,marginTop:4}}>PRÉPARE TA JOURNÉE</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:12}}>
+              <button onClick={()=>navigate('/meal-planner')} style={{border:'1px solid '+BORDER,borderRadius:13,background:SURFACE_2,padding:12,textAlign:'left',cursor:'pointer'}}><Apple size={16}/><div style={{fontSize:11,fontWeight:900,marginTop:8}}>{tomorrowMealPlanned?'REPAS PLANIFIÉS':'PLANIFIER LES REPAS'}</div></button>
+              <button onClick={()=>navigate('/program')} style={{border:'1px solid '+BORDER,borderRadius:13,background:SURFACE_2,padding:12,textAlign:'left',cursor:'pointer'}}><Dumbbell size={16}/><div style={{fontSize:11,fontWeight:900,marginTop:8}}>{tomorrowSessionPlanned?'SÉANCE PRÉVUE':'VOIR LE PLANNING'}</div></button>
+            </div>
+          </div>}
 
           <button onClick={()=>navigate('/fuel')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>NUTRITION AUJOURD'HUI</div><div style={{fontSize:20,fontWeight:950,marginTop:4}}>{Math.round(todayKcal)} <span style={{fontSize:12,color:MUTED}}>/ {targetKcal ? Math.round(targetKcal) : '—'} kcal</span></div></div><ChevronRight size={18}/></div>
