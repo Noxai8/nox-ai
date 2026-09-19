@@ -46,11 +46,11 @@ export default function Settings() {
       <div style={{ paddingTop: 24 }}>
         <Section title="Compte">
           <Row icon="👤" label="Email" value={user?.email} />
-          <Row icon="🔑" label="Changer le mot de passe" onClick={() => {}} />
+          <Row icon="🔑" label="Changer le mot de passe" onClick={async () => { if (!user?.email) return; await supabase.auth.resetPasswordForEmail(user.email); window.alert("NOX t’a envoyé un lien de réinitialisation par e-mail."); }} />
         </Section>
 
         <Section title="App">
-          <Row icon="🌙" label="Thème" value="Dark" />
+          <Row icon="☀️" label="Thème" value="Clair NOX" />
           <Row icon="🇫🇷" label="Langue" value="Français" />
           <Row icon="⚖️" label="Unités" value="Métriques (kg, cm)" />
         </Section>
@@ -75,7 +75,7 @@ export default function Settings() {
           <Row icon="📊" label="Mon bilan hebdo" onClick={() => navigate('/weekly-review')} />
           <Row icon="🌙" label="Sommeil & récupération" onClick={() => navigate('/recovery')} />
           <Row icon="🔔" label="Notifications" onClick={() => navigate('/notification-settings')} />
-          <Row icon="🎯" label="Calibration débutant" onClick={() => navigate('/calibration')} />
+          <Row icon="🎯" label="Objectifs & calibration" onClick={() => navigate('/calibration')} />
           <Row icon="👥" label="Mode Partenaire" onClick={() => navigate('/partner')} />
           <Row icon="🏆" label="Mes achievements" onClick={() => navigate('/play')} />
         </Section>
@@ -85,6 +85,8 @@ export default function Settings() {
           <Row icon="🗑️" label="Supprimer mon compte" onClick={() => setShowDeleteConfirm(true)} danger />
         </Section>
 
+        <Section title="Confidentialité"><Row icon="🔒" label="Centre de confidentialité" value="Données privées par défaut" /><Row icon="📤" label="Export de mes données" value="À venir" /></Section>
+
         <div style={{ padding: '16px 20px', textAlign: 'center' }}>
           <div style={{ fontSize: 12, color: '#777' }}>NOX · Version 1.0.0</div>
           <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>Ton système d'exploitation physique</div>
@@ -93,15 +95,15 @@ export default function Settings() {
 
       {showDeleteConfirm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.9)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <div style={{ background: '#0d0d0d', border: '1px solid #333', borderRadius: 20, padding: 28, maxWidth: 320, width: '100%' }}>
+          <div style={{ background: '#fff', border: '1px solid #EAEAEA', borderRadius: 20, padding: 28, maxWidth: 320, width: '100%' }}>
             <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 16 }}>⚠️</div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', textAlign: 'center', marginBottom: 12 }}>Supprimer le compte ?</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#0A0A0A', textAlign: 'center', marginBottom: 12 }}>Supprimer le compte ?</div>
             <div style={{ fontSize: 14, color: '#555', textAlign: 'center', marginBottom: 24, lineHeight: 1.5 }}>
               Toutes tes données seront supprimées définitivement. Cette action est irréversible.
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setShowDeleteConfirm(false)} style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontWeight: 700, cursor: 'pointer' }}>ANNULER</button>
-              <button onClick={async () => { await supabase.auth.signOut(); navigate('/'); }} style={{ flex: 1, padding: 14, background: '#ff4444', border: 'none', borderRadius: 12, color: '#fff', fontWeight: 900, cursor: 'pointer' }}>SUPPRIMER</button>
+              <button onClick={() => setShowDeleteConfirm(false)} style={{ flex: 1, padding: 14, background: '#F7F7F7', border: '1px solid ' + BORDER, borderRadius: 12, color: '#0A0A0A', fontWeight: 700, cursor: 'pointer' }}>ANNULER</button>
+              <button onClick={async () => { window.alert('La suppression définitive du compte nécessite le service de suppression serveur NOX. Aucune donnée n’a été supprimée.'); setShowDeleteConfirm(false); }} style={{ flex: 1, padding: 14, background: '#ff4444', border: 'none', borderRadius: 12, color: '#fff', fontWeight: 900, cursor: 'pointer' }}>SUPPRIMER</button>
             </div>
           </div>
         </div>
