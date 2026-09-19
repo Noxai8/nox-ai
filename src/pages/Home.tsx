@@ -181,6 +181,7 @@ export default function Home() {
   const [xp, setXp] = useState(0);
   const [tomorrowMealPlanned, setTomorrowMealPlanned] = useState(false);
   const [tomorrowMealCount, setTomorrowMealCount] = useState(0);
+  const [todayPlannedMeals, setTodayPlannedMeals] = useState(0);
   const [loading, setLoading] = useState(true);
   const [habits] = useState(() => [
     { id: 'nutrition', label: 'Suivre ma nutrition' },
@@ -224,6 +225,7 @@ export default function Home() {
         { data: nutritionTarget },
         { data: recoveryLogs },
         { data: tomorrowMeals },
+        { data: todayPlannedMeals },
       ] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase.from('workout_programs').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
@@ -256,7 +258,8 @@ export default function Home() {
         supabase.from('activity_logs').select('duration_minutes, distance_km, calories_burned, steps').eq('user_id', user.id).gte('performed_at', today + 'T00:00:00').lt('performed_at', tomorrow + 'T00:00:00'),
         supabase.from('nutrition_targets').select('calories, protein, carbs, fat').eq('user_id', user.id).maybeSingle(),
         supabase.from('recovery_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
-        supabase.from('meal_plans').select('id').eq('user_id', user.id).eq('planned_date', tomorrow).limit(1),
+        supabase.from('meal_plans').select('id').eq('user_id', user.id).eq('planned_date', tomorrow),
+        supabase.from('meal_plans').select('id').eq('user_id', user.id).eq('planned_date', today).eq('logged', false),
       ]);
 
       setProfile(prof);
@@ -306,6 +309,7 @@ export default function Home() {
       setXp(prof?.xp || 0);
       setTomorrowMealPlanned((tomorrowMeals?.length || 0) > 0);
       setTomorrowMealCount(tomorrowMeals?.length || 0);
+      setTodayPlannedMeals(todayPlannedMeals?.length || 0);
 
       if (prog?.program_json) {
         const sessions = prog.program_json.sessions || [];
@@ -413,7 +417,9 @@ export default function Home() {
     { label: 'Activité', done: totalActiveMinutes >= 20 || todayWorkouts > 0 },
     { label: 'Hydratation', done: todayWaterMl >= waterGoal * .7 },
   ];
-  const nextBestAction = !todayFoodCount
+  const nextBestAction = todayPlannedMeals > 0
+    ? { label: 'Voir mes repas planifiés', detail: `${todayPlannedMeals} repas planifié${todayPlannedMeals>1?'s':''} reste${todayPlannedMeals>1?'nt':''} à enregistrer aujourd’hui.`, route: '/meal-planner' }
+    : !todayFoodCount
     ? { label: 'Enregistrer un repas', detail: 'Commence ton suivi nutritionnel du jour.', route: '/fuel' }
     : nutritionProgress < .7
       ? { label: 'Compléter ma nutrition', detail: effectiveTargetKcal ? `${Math.max(0, Math.round(effectiveTargetKcal-todayKcal))} kcal restent sur ta cible du jour.` : 'Ajoute ce que tu as mangé aujourd’hui.', route: '/fuel' }
