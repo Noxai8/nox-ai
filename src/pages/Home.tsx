@@ -391,6 +391,24 @@ export default function Home() {
 
   const addWater = (ml: number) => updateWater(todayWaterMl + ml);
 
+  const nutritionProgress = effectiveTargetKcal ? todayKcal / effectiveTargetKcal : null;
+  const proteinProgress = targetProtein ? todayProtein / targetProtein : null;
+  const briefInsight = dayPeriod === 'morning'
+    ? (todayKcal === 0
+        ? 'Aucun repas enregistré pour le moment. Ajoute ce que tu consommes quand ta journée commence.'
+        : `${todayMealCount} repas renseigné${todayMealCount > 1 ? 's' : ''} · ton suivi se construit au fil de la journée.`)
+    : dayPeriod === 'evening'
+      ? (nutritionProgress !== null && proteinProgress !== null
+          ? `Apports enregistrés : ${Math.round(nutritionProgress * 100)}% du repère calorique et ${Math.round(proteinProgress * 100)}% du repère protéines. Ces pourcentages décrivent uniquement les données saisies.`
+          : `${consistencySignals}/5 repères renseignés aujourd’hui. Les données manquantes ne sont pas estimées.`)
+      : (totalActiveMinutes > 0
+          ? `${Math.round(totalActiveMinutes)} min actives enregistrées jusqu’ici. Continue simplement à renseigner ce qui compte pour toi.`
+          : 'Aucune activité enregistrée pour le moment. NOX attend tes données plutôt que d’estimer ce qui manque.');
+
+  const trendExplanation = weekFoodDays >= 4 && weekWorkouts >= 2
+    ? `Suivi récent suffisamment régulier pour comparer plusieurs piliers : nutrition enregistrée ${weekFoodDays}/7 jours et ${weekWorkouts} séance${weekWorkouts > 1 ? 's' : ''} sur 7 jours.`
+    : `Tendance encore partielle : nutrition enregistrée ${weekFoodDays}/7 jours et ${weekWorkouts} séance${weekWorkouts > 1 ? 's' : ''} sur 7 jours. NOX évite de tirer une conclusion forte avec peu de données.`;
+
   const hasPossibleActivityDuplicate = (activityType: string, durationMinutes: number, performedAt: string) => {
     const key = `${String(activityType||'').toLowerCase()}|${Math.round(Number(durationMinutes||0))}|${String(performedAt||'').slice(0,13)}`;
     return recentActivityKeys.includes(key);
@@ -839,8 +857,21 @@ export default function Home() {
               <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayProtein)}{targetProtein ? ` / ${Math.round(targetProtein)}` : ''}g</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>PROTÉINES</div></div>
               <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(totalActiveMinutes)}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>MIN ACTIVES</div></div>
             </div>
-            <div style={{fontSize:11.5,color:MUTED,lineHeight:1.5,marginTop:11}}>{todayKcal===0&&totalActiveMinutes===0?'Commence ta journée : ajoute ton premier repas ou une activité.':dayPeriod==='evening'?`${consistencySignals}/5 repères de suivi renseignés aujourd’hui${todayMealTypes.length ? ` · ${todayMealTypes.length} type${todayMealTypes.length>1?'s':''} de repas enregistré${todayMealTypes.length>1?'s':''}` : ''}. Consulte les cartes ci-dessus pour compléter ce qui compte pour toi.`:effectiveTargetKcal===null?'Continue à enregistrer ta journée. Définis une cible dans Nutrition pour comparer tes apports à un repère personnalisé.':(remainingKcal||0)>0?`Il te reste environ ${Math.round(remainingKcal || 0)} kcal sur ton repère actuel. Continue à enregistrer ta journée pour garder une vue complète.`:'Tes apports enregistrés ont atteint ton repère calorique actuel. Consulte Nutrition pour le détail.'}</div>
+            <div style={{fontSize:11.5,color:MUTED,lineHeight:1.5,marginTop:11}}>{briefInsight}</div>
+            {dayPeriod==='evening'&&<div style={{marginTop:11,paddingTop:11,borderTop:'1px solid '+BORDER}}>
+              <div style={{fontSize:9.5,fontWeight:900,letterSpacing:'.09em',color:MUTED}}>EVENING RECAP</div>
+              <div style={{fontSize:12,fontWeight:850,marginTop:5}}>{consistencySignals}/5 repères de suivi renseignés</div>
+              <div style={{fontSize:10.5,color:MUTED,lineHeight:1.45,marginTop:5}}>Repas : {todayMealCount} · Activité : {Math.round(totalActiveMinutes)} min · Eau : {Math.round(todayWaterMl)} ml · Séances : {todayWorkouts} · Poids {todayWeightLogged?'renseigné':'non renseigné'}.</div>
+            </div>}
           </div>
+
+          <button onClick={()=>navigate('/weekly-review')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+              <div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>TENDANCES · 7 JOURS</div><div style={{fontSize:18,fontWeight:950,marginTop:4}}>CE QUE TES DONNÉES MONTRENT</div></div><ChevronRight size={18}/>
+            </div>
+            <div style={{fontSize:11,color:MUTED,lineHeight:1.5,marginTop:9}}>{trendExplanation}</div>
+            <div style={{fontSize:9.5,color:MUTED,lineHeight:1.45,marginTop:8}}>Une tendance décrit tes données enregistrées ; elle ne remplace pas les jours manquants et ne constitue pas une interprétation médicale.</div>
+          </button>
 
           {todayActivitySources.includes('machine_scan')&&<div style={{...cardStyle,padding:14,marginBottom:14,fontSize:10.5,color:MUTED,lineHeight:1.45}}><strong style={{color:TEXT}}>Sources d’activité :</strong> NOX conserve la provenance des données scannées. Lors d’un prochain enregistrement, une activité de même type, durée et heure pourra être signalée comme doublon potentiel avant agrégation.</div>}
 
