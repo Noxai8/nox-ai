@@ -766,7 +766,7 @@ export default function Fuel() {
               <div>
                 <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 950, letterSpacing: '.11em' }}>NOX NUTRITION</div>
                 <div style={{ fontSize: 18, fontWeight: 950, marginTop: 3 }}>
-                  {addMode === 'choose' ? 'AJOUTER UN REPAS' : addMode === 'photo' ? 'SCAN IA' : addMode === 'search' ? 'RECHERCHER' : addMode === 'barcode' ? 'CODE-BARRES' : 'SAISIE MANUELLE'}
+                  {addMode === 'choose' ? 'AJOUTER UN REPAS' : addMode === 'photo' ? 'SCAN NOX' : addMode === 'search' ? 'RECHERCHER' : addMode === 'barcode' ? 'CODE-BARRES' : 'SAISIE MANUELLE'}
                 </div>
               </div>
               <button onClick={closeAdd} style={{ width: 36, height: 36, borderRadius: 12, border: '1px solid #EAEAEA', background: '#151515', color: '#888', fontSize: 21, cursor: 'pointer' }}>×</button>
@@ -800,14 +800,14 @@ export default function Fuel() {
                 </div>
 
                 <div style={{ display: 'grid', gap: 9 }}>
-                  <button onClick={() => { setAddMode('photo'); fileRef.current?.click(); }} style={{
+                  <button onClick={() => navigate('/food-scan', { state: { scanMode: 'meal', meal: selectedMeal } })} style={{
                     minHeight: 96, padding: 17, borderRadius: 17, cursor: 'pointer', textAlign: 'left',
                     background: 'linear-gradient(135deg,rgba(200,255,0,.13),rgba(200,255,0,.035))',
                     border: '1px solid rgba(200,255,0,.25)', color: '#0A0A0A'
                   }}>
-                    <div style={{ color: ACCENT, fontSize: 10, fontWeight: 950, letterSpacing: '.09em' }}>RECOMMANDÉ</div>
-                    <div style={{ fontSize: 16, fontWeight: 950, marginTop: 7 }}>Scanner avec NOX</div>
-                    <div style={{ fontSize: 11.5, color: '#888', lineHeight: 1.45, marginTop: 4 }}>Prends une photo. NOX estime les aliments, calories et macros.</div>
+                    <div style={{ color: ACCENT, fontSize: 10, fontWeight: 950, letterSpacing: '.09em' }}>NOX SCAN</div>
+                    <div style={{ fontSize: 16, fontWeight: 950, marginTop: 7 }}>Scanner nourriture</div>
+                    <div style={{ fontSize: 11.5, color: '#666', lineHeight: 1.45, marginTop: 4 }}>Ouvre le scanner universel NOX, puis vérifie le repas avant de l’ajouter.</div>
                   </button>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 9 }}>
@@ -840,8 +840,8 @@ export default function Fuel() {
 
                 {scanning && (
                   <div style={{ padding: '34px 18px', textAlign: 'center', borderRadius: 18, background: '#FFFFFF', border: '1px solid #EAEAEA' }}>
-                    <div style={{ width: 42, height: 42, margin: '0 auto 15px', borderRadius: 14, border: '1px solid rgba(200,255,0,.25)', background: 'rgba(200,255,0,.08)', display: 'grid', placeItems: 'center', color: ACCENT, fontWeight: 950 }}>AI</div>
-                    <div style={{ fontSize: 15, fontWeight: 950 }}>NOX ANALYSE TON REPAS</div>
+                    <div style={{ width: 42, height: 42, margin: '0 auto 15px', borderRadius: 14, border: '1px solid rgba(200,255,0,.25)', background: 'rgba(200,255,0,.08)', display: 'grid', placeItems: 'center', color: ACCENT, fontWeight: 950 }}>NOX</div>
+                    <div style={{ fontSize: 15, fontWeight: 950 }}>ANALYSE DU REPAS</div>
                     <div style={{ fontSize: 11.5, color: '#666', marginTop: 7 }}>Détection des aliments et estimation nutritionnelle…</div>
                   </div>
                 )}
