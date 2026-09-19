@@ -213,6 +213,7 @@ export default function Recipes() {
   const [view, setView] = useState<View>('list');
   const [recipes, setRecipes] = useState<any[]>([]);
   const [selectedMeal, setSelectedMeal] = useState('Déjeuner');
+  const [portions, setPortions] = useState(1);
   const [selected, setSelected] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [nutritionTarget, setNutritionTarget] = useState<any>(null);
@@ -413,6 +414,7 @@ export default function Recipes() {
     setView('detail');
     setActionMessage('');
     setError('');
+    setPortions(1);
   };
 
   const dailyCalories = Number(nutritionTarget?.calories || 0) > 0
@@ -544,7 +546,7 @@ export default function Recipes() {
                   {recipes.map(r => (
                     <button
                       key={r.id}
-                      onClick={() => { setSelected(r); setView('detail'); setActionMessage(''); setError(''); }}
+                      onClick={() => { setSelected(r); setView('detail'); setActionMessage(''); setError(''); setPortions(1); }}
                       style={{ width: '100%', background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 15, padding: '14px 15px', marginBottom: 8, textAlign: 'left', cursor: 'pointer', color: '#0A0A0A' }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
@@ -738,14 +740,22 @@ export default function Recipes() {
                 ))}
               </div>
 
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '11px 12px', background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, marginBottom: 9 }}>
+                <div><div style={{ fontSize: 9, color: '#777', fontWeight: 900 }}>PORTIONS</div><div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>Ajuste avant l’ajout</div></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <button onClick={() => setPortions(p => Math.max(.5, p - .5))} style={{ width: 32, height: 32, borderRadius: 10, border: `1px solid ${BORDER}`, background: '#fff', fontWeight: 950, cursor: 'pointer' }}>−</button>
+                  <strong style={{ minWidth: 30, textAlign: 'center' }}>{portions}</strong>
+                  <button onClick={() => setPortions(p => Math.min(10, p + .5))} style={{ width: 32, height: 32, borderRadius: 10, border: `1px solid ${BORDER}`, background: '#fff', fontWeight: 950, cursor: 'pointer' }}>+</button>
+                </div>
+              </div>
               <button
                 onClick={async () => {
-                  const ok = await useRecipe(selected);
+                  const ok = await useRecipe(selected, portions);
                   if (ok) setView('list');
                 }}
                 style={{ width: '100%', padding: 17, background: ACCENT, border: 0, borderRadius: 13, color: '#050505', fontWeight: 950, fontSize: 14, cursor: 'pointer', marginBottom: 9 }}
               >
-                AJOUTER AU JOURNAL · {selected.calories_per_serving || 0} KCAL
+                AJOUTER AU JOURNAL · {Math.round((selected.calories_per_serving || 0) * portions)} KCAL
               </button>
 
               {selected.suggested ? (
