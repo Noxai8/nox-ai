@@ -428,8 +428,8 @@ export default function Body() {
   const monthlyWeights = logs.filter(l => Number(l.weight)>0 && new Date(l.created_at).getTime() >= monthlyWindow).reverse();
   const monthlyWeightChange = monthlyWeights.length > 1 ? Number(monthlyWeights.at(-1).weight) - Number(monthlyWeights[0].weight) : null;
   const timeline = [
-    ...logs.map((item:any)=>({type:'body',date:item.created_at,title:item.weight?\`Poids · \${Number(item.weight).toFixed(1)} kg\`:'Mensurations',detail:[item.waist_cm&&\`Taille \${item.waist_cm} cm\`,item.chest_cm&&\`Poitrine \${item.chest_cm} cm\`].filter(Boolean).join(' · ')})),
-    ...activities.map((item:any)=>({type:'activity',date:item.performed_at||item.created_at,title:String(item.activity_type||'Activité').replaceAll('_',' '),detail:\`\${Math.round(Number(item.duration_minutes||0))} min\${item.distance_km?\` · \${Number(item.distance_km).toFixed(1)} km\`:''}\`})),
+    ...logs.map((item:any)=>({type:'body',date:item.created_at,title:item.weight?`Poids · ${Number(item.weight).toFixed(1)} kg`:'Mensurations',detail:[item.waist_cm&&`Taille ${item.waist_cm} cm`,item.chest_cm&&`Poitrine ${item.chest_cm} cm`].filter(Boolean).join(' · ')})),
+    ...activities.map((item:any)=>({type:'activity',date:item.performed_at||item.created_at,title:String(item.activity_type||'Activité').replaceAll('_',' '),detail:`${Math.round(Number(item.duration_minutes||0))} min${item.distance_km?` · ${Number(item.distance_km).toFixed(1)} km`:''}`})),
     ...workouts.filter((item:any)=>item.status==='completed'||item.completed_at).map((item:any)=>({type:'training',date:item.completed_at||item.created_at,title:'Séance Training terminée',detail:item.name||item.workout_name||''})),
   ].filter(item=>item.date).sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).slice(0,12);
   const rangeActivityDays = new Set(rangeActivities.map(a=>new Date(a.performed_at||a.created_at).toLocaleDateString('en-CA'))).size || 1;
@@ -667,8 +667,8 @@ export default function Body() {
               </div>
 
               <div style={{ fontSize:10.5,color:'#777',fontWeight:900,letterSpacing:'.09em',margin:'22px 2px 10px' }}>TIMELINE NOX</div>
-              <div style={{background:'#fff',border:\`1px solid \${BORDER}\`,borderRadius:20,padding:'4px 15px',marginBottom:18}}>
-                {timeline.length===0?<div style={{padding:'22px 4px',fontSize:12,color:'#777'}}>Ta timeline se construira avec tes check-ins, activités et entraînements.</div>:timeline.map((item:any,i:number)=><div key={item.type+item.date+i} style={{display:'grid',gridTemplateColumns:'12px 1fr',gap:11,padding:'13px 0',borderBottom:i<timeline.length-1?\`1px solid \${BORDER}\`:'none'}}>
+              <div style={{background:'#fff',border:`1px solid ${BORDER}`,borderRadius:20,padding:'4px 15px',marginBottom:18}}>
+                {timeline.length===0?<div style={{padding:'22px 4px',fontSize:12,color:'#777'}}>Ta timeline se construira avec tes check-ins, activités et entraînements.</div>:timeline.map((item:any,i:number)=><div key={item.type+item.date+i} style={{display:'grid',gridTemplateColumns:'12px 1fr',gap:11,padding:'13px 0',borderBottom:i<timeline.length-1?`1px solid ${BORDER}`:'none'}}>
                   <span style={{width:9,height:9,borderRadius:'50%',background:item.type==='body'?ACCENT:'#0A0A0A',marginTop:4}}/>
                   <div><div style={{fontSize:12.5,fontWeight:900,textTransform:'capitalize'}}>{item.title}</div>{item.detail&&<div style={{fontSize:10.5,color:'#777',marginTop:3}}>{item.detail}</div>}<div style={{fontSize:9.5,color:'#999',marginTop:4}}>{new Date(item.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</div></div>
                 </div>)}
@@ -677,11 +677,11 @@ export default function Body() {
               <div style={{ fontSize:10.5,color:'#777',fontWeight:900,letterSpacing:'.09em',margin:'22px 2px 10px' }}>MOYENNES DE LA PÉRIODE</div>
               <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10,marginBottom:18}}>
                 {[
-                  ['Nutrition',rangeFoods.length?\`\${avgCalories} kcal/j · \${avgProtein} g prot.\`:'—'],
-                  ['Activité',rangeActivities.length?\`\${avgActivityMinutes} min/j · \${avgActivityCalories} kcal/j\`:'—'],
-                  ['Training',rangeWorkouts.length?\`\${rangeWorkouts.length} séances\${workoutsPerWeek!==null?\` · \${workoutsPerWeek}/sem.\`:''}\`:'—'],
-                  ['Suivi',\`\${trackedDays} jour(s) nutrition\`],
-                ].map(([label,value])=><div key={label} style={{background:'#fff',border:\`1px solid \${BORDER}\`,borderRadius:16,padding:14}}><div style={{fontSize:9,color:'#777',fontWeight:900,letterSpacing:'.07em'}}>{label.toUpperCase()}</div><div style={{fontSize:13,fontWeight:900,marginTop:7,lineHeight:1.35}}>{value}</div></div>)}
+                  ['Nutrition',rangeFoods.length?`${avgCalories} kcal/j · ${avgProtein} g prot.`:'—'],
+                  ['Activité',rangeActivities.length?`${avgActivityMinutes} min/j · ${avgActivityCalories} kcal/j`:'—'],
+                  ['Training',rangeWorkouts.length?`${rangeWorkouts.length} séances${workoutsPerWeek!==null?` · ${workoutsPerWeek}/sem.`:''}`:'—'],
+                  ['Suivi',`${trackedDays} jour(s) nutrition`],
+                ].map(([label,value])=><div key={label} style={{background:'#fff',border:`1px solid ${BORDER}`,borderRadius:16,padding:14}}><div style={{fontSize:9,color:'#777',fontWeight:900,letterSpacing:'.07em'}}>{label.toUpperCase()}</div><div style={{fontSize:13,fontWeight:900,marginTop:7,lineHeight:1.35}}>{value}</div></div>)}
               </div>
 
               <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>ÉVOLUTION DES MENSURATIONS</div>
