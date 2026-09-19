@@ -68,7 +68,7 @@ const COMMON_FOODS = [
 
 const MEALS = ['Petit-déjeuner', 'Déjeuner', 'Dîner', 'Snacks'];
 
-type AddMode = 'choose' | 'photo' | 'search' | 'custom' | 'barcode';
+type AddMode = 'choose' | 'photo' | 'search' | 'custom' | 'barcode' | 'quick_add' | 'meal_builder' | 'voice';
 
 type NutritionTargets = { kcal: number; protein: number; carbs: number; fat: number };
 
@@ -206,6 +206,11 @@ export default function Fuel() {
   const [, setIsWeekend] = useState(false);
   const [fuelError, setFuelError] = useState('');
   const [targetSource, setTargetSource] = useState<'saved' | 'formula' | 'real'>('formula');
+  const [quickAddKcal, setQuickAddKcal] = useState('');
+  const [quickAddProtein, setQuickAddProtein] = useState('');
+  const [listening, setListening] = useState(false);
+  const [voiceText, setVoiceText] = useState('');
+  const [mealBuilderSuggestions, setMealBuilderSuggestions] = useState<any[]>([]);
 
   // Photo scan state
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
