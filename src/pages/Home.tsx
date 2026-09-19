@@ -816,7 +816,7 @@ export default function Home() {
               <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{Math.round(totalActiveMinutes)}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>MIN ACTIVES</div></div>
               <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{todayWorkouts}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>SÉANCES AUJ.</div></div>
             </div>
-            <div style={{fontSize:9.5,color:'#777',lineHeight:1.45,marginTop:10}}>Repère de suivi basé sur 5 signaux de la journée : nutrition enregistrée, progression calorique, protéines, activité et hydratation. Ce score décrit uniquement les données renseignées dans NOX et n’évalue pas ta santé.</div>
+            <div style={{fontSize:9.5,color:'#777',lineHeight:1.45,marginTop:10}}>Repère personnel de régularité basé sur 5 signaux renseignés aujourd’hui : suivi nutritionnel, repère calorique, protéines, activité et hydratation. Il mesure la complétude et la constance de ton suivi dans NOX, pas ta santé ni la qualité de ta journée.</div>
           </div>
 
           <div
@@ -859,7 +859,7 @@ export default function Home() {
               icon={Trophy}
               eyebrow="Progression"
               value={`${prCount} PR`}
-              detail={`${xp} XP · progression NOX`}
+              detail={`${xp} XP · régularité NOX`}
               onClick={() => navigate('/play')}
             />
           </div>
@@ -910,7 +910,7 @@ export default function Home() {
               <div style={{ maxWidth: '78%' }}>
                 <div style={{ fontSize: 21, fontWeight: 950, letterSpacing: '-.03em' }}>NOX FUTURE</div>
                 <div style={{ fontSize: 12.5, color: '#777777', lineHeight: 1.5, marginTop: 6 }}>
-                  Suis une tendance indicative construite à partir de tes données enregistrées. Elle évolue avec ton suivi et ne constitue pas une date garantie.
+                  Visualise une tendance indicative construite à partir de tes données enregistrées. Elle évolue avec ton suivi, reste incertaine et ne constitue jamais une date garantie.
                 </div>
               </div>
 
