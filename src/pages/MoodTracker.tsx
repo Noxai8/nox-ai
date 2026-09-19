@@ -3,10 +3,10 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const ACCENT = '#B7FF00';
+const BG = '#F7F7F7';
+const SURFACE = '#FFFFFF';
+const BORDER = '#EAEAEA';
 
 const MOODS = [
   { id: 5, emoji: '😄', label: 'Excellent', color: ACCENT },
@@ -269,9 +269,9 @@ export default function MoodTracker() {
     <div style={{ minHeight: '100vh', background: BG, paddingBottom: 90 }}>
       <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid ' + BORDER }}>
         <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Readiness NOX</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>HUMEUR & RÉCUPÉRATION</div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#0A0A0A' }}>HUMEUR & RÉCUPÉRATION</div>
         <div style={{ fontSize: 12, color: '#666', lineHeight: 1.5, marginTop: 6 }}>
-          Ton check-in aide NOX à décider si tu dois pousser, adapter ou récupérer.
+          Ton check-in ajoute du contexte à ta journée. Les repères affichés restent indicatifs et modifiables selon tes sensations.
         </div>
       </div>
 
@@ -279,7 +279,7 @@ export default function MoodTracker() {
         {error && (
           <div style={{ background: '#ff444411', border: '1px solid #ff444433', borderRadius: 14, padding: 14, marginBottom: 16 }}>
             <div style={{ color: '#ff7777', fontSize: 12, fontWeight: 900, marginBottom: 4 }}>ERREUR</div>
-            <div style={{ color: '#aaa', fontSize: 12, lineHeight: 1.5 }}>{error}</div>
+            <div style={{ color: '#666', fontSize: 12, lineHeight: 1.5 }}>{error}</div>
           </div>
         )}
 
@@ -299,7 +299,7 @@ export default function MoodTracker() {
 
             <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: 16, marginBottom: 18 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ color: '#aaa', fontSize: 13, fontWeight: 700 }}>Durée cette nuit</span>
+                <span style={{ color: '#666', fontSize: 13, fontWeight: 700 }}>Durée cette nuit</span>
                 <span style={{ color: ACCENT, fontSize: 16, fontWeight: 900 }}>{sleepHours.toFixed(1)} h</span>
               </div>
               <input
@@ -385,8 +385,8 @@ export default function MoodTracker() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
                 <div>
-                  <div style={{ fontSize: 10, color: '#666', fontWeight: 900, letterSpacing: '.09em', marginBottom: 5 }}>RECOMMANDATION NOX</div>
-                  <div style={{ fontSize: 17, color: '#fff', fontWeight: 900 }}>{recommendation.title}</div>
+                  <div style={{ fontSize: 10, color: '#666', fontWeight: 900, letterSpacing: '.09em', marginBottom: 5 }}>REPÈRE NOX</div>
+                  <div style={{ fontSize: 17, color: '#0A0A0A', fontWeight: 900 }}>{recommendation.title}</div>
                 </div>
                 <div style={{ fontSize: 22, fontWeight: 900, color: recommendation.level === 'go' ? ACCENT : recommendation.level === 'adapt' ? '#ffaa00' : '#ff6666' }}>
                   {recommendation.score}
@@ -395,7 +395,7 @@ export default function MoodTracker() {
               <div style={{ color: '#888', fontSize: 12, lineHeight: 1.55, marginTop: 9 }}>{recommendation.text}</div>
               <div style={{ marginTop: 12 }}>
                 {recommendation.actions.map((action, i) => (
-                  <div key={i} style={{ color: '#bbb', fontSize: 12, lineHeight: 1.5, marginTop: 6 }}>
+                  <div key={i} style={{ color: '#555', fontSize: 12, lineHeight: 1.5, marginTop: 6 }}>
                     <span style={{ color: ACCENT, marginRight: 7 }}>→</span>{action}
                   </div>
                 ))}
@@ -406,7 +406,7 @@ export default function MoodTracker() {
               value={note}
               onChange={e => setNote(e.target.value)}
               placeholder="Note personnelle (optionnel)..."
-              style={{ width: '100%', minHeight: 80, padding: '12px 14px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontSize: 14, resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', marginBottom: 16 }}
+              style={{ width: '100%', minHeight: 80, padding: '12px 14px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: '#0A0A0A', fontSize: 14, resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', marginBottom: 16 }}
             />
 
             <button
@@ -415,10 +415,10 @@ export default function MoodTracker() {
               style={{
                 width: '100%',
                 padding: 18,
-                background: mood && !saving ? ACCENT : '#1a1a1a',
+                background: mood && !saving ? ACCENT : '#E5E5E5',
                 border: 'none',
                 borderRadius: 14,
-                color: mood && !saving ? '#000' : '#444',
+                color: mood && !saving ? '#000' : '#888',
                 fontWeight: 900,
                 fontSize: 15,
                 cursor: mood && !saving ? 'pointer' : 'not-allowed',
@@ -440,14 +440,14 @@ export default function MoodTracker() {
               <div style={{ fontSize: 11, color: '#666', fontWeight: 900, letterSpacing: '.08em' }}>READINESS DU JOUR</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginTop: 6 }}>
                 <div>
-                  <div style={{ fontSize: 18, color: '#fff', fontWeight: 900 }}>{recommendation.title}</div>
+                  <div style={{ fontSize: 18, color: '#0A0A0A', fontWeight: 900 }}>{recommendation.title}</div>
                   <div style={{ color: '#777', fontSize: 12, marginTop: 4 }}>{MOODS.find(m => m.id === mood)?.emoji} {MOODS.find(m => m.id === mood)?.label}</div>
                 </div>
                 <div style={{ fontSize: 32, fontWeight: 900, color: recommendation.level === 'go' ? ACCENT : recommendation.level === 'adapt' ? '#ffaa00' : '#ff6666' }}>{recommendation.score}</div>
               </div>
               <div style={{ color: '#999', fontSize: 12, lineHeight: 1.55, marginTop: 12 }}>{recommendation.text}</div>
               {recommendation.actions.map((action, i) => (
-                <div key={i} style={{ color: '#bbb', fontSize: 12, lineHeight: 1.5, marginTop: 7 }}>
+                <div key={i} style={{ color: '#555', fontSize: 12, lineHeight: 1.5, marginTop: 7 }}>
                   <span style={{ color: ACCENT, marginRight: 7 }}>→</span>{action}
                 </div>
               ))}
@@ -455,7 +455,7 @@ export default function MoodTracker() {
 
             <button
               onClick={editToday}
-              style={{ width: '100%', padding: 13, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#aaa', fontWeight: 800, cursor: 'pointer', marginBottom: 22 }}
+              style={{ width: '100%', padding: 13, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#666', fontWeight: 800, cursor: 'pointer', marginBottom: 22 }}
             >
               MODIFIER MON CHECK-IN
             </button>
@@ -482,7 +482,7 @@ export default function MoodTracker() {
         )}
 
         <div style={{ color: '#3f3f3f', fontSize: 10, lineHeight: 1.45, marginTop: 18 }}>
-          Le score NOX est une aide à la décision basée sur tes réponses. Il ne constitue pas un diagnostic médical.
+          Ce repère de récupération est calculé à partir de tes réponses enregistrées. Il n’est ni une mesure médicale ni une consigne obligatoire.
         </div>
       </div>
 
