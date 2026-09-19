@@ -547,7 +547,7 @@ export default function Recipes() {
               <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 950 }}>Idées pour toi</div>
-                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Selon ton objectif, ta cible nutritionnelle et tes aliments récents</div>
+                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Suggestions basées sur ton objectif, ta cible nutritionnelle et tes aliments récents · à ajuster selon ta journée</div>
                 </div>
               </div>
 
@@ -568,7 +568,8 @@ export default function Recipes() {
                           ))}
                         </div>
                         <div style={{ fontSize: 14.5, fontWeight: 900 }}>{favorites.includes(recipe.id) ? '★ ' : ''}{recipe.name}</div>
-                        <div style={{ fontSize: 10.5, color: '#666', marginTop: 4, lineHeight: 1.4 }}>{recipe.subtitle}</div>\n                        <div style={{fontSize:9.5,color:'#5A7200',fontWeight:800,marginTop:6}}>{recipeFit(recipe,dailyCalories,dailyProtein)}</div>
+                        <div style={{ fontSize: 10.5, color: '#666', marginTop: 4, lineHeight: 1.4 }}>{recipe.subtitle}</div>
+                        <div style={{fontSize:9.5,color:'#5A7200',fontWeight:800,marginTop:6}}>{recipeFit(recipe,dailyCalories,dailyProtein)}</div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <div style={{ color: '#0A0A0A', fontSize: 15, fontWeight: 950 }}>{recipe.calories_per_serving}</div>
