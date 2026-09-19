@@ -116,8 +116,8 @@ function MetricCard({
           display: 'grid',
           placeItems: 'center',
           borderRadius: 11,
-          background: 'rgba(200,255,0,.09)',
-          color: ACCENT,
+          background: 'rgba(183,255,0,.18)',
+          color: '#4D6800',
           marginBottom: 18,
         }}
       >
@@ -156,7 +156,7 @@ export default function Home() {
   const [todayProtein, setTodayProtein] = useState(0);
   const [targetProtein, setTargetProtein] = useState<number | null>(null);
   const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
-  const [dayPeriod] = useState<'morning'|'day'|'evening'>(() => { const h=new Date().getHours(); return h<12?'morning':h<18?'day':'evening'; });
+  const [dayPeriod, setDayPeriod] = useState<'morning'|'day'|'evening'>(() => { const h=new Date().getHours(); return h<12?'morning':h<18?'day':'evening'; });
   const [todayFoodCount, setTodayFoodCount] = useState(0);
   const [todayWaterMl, setTodayWaterMl] = useState(0);
   const [waterGoal, setWaterGoal] = useState(2500);
@@ -174,6 +174,16 @@ export default function Home() {
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
   const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  useEffect(() => {
+    const updatePeriod = () => {
+      const h = new Date().getHours();
+      setDayPeriod(h < 12 ? 'morning' : h < 18 ? 'day' : 'evening');
+    };
+    updatePeriod();
+    const timer = window.setInterval(updatePeriod, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -296,8 +306,8 @@ export default function Home() {
         }}
       >
         <div style={{ textAlign: 'center' }}>
-          <Sparkles size={24} color={ACCENT} style={{ marginBottom: 10 }} />
-          <div style={{ color: ACCENT, fontWeight: 950, letterSpacing: '.18em', fontSize: 14 }}>NOX</div>
+          <Sparkles size={24} color={TEXT} style={{ marginBottom: 10 }} />
+          <div style={{ color: TEXT, fontWeight: 950, letterSpacing: '.18em', fontSize: 14 }}>NOX</div>
         </div>
       </div>
     );
@@ -432,7 +442,7 @@ export default function Home() {
                       textTransform: 'uppercase',
                       letterSpacing: '.08em',
                       fontWeight: 900,
-                      color: ACCENT,
+                      color: '#4D6800',
                       padding: '5px 8px',
                       border: '1px solid rgba(200,255,0,.22)',
                       background: 'rgba(200,255,0,.07)',
