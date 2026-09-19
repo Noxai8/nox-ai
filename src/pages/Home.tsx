@@ -392,20 +392,6 @@ export default function Home() {
 
   const addWater = (ml: number) => updateWater(todayWaterMl + ml);
 
-  const nutritionProgress = effectiveTargetKcal ? todayKcal / effectiveTargetKcal : null;
-  const briefProteinProgress = targetProtein ? todayProtein / targetProtein : null;
-  const briefInsight = dayPeriod === 'morning'
-    ? (todayKcal === 0
-        ? 'Aucun repas enregistré pour le moment. Ajoute ce que tu consommes quand ta journée commence.'
-        : `${todayMealCount} repas renseigné${todayMealCount > 1 ? 's' : ''} · ton suivi se construit au fil de la journée.`)
-    : dayPeriod === 'evening'
-      ? (nutritionProgress !== null && briefProteinProgress !== null
-          ? `Apports enregistrés : ${Math.round(nutritionProgress * 100)}% du repère calorique et ${Math.round(briefProteinProgress * 100)}% du repère protéines. Ces pourcentages décrivent uniquement les données saisies.`
-          : `${consistencySignals}/5 repères renseignés aujourd’hui. Les données manquantes ne sont pas estimées.`)
-      : (totalActiveMinutes > 0
-          ? `${Math.round(totalActiveMinutes)} min actives enregistrées jusqu’ici. Continue simplement à renseigner ce qui compte pour toi.`
-          : 'Aucune activité enregistrée pour le moment. NOX attend tes données plutôt que d’estimer ce qui manque.');
-
   const trendExplanation = weekFoodDays >= 4 && weekWorkouts >= 2
     ? `Suivi récent suffisamment régulier pour comparer plusieurs piliers : nutrition enregistrée ${weekFoodDays}/7 jours et ${weekWorkouts} séance${weekWorkouts > 1 ? 's' : ''} sur 7 jours.`
     : `Tendance encore partielle : nutrition enregistrée ${weekFoodDays}/7 jours et ${weekWorkouts} séance${weekWorkouts > 1 ? 's' : ''} sur 7 jours. NOX évite de tirer une conclusion forte avec peu de données.`;
@@ -488,6 +474,18 @@ export default function Home() {
     waterGoal,
   });
   const consistencySignals = dailyProgress.done;
+  const briefProteinProgress = targetProtein ? todayProtein / targetProtein : null;
+  const briefInsight = dayPeriod === 'morning'
+    ? (todayKcal === 0
+        ? 'Aucun repas enregistré pour le moment. Ajoute ce que tu consommes quand ta journée commence.'
+        : `${todayMealCount} repas renseigné${todayMealCount > 1 ? 's' : ''} · ton suivi se construit au fil de la journée.`)
+    : dayPeriod === 'evening'
+      ? (effectiveTargetKcal !== null && briefProteinProgress !== null
+          ? `Apports enregistrés : ${Math.round(nutritionProgress * 100)}% du repère calorique et ${Math.round(briefProteinProgress * 100)}% du repère protéines. Ces pourcentages décrivent uniquement les données saisies.`
+          : `${consistencySignals}/5 repères renseignés aujourd’hui. Les données manquantes ne sont pas estimées.`)
+      : (totalActiveMinutes > 0
+          ? `${Math.round(totalActiveMinutes)} min actives enregistrées jusqu’ici. Continue simplement à renseigner ce qui compte pour toi.`
+          : 'Aucune activité enregistrée pour le moment. NOX attend tes données plutôt que d’estimer ce qui manque.');
   const dailyScore = dailyProgress.score;
   const dailyScoreLabel = `${dailyProgress.done}/${dailyProgress.total} REPÈRE${dailyProgress.total>1?'S':''}`;
   const scoreSignals = dailyProgress.signals;
