@@ -180,7 +180,6 @@ export default function Home() {
   const [todayWorkoutMinutes, setTodayWorkoutMinutes] = useState(0);
   const [todayWorkoutCalories, setTodayWorkoutCalories] = useState(0);
   const [targetKcal, setTargetKcal] = useState<number | null>(null);
-  const [hasNutritionTarget, setHasNutritionTarget] = useState(false);
   const [nutritionTargetSource, setNutritionTargetSource] = useState<'nutrition'|'profile'|'none'>('none');
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
   const [goalWeight, setGoalWeight] = useState<number | null>(null);
@@ -331,7 +330,6 @@ export default function Home() {
       setTodayImportedCalories(uniqueActivity.filter((item:any)=>String(item.source||'manual')!=='manual').reduce((sum:number,item:any)=>sum+Number(item.calories_burned||0),0));
       const centralizedTarget = Number(nutritionTarget?.calories || 0);
       const profileTarget = Number(prof?.daily_calories || prof?.calorie_target || 0);
-      setHasNutritionTarget(centralizedTarget > 0);
       setNutritionTargetSource(centralizedTarget > 0 ? 'nutrition' : profileTarget > 0 ? 'profile' : 'none');
       setTargetKcal(centralizedTarget > 0 ? centralizedTarget : profileTarget > 0 ? profileTarget : null);
       const centralizedProtein = Number(nutritionTarget?.protein || 0);
@@ -455,7 +453,6 @@ export default function Home() {
   const noxScore = getNoxScore();
   const firstName = profile?.display_name?.split(' ')[0] || 'ATHLÈTE';
   const effectiveTargetKcal = targetKcal && targetKcal > 0 ? targetKcal : null;
-  const hasPersonalTarget = nutritionTargetSource !== 'none' && !nutritionTargetLoading;
   const remainingKcal = effectiveTargetKcal === null ? null : Math.max(0, effectiveTargetKcal - todayKcal);
   const briefLabel = dayPeriod==='morning' ? 'NOX MORNING BRIEF' : dayPeriod==='evening' ? 'NOX EVENING RECAP' : 'NOX DAILY BRIEF';
   const briefTitle = dayPeriod==='morning' ? 'TA JOURNÉE COMMENCE ICI' : dayPeriod==='evening' ? 'LE RÉCAP DE TA JOURNÉE' : 'TA JOURNÉE EN 10 SECONDES';
