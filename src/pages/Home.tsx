@@ -383,6 +383,15 @@ export default function Home() {
 
   const addWater = (ml: number) => updateWater(todayWaterMl + ml);
 
+  const updateWaterGoal = (next: number) => {
+    if (!user) return;
+    const safe = Math.max(250, Math.min(6000, Math.round(next / 250) * 250));
+    setWaterGoal(safe);
+    localStorage.setItem('nox_water_goal_' + user.id, String(safe));
+    setWaterMessage('Objectif hydratation : ' + safe.toLocaleString('fr-FR') + ' ml.');
+    window.setTimeout(() => setWaterMessage(''), 1400);
+  };
+
   const toggleHabit = (id: string, automaticDone: boolean) => {
     if (!user || automaticDone) return;
     setHabitOverrides(prev => {
@@ -787,6 +796,14 @@ export default function Home() {
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:7,marginTop:11}}>
               {[150,250,500].map(ml=><button key={ml} onClick={()=>addWater(ml)} disabled={waterSaving} style={{padding:'9px 0',border:'1px solid #DCE8FF',borderRadius:10,background:'#F6F9FF',color:'#2F6FD0',fontSize:11,fontWeight:900,cursor:'pointer'}}>+{ml} ml</button>)}
               <button onClick={()=>updateWater(0)} disabled={waterSaving||todayWaterMl===0} style={{padding:'9px 0',border:'1px solid '+BORDER,borderRadius:10,background:'#fff',color:MUTED,fontSize:10,fontWeight:900,cursor:'pointer'}}>RESET</button>
+            </div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginTop:10,paddingTop:10,borderTop:'1px solid '+BORDER}}>
+              <span style={{fontSize:9.5,color:MUTED,fontWeight:850}}>OBJECTIF PERSONNEL</span>
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                <button onClick={()=>updateWaterGoal(waterGoal-250)} aria-label="Réduire l’objectif hydratation" style={{width:28,height:28,border:'1px solid '+BORDER,borderRadius:9,background:'#fff',fontWeight:950,cursor:'pointer'}}>−</button>
+                <strong style={{minWidth:62,textAlign:'center',fontSize:10.5}}>{waterGoal.toLocaleString('fr-FR')} ml</strong>
+                <button onClick={()=>updateWaterGoal(waterGoal+250)} aria-label="Augmenter l’objectif hydratation" style={{width:28,height:28,border:'1px solid '+BORDER,borderRadius:9,background:'#fff',fontWeight:950,cursor:'pointer'}}>+</button>
+              </div>
             </div>
             {waterMessage&&<div style={{fontSize:9.5,color:MUTED,marginTop:8}}>{waterMessage}</div>}
           </div>
