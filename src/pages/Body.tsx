@@ -399,7 +399,7 @@ export default function Body() {
   return (
     <div style={{ minHeight: '100vh', background: BG, color: '#fff', paddingBottom: 100 }}>
       <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
-        <header style={{ padding: '24px 20px 18px', background: 'radial-gradient(circle at 88% 0%, rgba(200,255,0,.06), transparent 30%), #090909', borderBottom: `1px solid ${BORDER}` }}>
+        <header style={{ padding: '24px 20px 18px', background: 'radial-gradient(circle at 88% 0%, rgba(200,255,0,.06), transparent 30%), #0a0a0a', borderBottom: `1px solid ${BORDER}` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
             <div>
               <div style={{ fontSize: 10, color: '#777', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '.14em' }}>Progression physique</div>

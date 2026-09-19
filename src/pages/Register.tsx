@@ -4,7 +4,7 @@ import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
 
-const NOX_GREEN = '#B7FF00';
+const NOX_GREEN = '#c8ff00';
 
 export default function Register() {
   const navigate = useNavigate();

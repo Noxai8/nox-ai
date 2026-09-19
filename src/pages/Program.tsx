@@ -12,7 +12,7 @@ import {
   resolveNoxExercise,
 } from '../lib/noxExercises';
 
-const ACCENT = '#B7FF00';
+const ACCENT = '#c8ff00';
 const BG = '#F7F7F5';
 const SURFACE = '#FFFFFF';
 const BORDER = '#E4E4DF';

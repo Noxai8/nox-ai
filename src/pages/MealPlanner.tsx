@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 
-const ACCENT = '#B7FF00';
+const ACCENT = '#c8ff00';
 const BG = '#FFFFFF';
 const SURFACE = '#F7F7F4';
 const BORDER = '#E7E7E2';
@@ -447,7 +447,7 @@ export default function MealPlanner() {
             disabled={generating || loading}
             style={{
               width: '100%', marginTop: 11, padding: 13, border: 0, borderRadius: 12,
-              background: generating ? '#ECECE8' : ACCENT, color: '#090909',
+              background: generating ? '#ECECE8' : ACCENT, color: '#0a0a0a',
               fontWeight: 950, fontSize: 11.5, cursor: generating ? 'wait' : 'pointer'
             }}
           >

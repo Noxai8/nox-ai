@@ -1,7 +1,7 @@
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const NOX_GREEN = '#B7FF00';
+const NOX_GREEN = '#c8ff00';
 
 function NoxSymbol() {
   return (

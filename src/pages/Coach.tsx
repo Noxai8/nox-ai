@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 
-const ACCENT = '#B7FF00';
+const ACCENT = '#c8ff00';
 const BG = '#FFFFFF';
 const SURFACE = '#F5F5F2';
 const BORDER = '#E8E8E3';

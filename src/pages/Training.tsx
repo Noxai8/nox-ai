@@ -50,8 +50,8 @@ cursor.setDate(cursor.getDate() - 1);
 }
 return streak;
 }
-const ACCENT = '#B7FF00';
-const BG = '#070707';
+const ACCENT = '#c8ff00';
+const BG = '#0a0a0a';
 const SURFACE = '#121212';
 const BORDER = '#242424';
 function resolvedNoxExercise(exercise: any) {
@@ -637,7 +637,7 @@ const exerciseProgress = ((currentIdx + (currentSet - 1) / totalSets) / exercise
 return (
 <div style={{
 minHeight: '100vh',
-background: resting ? '#070707' : '#F4F4F1',
+background: resting ? '#0a0a0a' : '#F4F4F1',
 color: resting ? '#fff' : '#111',
 display: 'flex',
 flexDirection: 'column',
@@ -648,7 +648,7 @@ width: '100%',
 maxWidth: 560,
 minHeight: '100vh',
 margin: '0 auto',
-background: resting ? '#070707' : '#FFFFFF',
+background: resting ? '#0a0a0a' : '#FFFFFF',
 display: 'flex',
 flexDirection: 'column',
 }}>
