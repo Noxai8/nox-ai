@@ -306,12 +306,13 @@ RÈGLES :
 - Tu peux recommander une adaptation seulement si les données disponibles la justifient clairement.
 - Si les données sont insuffisantes, dis exactement quoi mieux renseigner la semaine prochaine.
 - Ton clair, utile et factuel, sans exagération.
+- Le champ note est conservé uniquement pour compatibilité technique : renvoie toujours 0. N'évalue pas la personne ni sa semaine par une note.
 - Réponds uniquement en JSON valide, sans markdown.
 
 FORMAT :
 {
-  "note": 8,
-  "titre": "SEMAINE SOLIDE",
+  "note": 0,
+  "titre": "SYNTHÈSE DE LA SEMAINE",
   "decision": "PROGRAMME MAINTENU",
   "raison_decision": "Raison factuelle courte",
   "programme_modifie": false,
@@ -328,7 +329,7 @@ FORMAT :
       const text = await callAI(prompt);
       const parsed = parseAIJson(text);
 
-      parsed.note = Math.max(0, Math.min(10, Number(parsed.note) || 0));
+      parsed.note = 0;
       setAnalysis(parsed);
 
       // Le Weekly Review reste une couche d'analyse : une suggestion d'adaptation
@@ -342,7 +343,7 @@ FORMAT :
     }
   };
 
-  const noteColor = analysis?.note >= 7 ? ACCENT : analysis?.note >= 5 ? '#ffaa00' : '#ff5555';
+  const noteColor = '#0A0A0A';
 
   const nutritionStatus = useMemo(() => {
     if (!data) return '—';
@@ -383,12 +384,10 @@ FORMAT :
           <div style={{ background: SURFACE, border: '1px solid ' + noteColor + '44', borderRadius: 20, padding: 22, marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ color: '#555', fontSize: 10, fontWeight: 900, letterSpacing: '.09em', marginBottom: 5 }}>SCORE HEBDOMADAIRE</div>
+                <div style={{ color: '#555', fontSize: 10, fontWeight: 900, letterSpacing: '.09em', marginBottom: 5 }}>SYNTHÈSE HEBDOMADAIRE</div>
                 <div style={{ color: '#0A0A0A', fontSize: 21, fontWeight: 950 }}>{analysis.titre}</div>
               </div>
-              <div style={{ color: noteColor, fontSize: 42, lineHeight: 1, fontWeight: 950 }}>
-                {analysis.note}<span style={{ color: '#444', fontSize: 15 }}>/10</span>
-              </div>
+              <div style={{ color: '#0A0A0A', fontSize: 11, lineHeight: 1.3, fontWeight: 900, letterSpacing: '.08em' }}>7 DERNIERS JOURS</div>
             </div>
             {analysis.message && (
               <div style={{ fontSize: 13, color: '#888', marginTop: 12, lineHeight: 1.6 }}>{analysis.message}</div>
@@ -432,8 +431,8 @@ FORMAT :
 
               <div style={{ color: '#555', fontSize: 10, marginTop: 12, lineHeight: 1.45 }}>
                 {data.nutrition_target_source
-                  ? 'Cibles synchronisées avec Fuel · moyennes calculées uniquement sur les jours renseignés.'
-                  : 'Aucune cible nutritionnelle centrale disponible · ouvre Fuel pour initialiser ta cible NOX.'}
+                  ? 'Cibles synchronisées avec Nutrition · moyennes calculées uniquement sur les jours renseignés.'
+                  : 'Aucune cible nutritionnelle centrale disponible · ouvre Nutrition pour initialiser ta cible NOX.'}
               </div>
 
               {(data.calorie_adherence != null || data.protein_adherence != null) && (
@@ -477,7 +476,7 @@ FORMAT :
 
         {analysis?.decision && (
           <div style={{ background: analysis.decision.includes('ADAPTATION') ? '#ffaa000d' : ACCENT + '0a', border: '1px solid ' + (analysis.decision.includes('ADAPTATION') ? '#ffaa0038' : ACCENT + '33'), borderRadius: 16, padding: 17, marginBottom: 14 }}>
-            <div style={{ color: '#555', fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 6 }}>DÉCISION NOX</div>
+            <div style={{ color: '#555', fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 6 }}>LECTURE NOX</div>
             <div style={{ color: analysis.decision.includes('ADAPTATION') ? '#ffaa00' : ACCENT, fontSize: 18, fontWeight: 950 }}>
               {analysis.decision}
             </div>
@@ -485,7 +484,7 @@ FORMAT :
 
             {analysis.programme_modifie && analysis.adaptations_programme && (
               <div style={{ background: '#ffaa0014', borderRadius: 11, padding: 12, marginTop: 11 }}>
-                <div style={{ color: '#ffaa00', fontSize: 10, fontWeight: 900, marginBottom: 4 }}>PROGRAMME MIS À JOUR</div>
+                <div style={{ color: '#ffaa00', fontSize: 10, fontWeight: 900, marginBottom: 4 }}>ADAPTATION SUGGÉRÉE</div>
                 <div style={{ color: '#c9963e', fontSize: 12, lineHeight: 1.5 }}>{analysis.adaptations_programme}</div>
               </div>
             )}
