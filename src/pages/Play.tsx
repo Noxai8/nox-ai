@@ -5,10 +5,10 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const ACCENT = '#B7FF00';
+const BG = '#F7F7F7';
+const SURFACE = '#FFFFFF';
+const BORDER = '#EAEAEA';
 
 const ACHIEVEMENTS = [
   { id: 'first_workout', icon: '🏅', title: 'Première séance', desc: 'Tu as complété ta première séance', xp: 50 },
@@ -111,21 +111,21 @@ export default function Play() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: '#070707', color: '#fff', paddingBottom: 100 }}>
+    <div style={{ minHeight: '100vh', background: BG, color: '#0A0A0A', paddingBottom: 100 }}>
       <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
         <header style={{
           padding: '24px 20px 18px',
-          background: 'radial-gradient(circle at 88% 0%, rgba(200,255,0,.07), transparent 30%), #090909',
-          borderBottom: '1px solid #202020'
+          background: 'radial-gradient(circle at 88% 0%, rgba(183,255,0,.12), transparent 30%), #FFFFFF',
+          borderBottom: '1px solid #EAEAEA'
         }}>
           <div style={{ fontSize: 10, color: '#777', textTransform: 'uppercase', letterSpacing: '.14em', fontWeight: 850 }}>Progression & récompenses</div>
-          <div style={{ fontSize: 27, fontWeight: 950, letterSpacing: '-.04em', marginTop: 4 }}>PLAY</div>
+          <div style={{ fontSize: 27, fontWeight: 950, letterSpacing: '-.04em', marginTop: 4 }}>PROGRESSION</div>
         </header>
 
         <section style={{ padding: 20 }}>
           <div style={{
             position: 'relative', overflow: 'hidden',
-            background: 'linear-gradient(145deg,#151515,#0e0e0e)',
+            background: '#0A0A0A',
             border: '1px solid ' + level.color + '44',
             borderRadius: 22, padding: 20, marginBottom: 12
           }}>
@@ -171,7 +171,7 @@ export default function Play() {
               { label: 'Streak', value: streak + 'j' },
             ].map(({ label, value }) => (
               <div key={label} style={{
-                background: '#111', border: '1px solid #232323', borderRadius: 16,
+                background: '#fff', border: '1px solid #EAEAEA', borderRadius: 16,
                 padding: '15px 8px', textAlign: 'center'
               }}>
                 <div style={{ fontSize: 21, fontWeight: 950 }}>{value}</div>
@@ -197,8 +197,8 @@ export default function Play() {
               const done = earned.includes(a.id);
               return (
                 <div key={a.id} style={{
-                  background: '#111',
-                  border: '1px solid ' + (done ? 'rgba(200,255,0,.22)' : '#222'),
+                  background: '#fff',
+                  border: '1px solid ' + (done ? 'rgba(183,255,0,.55)' : '#EAEAEA'),
                   borderRadius: 16, padding: 14,
                   display: 'flex', alignItems: 'center', gap: 12,
                   opacity: done ? 1 : .46
@@ -213,7 +213,7 @@ export default function Play() {
                     {a.icon}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 900, color: done ? '#fff' : '#777' }}>{a.title}</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 900, color: done ? '#0A0A0A' : '#777' }}>{a.title}</div>
                     <div style={{ fontSize: 10.5, lineHeight: 1.4, color: '#666', marginTop: 4 }}>{a.desc}</div>
                   </div>
                   <div style={{
@@ -238,11 +238,11 @@ export default function Play() {
       {/* Leaderboard */}
       <div style={{ padding: '0 20px 10px' }}>
         <button onClick={() => navigate('/leaderboard')}
-          style={{ width: '100%', background: '#111', border: '1px solid #1a1a1a', borderRadius: 14, padding: '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left', touchAction: 'manipulation' }}>
+          style={{ width: '100%', background: '#fff', border: '1px solid #EAEAEA', borderRadius: 14, padding: '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left', touchAction: 'manipulation' }}>
           <div style={{ fontSize: 28 }}>🏆</div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>CLASSEMENT GLOBAL</div>
-            <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>Compare-toi à tous les athlètes NOX</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#0A0A0A' }}>CLASSEMENT GLOBAL</div>
+            <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>Classement optionnel entre membres NOX</div>
           </div>
           <div style={{ marginLeft: 'auto', color: '#333', fontSize: 16 }}>→</div>
         </button>
@@ -254,8 +254,8 @@ export default function Play() {
           style={{ width: '100%', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left' }}>
           <div style={{ fontSize: 28 }}>👥</div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>MODE PARTENAIRE</div>
-            <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>Compare ta progression avec un ami</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#0A0A0A' }}>MODE PARTENAIRE</div>
+            <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>Partage uniquement les éléments que tu choisis</div>
           </div>
           <div style={{ marginLeft: 'auto', color: '#333', fontSize: 16 }}>→</div>
         </button>
