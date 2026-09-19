@@ -8,7 +8,7 @@ import {
   Apple,
   ArrowRight,
   BarChart3,
-  Bot,
+  Droplets,
   CalendarDays,
   ChevronRight,
   Dumbbell,
@@ -161,6 +161,7 @@ export default function Home() {
   const [targetProtein, setTargetProtein] = useState<number | null>(null);
   const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
   const [todayFoodCount, setTodayFoodCount] = useState(0);
+  const [todayWaterMl, setTodayWaterMl] = useState(0);
   const [targetKcal, setTargetKcal] = useState<number | null>(null);
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
   const [xp, setXp] = useState(0);
@@ -220,6 +221,7 @@ export default function Home() {
       setTodayKcal(fuel?.reduce((sum: number, item: any) => sum + (item.calories || 0), 0) || 0);
       setTodayProtein(fuel?.reduce((sum: number, item: any) => sum + Number(item.protein || 0), 0) || 0);
       setTodayFoodCount(fuel?.length || 0);
+      setTodayWaterMl(Number(localStorage.getItem('nox_water_' + user.id + '_' + today) || 0));
       setTodayActivityMinutes(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.duration_minutes || 0), 0) || 0);
       const centralizedTarget = Number(nutritionTarget?.calories || 0);
       const profileTarget = Number(prof?.daily_calories || prof?.calorie_target || 0);
@@ -654,13 +656,13 @@ export default function Home() {
           </button>
 
           <div style={{ margin: '22px 2px 10px', fontSize: 11, fontWeight: 900, color: '#777', letterSpacing: '.09em', textTransform: 'uppercase' }}>
-            Accès rapide
+            Accès rapide {todayWaterMl > 0 ? '· ' + todayWaterMl + ' ml d’eau' : ''}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 9 }}>
             {[
-              { label: 'Programme', icon: CalendarDays, path: '/program' },
-              { label: 'Assistant NOX', icon: Bot, path: '/coach' },
+              { label: 'Scanner', icon: ScanLine, path: '/food-scan' },
+              { label: 'Hydratation', icon: Droplets, path: '/fasting' },
               { label: 'Profil', icon: UserRound, path: '/settings' },
             ].map(({ label, icon: Icon, path }) => (
               <button
