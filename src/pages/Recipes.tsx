@@ -227,6 +227,7 @@ export default function Recipes() {
   const [profile, setProfile] = useState<any>(null);
   const [nutritionTarget, setNutritionTarget] = useState<any>(null);
   const [recentFoods, setRecentFoods] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [form, setForm] = useState({
     name: '',
@@ -291,6 +292,21 @@ export default function Recipes() {
     });
     return scored.sort((a,b) => b.familiarity - a.familiarity).map(x => x.recipe);
   }, [goal, recentFoods]);
+
+  const filteredSuggestions = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return suggestions;
+    return suggestions.filter(recipe =>
+      [recipe.name, recipe.subtitle, ...recipe.tags, ...recipe.ingredients.map(i => i.name)]
+        .join(' ').toLowerCase().includes(q)
+    );
+  }, [suggestions, search]);
+
+  const filteredRecipes = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return recipes;
+    return recipes.filter(recipe => String(recipe.name || '').toLowerCase().includes(q));
+  }, [recipes, search]);
 
   const toggleFavorite = (id: string) => {
     if (!user) return;
@@ -519,6 +535,8 @@ export default function Recipes() {
                 </div>
               </div>
 
+              <div style={{marginBottom:14}}><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher une recette ou un ingrédient" style={{width:'100%',boxSizing:'border-box',padding:'12px 13px',border:'1px solid '+BORDER,borderRadius:12,background:'#F7F7F7',color:'#0A0A0A',fontSize:12,outline:'none'}}/></div>
+
               <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 950 }}>Idées pour toi</div>
@@ -527,7 +545,7 @@ export default function Recipes() {
               </div>
 
               <div style={{ display: 'grid', gap: 9, marginBottom: 26 }}>
-                {[...suggestions].sort((a,b) => Number(favorites.includes(b.id)) - Number(favorites.includes(a.id))).map(recipe => (
+                {[...filteredSuggestions].sort((a,b) => Number(favorites.includes(b.id)) - Number(favorites.includes(a.id))).map(recipe => (
                   <button
                     key={recipe.id}
                     onClick={() => openSuggestion(recipe)}
@@ -575,7 +593,7 @@ export default function Recipes() {
                 </div>
               ) : (
                 <div>
-                  {recipes.map(r => (
+                  {filteredRecipes.map(r => (
                     <button
                       key={r.id}
                       onClick={() => { setSelected(r); setView('detail'); setActionMessage(''); setError(''); setPortions(1); }}
