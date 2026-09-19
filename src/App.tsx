@@ -38,6 +38,7 @@ const SocialProfile = lazy(() => import('./pages/SocialProfile'));
 const NoxCalendar = lazy(() => import('./pages/NoxCalendar'));
 const Pantry = lazy(() => import('./pages/Pantry'));
 const SleepTracker = lazy(() => import('./pages/SleepTracker'));
+const CoachDashboard = lazy(() => import('./pages/CoachDashboard'));
 const Reschedule = lazy(() => import('./pages/Reschedule'));
 
 const Loader = () => <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#c8ff00', fontWeight: 900, letterSpacing: '.15em', fontSize: 18 }}>NOX</div></div>;
@@ -91,6 +92,7 @@ function AppRoutes() {
         <Route path="/calendar" element={<ProtectedRoute><NoxCalendar /></ProtectedRoute>} />
         <Route path="/pantry" element={<ProtectedRoute><Pantry /></ProtectedRoute>} />
         <Route path="/sleep" element={<ProtectedRoute><SleepTracker /></ProtectedRoute>} />
+        <Route path="/coach-dashboard" element={<ProtectedRoute><CoachDashboard /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Suspense>

@@ -163,6 +163,11 @@ export default function Settings() {
         </Section>
 
         {/* Abonnement */}
+        <Section title="Coach NOX Pro">
+          <Row icon="👥" label="Dashboard Coach" onClick={() => navigate('/coach-dashboard')} />
+          <Row icon="🔗" label="Mon code coach" value={user?.id.slice(0, 8).toUpperCase() + '-COACH'} last />
+        </Section>
+
         <Section title="Abonnement">
           <Row icon="⭐" label="Plan actuel" value={profile?.subscription_plan || 'Free'} />
           <Row icon="🚀" label="Passer à NOX Pro" onClick={() => navigate('/subscribe')} last />
