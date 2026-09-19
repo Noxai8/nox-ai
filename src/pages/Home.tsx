@@ -759,7 +759,7 @@ export default function Home() {
               <button onClick={()=>navigate('/activity')} style={{border:0,background:'transparent',fontSize:10,fontWeight:900,cursor:'pointer'}}>VOIR <ArrowRight size={12} style={{verticalAlign:'middle'}}/></button>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:6,marginTop:12}}>
-              {[[todaySteps,'PAS'],[Math.round(totalActiveMinutes),'MIN'],[todayDistanceKm.toFixed(1),'KM'],[Math.round(todayActiveCalories),'KCAL']].map(([value,label])=><div key={String(label)} style={{background:SURFACE_2,borderRadius:12,padding:'10px 5px',textAlign:'center'}}><strong style={{fontSize:14}}>{value}</strong><div style={{fontSize:8,color:MUTED,marginTop:3}}>{label}</div></div>)}
+              {[[todaySteps,'PAS'],[Math.round(totalActiveMinutes),'MIN'],[todayDistanceKm.toFixed(1),'KM'],[Math.round(totalActiveCalories),'KCAL']].map(([value,label])=><div key={String(label)} style={{background:SURFACE_2,borderRadius:12,padding:'10px 5px',textAlign:'center'}}><strong style={{fontSize:14}}>{value}</strong><div style={{fontSize:8,color:MUTED,marginTop:3}}>{label}</div></div>)}
             </div>
             <div style={{marginTop:11}}>
               <div style={{display:'flex',justifyContent:'space-between',gap:10,fontSize:9.5,color:MUTED}}><span>OBJECTIF PAS</span><span>{todaySteps.toLocaleString('fr-FR')} / {stepGoal.toLocaleString('fr-FR')}</span></div>
