@@ -63,6 +63,7 @@ export default function Body() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [compareMeasurements, setCompareMeasurements] = useState(false);
 
   const [showActivity, setShowActivity] = useState(false);
   const [activityMode, setActivityMode] = useState<ActivityMode>('manual');
@@ -574,6 +575,30 @@ export default function Body() {
                   </div>
                 ))}
               </div>
+
+              {measurementLogs.length >= 2 && (
+                <div style={{ background:'#fff', border:`1px solid ${BORDER}`, borderRadius:20, padding:16, marginBottom:18 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+                    <div>
+                      <div style={{ fontSize:10, color:'#777', fontWeight:900, letterSpacing:'.08em' }}>COMPARATEUR</div>
+                      <div style={{ fontSize:16, fontWeight:950, marginTop:4 }}>DÉBUT ↔ AUJOURD'HUI</div>
+                    </div>
+                    <button onClick={()=>setCompareMeasurements(v=>!v)} style={{ border:0, borderRadius:12, background:compareMeasurements?'#0A0A0A':ACCENT, color:compareMeasurements?'#fff':'#050505', padding:'9px 11px', fontSize:10, fontWeight:950, cursor:'pointer' }}>{compareMeasurements?'FERMER':'COMPARER'}</button>
+                  </div>
+                  {compareMeasurements && (
+                    <div style={{ display:'grid', gap:8, marginTop:14 }}>
+                      {measurementCards.filter(item=>item.value !== null && item.delta !== null).map(item=>{
+                        const start = item.value! - item.delta!;
+                        return <div key={item.key} style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', alignItems:'center', gap:10, background:'#F7F7F7', borderRadius:13, padding:'11px 12px' }}>
+                          <div><div style={{fontSize:9,color:'#888'}}>DÉBUT</div><div style={{fontSize:15,fontWeight:950}}>{start.toFixed(1)} cm</div></div>
+                          <div style={{fontSize:16,color:'#999'}}>→</div>
+                          <div style={{textAlign:'right'}}><div style={{fontSize:9,color:'#888'}}>ACTUEL</div><div style={{fontSize:15,fontWeight:950}}>{item.value!.toFixed(1)} cm</div></div>
+                        </div>
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>MENSURATIONS</div>
               {logs.filter(l => l.waist_cm || l.chest_cm).length === 0 ? (
