@@ -674,16 +674,16 @@ export default function Fuel() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.15fr .85fr', gap: 10, marginTop: 12 }}>
-            <button onClick={() => { setShowAdd(true); setAddMode('photo'); setTimeout(() => fileRef.current?.click(), 0); }} style={{
+            <button onClick={() => navigate('/food-scan', { state: { scanMode: 'meal' } })} style={{
               minHeight: 84, borderRadius: 18, border: '1px solid rgba(200,255,0,.22)',
               background: 'linear-gradient(135deg,rgba(200,255,0,.12),rgba(200,255,0,.035))',
               color: '#0A0A0A', textAlign: 'left', padding: 15, cursor: 'pointer'
             }}>
-              <div style={{ color: ACCENT, fontSize: 10, fontWeight: 950, letterSpacing: '.09em' }}>SCAN IA</div>
+              <div style={{ color: ACCENT, fontSize: 10, fontWeight: 950, letterSpacing: '.09em' }}>NOX SCAN</div>
               <div style={{ fontSize: 14, fontWeight: 900, marginTop: 6 }}>Scanner mon repas</div>
               <div style={{ fontSize: 10.5, color: '#777', marginTop: 4 }}>Photo → calories + macros</div>
             </button>
-            <button onClick={() => { setShowAdd(true); setAddMode('barcode'); }} style={{
+            <button onClick={() => navigate('/food-scan', { state: { scanMode: 'barcode' } })} style={{
               minHeight: 84, borderRadius: 18, border: '1px solid #232323',
               background: '#FFFFFF', color: '#0A0A0A', textAlign: 'left', padding: 15, cursor: 'pointer'
             }}>
