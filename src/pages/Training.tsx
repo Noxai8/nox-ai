@@ -95,6 +95,11 @@ const [restTime, setRestTime] = useState(0);
 const [restMax, setRestMax] = useState(90);
 const [completedSets, setCompletedSets] = useState<any[]>([]);
 const [newPR, setNewPR] = useState<any>(null);
+const [exerciseNotes, setExerciseNotes] = useState<Record<string, string>>({});
+const [showNotes, setShowNotes] = useState(false);
+const [warmupSets, setWarmupSets] = useState<Record<number, boolean>>({});
+const [showSubstitute, setShowSubstitute] = useState(false);
+const [comebackMode, setComebackMode] = useState(false);
 const [overloadSuggestion, setOverloadSuggestion] = useState<any>(null);
 const [stagnation, setStagnation] = useState<any>(null);
 const [trainingError, setTrainingError] = useState('');
@@ -679,6 +684,15 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
       </div>
     )}
 
+    {/* Comeback Mode Banner */}
+    {comebackMode && (
+      <div style={{ margin: '0 20px 12px', background: '#ffaa0011', border: '1px solid #ffaa0033', borderRadius: 14, padding: '12px 16px' }}>
+        <div style={{ fontSize: 11, color: '#ffaa00', fontWeight: 800, marginBottom: 4 }}>🔥 COMEBACK MODE</div>
+        <div style={{ fontSize: 12, color: '#888' }}>Reprise après une pause — charges réduites de 20% recommandées pour les 2 premières séances.</div>
+        <button onClick={() => setComebackMode(false)} style={{ marginTop: 8, background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 11 }}>Ignorer</button>
+      </div>
+    )}
+
     {/* PR Banner */}
     {newPR && (
       <div style={{ margin: '0 20px 12px', background: ACCENT, borderRadius: 13, padding: '12px 15px', textAlign: 'center', animation: 'fadeIn .3s', color: '#111' }}>
@@ -731,6 +745,10 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
             <div style={{ color: '#111', fontSize: 21, fontWeight: 1000 }}>→</div>
           </div>
         </button>
+            <button onClick={() => setShowNotes(true)}
+              style={{ flexShrink: 0, padding: '8px 14px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 10, color: exerciseNotes[currentExercise?.name || ''] ? '#c8ff00' : '#888', fontSize: 11, fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' as const }}>
+              📝 {exerciseNotes[currentExercise?.name || ''] ? 'Note ✓' : 'Notes'}
+            </button>
 
         {tags.length > 0 && <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 15 }}>
           {tags.map((tag, i) => <span key={tag} style={{ padding: '7px 11px', background: i === 0 ? '#F3FFE1' : '#F1F1EE', border: i === 0 ? `1px solid ${ACCENT}` : '1px solid transparent', borderRadius: 999, color: '#55554F', fontSize: 10.5, fontWeight: 800 }}>{tag}</span>)}
