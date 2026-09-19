@@ -180,6 +180,7 @@ export default function Home() {
   const [latestSleepHours, setLatestSleepHours] = useState<number | null>(null);
   const [xp, setXp] = useState(0);
   const [tomorrowMealPlanned, setTomorrowMealPlanned] = useState(false);
+  const [tomorrowMealCount, setTomorrowMealCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [habits] = useState(() => [
     { id: 'nutrition', label: 'Suivre ma nutrition' },
@@ -304,6 +305,7 @@ export default function Home() {
       setLatestSleepHours(Number.isFinite(sleepHours) && sleepHours > 0 ? sleepHours : null);
       setXp(prof?.xp || 0);
       setTomorrowMealPlanned((tomorrowMeals?.length || 0) > 0);
+      setTomorrowMealCount(tomorrowMeals?.length || 0);
 
       if (prog?.program_json) {
         const sessions = prog.program_json.sessions || [];
@@ -743,6 +745,14 @@ export default function Home() {
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}><div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>SOMMEIL & RÉCUPÉRATION</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{latestSleepHours.toFixed(1)} <span style={{fontSize:12,color:MUTED}}>h de sommeil</span></div></div><span style={{width:40,height:40,borderRadius:13,background:SURFACE_2,display:'grid',placeItems:'center'}}><MoonStar size={20}/></span></div>
             <div style={{fontSize:10.5,color:MUTED,marginTop:9}}>Dernière donnée disponible · ouvre Récupération pour le contexte détaillé.</div>
           </button>}
+
+          <button onClick={()=>navigate('/meal-planner')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+              <div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>DEMAIN · NUTRITION</div><div style={{fontSize:18,fontWeight:950,marginTop:4}}>{tomorrowMealPlanned?'REPAS DÉJÀ PLANIFIÉS':'PRÉPARE TA JOURNÉE'}</div></div>
+              <ChevronRight size={18}/>
+            </div>
+            <div style={{fontSize:10.5,color:MUTED,lineHeight:1.45,marginTop:9}}>{tomorrowMealPlanned?`${tomorrowMealCount} repas planifié${tomorrowMealCount>1?'s':''} pour demain · ouvre le Meal Planner pour les modifier.`:'Planifie les repas de demain en quelques secondes depuis le Meal Planner.'}</div>
+          </button>
 
           <div style={{...cardStyle,padding:18,marginBottom:14}}>
             <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>{briefLabel}</div>
