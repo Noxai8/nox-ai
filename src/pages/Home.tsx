@@ -320,7 +320,7 @@ export default function Home() {
       targetKcal: targetKcal || 0,
       streak: profile?.streak_days || 0,
       xp,
-    });
+    }).score;
   };
 
   if (loading) {
