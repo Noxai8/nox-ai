@@ -12,14 +12,19 @@ export default function ActivityHub() {
   const navigate = useNavigate();
   const [activities,setActivities]=useState<any[]>([]);
   const [workouts,setWorkouts]=useState<any[]>([]);
+  const [weekActivities,setWeekActivities]=useState<any[]>([]);
+  const [weekWorkouts,setWeekWorkouts]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
 
   useEffect(()=>{ if(!user)return; (async()=>{
-    const [a,w]=await Promise.all([
+    const weekStart=new Date(Date.now()-7*86400000).toISOString();
+    const [a,w,wa,ww]=await Promise.all([
       supabase.from('activity_logs').select('*').eq('user_id',user.id).order('performed_at',{ascending:false}).limit(20),
       supabase.from('workouts').select('*').eq('user_id',user.id).order('created_at',{ascending:false}).limit(20),
+      supabase.from('activity_logs').select('*').eq('user_id',user.id).gte('performed_at',weekStart),
+      supabase.from('workouts').select('*').eq('user_id',user.id).eq('status','completed').gte('created_at',weekStart),
     ]);
-    setActivities(a.data||[]); setWorkouts(w.data||[]); setLoading(false);
+    setActivities(a.data||[]); setWorkouts(w.data||[]); setWeekActivities(wa.data||[]); setWeekWorkouts(ww.data||[]); setLoading(false);
   })(); },[user]);
 
   const today=new Date().toDateString();
@@ -27,11 +32,7 @@ export default function ActivityHub() {
   const minutes=todayActivities.reduce((s,a)=>s+Number(a.duration_minutes||0),0);
   const distance=todayActivities.reduce((s,a)=>s+Number(a.distance_km||0),0);
   const calories=todayActivities.reduce((s,a)=>s+Number(a.calories_burned||0),0);
-  const completed=workouts.filter(w=>w.status==='completed').length;
-  const now=Date.now();
-  const sevenDays=now-7*86400000;
-  const weekActivities=activities.filter(a=>new Date(a.performed_at||a.created_at).getTime()>=sevenDays);
-  const weekWorkouts=workouts.filter(w=>new Date(w.completed_at||w.created_at).getTime()>=sevenDays&&(w.status==='completed'||w.completed_at));
+  const completedToday=workouts.filter(w=>w.status==='completed'&&new Date(w.completed_at||w.created_at).toDateString()===today).length;
   const weekMinutes=Math.round(weekActivities.reduce((s,a)=>s+Number(a.duration_minutes||0),0));
   const weekDistance=weekActivities.reduce((s,a)=>s+Number(a.distance_km||0),0);
   const weekCalories=Math.round(weekActivities.reduce((s,a)=>s+Number(a.calories_burned||0),0));
@@ -48,7 +49,7 @@ export default function ActivityHub() {
         <Metric icon={Timer} label="Minutes actives aujourd’hui" value={loading?'—':String(Math.round(minutes))}/>
         <Metric icon={Flame} label="Calories actives enregistrées" value={loading?'—':String(Math.round(calories))}/>
         <Metric icon={MapPin} label="Distance enregistrée" value={loading?'—':distance.toFixed(1)+' km'}/>
-        <Metric icon={Dumbbell} label="Séances terminées" value={loading?'—':String(completed)}/>
+        <Metric icon={Dumbbell} label="Séances terminées aujourd’hui" value={loading?'—':String(completedToday)}/>
       </div>
 
       <button onClick={()=>navigate('/program')} style={{width:'100%',marginTop:14,border:0,borderRadius:20,background:BLACK,color:'#fff',padding:18,textAlign:'left',cursor:'pointer'}}>
