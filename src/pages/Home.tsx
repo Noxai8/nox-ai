@@ -393,14 +393,14 @@ export default function Home() {
   const addWater = (ml: number) => updateWater(todayWaterMl + ml);
 
   const nutritionProgress = effectiveTargetKcal ? todayKcal / effectiveTargetKcal : null;
-  const proteinProgress = targetProtein ? todayProtein / targetProtein : null;
+  const briefProteinProgress = targetProtein ? todayProtein / targetProtein : null;
   const briefInsight = dayPeriod === 'morning'
     ? (todayKcal === 0
         ? 'Aucun repas enregistré pour le moment. Ajoute ce que tu consommes quand ta journée commence.'
         : `${todayMealCount} repas renseigné${todayMealCount > 1 ? 's' : ''} · ton suivi se construit au fil de la journée.`)
     : dayPeriod === 'evening'
-      ? (nutritionProgress !== null && proteinProgress !== null
-          ? `Apports enregistrés : ${Math.round(nutritionProgress * 100)}% du repère calorique et ${Math.round(proteinProgress * 100)}% du repère protéines. Ces pourcentages décrivent uniquement les données saisies.`
+      ? (nutritionProgress !== null && briefProteinProgress !== null
+          ? `Apports enregistrés : ${Math.round(nutritionProgress * 100)}% du repère calorique et ${Math.round(briefProteinProgress * 100)}% du repère protéines. Ces pourcentages décrivent uniquement les données saisies.`
           : `${consistencySignals}/5 repères renseignés aujourd’hui. Les données manquantes ne sont pas estimées.`)
       : (totalActiveMinutes > 0
           ? `${Math.round(totalActiveMinutes)} min actives enregistrées jusqu’ici. Continue simplement à renseigner ce qui compte pour toi.`
