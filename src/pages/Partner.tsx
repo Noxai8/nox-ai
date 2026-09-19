@@ -1,257 +1,102 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Check, ChevronRight, Copy, QrCode, UserPlus, Users, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 
-const ACCENT = '#B7FF00';
-const BG = '#F7F7F7';
-const SURFACE = '#FFFFFF';
-const BORDER = '#EAEAEA';
+const ACCENT='#B7FF00', BG='#F7F7F7', BORDER='#EAEAEA', MUTED='#777';
 
-export default function Partner() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [myProfile, setMyProfile] = useState<any>(null);
-  const [partnerCode, setPartnerCode] = useState('');
-  const [partner, setPartner] = useState<any>(null);
-  const [partnerStats, setPartnerStats] = useState<any>(null);
-  const [myStats, setMyStats] = useState<any>(null);
-  const [input, setInput] = useState('');
-  const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [shareMessage, setShareMessage] = useState('');
-  const [challenge, setChallenge] = useState<'workouts'|'streak'|'prs'>('workouts');
+export default function Partner(){
+  const {user}=useAuth(); const navigate=useNavigate(); const {code}=useParams();
+  const [me,setMe]=useState<any>(null); const [friends,setFriends]=useState<any[]>([]);
+  const [incoming,setIncoming]=useState<any[]>([]); const [preview,setPreview]=useState<any>(null);
+  const [input,setInput]=useState(''); const [message,setMessage]=useState(''); const [error,setError]=useState(''); const [busy,setBusy]=useState(false);
+  const myCode=user?.id.slice(0,8).toUpperCase()||'';
 
-  useEffect(() => { if (user) load(); }, [user]);
+  useEffect(()=>{if(user)void load()},[user]);
+  useEffect(()=>{if(user&&code)void lookup(code)},[user,code]);
 
-  const load = async () => {
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', user!.id).maybeSingle();
-    setMyProfile(profile);
+  const profileById=async(id:string)=>{const {data}=await supabase.rpc('nox_friend_profile',{code:id.slice(0,8)});return data?.[0]||null};
 
-    // Générer un code partenaire unique basé sur l'ID
-    const code = user!.id.slice(0, 8).toUpperCase();
-    setPartnerCode(code);
-
-    // Charger mes stats
-    const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const [{ data: workouts }, { data: prs }] = await Promise.all([
-      supabase.from('workouts').select('id').eq('user_id', user!.id).eq('status', 'completed').gte('created_at', weekStart),
-      supabase.from('personal_records').select('id').eq('user_id', user!.id),
+  const load=async()=>{
+    if(!user)return;
+    const [{data:p},{data:links},{data:reqs}]=await Promise.all([
+      supabase.from('profiles').select('id, display_name, xp, streak_days').eq('id',user.id).maybeSingle(),
+      supabase.from('friendships').select('*').or(`user_id.eq.${user.id},friend_id.eq.${user.id}`).order('created_at',{ascending:false}),
+      supabase.from('friend_requests').select('*').eq('receiver_id',user.id).eq('status','pending').order('created_at',{ascending:false})
     ]);
-    setMyStats({
-      weekWorkouts: workouts?.length || 0,
-      totalPRs: prs?.length || 0,
-      streak: profile?.streak_days || 0,
-      xp: profile?.xp || 0,
-    });
-
-    // Charger le partenaire si déjà connecté
-    if (profile?.partner_id) {
-      loadPartner(profile.partner_id);
-    }
+    setMe(p);
+    const friendIds=(links||[]).map((x:any)=>x.user_id===user.id?x.friend_id:x.user_id);
+    const friendProfiles=await Promise.all(friendIds.map(profileById)); setFriends(friendProfiles.filter(Boolean));
+    const requests=await Promise.all((reqs||[]).map(async(x:any)=>({...x,sender:await profileById(x.sender_id)}))); setIncoming(requests);
   };
 
-  const loadPartner = async (partnerId: string) => {
-    const { data: p } = await supabase.from('profiles').select('*').eq('id', partnerId).maybeSingle();
-    if (!p) return;
-    setPartner(p);
-
-    const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const [{ data: workouts }, { data: prs }] = await Promise.all([
-      supabase.from('workouts').select('id').eq('user_id', partnerId).eq('status', 'completed').gte('created_at', weekStart),
-      supabase.from('personal_records').select('id').eq('user_id', partnerId),
-    ]);
-    setPartnerStats({
-      weekWorkouts: workouts?.length || 0,
-      totalPRs: prs?.length || 0,
-      streak: p?.streak_days || 0,
-      xp: p?.xp || 0,
-    });
+  const lookup=async(raw:string)=>{
+    if(!user)return; setError(''); setMessage(''); setPreview(null);
+    const clean=raw.replace(/[^a-zA-Z0-9-]/g,'').slice(0,8).toUpperCase();
+    if(clean.length<8){setError('Code ami incomplet.');return}
+    const {data,error:e}=await supabase.rpc('nox_friend_profile',{code:clean});
+    const found=data?.[0]; if(e||!found||found.id===user.id){setError(found?.id===user.id?'C’est ton propre code.':'Profil NOX introuvable.');return}
+    setPreview(found);
   };
 
-  const connectPartner = async () => {
-    setError('');
-    if (!input.trim()) return;
-    const code = input.trim().toUpperCase();
-
-    // Trouver le partenaire par son code (les 8 premiers chars de l'ID)
-    const { data: allProfiles } = await supabase.from('profiles').select('id, display_name, xp, streak_days');
-    const found = allProfiles?.find((p: any) => p.id.slice(0, 8).toUpperCase() === code && p.id !== user!.id);
-
-    if (!found) {
-      setError('Code invalide. Vérifie le code de ton ami.');
-      return;
-    }
-
-    // Connecter mutuellement
-    await Promise.all([
-      supabase.from('profiles').update({ partner_id: found.id }).eq('id', user!.id),
-      supabase.from('profiles').update({ partner_id: user!.id }).eq('id', found.id),
-    ]);
-
-    setInput('');
-    loadPartner(found.id);
+  const sendRequest=async()=>{
+    if(!user||!preview||busy)return; setBusy(true); setError('');
+    const already=friends.some(f=>f.id===preview.id); if(already){setError('Cette personne est déjà dans tes amis.');setBusy(false);return}
+    const {error:e}=await supabase.from('friend_requests').insert({sender_id:user.id,receiver_id:preview.id,status:'pending'});
+    if(e)setError(e.code==='23505'?'Une demande est déjà en attente.':e.message);
+    else {setMessage('Demande d’ami envoyée.');setPreview(null);setInput('');}
+    setBusy(false);
   };
 
-  const copyCode = async () => {
-    await navigator.clipboard.writeText(partnerCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const respond=async(id:string,accept:boolean)=>{
+    setBusy(true); setError('');
+    const {error:e}=accept?await supabase.rpc('nox_accept_friend_request',{request_id:id}):await supabase.from('friend_requests').update({status:'declined',responded_at:new Date().toISOString()}).eq('id',id);
+    if(e)setError(e.message); else await load(); setBusy(false);
   };
 
-  const shareInvite = async () => {
-    const text = `Rejoins-moi sur NOX avec mon code ami : ${partnerCode}`;
-    try {
-      if (navigator.share) await navigator.share({ title: 'Invitation NOX', text });
-      else await navigator.clipboard.writeText(text);
-      setShareMessage(navigator.share ? 'Invitation prête à être partagée.' : 'Invitation copiée.');
-    } catch {}
-    setTimeout(() => setShareMessage(''), 2200);
+  const removeFriend=async(id:string)=>{const {error:e}=await supabase.rpc('nox_remove_friend',{friend:id});if(e)setError(e.message);else await load()};
+
+  const copyInvite=async()=>{
+    const value=`nox://friend/${myCode}`; try{if(navigator.share)await navigator.share({title:'Ajoute-moi sur NOX',text:`Ajoute-moi sur NOX : ${value}`});else await navigator.clipboard.writeText(value);setMessage('Invitation prête.');}catch{}
   };
 
-  const shareSelected = async (kind:'workout'|'pr') => {
-    if (!myStats) return;
-    const text = kind==='workout'
-      ? `NOX · J’ai terminé ${myStats.weekWorkouts} séance(s) sur les 7 derniers jours.`
-      : `NOX · J’ai enregistré ${myStats.totalPRs} record(s) personnel(s).`;
-    try {
-      if (navigator.share) await navigator.share({ title: kind==='workout'?'Workout NOX':'PR NOX', text });
-      else await navigator.clipboard.writeText(text);
-      setShareMessage('Partage préparé — aucune donnée privée incluse.');
-    } catch {}
-    setTimeout(() => setShareMessage(''), 2200);
-  };
+  return <div style={{minHeight:'100vh',background:BG,color:'#0A0A0A',paddingBottom:100}}>
+    <main style={{maxWidth:560,margin:'0 auto',padding:'24px 18px'}}>
+      <div style={{fontSize:10,fontWeight:950,letterSpacing:'.12em',color:MUTED}}>NOX · SOCIAL</div>
+      <h1 style={{fontSize:31,letterSpacing:'-.045em',margin:'7px 0 5px'}}>AMIS</h1>
+      <p style={{fontSize:12,color:MUTED,lineHeight:1.5,margin:'0 0 18px'}}>Ajoute des amis sans exposer ton poids, ta nutrition, tes photos ou ta récupération.</p>
 
-  const StatRow = ({ label, mine, theirs }: { label: string; mine: number; theirs: number }) => {
-    const iWin = mine >= theirs;
-    return (
-      <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '14px 16px', marginBottom: 10 }}>
-        <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>{label}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ flex: 1, textAlign: 'right' }}>
-            <div style={{ fontSize: 26, fontWeight: 900, color: iWin ? '#5D8200' : '#0A0A0A' }}>{mine}</div>
-            <div style={{ fontSize: 11, color: '#555' }}>Toi</div>
-          </div>
-          <div style={{ fontSize: 18, color: '#333', fontWeight: 900 }}>VS</div>
-          <div style={{ flex: 1, textAlign: 'left' }}>
-            <div style={{ fontSize: 26, fontWeight: 900, color: !iWin ? '#5D8200' : '#0A0A0A' }}>{theirs}</div>
-            <div style={{ fontSize: 11, color: '#555' }}>{partner?.display_name?.split(' ')[0] || 'Partenaire'}</div>
-          </div>
+      <section style={{background:'#0A0A0A',color:'#fff',borderRadius:20,padding:18}}>
+        <div style={{fontSize:10,color:ACCENT,fontWeight:950}}>TON INVITATION NOX</div>
+        <div style={{fontSize:25,fontWeight:950,letterSpacing:'.12em',marginTop:7}}>{myCode}</div>
+        <div style={{fontSize:10,color:'#999',marginTop:5}}>nox://friend/{myCode}</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:14}}>
+          <button onClick={copyInvite} style={{border:0,borderRadius:11,background:ACCENT,padding:11,fontWeight:950}}><Copy size={15} style={{verticalAlign:'middle',marginRight:6}}/>PARTAGER</button>
+          <button onClick={()=>navigate('/food-scan',{state:{scanMode:'qr'}})} style={{border:'1px solid #333',borderRadius:11,background:'#151515',color:'#fff',padding:11,fontWeight:900}}><QrCode size={15} style={{verticalAlign:'middle',marginRight:6}}/>SCANNER</button>
         </div>
-        {/* Barre comparative */}
-        <div style={{ marginTop: 10, height: 4, background: '#EAEAEA', borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: Math.round((mine / Math.max(mine + theirs, 1)) * 100) + '%', background: ACCENT, borderRadius: 2, transition: 'width .5s' }} />
-        </div>
-      </div>
-    );
-  };
+      </section>
 
-  return (
-    <div style={{ minHeight: '100vh', background: BG, paddingBottom: 80 }}>
-      <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid ' + BORDER }}>
-        <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Social · optionnel</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: '#0A0A0A' }}>CHALLENGES AMIS</div>
-      </div>
+      <section style={{background:'#fff',border:'1px solid '+BORDER,borderRadius:18,padding:16,marginTop:12}}>
+        <div style={{fontSize:12,fontWeight:950}}>AJOUTER UN AMI</div>
+        <div style={{display:'flex',gap:8,marginTop:10}}><input value={input} onChange={e=>setInput(e.target.value.toUpperCase())} maxLength={8} placeholder="CODE AMI" style={{flex:1,minWidth:0,border:'1px solid '+BORDER,borderRadius:11,background:'#F7F7F7',padding:'12px',fontWeight:850,letterSpacing:'.08em'}}/><button onClick={()=>void lookup(input)} style={{border:0,borderRadius:11,background:ACCENT,padding:'0 15px',fontWeight:950}}>VOIR</button></div>
+      </section>
 
-      <div style={{ padding: '20px 20px 0' }}>
+      {preview&&<section style={{background:'#fff',border:'1px solid '+ACCENT,borderRadius:18,padding:16,marginTop:12}}>
+        <div style={{fontSize:10,color:MUTED,fontWeight:900}}>PROFIL NOX</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{preview.display_name||'Membre NOX'}</div>
+        <div style={{fontSize:11,color:MUTED,marginTop:4}}>{preview.xp||0} XP · streak {preview.streak_days||0}</div>
+        <button disabled={busy} onClick={()=>void sendRequest()} style={{width:'100%',border:0,borderRadius:11,background:ACCENT,padding:12,fontWeight:950,marginTop:12}}><UserPlus size={16} style={{verticalAlign:'middle',marginRight:6}}/>ENVOYER UNE DEMANDE</button>
+      </section>}
 
-        <div style={{background:'#0A0A0A',color:'#fff',borderRadius:18,padding:18,marginBottom:16}}>
-          <div style={{fontSize:10,color:ACCENT,fontWeight:950,letterSpacing:'.1em'}}>NOX SOCIAL</div>
-          <div style={{fontSize:19,fontWeight:950,marginTop:5}}>Partage seulement ce que tu choisis.</div>
-          <div style={{fontSize:11,color:'#AAA',lineHeight:1.5,marginTop:6}}>Profil minimal, amis, challenges et partages sélectionnés. Poids, nutrition, photos et récupération restent privés par défaut.</div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:14}}>
-            <button onClick={()=>navigate('/share-timeline')} style={{border:0,borderRadius:11,background:ACCENT,color:'#000',padding:11,fontWeight:900,fontSize:10,cursor:'pointer'}}>PARTAGER MA PROGRESSION</button>
-            <button onClick={()=>navigate('/food-scan',{state:{scanMode:'qr'}})} style={{border:'1px solid #333',borderRadius:11,background:'#151515',color:'#fff',padding:11,fontWeight:900,fontSize:10,cursor:'pointer'}}>SCANNER UNE INVITATION QR</button>
-          </div>
-        </div>
+      {incoming.length>0&&<section style={{marginTop:22}}><div style={{fontSize:12,fontWeight:950}}>DEMANDES REÇUES · {incoming.length}</div>{incoming.map(r=><div key={r.id} style={{display:'flex',alignItems:'center',gap:10,background:'#fff',border:'1px solid '+BORDER,borderRadius:15,padding:13,marginTop:8}}><div style={{flex:1}}><div style={{fontSize:13,fontWeight:900}}>{r.sender?.display_name||'Membre NOX'}</div><div style={{fontSize:10,color:MUTED,marginTop:2}}>veut t’ajouter à ses amis</div></div><button disabled={busy} onClick={()=>void respond(r.id,true)} style={{width:36,height:36,border:0,borderRadius:10,background:ACCENT}}><Check size={17}/></button><button disabled={busy} onClick={()=>void respond(r.id,false)} style={{width:36,height:36,border:'1px solid '+BORDER,borderRadius:10,background:'#fff'}}><X size={17}/></button></div>)}</section>}
 
-        <div style={{background:SURFACE,border:'1px solid '+BORDER,borderRadius:16,padding:16,marginBottom:16}}>
-          <div style={{fontSize:11,fontWeight:950}}>SOCIAL NOX</div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:11}}>
-            <button onClick={shareInvite} style={{background:'#F7F7F7',border:0,borderRadius:11,padding:'11px',fontSize:10.5,fontWeight:900,textAlign:'left',cursor:'pointer'}}>Inviter un ami</button>
-            <button onClick={()=>navigate('/food-scan',{state:{scanMode:'qr'}})} style={{background:'#F7F7F7',border:0,borderRadius:11,padding:'11px',fontSize:10.5,fontWeight:900,textAlign:'left',cursor:'pointer'}}>Scanner invitation QR</button>
-            <button onClick={()=>void shareSelected('workout')} style={{background:'#F7F7F7',border:0,borderRadius:11,padding:'11px',fontSize:10.5,fontWeight:900,textAlign:'left',cursor:'pointer'}}>Partager un workout</button>
-            <button onClick={()=>void shareSelected('pr')} style={{background:'#F7F7F7',border:0,borderRadius:11,padding:'11px',fontSize:10.5,fontWeight:900,textAlign:'left',cursor:'pointer'}}>Partager un PR</button>
-          </div>
-          {shareMessage&&<div style={{fontSize:10,color:'#5D8200',fontWeight:800,marginTop:10}}>{shareMessage}</div>}
-          <div style={{fontSize:10,color:'#888',lineHeight:1.45,marginTop:11}}>Les partages contiennent uniquement l’élément choisi. Poids, nutrition, photos, récupération et autres données sensibles restent exclus.</div>
-        </div>
-
-        {/* Mon code */}
-        <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 20, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>TON CODE</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ fontSize: 32, fontWeight: 900, color: ACCENT, letterSpacing: '.1em', flex: 1 }}>{partnerCode}</div>
-            <button onClick={copyCode}
-              style={{ padding: '10px 16px', background: copied ? ACCENT : 'transparent', border: '1px solid ' + (copied ? ACCENT : BORDER), borderRadius: 10, color: '#000', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
-              {copied ? '✓ COPIÉ' : 'COPIER'}
-            </button>
-          </div>
-          <div style={{ fontSize: 12, color: '#555', marginTop: 8 }}>Partage uniquement ce code. Tes données sensibles restent privées.</div>
-          <button onClick={shareInvite} style={{width:'100%',marginTop:11,padding:11,border:0,borderRadius:10,background:'#0A0A0A',color:'#fff',fontWeight:900,fontSize:11,cursor:'pointer'}}>INVITER UN AMI</button>
-        </div>
-
-        {/* Connecter un partenaire */}
-        {!partner && (
-          <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 20, marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#0A0A0A', marginBottom: 12 }}>AJOUTER UN AMI</div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <input
-                value={input} onChange={e => setInput(e.target.value.toUpperCase())}
-                placeholder="CODE AMI"
-                maxLength={8}
-                style={{ flex: 1, padding: '12px 14px', background: '#F7F7F7', border: '1px solid ' + BORDER, borderRadius: 10, color: '#0A0A0A', fontSize: 14, fontFamily: 'monospace', letterSpacing: '.1em', outline: 'none' }}
-              />
-              <button onClick={connectPartner}
-                style={{ padding: '12px 16px', background: ACCENT, border: 'none', borderRadius: 10, color: '#000', fontWeight: 900, fontSize: 13, cursor: 'pointer' }}>
-                LIER
-              </button>
-            </div>
-            {error && <div style={{ fontSize: 12, color: '#ff4444', marginTop: 8 }}>{error}</div>}
-          </div>
-        )}
-
-        {/* Stats comparaison */}
-        {partner && partnerStats && myStats && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{ flex: 1, textAlign: 'center', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '12px 8px' }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#0A0A0A' }}>{myProfile?.display_name?.split(' ')[0] || 'Toi'}</div>
-                <div style={{ fontSize: 11, color: ACCENT, marginTop: 2 }}>{myStats.xp} XP</div>
-              </div>
-              <div style={{ fontSize: 20, color: '#333', fontWeight: 900 }}>⚡</div>
-              <div style={{ flex: 1, textAlign: 'center', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '12px 8px' }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#0A0A0A' }}>{partner?.display_name?.split(' ')[0] || 'Partenaire'}</div>
-                <div style={{ fontSize: 11, color: ACCENT, marginTop: 2 }}>{partnerStats.xp} XP</div>
-              </div>
-            </div>
-
-            <div style={{background:SURFACE,border:'1px solid '+BORDER,borderRadius:16,padding:16,marginBottom:14}}>
-              <div style={{fontSize:10,fontWeight:900,color:'#777',letterSpacing:'.08em'}}>CHALLENGE ACTIF · 7 JOURS</div>
-              <div style={{fontSize:17,fontWeight:950,marginTop:5}}>Choisis ce que vous suivez</div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7,marginTop:12}}>
-                {([['workouts','Séances'],['streak','Streak'],['prs','PR']] as const).map(([id,label])=><button key={id} onClick={()=>setChallenge(id)} style={{padding:'10px 6px',borderRadius:10,border:'1px solid '+(challenge===id?ACCENT:BORDER),background:challenge===id?ACCENT:'#fff',fontWeight:900,fontSize:10,cursor:'pointer'}}>{label}</button>)}
-              </div>
-              <div style={{fontSize:11,color:'#777',lineHeight:1.45,marginTop:10}}>Challenge privé entre vous deux. NOX affiche uniquement la métrique choisie.</div>
-            </div>
-
-            {challenge==='workouts'&&<StatRow label="Challenge · séances cette semaine" mine={myStats.weekWorkouts} theirs={partnerStats.weekWorkouts} />}
-            {challenge==='streak'&&<StatRow label="Challenge · streak actuel" mine={myStats.streak} theirs={partnerStats.streak} />}
-            {challenge==='prs'&&<StatRow label="Challenge · records personnels" mine={myStats.totalPRs} theirs={partnerStats.totalPRs} />}
-            <div style={{marginTop:12,fontSize:10,color:'#888',lineHeight:1.45}}>Les challenges sont facultatifs et n’exposent pas ton poids, ta nutrition, tes photos ou tes données de récupération.</div>
-
-            <button onClick={async () => {
-              await supabase.from('profiles').update({ partner_id: null }).eq('id', user!.id);
-              setPartner(null); setPartnerStats(null);
-            }} style={{ width: '100%', marginTop: 16, padding: 12, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#777', fontSize: 12, cursor: 'pointer' }}>
-              Déconnecter ce partenaire
-            </button>
-          </>
-        )}
-      </div>
-
-      <BottomNav active="play" />
-    </div>
-  );
+      <section style={{marginTop:22}}><div style={{display:'flex',alignItems:'center',gap:7,fontSize:12,fontWeight:950}}><Users size={17}/>MES AMIS · {friends.length}</div>
+        {friends.length===0?<div style={{background:'#fff',border:'1px solid '+BORDER,borderRadius:16,padding:18,color:MUTED,fontSize:12,marginTop:9}}>Aucun ami ajouté pour le moment.</div>:friends.map(f=><div key={f.id} style={{display:'flex',alignItems:'center',gap:10,background:'#fff',border:'1px solid '+BORDER,borderRadius:15,padding:14,marginTop:8}}><div style={{flex:1}}><div style={{fontSize:14,fontWeight:900}}>{f.display_name||'Membre NOX'}</div><div style={{fontSize:10,color:MUTED,marginTop:3}}>{f.xp||0} XP · streak {f.streak_days||0}</div></div><button onClick={()=>void removeFriend(f.id)} style={{border:0,background:'transparent',fontSize:10,color:MUTED}}>RETIRER</button><ChevronRight size={16}/></div>)}
+      </section>
+      {me&&<div style={{fontSize:9.5,color:'#999',lineHeight:1.45,marginTop:16}}>Profil social minimal uniquement. Les données sensibles restent privées par défaut.</div>}
+      {message&&<div style={{marginTop:12,fontSize:11,fontWeight:800,color:'#5D8200'}}>{message}</div>}
+      {error&&<div style={{marginTop:12,fontSize:11,fontWeight:800,color:'#C33'}}>{error}</div>}
+    </main><BottomNav active="play"/>
+  </div>;
 }
