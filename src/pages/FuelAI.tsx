@@ -9,7 +9,7 @@ const BG = '#F7F7F7';
 const SURFACE = '#FFFFFF';
 const BORDER = '#EAEAEA';
 
-type Mode = 'menu' | 'grocery' | 'tips';
+type Mode = 'menu' | 'grocery' | 'tips' | 'dinner' | 'quick';
 
 export default function FuelAI() {
   const { user } = useAuth();
@@ -22,6 +22,7 @@ export default function FuelAI() {
   const [days, setDays] = useState('7');
   const [goal, setGoal] = useState('');
   const [error, setError] = useState('');
+  const [command, setCommand] = useState('');
 
 
   const loadNutritionContext = async () => {
@@ -74,6 +75,37 @@ export default function FuelAI() {
     const match = cleaned.match(/\{[\s\S]*\}/);
     if (!match) throw new Error("NOX n'a pas renvoyé un résultat exploitable. Réessaie.");
     return JSON.parse(match[0]);
+  };
+
+  const generateDinner = async (question = 'Que puis-je manger ce soir ?') => {
+    if (!user) return;
+    setLoading(true); setResult(null); setError('');
+    try {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const [ctx, entriesResult] = await Promise.all([
+        loadNutritionContext(),
+        supabase.from('food_entries').select('calories, protein, carbs, fat, food_name').eq('user_id', user.id).gte('created_at', today.toISOString()),
+      ]);
+      if (entriesResult.error) throw entriesResult.error;
+      const used=(entriesResult.data||[]).reduce((a:any,e:any)=>({calories:a.calories+Number(e.calories||0),protein:a.protein+Number(e.protein||0),carbs:a.carbs+Number(e.carbs||0),fat:a.fat+Number(e.fat||0)}),{calories:0,protein:0,carbs:0,fat:0});
+      const remaining={calories:ctx.calories==null?null:Math.max(0,ctx.calories-used.calories),protein:ctx.protein==null?null:Math.max(0,ctx.protein-used.protein),carbs:ctx.carbs==null?null:Math.max(0,ctx.carbs-used.carbs),fat:ctx.fat==null?null:Math.max(0,ctx.fat-used.fat)};
+      const text=await callAI(`Tu es la couche d'intelligence nutritionnelle de NOX. Réponds à la demande: "${question}".
+Objectif: ${ctx.profileGoal}. Restant aujourd'hui: ${remaining.calories??'inconnu'} kcal, ${remaining.protein??'inconnu'} g protéines, ${remaining.carbs??'inconnu'} g glucides, ${remaining.fat??'inconnu'} g lipides.
+Propose 3 options de repas réalistes alignées avec les macros restantes. N'invente pas de cible absente. Les valeurs sont des estimations et doivent être présentées comme telles. Réponds uniquement en JSON valide:
+{"resume":"phrase courte","options":[{"nom":"repas","kcal":500,"protein":35,"carbs":50,"fat":15,"pourquoi":"raison courte"}]}`);
+      setResult({type:'dinner',data:parseAIJson(text),remaining});
+    } catch(e:any){setError(e?.message||'Impossible de préparer des suggestions.')} finally {setLoading(false);}
+  };
+
+  const runQuickCommand = async () => {
+    const q=command.trim(); if(!q)return;
+    const lower=q.toLowerCase();
+    if(lower.includes('manger')||lower.includes('repas')||lower.includes('macro')){setMode('dinner');await generateDinner(q);return;}
+    if(lower.includes('courses')){setMode('grocery');setResult(null);return;}
+    if(lower.includes('semaine')||lower.includes('plan')){navigate('/meal-planner');return;}
+    if(lower.includes('scanner')||lower.includes('scan')){navigate('/food-scan');return;}
+    if(lower.includes('replan')||lower.includes('décal')||lower.includes('report')){navigate('/reschedule');return;}
+    setMode('tips'); await generateTips();
   };
 
   const generateGrocery = async () => {
@@ -282,6 +314,14 @@ FORMAT :
         {/* MENU */}
         {mode === 'menu' && (
           <>
+            <div style={{background:'#0A0A0A',borderRadius:16,padding:14,marginBottom:12}}>
+              <div style={{fontSize:10,color:ACCENT,fontWeight:900,letterSpacing:'.1em'}}>QUICK COMMAND</div>
+              <div style={{display:'flex',gap:8,marginTop:9}}><input value={command} onChange={e=>setCommand(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')void runQuickCommand()}} placeholder="Ex : Que puis-je manger ce soir ?" style={{flex:1,minWidth:0,border:'1px solid #2A2A2A',borderRadius:11,background:'#171717',color:'#fff',padding:'11px 12px',outline:0}}/><button onClick={()=>void runQuickCommand()} style={{border:0,borderRadius:11,background:ACCENT,color:'#000',fontWeight:900,padding:'0 13px'}}>GO</button></div>
+            </div>
+            <MenuCard icon="🌙" title="Que puis-je manger ce soir ?" desc="3 idées selon ce qu’il te reste aujourd’hui en calories et macros" onClick={() => { setMode('dinner'); void generateDinner(); }} />
+            <MenuCard icon="🔎" title="Recherche & commandes" desc="Repas, scan, planification, replanification ou analyse depuis une seule commande" onClick={() => document.querySelector<HTMLInputElement>('input[placeholder^="Ex :"]')?.focus()} />
+            <MenuCard icon="🔄" title="Replanifier ma semaine" desc="Décale intelligemment une séance quand ton planning change" onClick={() => navigate('/reschedule')} />
+            <MenuCard icon="📊" title="Synthèse hebdomadaire" desc="Tendances, changements et priorités à partir de tes données" onClick={() => navigate('/weekly-review')} />
             <MenuCard icon="🧊" title="Scanner mon frigo" desc="Passe par NOX Scan pour identifier les ingrédients et obtenir des idées de repas" onClick={() => navigate('/food-scan', { state: { scanMode: 'fridge' } })} />
             <MenuCard icon="🍽️" title="Plan de repas" desc="Construis ta semaine alimentaire selon ton objectif" onClick={() => navigate('/meal-planner')} />
             <MenuCard icon="🛒" title="Liste de courses" desc="Budget + objectifs → liste optimisée avec prix approximatifs" onClick={() => setMode('grocery')} />
@@ -291,6 +331,17 @@ FORMAT :
           <MenuCard icon="👨‍🍳" title="Mes recettes" desc="Créer et sauvegarder tes propres recettes réutilisables" onClick={() => navigate('/recipes')} />
           <MenuCard icon="📅" title="Planifier mes repas" desc="Organise ta semaine alimentaire à l'avance" onClick={() => navigate('/meal-planner')} />
           </>
+        )}
+
+        {mode === 'dinner' && (
+          <div>
+            {loading && <div style={{padding:'50px 0',textAlign:'center',fontWeight:900}}>NOX ANALYSE TA JOURNÉE...</div>}
+            {!loading && result?.type==='dinner' && <div>
+              <div style={{fontSize:13,color:'#666',lineHeight:1.5,marginBottom:12}}>{result.data.resume}</div>
+              {result.data.options?.map((o:any,i:number)=><div key={i} style={{background:'#fff',border:'1px solid '+BORDER,borderRadius:16,padding:16,marginBottom:10}}><div style={{fontWeight:950,fontSize:15}}>{o.nom}</div><div style={{fontSize:11,color:'#777',marginTop:5}}>≈ {o.kcal} kcal · {o.protein} g prot. · {o.carbs} g gluc. · {o.fat} g lip.</div><div style={{fontSize:12,color:'#555',marginTop:8,lineHeight:1.45}}>{o.pourquoi}</div></div>)}
+              <div style={{fontSize:10,color:'#888',lineHeight:1.45}}>Suggestions basées sur les entrées enregistrées aujourd’hui. Les valeurs restent estimatives.</div>
+            </div>}
+          </div>
         )}
 
         {/* LISTE DE COURSES */}
