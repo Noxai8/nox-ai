@@ -331,31 +331,9 @@ FORMAT :
       parsed.note = Math.max(0, Math.min(10, Number(parsed.note) || 0));
       setAnalysis(parsed);
 
-      // Une adaptation n'est appliquée que si l'IA renvoie explicitement un programme complet.
-      if (
-        parsed.programme_modifie === true &&
-        Array.isArray(parsed.sessions_mises_a_jour) &&
-        parsed.sessions_mises_a_jour.length > 0 &&
-        weekData.program?.id
-      ) {
-        const updatedProgramJson = {
-          ...weekData.program.program_json,
-          sessions: parsed.sessions_mises_a_jour,
-          last_adapted: new Date().toISOString(),
-          last_adaptation_reason: parsed.adaptations_programme || parsed.raison_decision || 'Weekly Review NOX',
-        };
-
-        const { error: updateError } = await supabase
-          .from('workout_programs')
-          .update({
-            program_json: updatedProgramJson,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', weekData.program.id)
-          .eq('user_id', user!.id);
-
-        if (updateError) throw updateError;
-      }
+      // Le Weekly Review reste une couche d'analyse : une suggestion d'adaptation
+      // ne modifie jamais silencieusement le programme actif.
+      // L'application explicite pourra être ajoutée via une action utilisateur dédiée.
     } catch (e: any) {
       console.error('WeeklyReview analysis error:', e);
       setError(e?.message || "NOX n'a pas pu générer l'analyse détaillée.");
