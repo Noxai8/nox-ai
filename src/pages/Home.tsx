@@ -175,6 +175,7 @@ export default function Home() {
   const [todayActiveCalories, setTodayActiveCalories] = useState(0);
   const [todayWorkouts, setTodayWorkouts] = useState(0);
   const [todayWorkoutMinutes, setTodayWorkoutMinutes] = useState(0);
+  const [todayWorkoutCalories, setTodayWorkoutCalories] = useState(0);
   const [targetKcal, setTargetKcal] = useState<number | null>(null);
   const [hasNutritionTarget, setHasNutritionTarget] = useState(false);
   const [nutritionTargetSource, setNutritionTargetSource] = useState<'nutrition'|'profile'|'none'>('none');
@@ -246,7 +247,7 @@ export default function Home() {
           .gte('created_at', weekStart),
         supabase
           .from('workouts')
-          .select('id, completed_at, created_at')
+          .select('id, completed_at, created_at, duration_minutes, calories_burned')
           .eq('user_id', user.id)
           .eq('status', 'completed')
           .gte('created_at', today + 'T00:00:00')
@@ -281,7 +282,13 @@ export default function Home() {
       setPrCount(prs?.length || 0);
       setWeekWorkouts(weekLogs?.length || 0);
       setTodayWorkouts(todayWorkoutLogs?.length || 0);
-      setTodayWorkoutMinutes((todayWorkoutLogs || []).reduce((sum: number, item: any) => { const start=new Date(item.created_at).getTime(); const end=item.completed_at?new Date(item.completed_at).getTime():start; return sum + Math.max(0, Math.round((end-start)/60000)); }, 0));
+      setTodayWorkoutMinutes((todayWorkoutLogs || []).reduce((sum: number, item: any) => {
+        const explicit=Number(item.duration_minutes||0);
+        if(explicit>0)return sum+explicit;
+        const start=new Date(item.created_at).getTime(); const end=item.completed_at?new Date(item.completed_at).getTime():start;
+        return sum + Math.max(0, Math.round((end-start)/60000));
+      }, 0));
+      setTodayWorkoutCalories((todayWorkoutLogs || []).reduce((sum:number,item:any)=>sum+Number(item.calories_burned||0),0));
       setTodayKcal(fuel?.reduce((sum: number, item: any) => sum + (item.calories || 0), 0) || 0);
       setTodayProtein(fuel?.reduce((sum: number, item: any) => sum + Number(item.protein || 0), 0) || 0);
       setTodayCarbs(fuel?.reduce((sum: number, item: any) => sum + Number(item.carbs || 0), 0) || 0);
@@ -425,6 +432,7 @@ export default function Home() {
   const fatProgress = targetFat ? Math.min(1, todayFat / targetFat) : 0;
   void carbsProgress; void fatProgress; void hasNutritionTarget;
   const totalActiveMinutes = todayActivityMinutes + todayWorkoutMinutes;
+  const totalActiveCalories = todayActiveCalories + todayWorkoutCalories;
   const activityProgress = Math.min(1, totalActiveMinutes / 30);
   const stepProgress = stepGoal > 0 ? Math.min(1, todaySteps / stepGoal) : 0;
   const daySignals = [todayFoodCount > 0, nutritionProgress >= .7, proteinProgress >= .7, totalActiveMinutes >= 20 || todayWorkouts > 0, todayWaterMl >= waterGoal * .7];
