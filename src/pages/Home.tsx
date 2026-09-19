@@ -165,6 +165,7 @@ export default function Home() {
   const [todayActiveCalories, setTodayActiveCalories] = useState(0);
   const [targetKcal, setTargetKcal] = useState<number | null>(null);
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
+  const [latestSleepHours, setLatestSleepHours] = useState<number | null>(null);
   const [xp, setXp] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -188,6 +189,7 @@ export default function Home() {
         { data: bodyLogs },
         { data: todayActivity },
         { data: nutritionTarget },
+        { data: recoveryLogs },
       ] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase.from('workout_programs').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
@@ -212,6 +214,7 @@ export default function Home() {
           .limit(1),
         supabase.from('activity_logs').select('duration_minutes, distance_km, calories_burned, steps').eq('user_id', user.id).gte('performed_at', today + 'T00:00:00'),
         supabase.from('nutrition_targets').select('calories, protein').eq('user_id', user.id).maybeSingle(),
+        supabase.from('recovery_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
       ]);
 
       setProfile(prof);
@@ -237,6 +240,9 @@ export default function Home() {
       const profileProtein = Number(prof?.protein_target || 0);
       setTargetProtein(centralizedProtein > 0 ? centralizedProtein : profileProtein > 0 ? profileProtein : null);
       setLatestWeight(bodyLogs?.[0]?.weight || null);
+      const recovery = recoveryLogs?.[0];
+      const sleepHours = Number(recovery?.sleep_hours ?? recovery?.sleep_duration_hours ?? recovery?.sleep_duration ?? 0);
+      setLatestSleepHours(Number.isFinite(sleepHours) && sleepHours > 0 ? sleepHours : null);
       setXp(prof?.xp || 0);
 
       if (prog?.program_json) {
@@ -546,6 +552,11 @@ export default function Home() {
             <div style={{height:7,borderRadius:99,background:SURFACE_2,overflow:'hidden',marginTop:13}}><div style={{height:'100%',width:`${Math.min(100,(todayWaterMl/waterGoal)*100)}%`,background:'#4488ff',borderRadius:99}}/></div>
             <div style={{fontSize:10.5,color:MUTED,marginTop:8}}>Repère actuel : {waterGoal.toLocaleString('fr-FR')} ml · toucher pour ajouter de l’eau</div>
           </button>
+
+          {latestSleepHours!==null&&<button onClick={()=>navigate('/recovery')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}><div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>SOMMEIL & RÉCUPÉRATION</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{latestSleepHours.toFixed(1)} <span style={{fontSize:12,color:MUTED}}>h de sommeil</span></div></div><span style={{width:40,height:40,borderRadius:13,background:SURFACE_2,display:'grid',placeItems:'center'}}><MoonStar size={20}/></span></div>
+            <div style={{fontSize:10.5,color:MUTED,marginTop:9}}>Dernière donnée disponible · ouvre Récupération pour le contexte détaillé.</div>
+          </button>}
 
           <div style={{...cardStyle,padding:18,marginBottom:14}}>
             <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>{briefLabel}</div>
