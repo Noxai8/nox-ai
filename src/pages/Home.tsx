@@ -403,6 +403,7 @@ export default function Home() {
   const daySignals = [todayFoodCount > 0, nutritionProgress >= .7, proteinProgress >= .7, totalActiveMinutes >= 20 || todayWorkouts > 0, todayWaterMl >= waterGoal * .7];
   const consistencySignals = daySignals.filter(Boolean).length;
   const dailyScore = Math.round((consistencySignals / daySignals.length) * 100);
+  const dailyScoreLabel = dailyScore>=80?'5/5 REPÈRES':dailyScore>=60?'4/5 REPÈRES':dailyScore>=40?'2–3/5 REPÈRES':'0–1/5 REPÈRE';
   const tomorrowSessionPlanned = Boolean(program?.program_json?.sessions?.some((session:any)=>{const tomorrowDay=days[tomorrowDate.getDay()];return session.day===tomorrowDay||(session.days&&session.days.includes(tomorrowDay));}));
   const automaticHabitDone:Record<string,boolean> = {
     nutrition: todayFoodCount > 0,
@@ -748,14 +749,14 @@ export default function Home() {
 
           <div style={{...cardStyle,padding:18,marginBottom:14,background:TEXT,color:'#fff'}}>
             <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:ACCENT}}>NOX DAILY SCORE</div>
-            <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:12,marginTop:5}}><div><span style={{fontSize:34,fontWeight:950,lineHeight:1}}>{dailyScore}</span><span style={{fontSize:12,color:'#777'}}> / 100</span></div><div style={{fontSize:10,color:'#999',textAlign:'right'}}>{dailyScore>=80?'TRÈS RÉGULIER':dailyScore>=60?'RÉGULIER':dailyScore>=40?'EN COURS':'À CONSTRUIRE'}<br/>AUJOURD’HUI</div></div>
+            <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:12,marginTop:5}}><div><span style={{fontSize:34,fontWeight:950,lineHeight:1}}>{dailyScore}</span><span style={{fontSize:12,color:'#777'}}> / 100</span></div><div style={{fontSize:10,color:'#999',textAlign:'right'}}>{dailyScoreLabel}<br/>AUJOURD’HUI</div></div>
             <div style={{height:7,borderRadius:99,background:'#242424',overflow:'hidden',marginTop:13}}><div style={{height:'100%',width:`${Math.max(0,Math.min(100,dailyScore))}%`,background:ACCENT,borderRadius:99}}/></div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:12}}>
               <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{todayFoodCount}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>ENTRÉES NUTRITION</div></div>
               <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{Math.round(todayActivityMinutes)}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>MIN ACTIVES</div></div>
               <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{todayWorkouts}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>SÉANCES AUJ.</div></div>
             </div>
-            <div style={{fontSize:9.5,color:'#777',lineHeight:1.45,marginTop:10}}>Repère de régularité basé sur les données enregistrées dans NOX. Il mesure la constance de ton suivi, pas ta santé ni ta valeur personnelle.</div>
+            <div style={{fontSize:9.5,color:'#777',lineHeight:1.45,marginTop:10}}>Repère de suivi basé sur 5 signaux de la journée : nutrition enregistrée, progression calorique, protéines, activité et hydratation. Ce score décrit uniquement les données renseignées dans NOX et n’évalue pas ta santé.</div>
           </div>
 
           <div
