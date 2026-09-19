@@ -4,10 +4,10 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const ACCENT = '#B7FF00';
+const BG = '#F7F7F7';
+const SURFACE = '#FFFFFF';
+const BORDER = '#EAEAEA';
 
 type Mode = 'menu' | 'fridge' | 'meals' | 'grocery' | 'tips';
 
@@ -52,11 +52,13 @@ export default function FuelAI() {
   };
 
   const callAI = async (prompt: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error('Session expirée. Reconnecte-toi pour continuer.');
     const response = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/generate-program', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4'
+        'Authorization': `Bearer ${session.access_token}`
       },
       body: JSON.stringify({ prompt })
     });
@@ -79,9 +81,11 @@ export default function FuelAI() {
   const analyzeFridge = async (base64: string) => {
     setLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Session expirée. Reconnecte-toi pour continuer.');
       const _fr = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/analyze-meal', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ base64, mime: 'image/jpeg' }),
       });
       const fridgeData = await _fr.json().catch(() => null);
@@ -123,7 +127,7 @@ export default function FuelAI() {
     try {
       const ctx = await loadNutritionContext();
 
-      const text = await callAI(`Tu es l'assistant nutrition sportive de NOX. Génère un plan de repas sur 3 jours cohérent avec la cible nutritionnelle centrale de l'utilisateur.
+      const text = await callAI(`Tu es la couche d'analyse nutritionnelle de NOX. Génère un plan de repas sur 3 jours cohérent avec la cible nutritionnelle centrale de l'utilisateur.
 
 PROFIL :
 - Objectif : ${ctx.profileGoal}
@@ -293,7 +297,7 @@ FORMAT :
       const calorieTarget = ctx.calories;
       const proteinTarget = ctx.protein;
 
-      const text = await callAI(`Tu es le coach nutrition de NOX. Donne 6 conseils concrets et personnalisés. Ne donne pas de diagnostic médical et n'invente aucune donnée absente.
+      const text = await callAI(`Tu es la couche d'analyse nutritionnelle de NOX. Donne 6 repères concrets et personnalisés. Ne donne pas de diagnostic médical et n'invente aucune donnée absente.
 
 PROFIL :
 - Objectif : ${profileGoal}
@@ -373,7 +377,7 @@ FORMAT :
       style={{ width: '100%', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: '18px 20px', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 16, marginBottom: 10, touchAction: 'manipulation' }}>
       <div style={{ fontSize: 36, flexShrink: 0 }}>{icon}</div>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', marginBottom: 3 }}>{title}</div>
+        <div style={{ fontSize: 15, fontWeight: 900, color: '#0A0A0A', marginBottom: 3 }}>{title}</div>
         <div style={{ fontSize: 12, color: '#555', lineHeight: 1.4 }}>{desc}</div>
       </div>
       <div style={{ color: '#333', fontSize: 18, flexShrink: 0 }}>→</div>
@@ -390,8 +394,8 @@ FORMAT :
             style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 14, marginBottom: 12, display: 'block' }}>← Retour</button>
         )}
         <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Intelligence NOX</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>
-          {mode === 'menu' ? 'FUEL IA' : mode === 'fridge' ? '🧊 ANALYSE FRIGO' : mode === 'meals' ? '🍽️ PLAN REPAS' : mode === 'grocery' ? '🛒 LISTE DE COURSES' : '💡 ASTUCES NUTRITION'}
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#0A0A0A' }}>
+          {mode === 'menu' ? 'NUTRITION NOX' : mode === 'fridge' ? '🧊 ANALYSE FRIGO' : mode === 'meals' ? '🍽️ PLAN REPAS' : mode === 'grocery' ? '🛒 LISTE DE COURSES' : '💡 ASTUCES NUTRITION'}
         </div>
       </div>
 
@@ -426,7 +430,7 @@ FORMAT :
                 <img src={photo} style={{ width: '100%', borderRadius: 16, marginBottom: 20, maxHeight: 300, objectFit: 'cover' }} alt="" />
                 {loading && (
                   <div style={{ padding: '24px 0' }}>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 8 }}>NOX ANALYSE TON FRIGO...</div>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: '#0A0A0A', marginBottom: 8 }}>NOX ANALYSE TON FRIGO...</div>
                     <div style={{ fontSize: 13, color: '#555' }}>Détection des aliments et suggestions de repas</div>
                   </div>
                 )}
@@ -434,7 +438,7 @@ FORMAT :
             ) : (
               <>
                 <div style={{ fontSize: 64, marginBottom: 16 }}>🧊</div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 8 }}>PHOTO DE TON FRIGO</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: '#0A0A0A', marginBottom: 8 }}>PHOTO DE TON FRIGO</div>
                 <div style={{ fontSize: 14, color: '#555', marginBottom: 32, lineHeight: 1.5, maxWidth: 300, margin: '0 auto 32px' }}>
                   Ouvre ton frigo, prends une photo et NOX te propose 3 repas sains avec ce que t'as
                 </div>
@@ -455,7 +459,7 @@ FORMAT :
               <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>DÉTECTÉ DANS TON FRIGO</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {result.data.ingredients_detectes?.map((ing: string) => (
-                  <span key={ing} style={{ background: '#1a1a1a', borderRadius: 20, padding: '4px 12px', fontSize: 12, color: '#ccc' }}>{ing}</span>
+                  <span key={ing} style={{ background: '#F3F3F3', borderRadius: 20, padding: '4px 12px', fontSize: 12, color: '#333' }}>{ing}</span>
                 ))}
               </div>
             </div>
@@ -465,7 +469,7 @@ FORMAT :
               <div key={i} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 18, marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                   <div>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{repas.nom}</div>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: '#0A0A0A' }}>{repas.nom}</div>
                     <div style={{ fontSize: 12, color: '#555', marginTop: 3 }}>{repas.temps} · {repas.difficulte}</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -484,7 +488,7 @@ FORMAT :
             ))}
 
             <button onClick={() => { setPhoto(null); setResult(null); fileRef.current?.click(); }}
-              style={{ width: '100%', padding: 14, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontWeight: 700, cursor: 'pointer', marginTop: 8 }}>
+              style={{ width: '100%', padding: 14, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#0A0A0A', fontWeight: 700, cursor: 'pointer', marginTop: 8 }}>
               📸 Nouveau scan
             </button>
           </div>
@@ -496,12 +500,12 @@ FORMAT :
             <div style={{ marginBottom: 20 }}>
               <label style={{ fontSize: 12, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: 8 }}>Budget hebdo (€) — optionnel</label>
               <input value={budget} onChange={e => setBudget(e.target.value)} type="number" placeholder="ex: 80"
-                style={{ width: '100%', padding: '14px 16px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontSize: 16, boxSizing: 'border-box', outline: 'none' }} />
+                style={{ width: '100%', padding: '14px 16px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: '#0A0A0A', fontSize: 16, boxSizing: 'border-box', outline: 'none' }} />
             </div>
             <div style={{ marginBottom: 20 }}>
               <label style={{ fontSize: 12, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: 8 }}>Objectif spécifique — optionnel</label>
               <input value={goal} onChange={e => setGoal(e.target.value)} placeholder="ex: perdre du gras, prendre du muscle..."
-                style={{ width: '100%', padding: '14px 16px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
+                style={{ width: '100%', padding: '14px 16px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: '#0A0A0A', fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
             </div>
             <button onClick={generateMeals} disabled={loading}
               style={{ width: '100%', padding: 18, background: ACCENT, border: 'none', borderRadius: 14, color: '#000', fontWeight: 900, fontSize: 15, cursor: 'pointer', touchAction: 'manipulation' }}>
@@ -520,7 +524,7 @@ FORMAT :
             </div>
             {result.data.jours?.map((jour: any) => (
               <div key={jour.jour} style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 900, color: '#fff', marginBottom: 10, display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: 13, fontWeight: 900, color: '#0A0A0A', marginBottom: 10, display: 'flex', justifyContent: 'space-between' }}>
                   <span>{jour.jour}</span>
                   <span style={{ color: '#555', fontWeight: 400, fontSize: 12 }}>{jour.total_calories} kcal · {jour.total_proteines}g prot.</span>
                 </div>
@@ -530,7 +534,7 @@ FORMAT :
                       <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em' }}>{repas.moment}</div>
                       <div style={{ fontSize: 12, color: '#555' }}>~{repas.cout_approx}€</div>
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 4 }}>{repas.nom}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#0A0A0A', marginBottom: 4 }}>{repas.nom}</div>
                     <div style={{ fontSize: 12, color: '#888' }}>{repas.calories} kcal · {repas.proteines}g prot.</div>
                     <div style={{ fontSize: 11, color: '#555', marginTop: 4 }}>{repas.preparation}</div>
                   </div>
@@ -538,7 +542,7 @@ FORMAT :
               </div>
             ))}
             <button onClick={() => setResult(null)}
-              style={{ width: '100%', padding: 14, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+              style={{ width: '100%', padding: 14, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#0A0A0A', fontWeight: 700, cursor: 'pointer' }}>
               Regénérer
             </button>
           </div>
@@ -555,7 +559,7 @@ FORMAT :
               <div key={key} style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 12, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: 8 }}>{label}</label>
                 <input value={val} onChange={e => set(e.target.value)} type={type} placeholder={placeholder}
-                  style={{ width: '100%', padding: '14px 16px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontSize: 16, boxSizing: 'border-box', outline: 'none' }} />
+                  style={{ width: '100%', padding: '14px 16px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: '#0A0A0A', fontSize: 16, boxSizing: 'border-box', outline: 'none' }} />
               </div>
             ))}
             <button onClick={generateGrocery} disabled={loading}
@@ -581,16 +585,16 @@ FORMAT :
             {result.data.categories?.map((cat: any) => (
               <div key={cat.nom} style={{ marginBottom: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{cat.emoji} {cat.nom}</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#0A0A0A' }}>{cat.emoji} {cat.nom}</div>
                   <div style={{ fontSize: 13, color: ACCENT, fontWeight: 700 }}>~{cat.sous_total}€</div>
                 </div>
                 {cat.items?.map((item: any, i: number) => (
                   <div key={i} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '12px 16px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{item.produit}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#0A0A0A' }}>{item.produit}</div>
                       <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{item.quantite} · {item.pourquoi}</div>
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 900, color: '#fff', flexShrink: 0, marginLeft: 12 }}>~{item.prix_approx}€</div>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: '#0A0A0A', flexShrink: 0, marginLeft: 12 }}>~{item.prix_approx}€</div>
                   </div>
                 ))}
               </div>
@@ -609,12 +613,12 @@ FORMAT :
 
             {result.data.meal_prep_tip && (
               <div style={{ background: '#1a1a1a', borderRadius: 12, padding: 14, marginBottom: 16, fontSize: 13, color: '#888', lineHeight: 1.5 }}>
-                🥡 <strong style={{ color: '#fff' }}>Meal prep :</strong> {result.data.meal_prep_tip}
+                🥡 <strong style={{ color: '#0A0A0A' }}>Meal prep :</strong> {result.data.meal_prep_tip}
               </div>
             )}
 
             <button onClick={() => setResult(null)}
-              style={{ width: '100%', padding: 14, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+              style={{ width: '100%', padding: 14, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#0A0A0A', fontWeight: 700, cursor: 'pointer' }}>
               Modifier les paramètres
             </button>
           </div>
@@ -624,13 +628,13 @@ FORMAT :
         {mode === 'tips' && loading && (
           <div style={{ textAlign: 'center', padding: '60px 0' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>💡</div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>NOX PRÉPARE TES ASTUCES...</div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: '#0A0A0A' }}>NOX PRÉPARE TES ASTUCES...</div>
           </div>
         )}
 
         {mode === 'tips' && !loading && !result && !error && (
           <div style={{ textAlign: 'center', padding: '50px 0' }}>
-            <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 8 }}>TES CONSEILS SONT PRÊTS À ÊTRE GÉNÉRÉS</div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: '#0A0A0A', marginBottom: 8 }}>TES CONSEILS SONT PRÊTS À ÊTRE GÉNÉRÉS</div>
             <div style={{ fontSize: 12, color: '#666', marginBottom: 18 }}>NOX utilise ton objectif et ton journal alimentaire récent.</div>
             <button onClick={generateTips} style={{ width: '100%', padding: 16, background: ACCENT, border: 'none', borderRadius: 14, color: '#000', fontWeight: 900, cursor: 'pointer' }}>
               GÉNÉRER MES ASTUCES
@@ -651,7 +655,7 @@ FORMAT :
               <div key={i} style={{ background: SURFACE, border: '1px solid ' + (astuce.impact === 'fort' ? ACCENT + '44' : BORDER), borderRadius: 16, padding: 18, marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                   <span style={{ fontSize: 24 }}>{astuce.emoji}</span>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: '#fff' }}>{astuce.titre}</div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: '#0A0A0A' }}>{astuce.titre}</div>
                   {astuce.impact === 'fort' && <span style={{ fontSize: 10, background: ACCENT + '22', color: ACCENT, borderRadius: 20, padding: '3px 10px', fontWeight: 800 }}>IMPACT FORT</span>}
                 </div>
                 <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6, marginBottom: 10 }}>{astuce.conseil}</div>
@@ -660,14 +664,14 @@ FORMAT :
             ))}
 
             {result.data.secret_chef && (
-              <div style={{ background: 'linear-gradient(135deg, #1a1a1a, #111)', border: '1px solid #333', borderRadius: 16, padding: 18, marginBottom: 16 }}>
+              <div style={{ background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 16, padding: 18, marginBottom: 16 }}>
                 <div style={{ fontSize: 11, color: '#ffaa00', fontWeight: 800, textTransform: 'uppercase', marginBottom: 8 }}>👨‍🍳 SECRET DU CHEF</div>
                 <div style={{ fontSize: 14, color: '#ccc', lineHeight: 1.6, fontStyle: 'italic' }}>"{result.data.secret_chef}"</div>
               </div>
             )}
 
             <button onClick={() => { setResult(null); generateTips(); }}
-              style={{ width: '100%', padding: 14, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+              style={{ width: '100%', padding: 14, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#0A0A0A', fontWeight: 700, cursor: 'pointer' }}>
               Nouvelles astuces
             </button>
           </div>
