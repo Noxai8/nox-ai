@@ -35,7 +35,7 @@ const FoodScan = lazy(() => import('./pages/FoodScan'));
 const Reschedule = lazy(() => import('./pages/Reschedule'));
 const ActivityHub = lazy(() => import('./pages/ActivityHub'));
 
-const Loader = () => <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#c8ff00', fontWeight: 900, letterSpacing: '.15em', fontSize: 18 }}>NOX</div></div>;
+const Loader = () => <div style={{ minHeight: '100vh', background: '#F7F7F7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#0A0A0A', fontWeight: 950, letterSpacing: '.15em', fontSize: 18 }}>NOX<span style={{ color: '#B7FF00' }}>.</span></div></div>;
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
