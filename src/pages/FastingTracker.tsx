@@ -1,20 +1,17 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const ACCENT = '#B7FF00';
+const BG = '#F7F7F7';
+const SURFACE = '#FFFFFF';
+const BORDER = '#EAEAEA';
 
 const PROTOCOLS = [
   { id: '16:8', name: '16:8', fast: 16, eat: 8, desc: 'Le plus populaire' },
-  { id: '18:6', name: '18:6', fast: 18, eat: 6, desc: 'Avancé' },
-  { id: '20:4', name: '20:4', fast: 20, eat: 4, desc: 'Expert' },
   { id: '14:10', name: '14:10', fast: 14, eat: 10, desc: 'Débutant' },
   { id: '12:12', name: '12:12', fast: 12, eat: 12, desc: 'Doux' },
-  { id: '5:2', name: '5:2', fast: 0, eat: 0, desc: '2 jours restrictifs/semaine', special: true },
+  { id: 'custom', name: 'Perso', fast: 16, eat: 8, desc: 'Personnalisable' },
 ];
 
 export default function FastingTracker() {
@@ -95,11 +92,12 @@ export default function FastingTracker() {
   return (
     <div style={{ minHeight: '100vh', background: BG, paddingBottom: 80 }}>
       <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid ' + BORDER }}>
-        <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Santé</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>JEÛNE INTERMITTENT</div>
+        <div style={{ fontSize: 11, color: '#777', textTransform: 'uppercase', letterSpacing: '.1em' }}>NUTRITION · OPTIONNEL</div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#0A0A0A' }}>JEÛNE INTERMITTENT</div>
       </div>
 
       <div style={{ padding: '20px 20px 0' }}>
+        <div style={{background:'#fff',border:'1px solid '+BORDER,borderRadius:14,padding:'12px 14px',marginBottom:18,fontSize:11.5,color:'#777',lineHeight:1.5}}>Le suivi du jeûne est facultatif. NOX l’utilise uniquement comme outil d’organisation alimentaire, sans attribuer de bénéfice médical ni de jugement aux aliments.</div>
         {/* Protocol selector */}
         {!isFasting && (
           <div style={{ marginBottom: 20 }}>
@@ -122,9 +120,9 @@ export default function FastingTracker() {
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ position: 'relative', width: 200, height: 200, margin: '0 auto 20px' }}>
             <svg width="200" height="200" style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx="100" cy="100" r="80" fill="none" stroke="#1a1a1a" strokeWidth="12" />
+              <circle cx="100" cy="100" r="80" fill="none" stroke="#EAEAEA" strokeWidth="12" />
               <circle cx="100" cy="100" r="80" fill="none"
-                stroke={progress >= 1 ? ACCENT : '#ff6600'}
+                stroke={ACCENT}
                 strokeWidth="12"
                 strokeDasharray={circumference}
                 strokeDashoffset={circumference * (1 - progress)}
@@ -136,7 +134,7 @@ export default function FastingTracker() {
               {isFasting ? (
                 <>
                   <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>En jeûne</div>
-                  <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>{formatTime(elapsed)}</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: '#0A0A0A', fontFamily: 'monospace' }}>{formatTime(elapsed)}</div>
                   {progress < 1 ? (
                     <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Encore {remainingH}h{remainingM}m</div>
                   ) : (
@@ -168,10 +166,10 @@ export default function FastingTracker() {
         {/* Eau */}
         <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 20, marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>💧 Hydratation</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#0A0A0A' }}>💧 Hydratation</div>
             <div style={{ fontSize: 16, fontWeight: 900, color: '#4488ff' }}>{waterIntake}ml / {waterGoal}ml</div>
           </div>
-          <div style={{ height: 8, background: '#1a1a1a', borderRadius: 4, overflow: 'hidden', marginBottom: 14 }}>
+          <div style={{ height: 8, background: '#EAEAEA', borderRadius: 4, overflow: 'hidden', marginBottom: 14 }}>
             <div style={{ height: '100%', width: Math.min(100, (waterIntake / waterGoal) * 100) + '%', background: '#4488ff', borderRadius: 4, transition: 'width .3s' }} />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
