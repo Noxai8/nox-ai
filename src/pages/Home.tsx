@@ -160,6 +160,7 @@ export default function Home() {
   const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
   const [dayPeriod, setDayPeriod] = useState<'morning'|'day'|'evening'>(() => { const h=new Date().getHours(); return h<12?'morning':h<18?'day':'evening'; });
   const [todayFoodCount, setTodayFoodCount] = useState(0);
+  const [todayMeals, setTodayMeals] = useState<any[]>([]);
   const [todayWaterMl, setTodayWaterMl] = useState(0);
   const [waterGoal, setWaterGoal] = useState(2500);
   const [todaySteps, setTodaySteps] = useState(0);
@@ -215,7 +216,7 @@ export default function Home() {
           .gte('created_at', weekStart),
         supabase
           .from('food_entries')
-          .select('calories, protein, carbs, fat')
+          .select('id, meal_type, food_name, calories, protein, carbs, fat, created_at')
           .eq('user_id', user.id)
           .gte('created_at', today + 'T00:00:00'),
         supabase
@@ -239,6 +240,7 @@ export default function Home() {
       setTodayCarbs(fuel?.reduce((sum: number, item: any) => sum + Number(item.carbs || 0), 0) || 0);
       setTodayFat(fuel?.reduce((sum: number, item: any) => sum + Number(item.fat || 0), 0) || 0);
       setTodayFoodCount(fuel?.length || 0);
+      setTodayMeals(fuel || []);
       const storedWater = Number(localStorage.getItem('nox_water_' + user.id + '_' + today) || 0);
       const storedWaterGoal = Number(localStorage.getItem('nox_water_goal_' + user.id) || 2500);
       setTodayWaterMl(Number.isFinite(storedWater) ? storedWater : 0);
@@ -558,6 +560,14 @@ export default function Home() {
             </div>
             <div style={{fontSize:10.5,color:MUTED,marginTop:9}}>{remainingKcal===null?'Ajoute ta cible dans Nutrition pour afficher le restant.':`${Math.round(remainingKcal)} kcal restantes sur ton repère actuel`}</div>
           </button>
+
+          <div style={{...cardStyle,padding:18,marginBottom:14}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+              <div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>REPAS AUJOURD'HUI</div><div style={{fontSize:18,fontWeight:950,marginTop:4}}>{todayFoodCount ? todayFoodCount+' ENREGISTRÉ'+(todayFoodCount>1?'S':'') : 'AUCUN REPAS'}</div></div>
+              <button onClick={()=>navigate('/fuel')} style={{border:0,background:'transparent',fontSize:10,fontWeight:900,cursor:'pointer'}}>VOIR <ArrowRight size={12} style={{verticalAlign:'middle'}}/></button>
+            </div>
+            {todayMeals.length===0?<button onClick={()=>navigate('/food-scan',{state:{scanMode:'meal'}})} style={{width:'100%',marginTop:12,padding:13,border:'1px dashed '+BORDER,borderRadius:13,background:SURFACE_2,textAlign:'left',fontSize:11,fontWeight:850,cursor:'pointer'}}>+ Scanner ou ajouter ton premier repas</button>:<div style={{marginTop:11}}>{todayMeals.slice(-3).reverse().map((item:any)=><div key={item.id} style={{display:'flex',justifyContent:'space-between',gap:10,padding:'9px 0',borderTop:'1px solid '+BORDER}}><div style={{minWidth:0}}><div style={{fontSize:11.5,fontWeight:850,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{item.food_name||'Repas'}</div><div style={{fontSize:9.5,color:MUTED,marginTop:2}}>{item.meal_type||'Repas'}</div></div><div style={{fontSize:11,fontWeight:900,whiteSpace:'nowrap'}}>{Math.round(Number(item.calories||0))} kcal</div></div>)}</div>}
+          </div>
 
           <div style={{...cardStyle,padding:18,marginBottom:14}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
