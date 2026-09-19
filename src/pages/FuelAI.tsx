@@ -415,6 +415,7 @@ FORMAT :
           <MenuCard icon="😊" title="Humeur & bien-être" desc="Journal quotidien humeur, sommeil, fatigue et récupération" onClick={() => navigate('/mood')} />
           <MenuCard icon="👨‍🍳" title="Mes recettes" desc="Créer et sauvegarder tes propres recettes réutilisables" onClick={() => navigate('/recipes')} />
           <MenuCard icon="📅" title="Planifier mes repas" desc="Organise ta semaine alimentaire à l'avance" onClick={() => navigate('/meal-planner')} />
+          <MenuCard icon="🧺" title="Garde-manger" desc="Suivi des aliments avec alertes expiration" onClick={() => navigate('/pantry')} />
           </>
         )}
 

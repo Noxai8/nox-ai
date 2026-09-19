@@ -32,12 +32,14 @@ export function BottomNav({ active }: { active: string }) {
         { icon: WandSparkles, label: 'Future', path: '/future' },
         { icon: '🌙', label: 'Recovery', path: '/recovery' },
         { icon: '😊', label: 'Humeur', path: '/mood' },
+        { icon: '🌙', label: 'Sommeil', path: '/sleep' },
       ],
     },
     {
       title: 'NUTRITION',
       items: [
         { icon: '🧊', label: 'Fuel IA', path: '/fuel-ai' },
+        { icon: '🧺', label: 'Garde-manger', path: '/pantry' },
         { icon: '👨‍🍳', label: 'Recettes', path: '/recipes' },
         { icon: '📅', label: 'Planifier', path: '/meal-planner' },
         { icon: '⏱️', label: 'Jeûne', path: '/fasting' },
