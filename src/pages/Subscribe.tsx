@@ -13,18 +13,18 @@ const PLANS = [
   {
     id: 'nox',
     name: 'NOX',
-    monthly: '3,99 €',
-    annual: '39,99 €',
-    annualMonthly: '3,33 €',
+    monthly: '4,99 €',
+    annual: '49,99 €',
+    annualMonthly: '4,17 €',
     color: '#0A0A0A',
     features: ['Suivi quotidien', 'Journal nutrition essentiel', 'Calories & macros', 'Poids & hydratation', 'Activité de base', 'Training & progrès essentiels'],
   },
   {
     id: 'plus',
     name: 'NOX+',
-    monthly: '8,99 €',
-    annual: '79,99 €',
-    annualMonthly: '6,67 €',
+    monthly: '9,99 €',
+    annual: '99,99 €',
+    annualMonthly: '8,33 €',
     color: ACCENT,
     badge: 'PLUS COMPLET',
     features: ['Tout NOX inclus', 'Scan nourriture avancé', 'Analyses longue durée', 'Meal Planner avancé', 'Training & statistiques avancés', 'Synthèses personnalisées', 'Fonctions premium selon intégrations disponibles'],
@@ -38,7 +38,7 @@ export default function Subscribe() {
   const [selected, setSelected] = useState('plus');
 
   const startTrial = async () => {
-    const trialEnd = null;
+    const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     await supabase.from('profiles').update({
       subscription_plan: selected,
       trial_ends_at: trialEnd,
@@ -55,7 +55,7 @@ export default function Subscribe() {
         <button onClick={() => navigate(-1)} style={{ position: 'absolute', top: 24, left: 20, background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 14 }}>← Retour</button>
         <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.15em', marginBottom: 8 }}>Passe au niveau supérieur</div>
         <div style={{ fontSize: 28, fontWeight: 900, color: '#0A0A0A', letterSpacing: '-.02em' }}>CHOISIS TON EXPÉRIENCE NOX</div>
-        <div style={{ fontSize: 14, color: ACCENT, marginTop: 8, fontWeight: 700 }}>NOX à partir de 3,99 €/mois · NOX+ à 8,99 €/mois</div>
+        <div style={{ fontSize: 14, color: ACCENT, marginTop: 8, fontWeight: 700 }}>7 jours d’essai gratuit · puis NOX 4,99 €/mois ou NOX+ 9,99 €/mois</div>
       </div>
 
       {/* Billing toggle */}
@@ -64,7 +64,7 @@ export default function Subscribe() {
           {(['monthly', 'annual'] as const).map(b => (
             <button key={b} onClick={() => setBilling(b)}
               style={{ padding: '8px 20px', borderRadius: 10, background: billing === b ? ACCENT : 'transparent', border: 'none', color: billing === b ? '#000' : '#555', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
-              {b === 'monthly' ? 'Mensuel' : 'Annuel −30%'}
+              {b === 'monthly' ? 'Mensuel' : 'Annuel'}
             </button>
           ))}
         </div>
@@ -103,19 +103,19 @@ export default function Subscribe() {
       {/* CTA */}
       <div style={{ padding: '24px 20px' }}>
         <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 16, marginBottom: 16, textAlign: 'center' }}>
-          <div style={{ fontSize: 24, fontWeight: 900, color: ACCENT }}>NOX · DEUX NIVEAUX D’ABONNEMENT</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: ACCENT }}>7 JOURS GRATUITS</div>
           <div style={{ fontSize: 13, color: '#555', marginTop: 4 }}>
-            <>Abonnement sélectionné : {billing === 'annual' ? plan.annual + '/an' : plan.monthly + '/mois'}.</>
+            <>Puis {billing === 'annual' ? plan.annual + '/an' : plan.monthly + '/mois'} avec {plan.name}.</>
           </div>
         </div>
 
         <button onClick={startTrial}
           style={{ width: '100%', padding: 18, background: ACCENT, border: 'none', borderRadius: 16, color: '#000', fontWeight: 900, fontSize: 16, cursor: 'pointer', marginBottom: 12 }}>
-          {selected === 'nox' ? 'CHOISIR NOX' : 'CHOISIR NOX+'}
+          COMMENCER MON ESSAI GRATUIT
         </button>
 
         <div style={{ fontSize: 11, color: '#333', textAlign: 'center', lineHeight: 1.6 }}>
-          L’activation actuelle enregistre le choix dans ton profil. Le paiement réel doit être connecté avant commercialisation.
+          Essai gratuit pendant 7 jours. L’activation actuelle enregistre la formule et la fin d’essai dans ton profil ; le paiement et le renouvellement réel doivent être connectés avant commercialisation.
         </div>
       </div>
       <BottomNav active="settings" />
