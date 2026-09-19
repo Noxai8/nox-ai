@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
@@ -51,6 +52,8 @@ function parseJsonObject(raw: string): any | null {
 
 export default function Body() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState<Tab>('progress');
   const [logs, setLogs] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
@@ -77,6 +80,28 @@ export default function Body() {
   const scanInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (user) void load(); }, [user]);
+
+  useEffect(() => {
+    const add = searchParams.get('add');
+    if (!add) return;
+
+    if (add === 'weight' || add === 'measurement' || add === 'measurements') {
+      setTab('progress');
+      setShowAdd(true);
+    } else if (add === 'activity') {
+      setTab('activity');
+      openManualActivity();
+    } else if (add === 'scan') {
+      navigate('/food-scan');
+      return;
+    } else if (add === 'photo' || add === 'photos') {
+      setTab('photos');
+    }
+
+    const next = new URLSearchParams(searchParams);
+    next.delete('add');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, navigate]);
 
   const load = async () => {
     if (!user) return;
