@@ -3,10 +3,10 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#232323';
+const ACCENT = '#B7FF00';
+const BG = '#F7F7F7';
+const SURFACE = '#FFFFFF';
+const BORDER = '#EAEAEA';
 
 type View = 'list' | 'create' | 'detail';
 type GoalKey = 'cut' | 'maintain' | 'bulk';
@@ -55,7 +55,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     protein_per_serving: 52,
     carbs_per_serving: 51,
     fat_per_serving: 11,
-    tags: ['PROTÉINÉ', 'SÈCHE', '20 MIN'],
+    tags: ['PROTÉINÉ', 'OBJECTIF', '20 MIN'],
     ingredients: [
       { name: 'Blanc de poulet', calories: '110', protein: '23', carbs: '0', fat: '1.2', qty: '170' },
       { name: 'Riz basmati cuit', calories: '121', protein: '2.5', carbs: '25', fat: '0.3', qty: '150' },
@@ -74,7 +74,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     protein_per_serving: 35,
     carbs_per_serving: 49,
     fat_per_serving: 7,
-    tags: ['PETIT-DÉJ', 'SÈCHE', '5 MIN'],
+    tags: ['PETIT-DÉJ', 'OBJECTIF', '5 MIN'],
     ingredients: [
       { name: 'Skyr nature', calories: '65', protein: '11', carbs: '4', fat: '0.2', qty: '250' },
       { name: "Flocons d'avoine", calories: '379', protein: '13', carbs: '68', fat: '6.9', qty: '45' },
@@ -92,7 +92,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     protein_per_serving: 42,
     carbs_per_serving: 52,
     fat_per_serving: 20,
-    tags: ['DÎNER', 'OMEGA-3', 'SÈCHE'],
+    tags: ['DÎNER', 'OMEGA-3', 'OBJECTIF'],
     ingredients: [
       { name: 'Saumon', calories: '208', protein: '20', carbs: '0', fat: '13', qty: '160' },
       { name: 'Pomme de terre cuite', calories: '87', protein: '1.9', carbs: '20', fat: '0.1', qty: '260' },
@@ -148,7 +148,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     protein_per_serving: 42,
     carbs_per_serving: 91,
     fat_per_serving: 22,
-    tags: ['PRISE DE MASSE', 'PETIT-DÉJ', 'ÉNERGIE'],
+    tags: ['PRISE DE MUSCLE', 'PETIT-DÉJ', 'ÉNERGIE'],
     ingredients: [
       { name: "Flocons d'avoine", calories: '379', protein: '13', carbs: '68', fat: '6.9', qty: '90' },
       { name: 'Lait demi-écrémé', calories: '46', protein: '3.2', carbs: '4.7', fat: '1.6', qty: '300' },
@@ -167,7 +167,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     protein_per_serving: 55,
     carbs_per_serving: 96,
     fat_per_serving: 20,
-    tags: ['PRISE DE MASSE', 'PROTÉINÉ', 'POST-TRAIN'],
+    tags: ['PRISE DE MUSCLE', 'PROTÉINÉ', 'POST-TRAIN'],
     ingredients: [
       { name: 'Steak haché 5%', calories: '137', protein: '21', carbs: '0', fat: '5', qty: '180' },
       { name: 'Riz basmati cuit', calories: '121', protein: '2.5', carbs: '25', fat: '0.3', qty: '300' },
@@ -186,7 +186,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     protein_per_serving: 45,
     carbs_per_serving: 78,
     fat_per_serving: 21,
-    tags: ['PRISE DE MASSE', 'COLLATION', '5 MIN'],
+    tags: ['PRISE DE MUSCLE', 'COLLATION', '5 MIN'],
     ingredients: [
       { name: 'Lait demi-écrémé', calories: '46', protein: '3.2', carbs: '4.7', fat: '1.6', qty: '350' },
       { name: 'Banane', calories: '89', protein: '1.1', carbs: '23', fat: '0.3', qty: '140' },
@@ -206,7 +206,7 @@ function normalizeGoal(raw?: string | null): GoalKey {
 }
 
 const goalLabel = (goal: GoalKey) =>
-  goal === 'cut' ? 'SÈCHE / PERTE DE GRAS' : goal === 'bulk' ? 'PRISE DE MASSE' : 'MAINTIEN';
+  goal === 'cut' ? 'PERTE DE POIDS' : goal === 'bulk' ? 'PRISE DE MUSCLE' : 'MAINTIEN';
 
 export default function Recipes() {
   const { user } = useAuth();
@@ -423,7 +423,7 @@ export default function Recipes() {
     : null;
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, color: '#fff', paddingBottom: 96 }}>
+    <div style={{ minHeight: '100vh', background: BG, color: '#0A0A0A', paddingBottom: 96 }}>
       <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
         <header style={{ padding: '24px 20px 18px', borderBottom: `1px solid ${BORDER}` }}>
           {view !== 'list' && (
@@ -437,7 +437,7 @@ export default function Recipes() {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14 }}>
             <div>
-              <div style={{ fontSize: 10, color: ACCENT, fontWeight: 900, letterSpacing: '.12em' }}>NOX FUEL</div>
+              <div style={{ fontSize: 10, color: ACCENT, fontWeight: 900, letterSpacing: '.12em' }}>NUTRITION · NOX</div>
               <div style={{ fontSize: 24, fontWeight: 950, letterSpacing: '-.035em', marginTop: 4 }}>
                 {view === 'list' ? 'MES RECETTES' : view === 'create' ? 'NOUVELLE RECETTE' : selected?.name}
               </div>
@@ -479,9 +479,9 @@ export default function Recipes() {
                 <div style={{ fontSize: 18, fontWeight: 950, marginTop: 6 }}>{goalLabel(goal)}</div>
                 <div style={{ fontSize: 11.5, color: '#888', lineHeight: 1.5, marginTop: 6 }}>
                   NOX te propose des repas cohérents avec ton objectif nutritionnel.
-                  {dailyCalories ? ` Même cible que Fuel : ${Math.round(dailyCalories)} kcal/jour` : ''}
+                  {dailyCalories ? ` Même cible que Nutrition : ${Math.round(dailyCalories)} kcal/jour` : ''}
                   {dailyProtein ? ` · ${Math.round(dailyProtein)} g protéines` : ''}.
-                  {!dailyCalories ? ' Ouvre Fuel une première fois pour initialiser ta cible nutritionnelle centrale.' : ''}
+                  {!dailyCalories ? ' Enregistre une cible dans Nutrition pour personnaliser davantage ces suggestions.' : ''}
                 </div>
               </div>
 
@@ -497,7 +497,7 @@ export default function Recipes() {
                   <button
                     key={recipe.id}
                     onClick={() => openSuggestion(recipe)}
-                    style={{ width: '100%', background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 17, padding: 15, textAlign: 'left', cursor: 'pointer', color: '#fff' }}
+                    style={{ width: '100%', background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 17, padding: 15, textAlign: 'left', cursor: 'pointer', color: '#0A0A0A' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'flex-start' }}>
                       <div style={{ minWidth: 0 }}>
@@ -545,7 +545,7 @@ export default function Recipes() {
                     <button
                       key={r.id}
                       onClick={() => { setSelected(r); setView('detail'); setActionMessage(''); setError(''); }}
-                      style={{ width: '100%', background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 15, padding: '14px 15px', marginBottom: 8, textAlign: 'left', cursor: 'pointer', color: '#fff' }}
+                      style={{ width: '100%', background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 15, padding: '14px 15px', marginBottom: 8, textAlign: 'left', cursor: 'pointer', color: '#0A0A0A' }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
                         <div style={{ minWidth: 0 }}>
@@ -571,7 +571,7 @@ export default function Recipes() {
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="Ex. Bowl protéiné poulet-riz"
-                  style={{ width: '100%', padding: '13px 14px', background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, color: '#fff', fontSize: 14, boxSizing: 'border-box', outline: 'none' }}
+                  style={{ width: '100%', padding: '13px 14px', background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, color: '#0A0A0A', fontSize: 14, boxSizing: 'border-box', outline: 'none' }}
                 />
               </div>
 
@@ -582,7 +582,7 @@ export default function Recipes() {
                   onChange={e => setForm(f => ({ ...f, servings: e.target.value }))}
                   type="number"
                   min="1"
-                  style={{ width: '100%', padding: '13px 14px', background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, color: '#fff', fontSize: 15, fontWeight: 800, boxSizing: 'border-box', outline: 'none' }}
+                  style={{ width: '100%', padding: '13px 14px', background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, color: '#0A0A0A', fontSize: 15, fontWeight: 800, boxSizing: 'border-box', outline: 'none' }}
                 />
               </div>
 
@@ -595,14 +595,14 @@ export default function Recipes() {
                       value={ing.name}
                       onChange={e => updateIngredient(i, 'name', e.target.value)}
                       placeholder="Nom de l'ingrédient"
-                      style={{ flex: 1, minWidth: 0, padding: '9px 10px', background: '#0b0b0b', border: `1px solid ${BORDER}`, borderRadius: 9, color: '#fff', fontSize: 12, outline: 'none' }}
+                      style={{ flex: 1, minWidth: 0, padding: '9px 10px', background: '#F7F7F7', border: `1px solid ${BORDER}`, borderRadius: 9, color: '#0A0A0A', fontSize: 12, outline: 'none' }}
                     />
                     <input
                       value={ing.qty}
                       onChange={e => updateIngredient(i, 'qty', e.target.value)}
                       placeholder="g"
                       type="number"
-                      style={{ width: 64, padding: '9px 8px', background: '#0b0b0b', border: `1px solid ${BORDER}`, borderRadius: 9, color: '#fff', fontSize: 12, outline: 'none', textAlign: 'center' }}
+                      style={{ width: 64, padding: '9px 8px', background: '#F7F7F7', border: `1px solid ${BORDER}`, borderRadius: 9, color: '#0A0A0A', fontSize: 12, outline: 'none', textAlign: 'center' }}
                     />
                   </div>
 
@@ -619,7 +619,7 @@ export default function Recipes() {
                         onChange={e => updateIngredient(i, key, e.target.value)}
                         placeholder={label}
                         type="number"
-                        style={{ width: '100%', minWidth: 0, padding: '8px 4px', background: '#0b0b0b', border: `1px solid ${BORDER}`, borderRadius: 8, color: '#ccc', fontSize: 9.5, outline: 'none', textAlign: 'center', boxSizing: 'border-box' }}
+                        style={{ width: '100%', minWidth: 0, padding: '8px 4px', background: '#F7F7F7', border: `1px solid ${BORDER}`, borderRadius: 8, color: '#ccc', fontSize: 9.5, outline: 'none', textAlign: 'center', boxSizing: 'border-box' }}
                       />
                     ))}
                   </div>
@@ -643,7 +643,7 @@ export default function Recipes() {
                 const t = totals(form.ingredients);
                 const servings = Math.max(1, parseFloat(form.servings.replace(',', '.')) || 1);
                 return (
-                  <div style={{ background: '#0d0d0d', border: `1px solid ${BORDER}`, borderRadius: 14, padding: 14, marginBottom: 16 }}>
+                  <div style={{ background: '#FFFFFF', border: `1px solid ${BORDER}`, borderRadius: 14, padding: 14, marginBottom: 16 }}>
                     <div style={{ fontSize: 9.5, color: '#666', fontWeight: 850, marginBottom: 10 }}>ESTIMATION PAR PORTION</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
                       {[
@@ -668,7 +668,7 @@ export default function Recipes() {
                   value={form.steps}
                   onChange={e => setForm(f => ({ ...f, steps: e.target.value }))}
                   placeholder="Étapes de préparation..."
-                  style={{ width: '100%', minHeight: 110, padding: '12px 14px', background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, color: '#fff', fontSize: 13, resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  style={{ width: '100%', minHeight: 110, padding: '12px 14px', background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, color: '#0A0A0A', fontSize: 13, resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
                 />
               </div>
 
@@ -710,7 +710,7 @@ export default function Recipes() {
                 <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 17, padding: 16, marginBottom: 12 }}>
                   <div style={{ fontSize: 10, color: '#666', fontWeight: 900, letterSpacing: '.08em', marginBottom: 10 }}>INGRÉDIENTS</div>
                   {selected.ingredients.map((ing: any, i: number) => (
-                    <div key={`${ing.name}-${i}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderBottom: i < selected.ingredients.length - 1 ? '1px solid #1c1c1c' : 'none' }}>
+                    <div key={`${ing.name}-${i}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderBottom: i < selected.ingredients.length - 1 ? '1px solid #EAEAEA' : 'none' }}>
                       <div style={{ fontSize: 12.5, fontWeight: 750 }}>{ing.name}</div>
                       <div style={{ fontSize: 11, color: '#777', flexShrink: 0 }}>{ing.qty ? `${ing.qty} g` : ''}</div>
                     </div>
@@ -721,7 +721,7 @@ export default function Recipes() {
               {selected.steps && (
                 <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 17, padding: 16, marginBottom: 16 }}>
                   <div style={{ fontSize: 10, color: '#666', fontWeight: 900, letterSpacing: '.08em', marginBottom: 9 }}>PRÉPARATION</div>
-                  <div style={{ fontSize: 12.5, color: '#bbb', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{selected.steps}</div>
+                  <div style={{ fontSize: 12.5, color: '#444', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{selected.steps}</div>
                 </div>
               )}
 
@@ -752,7 +752,7 @@ export default function Recipes() {
                 <button
                   onClick={() => saveSuggestion(selected)}
                   disabled={saving}
-                  style={{ width: '100%', padding: 14, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, color: '#ddd', fontWeight: 850, cursor: 'pointer' }}
+                  style={{ width: '100%', padding: 14, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, color: '#333', fontWeight: 850, cursor: 'pointer' }}
                 >
                   {saving ? 'AJOUT...' : 'ENREGISTRER DANS MES RECETTES'}
                 </button>
