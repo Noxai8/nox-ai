@@ -174,6 +174,7 @@ export default function Home() {
   const [stepGoal, setStepGoal] = useState(10000);
   const [todayDistanceKm, setTodayDistanceKm] = useState(0);
   const [todayActiveCalories, setTodayActiveCalories] = useState(0);
+  const [todayImportedCalories, setTodayImportedCalories] = useState(0);
   const [todayWorkouts, setTodayWorkouts] = useState(0);
   const [todayWorkoutMinutes, setTodayWorkoutMinutes] = useState(0);
   const [todayWorkoutCalories, setTodayWorkoutCalories] = useState(0);
@@ -319,6 +320,7 @@ export default function Home() {
       setStepGoal(Number.isFinite(profileStepGoal) && profileStepGoal > 0 ? profileStepGoal : 10000);
       setTodayDistanceKm(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.distance_km || 0), 0) || 0);
       setTodayActiveCalories(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.calories_burned || 0), 0) || 0);
+      setTodayImportedCalories((todayActivity || []).filter((item:any)=>String(item.source||'manual')!=='manual').reduce((sum:number,item:any)=>sum+Number(item.calories_burned||0),0));
       const centralizedTarget = Number(nutritionTarget?.calories || 0);
       const profileTarget = Number(prof?.daily_calories || prof?.calorie_target || 0);
       setHasNutritionTarget(centralizedTarget > 0);
@@ -789,6 +791,8 @@ export default function Home() {
               <div style={{display:'flex',justifyContent:'space-between',gap:10,fontSize:9.5,color:MUTED}}><span>OBJECTIF PAS</span><span>{todaySteps.toLocaleString('fr-FR')} / {stepGoal.toLocaleString('fr-FR')}</span></div>
               <div style={{height:6,borderRadius:99,background:SURFACE_2,overflow:'hidden',marginTop:6}}><div style={{height:'100%',width:`${stepProgress*100}%`,background:ACCENT,borderRadius:99}}/></div>
             </div>
+            {todayActivitySources.length>0&&<div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:11}}>{todayActivitySources.map(source=><span key={source} style={{background:SURFACE_2,borderRadius:9,padding:'6px 8px',fontSize:9,fontWeight:850,color:MUTED}}>{source==='machine_scan'?'SCAN MACHINE':source==='manual'?'MANUEL':String(source).replaceAll('_',' ').toUpperCase()}</span>)}</div>}
+            {todayImportedCalories>0&&<div style={{fontSize:9.5,color:MUTED,lineHeight:1.4,marginTop:8}}>{Math.round(todayImportedCalories)} kcal proviennent de sources importées ou scannées. NOX conserve leur provenance pour éviter de les présenter comme une mesure directe.</div>}
           </div>
 
           <div style={{...cardStyle,width:'100%',boxSizing:'border-box',padding:18,marginBottom:14,color:TEXT}}>
