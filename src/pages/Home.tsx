@@ -173,6 +173,7 @@ export default function Home() {
   const [todayDistanceKm, setTodayDistanceKm] = useState(0);
   const [todayActiveCalories, setTodayActiveCalories] = useState(0);
   const [todayWorkouts, setTodayWorkouts] = useState(0);
+  const [todayWorkoutMinutes, setTodayWorkoutMinutes] = useState(0);
   const [targetKcal, setTargetKcal] = useState<number | null>(null);
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
   const [goalWeight, setGoalWeight] = useState<number | null>(null);
@@ -263,6 +264,7 @@ export default function Home() {
       setPrCount(prs?.length || 0);
       setWeekWorkouts(weekLogs?.length || 0);
       setTodayWorkouts(todayWorkoutLogs?.length || 0);
+      setTodayWorkoutMinutes((todayWorkoutLogs || []).reduce((sum: number, item: any) => { const start=new Date(item.created_at).getTime(); const end=item.completed_at?new Date(item.completed_at).getTime():start; return sum + Math.max(0, Math.round((end-start)/60000)); }, 0));
       setTodayKcal(fuel?.reduce((sum: number, item: any) => sum + (item.calories || 0), 0) || 0);
       setTodayProtein(fuel?.reduce((sum: number, item: any) => sum + Number(item.protein || 0), 0) || 0);
       setTodayCarbs(fuel?.reduce((sum: number, item: any) => sum + Number(item.carbs || 0), 0) || 0);
@@ -395,15 +397,16 @@ export default function Home() {
   const carbsProgress = targetCarbs ? Math.min(1, todayCarbs / targetCarbs) : 0;
   const fatProgress = targetFat ? Math.min(1, todayFat / targetFat) : 0;
   void carbsProgress; void fatProgress;
-  const activityProgress = Math.min(1, todayActivityMinutes / 30);
+  const totalActiveMinutes = todayActivityMinutes + todayWorkoutMinutes;
+  const activityProgress = Math.min(1, totalActiveMinutes / 30);
   const stepProgress = stepGoal > 0 ? Math.min(1, todaySteps / stepGoal) : 0;
-  const daySignals = [todayFoodCount > 0, nutritionProgress >= .7, proteinProgress >= .7, todayActivityMinutes >= 20 || todayWorkouts > 0, todayWaterMl >= waterGoal * .7];
+  const daySignals = [todayFoodCount > 0, nutritionProgress >= .7, proteinProgress >= .7, totalActiveMinutes >= 20 || todayWorkouts > 0, todayWaterMl >= waterGoal * .7];
   const consistencySignals = daySignals.filter(Boolean).length;
   const dailyScore = Math.round((consistencySignals / daySignals.length) * 100);
   const tomorrowSessionPlanned = Boolean(program?.program_json?.sessions?.some((session:any)=>{const tomorrowDay=days[tomorrowDate.getDay()];return session.day===tomorrowDay||(session.days&&session.days.includes(tomorrowDay));}));
   const automaticHabitDone:Record<string,boolean> = {
     nutrition: todayFoodCount > 0,
-    activity: todayActivityMinutes >= 20 || todayWorkouts > 0,
+    activity: totalActiveMinutes >= 20 || todayWorkouts > 0,
     water: todayWaterMl >= waterGoal,
   };
   const habitDone:Record<string,boolean> = Object.fromEntries(habits.map(h => [h.id, automaticHabitDone[h.id] || Boolean(habitOverrides[h.id])]));
