@@ -166,6 +166,7 @@ export default function Home() {
   const [waterGoal, setWaterGoal] = useState(2500);
   const [waterSaving, setWaterSaving] = useState(false);
   const [todaySteps, setTodaySteps] = useState(0);
+  const [stepGoal, setStepGoal] = useState(10000);
   const [todayDistanceKm, setTodayDistanceKm] = useState(0);
   const [todayActiveCalories, setTodayActiveCalories] = useState(0);
   const [targetKcal, setTargetKcal] = useState<number | null>(null);
@@ -253,6 +254,8 @@ export default function Home() {
       setWaterGoal(Number.isFinite(storedWaterGoal) && storedWaterGoal > 0 ? storedWaterGoal : 2500);
       setTodayActivityMinutes(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.duration_minutes || 0), 0) || 0);
       setTodaySteps(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.steps || 0), 0) || 0);
+      const profileStepGoal = Number(prof?.step_goal ?? prof?.daily_steps_goal ?? prof?.steps_goal ?? 10000);
+      setStepGoal(Number.isFinite(profileStepGoal) && profileStepGoal > 0 ? profileStepGoal : 10000);
       setTodayDistanceKm(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.distance_km || 0), 0) || 0);
       setTodayActiveCalories(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.calories_burned || 0), 0) || 0);
       const centralizedTarget = Number(nutritionTarget?.calories || 0);
@@ -346,6 +349,7 @@ export default function Home() {
   const nutritionProgress = targetKcal ? Math.min(1, todayKcal / targetKcal) : 0;
   const proteinProgress = targetProtein ? Math.min(1, todayProtein / targetProtein) : 0;
   const activityProgress = Math.min(1, todayActivityMinutes / 30);
+  const stepProgress = stepGoal > 0 ? Math.min(1, todaySteps / stepGoal) : 0;
   const daySignals = [todayFoodCount > 0, nutritionProgress >= .7, proteinProgress >= .7, todayActivityMinutes >= 20, todayWaterMl >= waterGoal * .7];
   const consistencySignals = daySignals.filter(Boolean).length;
 
@@ -599,6 +603,10 @@ export default function Home() {
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:6,marginTop:12}}>
               {[[todaySteps,'PAS'],[Math.round(todayActivityMinutes),'MIN'],[todayDistanceKm.toFixed(1),'KM'],[Math.round(todayActiveCalories),'KCAL']].map(([value,label])=><div key={String(label)} style={{background:SURFACE_2,borderRadius:12,padding:'10px 5px',textAlign:'center'}}><strong style={{fontSize:14}}>{value}</strong><div style={{fontSize:8,color:MUTED,marginTop:3}}>{label}</div></div>)}
+            </div>
+            <div style={{marginTop:11}}>
+              <div style={{display:'flex',justifyContent:'space-between',gap:10,fontSize:9.5,color:MUTED}}><span>OBJECTIF PAS</span><span>{todaySteps.toLocaleString('fr-FR')} / {stepGoal.toLocaleString('fr-FR')}</span></div>
+              <div style={{height:6,borderRadius:99,background:SURFACE_2,overflow:'hidden',marginTop:6}}><div style={{height:'100%',width:`${stepProgress*100}%`,background:ACCENT,borderRadius:99}}/></div>
             </div>
           </div>
 
