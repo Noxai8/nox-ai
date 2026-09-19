@@ -361,6 +361,19 @@ export default function Body() {
   const avgCalories = Math.round(rangeFoods.reduce((s,e)=>s+Number(e.calories||e.kcal||0),0) / trackedDays);
   const avgProtein = Math.round(rangeFoods.reduce((s,e)=>s+Number(e.protein||0),0) / trackedDays);
   const activeMinutesRange = Math.round(rangeActivities.reduce((s,a)=>s+Number(a.duration_minutes||0),0));
+  const rangeWeightLogs = rangeData.filter(l => Number(l.weight) > 0);
+  const firstRangeWeight = rangeWeightLogs[0]?.weight ? Number(rangeWeightLogs[0].weight) : null;
+  const latestRangeWeight = rangeWeightLogs.length ? Number(rangeWeightLogs[rangeWeightLogs.length - 1].weight) : null;
+  const weightChange = firstRangeWeight !== null && latestRangeWeight !== null ? latestRangeWeight - firstRangeWeight : null;
+  const previousWeight = rangeWeightLogs.length > 1 ? Number(rangeWeightLogs[rangeWeightLogs.length - 2].weight) : null;
+  const recentWeightChange = previousWeight !== null && latestRangeWeight !== null ? latestRangeWeight - previousWeight : null;
+  const avgActiveMinutesPerDay = rangeDays ? Math.round(activeMinutesRange / Math.max(1, rangeDays)) : null;
+  const progressSummary = [
+    weightChange === null ? null : `Poids : ${weightChange > 0 ? '+' : ''}${weightChange.toFixed(1)} kg sur la période.`,
+    rangeFoods.length ? `Nutrition suivie sur ${trackedDays} jour(s), moyenne ${avgCalories} kcal et ${avgProtein} g de protéines par jour.` : null,
+    rangeActivities.length ? `Activité : ${activeMinutesRange} minutes enregistrées${avgActiveMinutesPerDay !== null ? `, soit environ ${avgActiveMinutesPerDay} min/j` : ''}.` : null,
+    rangeWorkouts.length ? `Training : ${rangeWorkouts.length} séance(s) terminée(s).` : null,
+  ].filter(Boolean) as string[];
 
 
   const MiniChart = () => {
@@ -516,6 +529,25 @@ export default function Body() {
                     <div style={{ fontSize:10.5, color:'#777', marginTop:4 }}>{detail}</div>
                   </div>
                 ))}
+              </div>
+
+              <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>SYNTHÈSE NOX</div>
+              <div style={{ background:'#0A0A0A', color:'#fff', borderRadius:22, padding:19, marginBottom:18 }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+                  <div>
+                    <div style={{ fontSize:10, color:ACCENT, fontWeight:950, letterSpacing:'.11em' }}>TA PÉRIODE</div>
+                    <div style={{ fontSize:20, fontWeight:950, marginTop:5 }}>CE QUE TES DONNÉES MONTRENT</div>
+                  </div>
+                  {recentWeightChange !== null && <div style={{ background:ACCENT, color:'#050505', borderRadius:12, padding:'8px 10px', fontWeight:950, fontSize:12 }}>{recentWeightChange > 0 ? '+' : ''}{recentWeightChange.toFixed(1)} kg</div>}
+                </div>
+                {progressSummary.length ? (
+                  <div style={{ display:'grid', gap:9, marginTop:16 }}>
+                    {progressSummary.map((line,i)=><div key={i} style={{ background:'#171717', border:'1px solid #242424', borderRadius:13, padding:'11px 12px', color:'#D7D7D7', fontSize:11.5, lineHeight:1.45 }}>{line}</div>)}
+                  </div>
+                ) : (
+                  <div style={{ color:'#888', fontSize:12, lineHeight:1.5, marginTop:14 }}>Continue à enregistrer ton poids, tes repas, tes activités et tes séances pour construire ta synthèse.</div>
+                )}
+                <div style={{ color:'#777', fontSize:9.5, lineHeight:1.45, marginTop:13 }}>Synthèse descriptive basée uniquement sur tes données enregistrées dans NOX. Les tendances ne garantissent pas un résultat futur.</div>
               </div>
 
               <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>MENSURATIONS</div>
