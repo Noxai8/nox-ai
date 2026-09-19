@@ -164,6 +164,7 @@ export default function Home() {
   const [todayMeals, setTodayMeals] = useState<any[]>([]);
   const [todayWaterMl, setTodayWaterMl] = useState(0);
   const [waterGoal, setWaterGoal] = useState(2500);
+  const [waterSaving, setWaterSaving] = useState(false);
   const [todaySteps, setTodaySteps] = useState(0);
   const [todayDistanceKm, setTodayDistanceKm] = useState(0);
   const [todayActiveCalories, setTodayActiveCalories] = useState(0);
@@ -291,6 +292,15 @@ export default function Home() {
     if (hour < 12) return 'BONJOUR';
     if (hour < 18) return 'BONNE APRÈS-MIDI';
     return 'BONSOIR';
+  };
+
+  const addWater = (ml: number) => {
+    if (!user || waterSaving) return;
+    setWaterSaving(true);
+    const next = todayWaterMl + ml;
+    setTodayWaterMl(next);
+    localStorage.setItem('nox_water_' + user.id + '_' + today, String(next));
+    window.setTimeout(() => setWaterSaving(false), 180);
   };
 
   const getNoxScore = () => {
@@ -592,14 +602,16 @@ export default function Home() {
             </div>
           </div>
 
-          <button onClick={()=>navigate('/fasting')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
+          <div style={{...cardStyle,width:'100%',boxSizing:'border-box',padding:18,marginBottom:14,color:TEXT}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
-              <div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>HYDRATATION</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{Math.round(todayWaterMl)} <span style={{fontSize:12,color:MUTED}}>ml</span></div></div>
-              <span style={{width:40,height:40,borderRadius:13,background:'#EEF5FF',color:'#4488ff',display:'grid',placeItems:'center'}}><Droplets size={20}/></span>
+              <div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>HYDRATATION</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{Math.round(todayWaterMl)} <span style={{fontSize:12,color:MUTED}}>/ {waterGoal.toLocaleString('fr-FR')} ml</span></div></div>
+              <button onClick={()=>navigate('/fasting')} aria-label="Ouvrir le suivi hydratation" style={{width:40,height:40,border:0,borderRadius:13,background:'#EEF5FF',color:'#4488ff',display:'grid',placeItems:'center',cursor:'pointer'}}><Droplets size={20}/></button>
             </div>
             <div style={{height:7,borderRadius:99,background:SURFACE_2,overflow:'hidden',marginTop:13}}><div style={{height:'100%',width:`${Math.min(100,(todayWaterMl/waterGoal)*100)}%`,background:'#4488ff',borderRadius:99}}/></div>
-            <div style={{fontSize:10.5,color:MUTED,marginTop:8}}>Repère actuel : {waterGoal.toLocaleString('fr-FR')} ml · toucher pour ajouter de l’eau</div>
-          </button>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7,marginTop:11}}>
+              {[150,250,500].map(ml=><button key={ml} onClick={()=>addWater(ml)} disabled={waterSaving} style={{padding:'9px 0',border:'1px solid #DCE8FF',borderRadius:10,background:'#F6F9FF',color:'#2F6FD0',fontSize:11,fontWeight:900,cursor:'pointer'}}>+{ml} ml</button>)}
+            </div>
+          </div>
 
           {latestSleepHours!==null&&<button onClick={()=>navigate('/recovery')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}><div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>SOMMEIL & RÉCUPÉRATION</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{latestSleepHours.toFixed(1)} <span style={{fontSize:12,color:MUTED}}>h de sommeil</span></div></div><span style={{width:40,height:40,borderRadius:13,background:SURFACE_2,display:'grid',placeItems:'center'}}><MoonStar size={20}/></span></div>
