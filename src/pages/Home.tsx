@@ -380,6 +380,7 @@ export default function Home() {
   const stepProgress = stepGoal > 0 ? Math.min(1, todaySteps / stepGoal) : 0;
   const daySignals = [todayFoodCount > 0, nutritionProgress >= .7, proteinProgress >= .7, todayActivityMinutes >= 20 || todayWorkouts > 0, todayWaterMl >= waterGoal * .7];
   const consistencySignals = daySignals.filter(Boolean).length;
+  const dailyScore = Math.round((consistencySignals / daySignals.length) * 100);
   const tomorrowSessionPlanned = Boolean(program?.program_json?.sessions?.some((session:any)=>{const tomorrowDay=days[tomorrowDate.getDay()];return session.day===tomorrowDay||(session.days&&session.days.includes(tomorrowDay));}));
   const habitDone:Record<string,boolean> = {
     nutrition: todayFoodCount > 0,
@@ -612,6 +613,20 @@ export default function Home() {
             </div>
           </div>
 
+
+          <div style={{background:TEXT,color:'#fff',borderRadius:22,padding:18,marginBottom:14}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16}}>
+              <div><div style={{fontSize:10,fontWeight:950,letterSpacing:'.12em',color:ACCENT}}>NOX DAILY SCORE</div><div style={{fontSize:28,fontWeight:950,marginTop:5}}>{dailyScore}<span style={{fontSize:12,color:'#888'}}>/100</span></div></div>
+              <div style={{fontSize:10,color:'#888',textAlign:'right',lineHeight:1.45}}>Régularité<br/>du jour</div>
+            </div>
+            <div style={{height:7,borderRadius:99,background:'#252525',overflow:'hidden',marginTop:13}}><div style={{height:'100%',width:dailyScore+'%',background:ACCENT,borderRadius:99}}/></div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:12}}>
+              <div style={{background:'#171717',borderRadius:12,padding:10}}><b>{todayFoodCount}</b><div style={{fontSize:8.5,color:'#888',marginTop:3}}>ENTRÉES NUTRITION</div></div>
+              <div style={{background:'#171717',borderRadius:12,padding:10}}><b>{Math.round(todayActivityMinutes)} min</b><div style={{fontSize:8.5,color:'#888',marginTop:3}}>ACTIVITÉ</div></div>
+              <div style={{background:'#171717',borderRadius:12,padding:10}}><b>{weekWorkouts}</b><div style={{fontSize:8.5,color:'#888',marginTop:3}}>SÉANCES 7J</div></div>
+            </div>
+            <div style={{fontSize:9.5,color:'#777',lineHeight:1.45,marginTop:10}}>Score personnel de régularité basé sur tes données enregistrées. Ce n’est pas un score médical.</div>
+          </div>
 
           <div style={{...cardStyle,padding:18,marginBottom:14}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
