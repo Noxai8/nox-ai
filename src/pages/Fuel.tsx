@@ -601,13 +601,13 @@ export default function Fuel() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: '#070707', color: '#0A0A0A', paddingBottom: 100 }}>
+    <div style={{ minHeight: '100vh', background: BG, color: '#0A0A0A', paddingBottom: 100 }}>
       <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhotoSelect} />
 
       <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
         <header style={{
           padding: '24px 20px 18px',
-          background: 'radial-gradient(circle at 88% 0%, rgba(200,255,0,.06), transparent 30%), #090909',
+          background: 'radial-gradient(circle at 88% 0%, rgba(183,255,0,.14), transparent 30%), #FFFFFF',
           borderBottom: '1px solid ' + BORDER
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
@@ -624,9 +624,9 @@ export default function Fuel() {
 
         <section style={{ padding: 20 }}>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:12}}>
-            <button onClick={()=>navigate('/recipes')} style={{border:'1px solid '+BORDER,borderRadius:14,background:'#111',color:'#fff',padding:'12px 8px',fontSize:10,fontWeight:900,cursor:'pointer'}}>RECETTES</button>
-            <button onClick={()=>navigate('/meal-planner')} style={{border:'1px solid '+BORDER,borderRadius:14,background:'#111',color:'#fff',padding:'12px 8px',fontSize:10,fontWeight:900,cursor:'pointer'}}>PLAN REPAS</button>
-            <button onClick={()=>navigate('/fasting')} style={{border:'1px solid '+BORDER,borderRadius:14,background:'#111',color:'#fff',padding:'12px 8px',fontSize:10,fontWeight:900,cursor:'pointer'}}>JEÛNE</button>
+            <button onClick={()=>navigate('/recipes')} style={{border:'1px solid '+BORDER,borderRadius:14,background:'#FFFFFF',color:'#0A0A0A',padding:'12px 8px',fontSize:10,fontWeight:900,cursor:'pointer'}}>RECETTES</button>
+            <button onClick={()=>navigate('/meal-planner')} style={{border:'1px solid '+BORDER,borderRadius:14,background:'#FFFFFF',color:'#0A0A0A',padding:'12px 8px',fontSize:10,fontWeight:900,cursor:'pointer'}}>PLAN REPAS</button>
+            <button onClick={()=>navigate('/fasting')} style={{border:'1px solid '+BORDER,borderRadius:14,background:'#FFFFFF',color:'#0A0A0A',padding:'12px 8px',fontSize:10,fontWeight:900,cursor:'pointer'}}>JEÛNE</button>
           </div>
           {fuelError && (
             <div style={{ marginBottom: 12, background: 'rgba(255,90,80,.08)', border: '1px solid rgba(255,90,80,.28)', borderRadius: 14, padding: 13, color: '#ff8c82', fontSize: 11.5, lineHeight: 1.45 }}>
