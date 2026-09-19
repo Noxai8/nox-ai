@@ -38,9 +38,28 @@ export default function FoodScan(){
  const onPhoto=(e:React.ChangeEvent<HTMLInputElement>)=>{const file=e.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{const data=String(reader.result);setPhoto(data);void analyze(data.split(',')[1]||'')};reader.readAsDataURL(file);e.target.value=''};
  const analyze=async(base64:string)=>{
   setBusy(true);setError('');setResult(null);
+  if(mode==='barcode'){
+   try{
+    if(!('BarcodeDetector' in window)) throw new Error("Le lecteur automatique n'est pas disponible sur cet appareil.");
+    const blob=await (await fetch('data:image/jpeg;base64,'+base64)).blob();
+    const bitmap=await createImageBitmap(blob);
+    const detector=new (window as any).BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});
+    const codes=await detector.detect(bitmap);
+    const code=codes?.[0]?.rawValue;
+    if(!code) throw new Error("Code-barres non détecté. Reprends la photo en cadrant uniquement le code.");
+    const resp=await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`);
+    if(!resp.ok) throw new Error("Produit introuvable.");
+    const data=await resp.json(); const p=data?.product;
+    if(!p) throw new Error("Produit introuvable dans Open Food Facts.");
+    const n=p.nutriments||{};
+    setResult({barcode:code,description:p.product_name||p.generic_name||'Produit scanné',brand:p.brands||'',total:{kcal:Number(n['energy-kcal_100g']||0),protein:Number(n.proteins_100g||0),carbs:Number(n.carbohydrates_100g||0),fat:Number(n.fat_100g||0)}});
+   }catch(e:any){setError(e.message||"Lecture du code-barres impossible")}
+   setBusy(false);return;
+  }
   if(mode!=='meal'){setResult({pending:true});setBusy(false);return;}
   try{const {data:{session}}=await supabase.auth.getSession();const resp=await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/analyze-meal',{method:'POST',headers:{'Content-Type':'application/json',...(session?.access_token?{Authorization:`Bearer ${session.access_token}`}:{})},body:JSON.stringify({base64,mime:'image/jpeg'})});if(!resp.ok)throw new Error('Analyse indisponible');const data=await resp.json();if(data.error)throw new Error(data.error);setResult(data);}catch(e:any){setError(e.message||'Analyse impossible')}setBusy(false);
  };
+ const addBarcode=async()=>{if(!result||!user)return;const t=result.total||{};const {error:e}=await supabase.from('food_entries').insert({user_id:user.id,meal_type:meal,food_name:result.description||'Produit scanné',calories:Math.round(t.kcal||0),protein:Number(t.protein||0),carbs:Number(t.carbs||0),fat:Number(t.fat||0),created_at:new Date().toISOString()});if(e)setError(e.message);else navigate('/fuel')};
  const addMeal=async()=>{if(!result||!user)return;const t=result.total||{};const {error:e}=await supabase.from('food_entries').insert({user_id:user.id,meal_type:meal,food_name:result.description||'Repas scanné',calories:Math.round(t.kcal??t.calories??0),protein:Number(t.protein||0),carbs:Number(t.carbs||0),fat:Number(t.fat||0),created_at:new Date().toISOString()});if(e)setError(e.message);else navigate('/fuel')};
 
  if(mode) return <div style={{minHeight:'100vh',background:BLACK,color:'#fff',display:'flex',flexDirection:'column'}}>
@@ -62,7 +81,13 @@ export default function FoodScan(){
     <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginTop:13}}>{[['Calories',Math.round(result.total?.kcal||0)],['Protéines',Math.round(result.total?.protein||0)+'g'],['Glucides',Math.round(result.total?.carbs||0)+'g'],['Lipides',Math.round(result.total?.fat||0)+'g']].map(([l,v])=><div key={String(l)} style={{background:'#F6F6F6',borderRadius:12,padding:'10px 3px',textAlign:'center'}}><b style={{fontSize:15}}>{v}</b><div style={{fontSize:8.5,color:MUTED,marginTop:3}}>{l}</div></div>)}</div>
     <button onClick={addMeal} style={{width:'100%',border:0,borderRadius:12,background:LIME,padding:14,fontWeight:950,marginTop:14}}>AJOUTER À MA NUTRITION</button>
    </div>}
-   {result&&!busy&&mode!=='meal'&&<div style={{background:'#fff',color:BLACK,borderRadius:'24px 24px 0 0',padding:20,marginTop:12}}><b>Scan capturé</b><div style={{fontSize:12,color:MUTED,lineHeight:1.5,marginTop:5}}>Le moteur {COPY[mode].title.toLowerCase()} sera branché ici. Aucune donnée n’est enregistrée sans vérification.</div></div>}
+   {result&&!busy&&mode==='barcode'&&!result.pending&&<div style={{background:'#fff',color:BLACK,borderRadius:'24px 24px 0 0',padding:20,marginTop:12}}>
+    <div style={{fontSize:10,color:MUTED,fontWeight:900}}>PRODUIT · À VÉRIFIER</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{result.description}</div>{result.brand&&<div style={{fontSize:11,color:MUTED,marginTop:3}}>{result.brand}</div>}
+    <div style={{fontSize:10,color:MUTED,marginTop:10}}>Valeurs pour 100 g · code {result.barcode}</div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginTop:10}}>{[['Calories',Math.round(result.total?.kcal||0)],['Protéines',Math.round(result.total?.protein||0)+'g'],['Glucides',Math.round(result.total?.carbs||0)+'g'],['Lipides',Math.round(result.total?.fat||0)+'g']].map(([l,v])=><div key={String(l)} style={{background:'#F6F6F6',borderRadius:12,padding:'10px 3px',textAlign:'center'}}><b style={{fontSize:15}}>{v}</b><div style={{fontSize:8.5,color:MUTED,marginTop:3}}>{l}</div></div>)}</div>
+    <button onClick={addBarcode} style={{width:'100%',border:0,borderRadius:12,background:LIME,padding:14,fontWeight:950,marginTop:14}}>AJOUTER À MA NUTRITION</button>
+   </div>}
+   {result&&!busy&&mode!=='meal'&&mode!=='barcode'&&<div style={{background:'#fff',color:BLACK,borderRadius:'24px 24px 0 0',padding:20,marginTop:12}}><b>Scan capturé</b><div style={{fontSize:12,color:MUTED,lineHeight:1.5,marginTop:5}}>Le moteur {COPY[mode].title.toLowerCase()} sera branché ici. Aucune donnée n’est enregistrée sans vérification.</div></div>}
    <div style={{height:116,display:'grid',gridTemplateColumns:'1fr 90px 1fr',alignItems:'center',padding:'0 24px max(8px,env(safe-area-inset-bottom))'}}>
     <div/><button aria-label="Prendre la photo" onClick={()=>input.current?.click()} style={{width:72,height:72,borderRadius:'50%',background:'#fff',border:'5px solid #222',boxShadow:'0 0 0 3px #fff',justifySelf:'center',cursor:'pointer'}}/><button onClick={()=>{reset();input.current?.click()}} style={{border:0,background:'transparent',color:'#fff',fontSize:11,fontWeight:800}}>REPRENDRE</button>
    </div>
