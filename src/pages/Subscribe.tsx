@@ -11,11 +11,11 @@ const BORDER = '#EAEAEA';
 
 const PLANS = [
   {
-    id: 'free',
+    id: 'nox',
     name: 'NOX',
-    monthly: '0 €',
-    annual: '0 €',
-    annualMonthly: '0 €',
+    monthly: '3,99 €',
+    annual: '39,99 €',
+    annualMonthly: '3,33 €',
     color: '#0A0A0A',
     features: ['Suivi quotidien', 'Journal nutrition essentiel', 'Calories & macros', 'Poids & hydratation', 'Activité de base', 'Training & progrès essentiels'],
   },
@@ -38,7 +38,7 @@ export default function Subscribe() {
   const [selected, setSelected] = useState('plus');
 
   const startTrial = async () => {
-    const trialEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const trialEnd = null;
     await supabase.from('profiles').update({
       subscription_plan: selected,
       trial_ends_at: trialEnd,
@@ -55,7 +55,7 @@ export default function Subscribe() {
         <button onClick={() => navigate(-1)} style={{ position: 'absolute', top: 24, left: 20, background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 14 }}>← Retour</button>
         <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.15em', marginBottom: 8 }}>Passe au niveau supérieur</div>
         <div style={{ fontSize: 28, fontWeight: 900, color: '#0A0A0A', letterSpacing: '-.02em' }}>CHOISIS TON EXPÉRIENCE NOX</div>
-        <div style={{ fontSize: 14, color: ACCENT, marginTop: 8, fontWeight: 700 }}>NOX reste utile gratuitement · NOX+ ajoute les fonctions avancées</div>
+        <div style={{ fontSize: 14, color: ACCENT, marginTop: 8, fontWeight: 700 }}>NOX à partir de 3,99 €/mois · NOX+ à 8,99 €/mois</div>
       </div>
 
       {/* Billing toggle */}
@@ -103,15 +103,15 @@ export default function Subscribe() {
       {/* CTA */}
       <div style={{ padding: '24px 20px' }}>
         <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 16, marginBottom: 16, textAlign: 'center' }}>
-          <div style={{ fontSize: 24, fontWeight: 900, color: ACCENT }}>NOX+ · 30 jours d’essai</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: ACCENT }}>NOX · DEUX NIVEAUX D’ABONNEMENT</div>
           <div style={{ fontSize: 13, color: '#555', marginTop: 4 }}>
-            {selected === 'free' ? 'Le suivi essentiel reste gratuit.' : <>Puis {billing === 'annual' ? plan.annual + '/an' : plan.monthly + '/mois'}.</>}
+            <>Abonnement sélectionné : {billing === 'annual' ? plan.annual + '/an' : plan.monthly + '/mois'}.</>
           </div>
         </div>
 
         <button onClick={startTrial}
           style={{ width: '100%', padding: 18, background: ACCENT, border: 'none', borderRadius: 16, color: '#000', fontWeight: 900, fontSize: 16, cursor: 'pointer', marginBottom: 12 }}>
-          {selected === 'free' ? 'CONTINUER AVEC NOX' : 'ESSAYER NOX+ 30 JOURS'}
+          {selected === 'nox' ? 'CHOISIR NOX' : 'CHOISIR NOX+'}
         </button>
 
         <div style={{ fontSize: 11, color: '#333', textAlign: 'center', lineHeight: 1.6 }}>
