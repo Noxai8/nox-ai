@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-import { calculateNoxDailyScore } from './Play';
+import { calculateNoxDailyScore } from '../lib/noxDailyScore';
 
 const ACCENT = '#B7FF00';
 const BG = '#F7F7F7';
