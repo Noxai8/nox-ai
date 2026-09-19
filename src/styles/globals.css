@@ -1,26 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  --nox-bg: #070707;
-  --nox-surface: #111111;
-  --nox-surface-2: #171717;
-  --nox-surface-3: #1d1d1d;
-  --nox-border: #242424;
-  --nox-border-soft: #1c1c1c;
+  --nox-bg: #F7F7F7;
+  --nox-surface: #FFFFFF;
+  --nox-surface-2: #F3F3F3;
+  --nox-surface-3: #ECECEC;
+  --nox-border: #EAEAEA;
+  --nox-border-soft: #F0F0F0;
 
-  --nox-accent: #c8ff00;
+  --nox-accent: #B7FF00;
   --nox-accent-dim: rgba(200, 255, 0, 0.08);
   --nox-accent-border: rgba(200, 255, 0, 0.2);
 
   --nox-red: #ff5b50;
   --nox-blue: #718dff;
 
-  --nox-text: #ffffff;
-  --nox-text-soft: #d8d8d8;
-  --nox-muted: #858585;
-  --nox-muted-2: #5f5f5f;
+  --nox-text: #0A0A0A;
+  --nox-text-soft: #333333;
+  --nox-muted: #777777;
+  --nox-muted-2: #999999;
 
   --nox-radius-sm: 12px;
   --nox-radius-md: 16px;
@@ -100,7 +100,7 @@ select {
 
 input::placeholder,
 textarea::placeholder {
-  color: #5f5f5f;
+  color: #999999;
   opacity: 1;
 }
 
@@ -128,13 +128,13 @@ img {
 
 ::selection {
   background: rgba(200, 255, 0, 0.22);
-  color: #ffffff;
+  color: #0A0A0A;
 }
 
 /* Scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #343434 transparent;
+  scrollbar-color: #CFCFCF transparent;
 }
 
 ::-webkit-scrollbar {
@@ -147,12 +147,12 @@ img {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #343434;
+  background: #CFCFCF;
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #454545;
+  background: #BDBDBD;
 }
 
 /* Mobile app feel */
