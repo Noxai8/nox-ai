@@ -141,7 +141,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
   {
     id: 'bulk-oats',
     goal: 'all',
-    name: 'Porridge prise de masse',
+    name: 'Porridge prise de muscle',
     subtitle: 'Une option plus calorique avec une portion importante de protéines.',
     servings: 1,
     calories_per_serving: 720,
@@ -556,7 +556,7 @@ export default function Recipes() {
                 <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 950, letterSpacing: '.1em' }}>RECETTES · SUGGESTIONS</div>
                 <div style={{ fontSize: 18, fontWeight: 950, marginTop: 6, color: '#fff' }}>{goalLabel(goal)}</div>
                 <div style={{ fontSize: 11.5, color: '#AAA', lineHeight: 1.5, marginTop: 6 }}>
-                  Idées de repas filtrées selon ton objectif et rapprochées des aliments déjà présents dans ton journal quand une correspondance existe. Aucune recette n’est classée « bonne » ou « mauvaise » : les valeurs sont indicatives et restent modifiables avant ajout.
+                  Idées de repas filtrées selon ta cible et rapprochées des aliments déjà présents dans ton journal quand une correspondance existe. Aucune recette n’est classée « bonne » ou « mauvaise » : les valeurs sont indicatives et restent modifiables avant ajout.
                   {dailyCalories ? ` Même cible que Nutrition : ${Math.round(dailyCalories)} kcal/jour` : ''}
                   {dailyProtein ? ` · ${Math.round(dailyProtein)} g protéines` : ''}.
                   {!dailyCalories ? ' Enregistre une cible dans Nutrition pour personnaliser davantage ces suggestions.' : ''}
