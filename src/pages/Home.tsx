@@ -160,6 +160,7 @@ export default function Home() {
   const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
   const [dayPeriod, setDayPeriod] = useState<'morning'|'day'|'evening'>(() => { const h=new Date().getHours(); return h<12?'morning':h<18?'day':'evening'; });
   const [todayFoodCount, setTodayFoodCount] = useState(0);
+  const [todayMealTypes, setTodayMealTypes] = useState<string[]>([]);
   const [todayMeals, setTodayMeals] = useState<any[]>([]);
   const [todayWaterMl, setTodayWaterMl] = useState(0);
   const [waterGoal, setWaterGoal] = useState(2500);
@@ -242,6 +243,7 @@ export default function Home() {
       setTodayFat(fuel?.reduce((sum: number, item: any) => sum + Number(item.fat || 0), 0) || 0);
       setTodayFoodCount(fuel?.length || 0);
       setTodayMeals(fuel || []);
+      setTodayMealTypes(Array.from(new Set((fuel || []).map((item: any) => String(item.meal_type || '')).filter(Boolean))));
       const storedWater = Number(localStorage.getItem('nox_water_' + user.id + '_' + today) || 0);
       const storedWaterGoal = Number(localStorage.getItem('nox_water_goal_' + user.id) || 2500);
       setTodayWaterMl(Number.isFinite(storedWater) ? storedWater : 0);
@@ -329,6 +331,11 @@ export default function Home() {
   const briefLabel = dayPeriod==='morning' ? 'NOX MORNING BRIEF' : dayPeriod==='evening' ? 'NOX EVENING RECAP' : 'NOX DAILY BRIEF';
   const briefTitle = dayPeriod==='morning' ? 'TA JOURNÉE COMMENCE ICI' : dayPeriod==='evening' ? 'LE RÉCAP DE TA JOURNÉE' : 'TA JOURNÉE EN 10 SECONDES';
   const weightToGoal = latestWeight!==null&&goalWeight!==null ? latestWeight-goalWeight : null;
+  const nutritionProgress = targetKcal ? Math.min(1, todayKcal / targetKcal) : 0;
+  const proteinProgress = targetProtein ? Math.min(1, todayProtein / targetProtein) : 0;
+  const activityProgress = Math.min(1, todayActivityMinutes / 30);
+  const daySignals = [todayFoodCount > 0, nutritionProgress >= .7, proteinProgress >= .7, todayActivityMinutes >= 20, todayWaterMl >= waterGoal * .7];
+  const consistencySignals = daySignals.filter(Boolean).length;
 
   return (
     <div style={{ minHeight: '100vh', background: BG, color: TEXT, paddingBottom: 104 }}>
@@ -605,7 +612,7 @@ export default function Home() {
               <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayProtein)}{targetProtein ? ` / ${Math.round(targetProtein)}` : ''}g</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>PROTÉINES</div></div>
               <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayActivityMinutes)}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>MIN ACTIVES</div></div>
             </div>
-            <div style={{fontSize:11.5,color:MUTED,lineHeight:1.5,marginTop:11}}>{todayKcal===0&&todayActivityMinutes===0?'Commence ta journée : ajoute ton premier repas ou une activité.':remainingKcal===null?'Ajoute ta cible dans Nutrition pour afficher ton repère calorique quotidien.':remainingKcal>0?`Il te reste environ ${Math.round(remainingKcal)} kcal sur ton repère actuel. Continue à enregistrer ta journée pour garder une vue complète.`:'Tes apports enregistrés ont atteint ton repère calorique actuel. Consulte Nutrition pour le détail.'}</div>
+            <div style={{fontSize:11.5,color:MUTED,lineHeight:1.5,marginTop:11}}>{todayKcal===0&&todayActivityMinutes===0?'Commence ta journée : ajoute ton premier repas ou une activité.':dayPeriod==='evening'?`${consistencySignals}/5 repères de suivi renseignés aujourd’hui${todayMealTypes.length ? ` · ${todayMealTypes.length} type${todayMealTypes.length>1?'s':''} de repas enregistré${todayMealTypes.length>1?'s':''}` : ''}. Consulte les cartes ci-dessus pour compléter ce qui compte pour toi.`:remainingKcal===null?'Ajoute ta cible dans Nutrition pour afficher ton repère calorique quotidien.':remainingKcal>0?`Il te reste environ ${Math.round(remainingKcal)} kcal sur ton repère actuel. Continue à enregistrer ta journée pour garder une vue complète.`:'Tes apports enregistrés ont atteint ton repère calorique actuel. Consulte Nutrition pour le détail.'}</div>
           </div>
 
           {latestWeight!==null&&<button onClick={()=>navigate('/body')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
