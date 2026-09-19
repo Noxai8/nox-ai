@@ -396,6 +396,7 @@ Message motivant pour bien démarrer la journée. Pas de markdown.`;
             { label: 'Fuel IA', icon: '🧊', path: '/fuel-ai', desc: 'Frigo · Repas · Courses' },
             { label: 'Classement', icon: '🏆', path: '/leaderboard', desc: 'Compétition amis' },
             { label: 'NOX Future', icon: '🔮', path: '/future', desc: 'Ta projection physique' },
+            { label: 'Mon profil', icon: '👤', path: '/profile', desc: 'Stats · PRs · Partage' },
           ].map(({ label, icon, path, desc }) => (
             <button key={label} onClick={() => navigate(path)}
               style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: '14px 12px', textAlign: 'left', cursor: 'pointer', touchAction: 'manipulation' }}>
