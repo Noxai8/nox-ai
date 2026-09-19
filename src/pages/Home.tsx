@@ -221,7 +221,8 @@ export default function Home() {
       setTodayKcal(fuel?.reduce((sum: number, item: any) => sum + (item.calories || 0), 0) || 0);
       setTodayProtein(fuel?.reduce((sum: number, item: any) => sum + Number(item.protein || 0), 0) || 0);
       setTodayFoodCount(fuel?.length || 0);
-      setTodayWaterMl(Number(localStorage.getItem('nox_water_' + user.id + '_' + today) || 0));
+      const storedWater = Number(localStorage.getItem('nox_water_' + user.id + '_' + today) || 0);
+      setTodayWaterMl(Number.isFinite(storedWater) ? storedWater : 0);
       setTodayActivityMinutes(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.duration_minutes || 0), 0) || 0);
       setTodaySteps(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.steps || 0), 0) || 0);
       setTodayDistanceKm(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.distance_km || 0), 0) || 0);
@@ -533,6 +534,15 @@ export default function Home() {
               {[[todaySteps,'PAS'],[Math.round(todayActivityMinutes),'MIN'],[todayDistanceKm.toFixed(1),'KM'],[Math.round(todayActiveCalories),'KCAL']].map(([value,label])=><div key={String(label)} style={{background:SURFACE_2,borderRadius:12,padding:'10px 5px',textAlign:'center'}}><strong style={{fontSize:14}}>{value}</strong><div style={{fontSize:8,color:MUTED,marginTop:3}}>{label}</div></div>)}
             </div>
           </div>
+
+          <button onClick={()=>navigate('/fasting')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+              <div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>HYDRATATION</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{Math.round(todayWaterMl)} <span style={{fontSize:12,color:MUTED}}>ml</span></div></div>
+              <span style={{width:40,height:40,borderRadius:13,background:'#EEF5FF',color:'#4488ff',display:'grid',placeItems:'center'}}><Droplets size={20}/></span>
+            </div>
+            <div style={{height:7,borderRadius:99,background:SURFACE_2,overflow:'hidden',marginTop:13}}><div style={{height:'100%',width:`${Math.min(100,(todayWaterMl/2500)*100)}%`,background:'#4488ff',borderRadius:99}}/></div>
+            <div style={{fontSize:10.5,color:MUTED,marginTop:8}}>Repère actuel : 2 500 ml · toucher pour ajouter de l’eau</div>
+          </button>
 
           <div style={{...cardStyle,padding:18,marginBottom:14}}>
             <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>{briefLabel}</div>
