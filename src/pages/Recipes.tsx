@@ -49,7 +49,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'cut-chicken-bowl',
     goal: 'cut',
     name: 'Bowl poulet, riz & légumes',
-    subtitle: 'Une option protéinée et facile à préparer.',
+    subtitle: 'Une option simple avec une portion importante de protéines.',
     servings: 1,
     calories_per_serving: 515,
     protein_per_serving: 52,
@@ -123,7 +123,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'maintain-pasta',
     goal: 'maintain',
     name: 'Pâtes au thon protéinées',
-    subtitle: 'Simple, riche en protéines et pratique les journées actives.',
+    subtitle: 'Une option simple et protéinée pour les journées actives.',
     servings: 1,
     calories_per_serving: 650,
     protein_per_serving: 50,
@@ -142,7 +142,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'bulk-oats',
     goal: 'bulk',
     name: 'Porridge prise de masse',
-    subtitle: 'Énergétique et riche en protéines.',
+    subtitle: 'Une option plus calorique avec une portion importante de protéines.',
     servings: 1,
     calories_per_serving: 720,
     protein_per_serving: 42,
@@ -161,7 +161,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'bulk-beef-rice',
     goal: 'bulk',
     name: 'Bowl bœuf & riz',
-    subtitle: 'Un repas plus calorique et protéiné, adapté à une cible de prise de muscle.',
+    subtitle: 'Un repas plus calorique et protéiné, proposé pour une cible de prise de muscle.',
     servings: 1,
     calories_per_serving: 790,
     protein_per_serving: 55,
@@ -207,6 +207,15 @@ function normalizeGoal(raw?: string | null): GoalKey {
 
 const goalLabel = (goal: GoalKey) =>
   goal === 'cut' ? 'PERTE DE POIDS' : goal === 'bulk' ? 'PRISE DE MUSCLE' : 'MAINTIEN';
+
+const recipeFit = (recipe: SuggestedRecipe, dailyCalories: number | null, dailyProtein: number | null) => {
+  if (!dailyCalories) return 'Suggestion selon ton objectif';
+  const kcalShare = recipe.calories_per_serving / dailyCalories;
+  const proteinShare = dailyProtein ? recipe.protein_per_serving / dailyProtein : 0;
+  if (proteinShare >= .25) return 'Contribue fortement à ta cible protéines';
+  if (kcalShare <= .25) return 'Facile à intégrer à ta cible du jour';
+  return 'À ajuster selon le reste de ta journée';
+};
 
 export default function Recipes() {
   const { user } = useAuth();
@@ -534,7 +543,7 @@ export default function Recipes() {
                           ))}
                         </div>
                         <div style={{ fontSize: 14.5, fontWeight: 900 }}>{favorites.includes(recipe.id) ? '★ ' : ''}{recipe.name}</div>
-                        <div style={{ fontSize: 10.5, color: '#666', marginTop: 4, lineHeight: 1.4 }}>{recipe.subtitle}</div>
+                        <div style={{ fontSize: 10.5, color: '#666', marginTop: 4, lineHeight: 1.4 }}>{recipe.subtitle}</div>\n                        <div style={{fontSize:9.5,color:'#5A7200',fontWeight:800,marginTop:6}}>{recipeFit(recipe,dailyCalories,dailyProtein)}</div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <div style={{ color: '#0A0A0A', fontSize: 15, fontWeight: 950 }}>{recipe.calories_per_serving}</div>
