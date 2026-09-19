@@ -36,6 +36,7 @@ export default function FastingTracker() {
         setFastStart(start);
         setIsFasting(true);
         setProtocol(PROTOCOLS.find(p => p.id === data.protocolId) || PROTOCOLS[0]);
+        if (data.protocolId === 'custom' && Number(data.customFastHours) >= 10 && Number(data.customFastHours) <= 20) setCustomFastHours(Number(data.customFastHours));
       }
     }
     // Eau du jour
@@ -56,7 +57,7 @@ export default function FastingTracker() {
     const now = new Date();
     setFastStart(now);
     setIsFasting(true);
-    localStorage.setItem('nox_fasting_' + user!.id, JSON.stringify({ fastStart: now.toISOString(), protocolId: protocol.id }));
+    localStorage.setItem('nox_fasting_' + user!.id, JSON.stringify({ fastStart: now.toISOString(), protocolId: protocol.id, customFastHours: protocol.id === 'custom' ? customFastHours : undefined }));
   };
 
   const stopFast = () => {
