@@ -17,7 +17,10 @@ const ACHIEVEMENTS = [
   { id: 'workouts_10', icon: '💪', title: '10 séances', desc: 'Tu as enchaîné 10 séances', xp: 150 },
   { id: 'workouts_50', icon: '⚡', title: '50 séances', desc: 'Un vrai athlète NOX', xp: 500 },
   { id: 'workouts_100', icon: '🌟', title: '100 séances', desc: 'La légende NOX', xp: 1000 },
-  { id: 'pr_5', icon: '🎯', title: '5 records', desc: 'Tu as battu 5 records personnels', xp: 250 },
+  { id: 'pr_5', icon: '🎯', title: '5 records', desc: 'Tu as établi 5 records personnels', xp: 250 },
+  { id: 'pr_10', icon: '💎', title: '10 records', desc: 'Tu as établi 10 records personnels', xp: 500 },
+  { id: 'workouts_25', icon: '🚀', title: '25 séances', desc: '25 séances terminées dans NOX', xp: 300 },
+  { id: 'streak_14', icon: '🔥', title: '14 jours de régularité', desc: 'Deux semaines avec au moins un suivi NOX par jour', xp: 300 },
   { id: 'body_checkin', icon: '📊', title: 'Check-in BODY', desc: 'Premier suivi de ta progression', xp: 75 },
   { id: 'fuel_day', icon: '🥗', title: 'Journée FUEL', desc: 'Premier jour de tracking nutrition', xp: 75 },
   { id: 'month_streak', icon: '🏆', title: '30 jours actif', desc: 'Un mois complet avec NOX', xp: 500 },
@@ -31,6 +34,21 @@ const LEVELS = [
   { level: 5, name: 'ÉLITE', minXp: 2000, color: '#ff4444' },
   { level: 6, name: 'LÉGENDE NOX', minXp: 5000, color: ACCENT },
 ];
+
+export function calculateNoxDailyScore(input: { mealCount:number; nutritionTargetReady:boolean; calorieProgress:number; proteinProgress:number; activeMinutes:number; workouts:number; waterMl:number; waterGoal:number }) {
+  const mealCoverage=Math.min(1,input.mealCount/3);
+  const signals=[
+    {label:'Nutrition',done:mealCoverage>=.67},
+    ...(input.nutritionTargetReady?[{label:'Calories',done:input.calorieProgress>=.7},{label:'Protéines',done:input.proteinProgress>=.7}]:[]),
+    {label:'Activité',done:input.activeMinutes>=20||input.workouts>0},
+    {label:'Hydratation',done:input.waterMl>=input.waterGoal*.7},
+  ];
+  const done=signals.filter(x=>x.done).length;
+  return {score:signals.length?Math.round((done/signals.length)*100):0,signals,done,total:signals.length};
+}
+
+function localDayKey(value:string|Date){const d=value instanceof Date?value:new Date(value);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function calculateUnifiedStreak(keys:string[]){const days=new Set(keys);let cursor=new Date();cursor.setHours(12,0,0,0);if(!days.has(localDayKey(cursor))){cursor.setDate(cursor.getDate()-1);if(!days.has(localDayKey(cursor)))return 0;}let count=0;while(days.has(localDayKey(cursor))){count++;cursor.setDate(cursor.getDate()-1);}return count;}
 
 function getLevel(xp: number) {
   for (let i = LEVELS.length - 1; i >= 0; i--) {
@@ -54,7 +72,7 @@ export default function Play() {
   const [earned, setEarned] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [dailyScore, setDailyScore] = useState(0);
-  const [dailyGoals, setDailyGoals] = useState({ nutrition: false, activity: false, workout: false });
+  const [dailyGoals, setDailyGoals] = useState<{label:string;done:boolean}[]>([]);
   const [comebackMode, setComebackMode] = useState(false);
   const [weeklyProgress, setWeeklyProgress] = useState({ movement: 0, nutritionDays: 0 });
   const [missionClaimed, setMissionClaimed] = useState(false);
@@ -68,18 +86,24 @@ export default function Play() {
   const loadData = async () => {
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
     const weekStart = new Date(Date.now()-7*86400000);
-    const [{ data: profile }, { data: workouts }, { data: prs }, { data: achievements }, { data: body }, { data: food }, { data: activity }] = await Promise.all([
+    const streakStart = new Date(Date.now()-90*86400000);
+    const [{ data: profile }, { data: workouts }, { data: prs }, { data: achievements }, { data: body }, { data: food }, { data: activity }, { data: streakFood }, { data: streakActivity }, { data: target }] = await Promise.all([
       supabase.from('profiles').select('xp, streak_days').eq('id', user!.id).maybeSingle(),
       supabase.from('workouts').select('id, created_at').eq('user_id', user!.id).eq('status', 'completed').order('created_at', { ascending: false }),
       supabase.from('personal_records').select('id').eq('user_id', user!.id),
       supabase.from('user_achievements').select('achievement_id').eq('user_id', user!.id),
       supabase.from('body_logs').select('id').eq('user_id', user!.id).limit(1),
-      supabase.from('food_entries').select('id, created_at').eq('user_id', user!.id).gte('created_at', weekStart.toISOString()),
+      supabase.from('food_entries').select('id, meal_type, calories, protein, created_at').eq('user_id', user!.id).gte('created_at', weekStart.toISOString()),
       supabase.from('activity_logs').select('id, performed_at, duration_minutes').eq('user_id', user!.id).gte('performed_at', weekStart.toISOString()),
+      supabase.from('food_entries').select('created_at').eq('user_id',user!.id).gte('created_at',streakStart.toISOString()),
+      supabase.from('activity_logs').select('performed_at').eq('user_id',user!.id).gte('performed_at',streakStart.toISOString()),
+      supabase.from('nutrition_targets').select('calories, protein').eq('user_id',user!.id).maybeSingle(),
     ]);
 
     const userXp = profile?.xp || 0;
-    const userStreak = profile?.streak_days || 0;
+    const streakKeys=[...(streakFood||[]).map((x:any)=>localDayKey(x.created_at)),...(streakActivity||[]).map((x:any)=>localDayKey(x.performed_at)),...(workouts||[]).filter((x:any)=>new Date(x.created_at)>=streakStart).map((x:any)=>localDayKey(x.created_at))];
+    const userStreak=calculateUnifiedStreak(streakKeys);
+    if(Number(profile?.streak_days||0)!==userStreak) await supabase.from('profiles').update({streak_days:userStreak}).eq('id',user!.id);
     setXp(userXp);
     setStreak(userStreak);
     setTotalWorkouts(workouts?.length || 0);
@@ -87,12 +111,16 @@ export default function Play() {
     setEarned(achievements?.map((a: any) => a.achievement_id) || []);
 
     // Check & award achievements
-    const todayFood=(food||[]).some((x:any)=>new Date(x.created_at)>=todayStart);
-    const todayActivity=(activity||[]).some((x:any)=>new Date(x.performed_at)>=todayStart);
-    const todayWorkout=(workouts||[]).some((x:any)=>new Date(x.created_at)>=todayStart);
-    const goals={nutrition:todayFood,activity:todayActivity,workout:todayWorkout};
-    setDailyGoals(goals);
-    setDailyScore(Math.round(([goals.nutrition,goals.activity,goals.workout].filter(Boolean).length/3)*100));
+    const todayFood=(food||[]).filter((x:any)=>new Date(x.created_at)>=todayStart);
+    const todayActivity=(activity||[]).filter((x:any)=>new Date(x.performed_at)>=todayStart);
+    const todayWorkout=(workouts||[]).filter((x:any)=>new Date(x.created_at)>=todayStart);
+    const mealCount=new Set(todayFood.map((x:any)=>String(x.meal_type||'')).filter(Boolean)).size;
+    const kcal=todayFood.reduce((s:number,x:any)=>s+Number(x.calories||0),0), protein=todayFood.reduce((s:number,x:any)=>s+Number(x.protein||0),0);
+    const targetKcal=Number(target?.calories||0), targetProtein=Number(target?.protein||0);
+    const waterGoal=Number(localStorage.getItem('nox_water_goal_'+user!.id)||2500);
+    const waterMl=Number(localStorage.getItem('nox_water_'+user!.id+'_'+localDayKey(new Date()))||0);
+    const score=calculateNoxDailyScore({mealCount,nutritionTargetReady:targetKcal>0&&targetProtein>0,calorieProgress:targetKcal>0?kcal/targetKcal:0,proteinProgress:targetProtein>0?protein/targetProtein:0,activeMinutes:todayActivity.reduce((s:number,x:any)=>s+Number(x.duration_minutes||0),0),workouts:todayWorkout.length,waterMl,waterGoal});
+    setDailyGoals(score.signals); setDailyScore(score.score);
     const latestWorkout=workouts?.[0]?.created_at ? new Date(workouts[0].created_at).getTime() : 0;
     setComebackMode(Boolean(latestWorkout && Date.now()-latestWorkout>7*86400000));
     const movementDays=new Set([...(workouts||[]).map((x:any)=>new Date(x.created_at).toISOString().slice(0,10)),...(activity||[]).map((x:any)=>new Date(x.performed_at).toISOString().slice(0,10))]).size;
@@ -113,11 +141,14 @@ export default function Play() {
     const toUnlock: string[] = [];
     if (wCount >= 1 && !already.includes('first_workout')) toUnlock.push('first_workout');
     if (wCount >= 10 && !already.includes('workouts_10')) toUnlock.push('workouts_10');
+    if (wCount >= 25 && !already.includes('workouts_25')) toUnlock.push('workouts_25');
     if (wCount >= 50 && !already.includes('workouts_50')) toUnlock.push('workouts_50');
     if (wCount >= 100 && !already.includes('workouts_100')) toUnlock.push('workouts_100');
     if (prCount >= 1 && !already.includes('first_pr')) toUnlock.push('first_pr');
     if (prCount >= 5 && !already.includes('pr_5')) toUnlock.push('pr_5');
+    if (prCount >= 10 && !already.includes('pr_10')) toUnlock.push('pr_10');
     if (streakDays >= 7 && !already.includes('week_streak')) toUnlock.push('week_streak');
+    if (streakDays >= 14 && !already.includes('streak_14')) toUnlock.push('streak_14');
     if (streakDays >= 30 && !already.includes('month_streak')) toUnlock.push('month_streak');
     if (hasBody && !already.includes('body_checkin')) toUnlock.push('body_checkin');
     if (hasFood && !already.includes('fuel_day')) toUnlock.push('fuel_day');
@@ -211,7 +242,7 @@ export default function Play() {
           <div style={{background:'#fff',border:'1px solid '+BORDER,borderRadius:18,padding:16,marginBottom:12}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><div style={{fontSize:10,color:'#777',fontWeight:900,letterSpacing:'.08em'}}>DAILY GOALS</div><div style={{fontSize:16,fontWeight:950,marginTop:3}}>Aujourd’hui</div></div><div style={{fontSize:22,fontWeight:950}}>{dailyScore}<span style={{fontSize:10,color:'#777'}}>/100</span></div></div>
             <div style={{height:7,background:'#ECECEC',borderRadius:99,overflow:'hidden',marginTop:12}}><div style={{height:'100%',width:dailyScore+'%',background:ACCENT}}/></div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7,marginTop:10}}>{[['Nutrition',dailyGoals.nutrition],['Activité',dailyGoals.activity],['Séance',dailyGoals.workout]].map(([label,done]:any)=><div key={label} style={{padding:'9px 6px',borderRadius:11,background:done?'rgba(183,255,0,.16)':'#F5F5F5',fontSize:10,fontWeight:850,textAlign:'center'}}>{done?'✓ ':''}{label}</div>)}</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7,marginTop:10}}>{dailyGoals.map(({label,done})=><div key={label} style={{padding:'9px 6px',borderRadius:11,background:done?'rgba(183,255,0,.16)':'#F5F5F5',fontSize:10,fontWeight:850,textAlign:'center'}}>{done?'✓ ':''}{label}</div>)}</div>
             <div style={{fontSize:9.5,color:'#777',lineHeight:1.4,marginTop:9}}>Le Daily Score reflète ta régularité personnelle dans NOX. Ce n’est pas un score de santé.</div>
           </div>
 
