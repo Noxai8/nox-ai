@@ -3,10 +3,10 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const ACCENT = '#B7FF00';
+const BG = '#F7F7F7';
+const SURFACE = '#FFFFFF';
+const BORDER = '#EAEAEA';
 
 const WEARABLES = [
   { id: 'apple_watch', name: 'Apple Watch', icon: '⌚', color: '#555', connected: false },
@@ -56,14 +56,14 @@ export default function Recovery() {
 
     let label, color, advice;
     if (score >= 75) {
-      label = 'PRÊT À PERFORMER'; color = ACCENT;
-      advice = 'Ton corps est récupéré. Séance à pleine intensité possible.';
+      label = 'SIGNAUX FAVORABLES'; color = '#4D6800';
+      advice = 'Tes données renseignées sont favorables aujourd’hui. Utilise-les comme contexte, avec ton ressenti.';
     } else if (score >= 50) {
-      label = 'RÉCUPÉRATION MODÉRÉE'; color = '#ffaa00';
-      advice = 'Tu peux t\'entraîner mais réduis l\'intensité de 20%. Priorité aux mouvements composés.';
+      label = 'SIGNAUX INTERMÉDIAIRES'; color = '#A66B00';
+      advice = 'Certains indicateurs sont moins favorables. Adapte ta journée selon ton ressenti et tes contraintes.';
     } else {
-      label = 'REPOS RECOMMANDÉ'; color = '#ff4444';
-      advice = 'Ton corps signale de la fatigue. Repos actif ou séance légère seulement.';
+      label = 'SIGNAUX À SURVEILLER'; color = '#B94A48';
+      advice = 'Plusieurs réponses indiquent une récupération moins favorable. Ce repère ne remplace pas un avis médical.';
     }
     setReadiness({ score, label, color, advice });
   };
@@ -106,10 +106,12 @@ export default function Recovery() {
     <div style={{ minHeight: '100vh', background: BG, paddingBottom: 80 }}>
       <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid ' + BORDER }}>
         <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Récupération</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>RECOVERY</div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#0A0A0A' }}>SOMMEIL & RÉCUPÉRATION</div>
       </div>
 
       <div style={{ padding: '20px 20px 0' }}>
+
+        <div style={{background:'#fff',border:'1px solid '+BORDER,borderRadius:14,padding:'12px 14px',marginBottom:16,fontSize:11.5,color:'#777',lineHeight:1.5}}>Les indicateurs de récupération sont des repères de suivi non médicaux. Ils décrivent les données que tu renseignes et ne posent aucun diagnostic.</div>
 
         {/* Score readiness */}
         {readiness && (
@@ -123,14 +125,14 @@ export default function Recovery() {
         {/* Check-in du jour */}
         {!todayCheckin ? (
           <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 20, marginBottom: 16 }}>
-            <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', marginBottom: 20 }}>CHECK-IN RÉCUPÉRATION</div>
+            <div style={{ fontSize: 15, fontWeight: 900, color: '#0A0A0A', marginBottom: 20 }}>CHECK-IN RÉCUPÉRATION</div>
 
             {/* Sommeil */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 12, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>😴 HEURES DE SOMMEIL</div>
               <input value={checkin.sleep_hours} onChange={e => setCheckin(p => ({ ...p, sleep_hours: e.target.value }))}
                 type="number" step="0.5" min="0" max="12" placeholder="7.5"
-                style={{ width: '100%', padding: '12px 16px', background: '#0d0d0d', border: '1px solid ' + BORDER, borderRadius: 10, color: '#fff', fontSize: 18, fontWeight: 700, boxSizing: 'border-box', outline: 'none' }} />
+                style={{ width: '100%', padding: '12px 16px', background: '#F7F7F7', border: '1px solid ' + BORDER, borderRadius: 10, color: '#0A0A0A', fontSize: 18, fontWeight: 700, boxSizing: 'border-box', outline: 'none' }} />
             </div>
 
             <ScaleSelector label="Qualité du sommeil" stateKey="sleep_quality" emoji="🌙" />
@@ -146,10 +148,10 @@ export default function Recovery() {
               <div style={{ display: 'flex', gap: 10 }}>
                 <input value={checkin.hrv} onChange={e => setCheckin(p => ({ ...p, hrv: e.target.value }))}
                   type="number" placeholder="HRV ms"
-                  style={{ flex: 1, padding: '10px 14px', background: '#0d0d0d', border: '1px solid ' + BORDER, borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none' }} />
+                  style={{ flex: 1, padding: '10px 14px', background: '#F7F7F7', border: '1px solid ' + BORDER, borderRadius: 10, color: '#0A0A0A', fontSize: 14, outline: 'none' }} />
                 <input value={checkin.resting_hr} onChange={e => setCheckin(p => ({ ...p, resting_hr: e.target.value }))}
                   type="number" placeholder="FC repos bpm"
-                  style={{ flex: 1, padding: '10px 14px', background: '#0d0d0d', border: '1px solid ' + BORDER, borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none' }} />
+                  style={{ flex: 1, padding: '10px 14px', background: '#F7F7F7', border: '1px solid ' + BORDER, borderRadius: 10, color: '#0A0A0A', fontSize: 14, outline: 'none' }} />
               </div>
             </div>
 
@@ -166,17 +168,17 @@ export default function Recovery() {
 
         {/* Wearables */}
         <div style={{ fontSize: 13, fontWeight: 800, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>
-          INTÉGRATIONS WEARABLES
+          NOX CONNECT · SOURCES DE DONNÉES
         </div>
-        <div style={{ background: '#111', border: '1px solid #1a1a1a', borderRadius: 14, padding: '4px 0', marginBottom: 16 }}>
+        <div style={{ background: '#FFFFFF', border: '1px solid ' + BORDER, borderRadius: 14, padding: '4px 0', marginBottom: 16 }}>
           {WEARABLES.map((w, i) => (
-            <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderBottom: i < WEARABLES.length - 1 ? '1px solid #1a1a1a' : 'none' }}>
+            <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderBottom: i < WEARABLES.length - 1 ? '1px solid ' + BORDER : 'none' }}>
               <span style={{ fontSize: 22, flexShrink: 0 }}>{w.icon}</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{w.name}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#0A0A0A' }}>{w.name}</div>
                 <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>Disponible prochainement</div>
               </div>
-              <div style={{ background: '#1a1a1a', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: '#555', fontWeight: 700 }}>
+              <div style={{ background: '#F1F1F1', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: '#555', fontWeight: 700 }}>
                 BIENTÔT
               </div>
             </div>
@@ -186,7 +188,7 @@ export default function Recovery() {
         <div style={{ background: '#4488ff11', border: '1px solid #4488ff22', borderRadius: 14, padding: 16 }}>
           <div style={{ fontSize: 12, color: '#4488ff', fontWeight: 800, marginBottom: 6 }}>À VENIR</div>
           <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6 }}>
-            Apple Health, Oura, WHOOP, Garmin Connect et Fitbit seront intégrés pour récupérer automatiquement HRV, sommeil, FC repos et activité quotidienne — et les injecter dans la boucle NOX.
+            Les connexions dépendent des intégrations réellement activées. NOX pourra utiliser les données autorisées de sommeil, fréquence cardiaque, HRV et activité comme contexte de suivi.
           </div>
         </div>
       </div>
