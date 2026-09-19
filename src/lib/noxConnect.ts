@@ -97,3 +97,36 @@ export const deduplicateConnectRecords = (records: NoxConnectRecord[]) => {
 
   return kept;
 };
+
+
+export type NoxConnectTransport = 'native_bridge' | 'oauth_api';
+export type NoxConnectStatus = 'unavailable' | 'available' | 'connecting' | 'connected' | 'error';
+
+export type NoxConnectProvider = {
+  id: Exclude<NoxConnectSource, 'manual' | 'machine_scan' | 'nox_band'>;
+  label: string;
+  transport: NoxConnectTransport;
+  status: NoxConnectStatus;
+  note: string;
+};
+
+export const NOX_CONNECT_PROVIDERS: NoxConnectProvider[] = [
+  { id: 'apple_health', label: 'Apple Health / Apple Watch', transport: 'native_bridge', status: 'unavailable', note: 'Bridge iOS HealthKit requis.' },
+  { id: 'health_connect', label: 'Health Connect', transport: 'native_bridge', status: 'unavailable', note: 'Bridge Android Health Connect requis.' },
+  { id: 'fitbit', label: 'Fitbit', transport: 'oauth_api', status: 'unavailable', note: 'OAuth/API serveur à activer.' },
+  { id: 'whoop', label: 'WHOOP', transport: 'oauth_api', status: 'unavailable', note: 'OAuth/API serveur à activer.' },
+  { id: 'garmin', label: 'Garmin', transport: 'oauth_api', status: 'unavailable', note: 'API/partenariat à valider.' },
+  { id: 'oura', label: 'Oura', transport: 'oauth_api', status: 'unavailable', note: 'OAuth/API à valider.' },
+  { id: 'withings', label: 'Withings', transport: 'oauth_api', status: 'unavailable', note: 'OAuth/API à valider.' },
+  { id: 'polar', label: 'Polar', transport: 'oauth_api', status: 'unavailable', note: 'OAuth/API à valider.' },
+  { id: 'samsung_health', label: 'Samsung Health', transport: 'native_bridge', status: 'unavailable', note: 'Support selon API/SDK disponible.' },
+];
+
+export const getNoxConnectProvider = (id: NoxConnectProvider['id']) =>
+  NOX_CONNECT_PROVIDERS.find(provider => provider.id === id);
+
+export const canShowProviderAsConnected = (provider: NoxConnectProvider) =>
+  provider.status === 'connected';
+
+// Une source ne doit jamais être affichée comme connectée tant que son vrai
+// bridge natif ou son flux OAuth/API n'a pas confirmé la connexion.
