@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
@@ -10,6 +11,7 @@ const BORDER = '#EAEAEA';
 
 export default function Partner() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [myProfile, setMyProfile] = useState<any>(null);
   const [partnerCode, setPartnerCode] = useState('');
   const [partner, setPartner] = useState<any>(null);
@@ -104,17 +106,17 @@ export default function Partner() {
         <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>{label}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ flex: 1, textAlign: 'right' }}>
-            <div style={{ fontSize: 26, fontWeight: 900, color: iWin ? ACCENT : '#fff' }}>{mine}</div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: iWin ? '#5D8200' : '#0A0A0A' }}>{mine}</div>
             <div style={{ fontSize: 11, color: '#555' }}>Toi</div>
           </div>
           <div style={{ fontSize: 18, color: '#333', fontWeight: 900 }}>VS</div>
           <div style={{ flex: 1, textAlign: 'left' }}>
-            <div style={{ fontSize: 26, fontWeight: 900, color: !iWin ? ACCENT : '#fff' }}>{theirs}</div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: !iWin ? '#5D8200' : '#0A0A0A' }}>{theirs}</div>
             <div style={{ fontSize: 11, color: '#555' }}>{partner?.display_name?.split(' ')[0] || 'Partenaire'}</div>
           </div>
         </div>
         {/* Barre comparative */}
-        <div style={{ marginTop: 10, height: 4, background: '#1a1a1a', borderRadius: 2, overflow: 'hidden' }}>
+        <div style={{ marginTop: 10, height: 4, background: '#EAEAEA', borderRadius: 2, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: Math.round((mine / Math.max(mine + theirs, 1)) * 100) + '%', background: ACCENT, borderRadius: 2, transition: 'width .5s' }} />
         </div>
       </div>
@@ -130,13 +132,31 @@ export default function Partner() {
 
       <div style={{ padding: '20px 20px 0' }}>
 
+        <div style={{background:'#0A0A0A',color:'#fff',borderRadius:18,padding:18,marginBottom:16}}>
+          <div style={{fontSize:10,color:ACCENT,fontWeight:950,letterSpacing:'.1em'}}>NOX SOCIAL</div>
+          <div style={{fontSize:19,fontWeight:950,marginTop:5}}>Partage seulement ce que tu choisis.</div>
+          <div style={{fontSize:11,color:'#AAA',lineHeight:1.5,marginTop:6}}>Profil minimal, amis, challenges et partages sélectionnés. Poids, nutrition, photos et récupération restent privés par défaut.</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:14}}>
+            <button onClick={()=>navigate('/share-timeline')} style={{border:0,borderRadius:11,background:ACCENT,color:'#000',padding:11,fontWeight:900,fontSize:10,cursor:'pointer'}}>PARTAGER MA PROGRESSION</button>
+            <button onClick={()=>navigate('/food-scan',{state:{scanMode:'qr'}})} style={{border:'1px solid #333',borderRadius:11,background:'#151515',color:'#fff',padding:11,fontWeight:900,fontSize:10,cursor:'pointer'}}>SCANNER UNE INVITATION QR</button>
+          </div>
+        </div>
+
+        <div style={{background:SURFACE,border:'1px solid '+BORDER,borderRadius:16,padding:16,marginBottom:16}}>
+          <div style={{fontSize:11,fontWeight:950}}>SOCIAL NOX</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:11}}>
+            {['Ajouter des amis','Partager un workout','Partager un PR','Partager une recette','Partager un badge','Repas partagé QR','Clubs privés','Couple / famille'].map(label=><div key={label} style={{background:'#F7F7F7',borderRadius:11,padding:'10px 11px',fontSize:10.5,fontWeight:800}}>{label}</div>)}
+          </div>
+          <div style={{fontSize:10,color:'#888',lineHeight:1.45,marginTop:11}}>Ces extensions sociales seront activées progressivement. Aucun élément sensible n’est rendu public automatiquement.</div>
+        </div>
+
         {/* Mon code */}
         <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 20, marginBottom: 16 }}>
           <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>TON CODE</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ fontSize: 32, fontWeight: 900, color: ACCENT, letterSpacing: '.1em', flex: 1 }}>{partnerCode}</div>
             <button onClick={copyCode}
-              style={{ padding: '10px 16px', background: copied ? ACCENT : 'transparent', border: '1px solid ' + (copied ? ACCENT : BORDER), borderRadius: 10, color: copied ? '#000' : '#fff', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
+              style={{ padding: '10px 16px', background: copied ? ACCENT : 'transparent', border: '1px solid ' + (copied ? ACCENT : BORDER), borderRadius: 10, color: '#000', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
               {copied ? '✓ COPIÉ' : 'COPIER'}
             </button>
           </div>
