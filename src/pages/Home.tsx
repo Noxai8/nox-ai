@@ -28,6 +28,7 @@ export function BottomNav({ active }: { active: string }) {
       title: 'CORPS & SUIVI',
       items: [
         { icon: BarChart3, label: 'Body', path: '/body' },
+        { icon: '📈', label: 'Progrès', path: '/progress' },
         { icon: WandSparkles, label: 'Future', path: '/future' },
         { icon: '🌙', label: 'Recovery', path: '/recovery' },
         { icon: '😊', label: 'Humeur', path: '/mood' },

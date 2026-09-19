@@ -33,6 +33,7 @@ const Recipes = lazy(() => import('./pages/Recipes'));
 const MealPlanner = lazy(() => import('./pages/MealPlanner'));
 const FoodScan = lazy(() => import('./pages/FoodScan'));
 const TrainingCalendar = lazy(() => import('./pages/TrainingCalendar'));
+const Progress = lazy(() => import('./pages/Progress'));
 const Reschedule = lazy(() => import('./pages/Reschedule'));
 
 const Loader = () => <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#c8ff00', fontWeight: 900, letterSpacing: '.15em', fontSize: 18 }}>NOX</div></div>;
@@ -80,6 +81,7 @@ function AppRoutes() {
         <Route path="/meal-planner" element={<ProtectedRoute><MealPlanner /></ProtectedRoute>} />
         <Route path="/food-scan" element={<ProtectedRoute><FoodScan /></ProtectedRoute>} />
         <Route path="/training-calendar" element={<ProtectedRoute><TrainingCalendar /></ProtectedRoute>} />
+        <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Suspense>
