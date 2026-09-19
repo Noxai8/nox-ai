@@ -125,13 +125,6 @@ export default function FastingTracker() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#888' }}><span>10h</span><span>20h</span></div>
               </div>
             )}
-            {protocol.id === 'custom' && (
-              <div style={{ marginTop: 14, background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: 14 }}>
-                <div style={{display:'flex',justifyContent:'space-between',gap:12,fontSize:11,fontWeight:850,color:'#555'}}><span>DURÉE PERSONNALISÉE</span><span>{customFastHours} h</span></div>
-                <input type="range" min="10" max="20" step="1" value={customFastHours} onChange={e=>setCustomFastHours(Number(e.target.value))} style={{width:'100%',marginTop:10,accentColor:ACCENT}}/>
-                <div style={{fontSize:10,color:'#888',marginTop:5}}>Fenêtre alimentaire correspondante : {effectiveEatHours} h.</div>
-              </div>
-            )}
           </div>
         )}
 
