@@ -49,7 +49,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'cut-chicken-bowl',
     goal: 'cut',
     name: 'Bowl poulet, riz & légumes',
-    subtitle: 'Rassasiant, riche en protéines et facile à préparer.',
+    subtitle: 'Riche en protéines et facile à préparer.',
     servings: 1,
     calories_per_serving: 515,
     protein_per_serving: 52,
@@ -86,7 +86,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'cut-salmon',
     goal: 'cut',
     name: 'Saumon & pommes de terre',
-    subtitle: 'Un dîner complet avec protéines et bons lipides.',
+    subtitle: 'Un dîner avec protéines, glucides et lipides.',
     servings: 1,
     calories_per_serving: 560,
     protein_per_serving: 42,
@@ -142,7 +142,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'bulk-oats',
     goal: 'bulk',
     name: 'Porridge prise de masse',
-    subtitle: 'Dense en énergie sans sacrifier les protéines.',
+    subtitle: 'Énergétique et riche en protéines.',
     servings: 1,
     calories_per_serving: 720,
     protein_per_serving: 42,
@@ -161,7 +161,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'bulk-beef-rice',
     goal: 'bulk',
     name: 'Bowl bœuf & riz',
-    subtitle: 'Un repas calorique et protéiné pour soutenir la progression.',
+    subtitle: 'Un repas plus calorique et protéiné, adapté à une cible de prise de muscle.',
     servings: 1,
     calories_per_serving: 790,
     protein_per_serving: 55,
@@ -180,7 +180,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
     id: 'bulk-smoothie',
     goal: 'bulk',
     name: 'Smoothie protéiné calorique',
-    subtitle: 'Utile quand manger davantage devient difficile.',
+    subtitle: 'Une option liquide plus calorique pour varier les collations.',
     servings: 1,
     calories_per_serving: 680,
     protein_per_serving: 45,
@@ -478,7 +478,7 @@ export default function Recipes() {
                 <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 950, letterSpacing: '.1em' }}>RECETTES POUR TON OBJECTIF</div>
                 <div style={{ fontSize: 18, fontWeight: 950, marginTop: 6, color: '#fff' }}>{goalLabel(goal)}</div>
                 <div style={{ fontSize: 11.5, color: '#AAA', lineHeight: 1.5, marginTop: 6 }}>
-                  NOX te propose des repas cohérents avec ton objectif nutritionnel.
+                  NOX te propose des idées de repas selon ton objectif et ta cible nutritionnelle. Les valeurs restent des estimations à vérifier.
                   {dailyCalories ? ` Même cible que Nutrition : ${Math.round(dailyCalories)} kcal/jour` : ''}
                   {dailyProtein ? ` · ${Math.round(dailyProtein)} g protéines` : ''}.
                   {!dailyCalories ? ' Enregistre une cible dans Nutrition pour personnaliser davantage ces suggestions.' : ''}
@@ -488,7 +488,7 @@ export default function Recipes() {
               <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 950 }}>Suggestions NOX</div>
-                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Adaptées à {goalLabel(goal).toLowerCase()}</div>
+                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Selon {goalLabel(goal).toLowerCase()}</div>
                 </div>
               </div>
 
@@ -686,7 +686,7 @@ export default function Recipes() {
             <div>
               {selected.suggested && (
                 <div style={{ marginBottom: 12, padding: 12, borderRadius: 12, background: '#F4FFE0', border: '1px solid #D8F29B', color: '#3F5F00', fontSize: 10.5, fontWeight: 850 }}>
-                  SUGGESTION NOX · {goalLabel(goal)}
+                  SUGGESTION NOX · À VÉRIFIER · {goalLabel(goal)}
                 </div>
               )}
 
