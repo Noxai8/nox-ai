@@ -47,7 +47,7 @@ const emptyIngredient = (): Ingredient => ({
 const SUGGESTIONS: SuggestedRecipe[] = [
   {
     id: 'cut-chicken-bowl',
-    goal: 'cut',
+    goal: 'all',
     name: 'Bowl poulet, riz & légumes',
     subtitle: 'Une option simple avec une portion importante de protéines.',
     servings: 1,
@@ -66,7 +66,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
   },
   {
     id: 'cut-skyr-oats',
-    goal: 'cut',
+    goal: 'all',
     name: 'Skyr bowl fruits rouges',
     subtitle: 'Une option rapide avec une portion généreuse de protéines.',
     servings: 1,
@@ -84,7 +84,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
   },
   {
     id: 'cut-salmon',
-    goal: 'cut',
+    goal: 'all',
     name: 'Saumon & pommes de terre',
     subtitle: 'Un dîner avec protéines, glucides et lipides.',
     servings: 1,
@@ -102,7 +102,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
   },
   {
     id: 'maintain-wrap',
-    goal: 'maintain',
+    goal: 'all',
     name: 'Wrap poulet avocat',
     subtitle: 'Pratique pour un déjeuner avec protéines, glucides et lipides.',
     servings: 1,
@@ -121,7 +121,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
   },
   {
     id: 'maintain-pasta',
-    goal: 'maintain',
+    goal: 'all',
     name: 'Pâtes au thon protéinées',
     subtitle: 'Une option simple et protéinée pour les journées actives.',
     servings: 1,
@@ -140,7 +140,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
   },
   {
     id: 'bulk-oats',
-    goal: 'bulk',
+    goal: 'all',
     name: 'Porridge prise de masse',
     subtitle: 'Une option plus calorique avec une portion importante de protéines.',
     servings: 1,
@@ -159,7 +159,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
   },
   {
     id: 'bulk-beef-rice',
-    goal: 'bulk',
+    goal: 'all',
     name: 'Bowl bœuf & riz',
     subtitle: 'Un repas plus calorique et protéiné, proposé pour une cible de prise de muscle.',
     servings: 1,
@@ -178,7 +178,7 @@ const SUGGESTIONS: SuggestedRecipe[] = [
   },
   {
     id: 'bulk-smoothie',
-    goal: 'bulk',
+    goal: 'all',
     name: 'Smoothie banane, avoine & protéines',
     subtitle: 'Une option liquide pour varier les collations et ajuster facilement la portion.',
     servings: 1,
@@ -305,10 +305,12 @@ export default function Recipes() {
     const scored = SUGGESTIONS.filter(r => r.goal === goal || r.goal === 'all').map(recipe => {
       const haystack = [recipe.name, ...recipe.ingredients.map(i => i.name)].join(' ').toLowerCase();
       const familiarity = recentNames.reduce((score, name) => score + (haystack.includes(name) ? 1 : 0), 0);
-      return { recipe, familiarity };
+      const calorieFit = remainingCalories !== null && recipe.calories_per_serving <= remainingCalories ? 2 : 0;
+      const proteinFit = dailyProtein && recipe.protein_per_serving >= dailyProtein * .2 ? 1 : 0;
+      return { recipe, familiarity: familiarity + calorieFit + proteinFit };
     });
     return scored.sort((a,b) => b.familiarity - a.familiarity).map(x => x.recipe);
-  }, [goal, recentFoods]);
+  }, [goal, recentFoods, remainingCalories, dailyProtein]);
 
   const filteredSuggestions = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -572,7 +574,7 @@ export default function Recipes() {
               <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 950 }}>Idées pour toi</div>
-                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Suggestions basées sur ton objectif, ta cible nutritionnelle et tes aliments récents · à ajuster selon ta journée</div>
+                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Suggestions classées selon ta cible, ce qu’il te reste aujourd’hui et tes aliments récents · toutes restent accessibles</div>
                 </div>
               </div>
 
