@@ -20,6 +20,7 @@ export default function Partner() {
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [shareMessage, setShareMessage] = useState('');
   const [challenge, setChallenge] = useState<'workouts'|'streak'|'prs'>('workouts');
 
   useEffect(() => { if (user) load(); }, [user]);
@@ -79,7 +80,7 @@ export default function Partner() {
     const found = allProfiles?.find((p: any) => p.id.slice(0, 8).toUpperCase() === code && p.id !== user!.id);
 
     if (!found) {
-      setError('Code invalide. Vérifie avec ton partenaire.');
+      setError('Code invalide. Vérifie le code de ton ami.');
       return;
     }
 
@@ -93,10 +94,33 @@ export default function Partner() {
     loadPartner(found.id);
   };
 
-  const copyCode = () => {
-    navigator.clipboard.writeText(partnerCode);
+  const copyCode = async () => {
+    await navigator.clipboard.writeText(partnerCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const shareInvite = async () => {
+    const text = `Rejoins-moi sur NOX avec mon code ami : ${partnerCode}`;
+    try {
+      if (navigator.share) await navigator.share({ title: 'Invitation NOX', text });
+      else await navigator.clipboard.writeText(text);
+      setShareMessage(navigator.share ? 'Invitation prête à être partagée.' : 'Invitation copiée.');
+    } catch {}
+    setTimeout(() => setShareMessage(''), 2200);
+  };
+
+  const shareSelected = async (kind:'workout'|'pr') => {
+    if (!myStats) return;
+    const text = kind==='workout'
+      ? `NOX · J’ai terminé ${myStats.weekWorkouts} séance(s) sur les 7 derniers jours.`
+      : `NOX · J’ai enregistré ${myStats.totalPRs} record(s) personnel(s).`;
+    try {
+      if (navigator.share) await navigator.share({ title: kind==='workout'?'Workout NOX':'PR NOX', text });
+      else await navigator.clipboard.writeText(text);
+      setShareMessage('Partage préparé — aucune donnée privée incluse.');
+    } catch {}
+    setTimeout(() => setShareMessage(''), 2200);
   };
 
   const StatRow = ({ label, mine, theirs }: { label: string; mine: number; theirs: number }) => {
@@ -145,9 +169,13 @@ export default function Partner() {
         <div style={{background:SURFACE,border:'1px solid '+BORDER,borderRadius:16,padding:16,marginBottom:16}}>
           <div style={{fontSize:11,fontWeight:950}}>SOCIAL NOX</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:11}}>
-            {['Ajouter des amis','Partager un workout','Partager un PR','Partager une recette','Partager un badge','Repas partagé QR','Clubs privés','Couple / famille'].map(label=><div key={label} style={{background:'#F7F7F7',borderRadius:11,padding:'10px 11px',fontSize:10.5,fontWeight:800}}>{label}</div>)}
+            <button onClick={shareInvite} style={{background:'#F7F7F7',border:0,borderRadius:11,padding:'11px',fontSize:10.5,fontWeight:900,textAlign:'left',cursor:'pointer'}}>Inviter un ami</button>
+            <button onClick={()=>navigate('/food-scan',{state:{scanMode:'qr'}})} style={{background:'#F7F7F7',border:0,borderRadius:11,padding:'11px',fontSize:10.5,fontWeight:900,textAlign:'left',cursor:'pointer'}}>Scanner invitation QR</button>
+            <button onClick={()=>void shareSelected('workout')} style={{background:'#F7F7F7',border:0,borderRadius:11,padding:'11px',fontSize:10.5,fontWeight:900,textAlign:'left',cursor:'pointer'}}>Partager un workout</button>
+            <button onClick={()=>void shareSelected('pr')} style={{background:'#F7F7F7',border:0,borderRadius:11,padding:'11px',fontSize:10.5,fontWeight:900,textAlign:'left',cursor:'pointer'}}>Partager un PR</button>
           </div>
-          <div style={{fontSize:10,color:'#888',lineHeight:1.45,marginTop:11}}>Ces extensions sociales seront activées progressivement. Aucun élément sensible n’est rendu public automatiquement.</div>
+          {shareMessage&&<div style={{fontSize:10,color:'#5D8200',fontWeight:800,marginTop:10}}>{shareMessage}</div>}
+          <div style={{fontSize:10,color:'#888',lineHeight:1.45,marginTop:11}}>Les partages contiennent uniquement l’élément choisi. Poids, nutrition, photos, récupération et autres données sensibles restent exclus.</div>
         </div>
 
         {/* Mon code */}
@@ -161,16 +189,17 @@ export default function Partner() {
             </button>
           </div>
           <div style={{ fontSize: 12, color: '#555', marginTop: 8 }}>Partage uniquement ce code. Tes données sensibles restent privées.</div>
+          <button onClick={shareInvite} style={{width:'100%',marginTop:11,padding:11,border:0,borderRadius:10,background:'#0A0A0A',color:'#fff',fontWeight:900,fontSize:11,cursor:'pointer'}}>INVITER UN AMI</button>
         </div>
 
         {/* Connecter un partenaire */}
         {!partner && (
           <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 20, marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#0A0A0A', marginBottom: 12 }}>CONNECTER UN PARTENAIRE</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#0A0A0A', marginBottom: 12 }}>AJOUTER UN AMI</div>
             <div style={{ display: 'flex', gap: 10 }}>
               <input
                 value={input} onChange={e => setInput(e.target.value.toUpperCase())}
-                placeholder="CODE DE TON PARTENAIRE"
+                placeholder="CODE AMI"
                 maxLength={8}
                 style={{ flex: 1, padding: '12px 14px', background: '#F7F7F7', border: '1px solid ' + BORDER, borderRadius: 10, color: '#0A0A0A', fontSize: 14, fontFamily: 'monospace', letterSpacing: '.1em', outline: 'none' }}
               />
