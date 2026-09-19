@@ -1,4 +1,3 @@
-import { calculateNoxScore } from '../lib/noxBrain';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BottomNav } from '../components/BottomNav';
@@ -415,20 +414,7 @@ export default function Home() {
     });
   };
 
-  const getNoxScore = () => {
-    return calculateNoxScore({
-      workoutCount,
-      weekWorkouts,
-      weekPlanned: profile?.available_days?.length || 4,
-      prCount,
-      hasWeight: !!latestWeight,
-      hasFuel: todayKcal > 0,
-      todayKcal,
-      targetKcal: targetKcal || undefined,
-      streak: Math.max(Number(profile?.streak_days || 0), weekFoodDays),
-      xp,
-    }).score;
-  };
+
 
   if (loading) {
     return (
@@ -448,7 +434,6 @@ export default function Home() {
     );
   }
 
-  const noxScore = getNoxScore();
   const firstName = profile?.display_name?.split(' ')[0] || 'ATHLÈTE';
   const effectiveTargetKcal = targetKcal && targetKcal > 0 ? targetKcal : null;
   const remainingKcal = effectiveTargetKcal === null ? null : Math.max(0, effectiveTargetKcal - todayKcal);
@@ -572,7 +557,7 @@ export default function Home() {
               )}
             </div>
 
-            <NoxScore score={noxScore} />
+            <NoxScore score={dailyScore} />
           </div>
         </header>
 
@@ -830,14 +815,13 @@ export default function Home() {
             {waterMessage&&<div style={{fontSize:9.5,color:MUTED,marginTop:8}}>{waterMessage}</div>}
           </div>
 
-          {freshSleepHours!==null&&<button onClick={()=>navigate('/recovery')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}><div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>SOMMEIL & RÉCUPÉRATION</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{freshSleepHours!.toFixed(1)} <span style={{fontSize:12,color:MUTED}}>h de sommeil</span></div></div><span style={{width:40,height:40,borderRadius:13,background:SURFACE_2,display:'grid',placeItems:'center'}}><MoonStar size={20}/></span></div>
-            <div style={{display:'flex',gap:7,marginTop:10,flexWrap:'wrap'}}>
+          <button onClick={()=>navigate('/recovery')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}><div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>SOMMEIL & RÉCUPÉRATION</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{freshSleepHours!==null?freshSleepHours.toFixed(1)+' h':'AUCUNE DONNÉE RÉCENTE'}</div></div><span style={{width:40,height:40,borderRadius:13,background:SURFACE_2,display:'grid',placeItems:'center'}}><MoonStar size={20}/></span></div>
+            {freshSleepHours!==null?<><div style={{display:'flex',gap:7,marginTop:10,flexWrap:'wrap'}}>
               {latestSleepHrv!==null&&<span style={{background:SURFACE_2,borderRadius:9,padding:'6px 8px',fontSize:9.5,fontWeight:850}}>HRV {Math.round(latestSleepHrv)} ms</span>}
               {latestRestingHr!==null&&<span style={{background:SURFACE_2,borderRadius:9,padding:'6px 8px',fontSize:9.5,fontWeight:850}}>FC repos {Math.round(latestRestingHr)} bpm</span>}
-            </div>
-            <div style={{fontSize:10.5,color:MUTED,marginTop:9}}>Dernières données disponibles · ouvre Récupération pour leur contexte. NOX ne les interprète pas comme un diagnostic médical.</div>
-          </button>}
+            </div><div style={{fontSize:10.5,color:MUTED,marginTop:9}}>Dernières données disponibles · ouvre Récupération pour leur contexte. NOX ne les interprète pas comme un diagnostic médical.</div></>:<div style={{fontSize:10.5,color:MUTED,lineHeight:1.45,marginTop:9}}>Connecte une source compatible ou ajoute des données de récupération pour les retrouver ici. Aucune valeur n’est estimée quand la donnée manque.</div>}
+          </button>
 
           <button onClick={()=>navigate('/meal-planner')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
@@ -877,17 +861,7 @@ export default function Home() {
             <div style={{fontSize:9.5,color:MUTED,lineHeight:1.45,marginTop:7}}>NOX valide automatiquement ce qu’il peut depuis tes données. Tu peux cocher manuellement le reste pour aujourd’hui.</div>
           </div>
 
-          <div style={{...cardStyle,padding:18,marginBottom:14,background:TEXT,color:'#fff'}}>
-            <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:ACCENT}}>NOX DAILY SCORE</div>
-            <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:12,marginTop:5}}><div><span style={{fontSize:34,fontWeight:950,lineHeight:1}}>{dailyScore}</span><span style={{fontSize:12,color:'#777'}}> / 100</span></div><div style={{fontSize:10,color:'#999',textAlign:'right'}}>{dailyScoreLabel}<br/>AUJOURD’HUI</div></div>
-            <div style={{height:7,borderRadius:99,background:'#242424',overflow:'hidden',marginTop:13}}><div style={{height:'100%',width:`${Math.max(0,Math.min(100,dailyScore))}%`,background:ACCENT,borderRadius:99}}/></div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:12}}>
-              <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{todayFoodCount}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>ENTRÉES NUTRITION</div></div>
-              <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{Math.round(totalActiveMinutes)}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>MIN ACTIVES</div></div>
-              <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{todayWorkouts}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>SÉANCES AUJ.</div></div>
-            </div>
-            <div style={{fontSize:9.5,color:'#777',lineHeight:1.45,marginTop:10}}>Repère personnel de régularité basé sur 5 signaux renseignés aujourd’hui : suivi nutritionnel, repère calorique, protéines, activité et hydratation. Il mesure la complétude et la constance de ton suivi dans NOX, pas ta santé ni la qualité de ta journée.</div>
-          </div>
+
 
           <div
             style={{
