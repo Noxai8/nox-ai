@@ -53,6 +53,9 @@ export default function Play() {
   const [totalPRs, setTotalPRs] = useState(0);
   const [earned, setEarned] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dailyScore, setDailyScore] = useState(0);
+  const [dailyGoals, setDailyGoals] = useState({ nutrition: false, activity: false, workout: false });
+  const [comebackMode, setComebackMode] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -60,11 +63,16 @@ export default function Play() {
   }, [user]);
 
   const loadData = async () => {
-    const [{ data: profile }, { data: workouts }, { data: prs }, { data: achievements }] = await Promise.all([
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const weekStart = new Date(Date.now()-7*86400000);
+    const [{ data: profile }, { data: workouts }, { data: prs }, { data: achievements }, { data: body }, { data: food }, { data: activity }] = await Promise.all([
       supabase.from('profiles').select('xp, streak_days').eq('id', user!.id).maybeSingle(),
       supabase.from('workouts').select('id, created_at').eq('user_id', user!.id).eq('status', 'completed').order('created_at', { ascending: false }),
       supabase.from('personal_records').select('id').eq('user_id', user!.id),
       supabase.from('user_achievements').select('achievement_id').eq('user_id', user!.id),
+      supabase.from('body_logs').select('id').eq('user_id', user!.id).limit(1),
+      supabase.from('food_entries').select('id, created_at').eq('user_id', user!.id).gte('created_at', weekStart.toISOString()),
+      supabase.from('activity_logs').select('id, performed_at, duration_minutes').eq('user_id', user!.id).gte('performed_at', weekStart.toISOString()),
     ]);
 
     const userXp = profile?.xp || 0;
@@ -76,11 +84,19 @@ export default function Play() {
     setEarned(achievements?.map((a: any) => a.achievement_id) || []);
 
     // Check & award achievements
-    await checkAchievements(workouts?.length || 0, prs?.length || 0, userXp);
+    const todayFood=(food||[]).some((x:any)=>new Date(x.created_at)>=todayStart);
+    const todayActivity=(activity||[]).some((x:any)=>new Date(x.performed_at)>=todayStart);
+    const todayWorkout=(workouts||[]).some((x:any)=>new Date(x.created_at)>=todayStart);
+    const goals={nutrition:todayFood,activity:todayActivity,workout:todayWorkout};
+    setDailyGoals(goals);
+    setDailyScore(Math.round(([goals.nutrition,goals.activity,goals.workout].filter(Boolean).length/3)*100));
+    const latestWorkout=workouts?.[0]?.created_at ? new Date(workouts[0].created_at).getTime() : 0;
+    setComebackMode(Boolean(latestWorkout && Date.now()-latestWorkout>7*86400000));
+    await checkAchievements(workouts?.length || 0, prs?.length || 0, userXp, userStreak, (body?.length||0)>0, (food?.length||0)>0);
     setLoading(false);
   };
 
-  const checkAchievements = async (wCount: number, prCount: number, currentXp: number) => {
+  const checkAchievements = async (wCount: number, prCount: number, currentXp: number, streakDays: number, hasBody: boolean, hasFood: boolean) => {
     const { data: existing } = await supabase.from('user_achievements').select('achievement_id').eq('user_id', user!.id);
     const already = existing?.map((a: any) => a.achievement_id) || [];
 
@@ -91,12 +107,17 @@ export default function Play() {
     if (wCount >= 100 && !already.includes('workouts_100')) toUnlock.push('workouts_100');
     if (prCount >= 1 && !already.includes('first_pr')) toUnlock.push('first_pr');
     if (prCount >= 5 && !already.includes('pr_5')) toUnlock.push('pr_5');
+    if (streakDays >= 7 && !already.includes('week_streak')) toUnlock.push('week_streak');
+    if (streakDays >= 30 && !already.includes('month_streak')) toUnlock.push('month_streak');
+    if (hasBody && !already.includes('body_checkin')) toUnlock.push('body_checkin');
+    if (hasFood && !already.includes('fuel_day')) toUnlock.push('fuel_day');
 
     if (toUnlock.length > 0) {
       const rows = toUnlock.map(id => ({ user_id: user!.id, achievement_id: id, earned_at: new Date().toISOString() }));
       await supabase.from('user_achievements').insert(rows);
       const addXp = toUnlock.reduce((s, id) => s + (ACHIEVEMENTS.find(a => a.id === id)?.xp || 0), 0);
-      if (addXp > 0) await supabase.from('profiles').update({ xp: currentXp + addXp }).eq('id', user!.id);
+      if (addXp > 0) { const nextXp=currentXp+addXp; await supabase.from('profiles').update({ xp: nextXp }).eq('id', user!.id); setXp(nextXp); }
+      setEarned([...already,...toUnlock]);
     }
   };
 
@@ -164,6 +185,17 @@ export default function Play() {
             </div>
           </div>
 
+
+          <div style={{background:'#fff',border:'1px solid '+BORDER,borderRadius:18,padding:16,marginBottom:12}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><div style={{fontSize:10,color:'#777',fontWeight:900,letterSpacing:'.08em'}}>DAILY GOALS</div><div style={{fontSize:16,fontWeight:950,marginTop:3}}>Aujourd’hui</div></div><div style={{fontSize:22,fontWeight:950}}>{dailyScore}<span style={{fontSize:10,color:'#777'}}>/100</span></div></div>
+            <div style={{height:7,background:'#ECECEC',borderRadius:99,overflow:'hidden',marginTop:12}}><div style={{height:'100%',width:dailyScore+'%',background:ACCENT}}/></div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7,marginTop:10}}>{[['Nutrition',dailyGoals.nutrition],['Activité',dailyGoals.activity],['Séance',dailyGoals.workout]].map(([label,done]:any)=><div key={label} style={{padding:'9px 6px',borderRadius:11,background:done?'rgba(183,255,0,.16)':'#F5F5F5',fontSize:10,fontWeight:850,textAlign:'center'}}>{done?'✓ ':''}{label}</div>)}</div>
+            <div style={{fontSize:9.5,color:'#777',lineHeight:1.4,marginTop:9}}>Le Daily Score reflète ta régularité personnelle dans NOX. Ce n’est pas un score de santé.</div>
+          </div>
+
+          {comebackMode&&<div style={{background:'#0A0A0A',color:'#fff',borderRadius:18,padding:16,marginBottom:12}}><div style={{fontSize:10,color:ACCENT,fontWeight:950,letterSpacing:'.09em'}}>COMEBACK MODE</div><div style={{fontSize:17,fontWeight:950,marginTop:4}}>Reprends sans repartir de zéro.</div><div style={{fontSize:11,color:'#AAA',lineHeight:1.45,marginTop:6}}>Après une pause, NOX remet l’accent sur une prochaine action simple plutôt que sur la perte de streak.</div><button onClick={()=>navigate('/activity')} style={{marginTop:11,border:0,borderRadius:10,background:ACCENT,color:'#000',padding:'10px 12px',fontWeight:950,fontSize:10}}>REPRENDRE</button></div>}
+
+          <div style={{background:'#fff',border:'1px solid '+BORDER,borderRadius:18,padding:16,marginBottom:18}}><div style={{fontSize:10,color:'#777',fontWeight:900,letterSpacing:'.08em'}}>WEEKLY MISSION</div><div style={{fontSize:15,fontWeight:950,marginTop:4}}>Construis ta régularité</div><div style={{fontSize:11,color:'#666',marginTop:5}}>Complète 3 séances ou activités cette semaine et garde au moins 3 jours de suivi nutritionnel.</div></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 9, marginBottom: 22 }}>
             {[
               { label: 'Séances', value: totalWorkouts },
@@ -241,7 +273,7 @@ export default function Play() {
           style={{ width: '100%', background: '#fff', border: '1px solid #EAEAEA', borderRadius: 14, padding: '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left', touchAction: 'manipulation' }}>
           <div style={{ fontSize: 28 }}>🏆</div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#0A0A0A' }}>CLASSEMENT GLOBAL</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#0A0A0A' }}>CLASSEMENT OPTIONNEL</div>
             <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>Classement optionnel entre membres NOX</div>
           </div>
           <div style={{ marginLeft: 'auto', color: '#333', fontSize: 16 }}>→</div>
