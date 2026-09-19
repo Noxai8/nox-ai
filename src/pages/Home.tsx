@@ -715,8 +715,8 @@ export default function Home() {
 
           <div style={{...cardStyle,padding:18,marginBottom:14,background:TEXT,color:'#fff'}}>
             <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:ACCENT}}>NOX DAILY SCORE</div>
-            <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:12,marginTop:5}}><div><span style={{fontSize:34,fontWeight:950,lineHeight:1}}>{noxScore}</span><span style={{fontSize:12,color:'#777'}}> / 100</span></div><div style={{fontSize:10,color:'#999',textAlign:'right'}}>{scoreLabel}<br/>AUJOURD’HUI</div></div>
-            <div style={{height:7,borderRadius:99,background:'#242424',overflow:'hidden',marginTop:13}}><div style={{height:'100%',width:`${Math.max(0,Math.min(100,noxScore))}%`,background:ACCENT,borderRadius:99}}/></div>
+            <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:12,marginTop:5}}><div><span style={{fontSize:34,fontWeight:950,lineHeight:1}}>{dailyScore}</span><span style={{fontSize:12,color:'#777'}}> / 100</span></div><div style={{fontSize:10,color:'#999',textAlign:'right'}}>{dailyScore>=80?'TRÈS RÉGULIER':dailyScore>=60?'RÉGULIER':dailyScore>=40?'EN COURS':'À CONSTRUIRE'}<br/>AUJOURD’HUI</div></div>
+            <div style={{height:7,borderRadius:99,background:'#242424',overflow:'hidden',marginTop:13}}><div style={{height:'100%',width:`${Math.max(0,Math.min(100,dailyScore))}%`,background:ACCENT,borderRadius:99}}/></div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:12}}>
               <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{todayFoodCount}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>ENTRÉES NUTRITION</div></div>
               <div style={{background:'#171717',borderRadius:12,padding:9}}><b>{Math.round(todayActivityMinutes)}</b><div style={{fontSize:8.5,color:'#777',marginTop:3}}>MIN ACTIVES</div></div>
