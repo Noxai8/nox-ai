@@ -4,10 +4,10 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const ACCENT = '#B7FF00';
+const BG = '#F7F7F7';
+const SURFACE = '#FFFFFF';
+const BORDER = '#EAEAEA';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -243,7 +243,7 @@ export default function WeeklyReview() {
     try {
       const programSessions = weekData.program?.program_json?.sessions || [];
 
-      const prompt = `Tu es NOX, coach fitness et nutrition. Fais un bilan hebdomadaire précis uniquement à partir des données ci-dessous.
+      const prompt = `Tu es la couche d'analyse NOX. Tu synthétises les données de suivi fitness et nutrition sans te présenter comme un coach. Fais un bilan hebdomadaire précis uniquement à partir des données ci-dessous.
 
 OBJECTIF :
 ${weekData.goal}
@@ -302,7 +302,7 @@ RÈGLES :
 - Ne modifie pas automatiquement le programme à partir d'un simple manque d'adhérence.
 - Tu peux recommander une adaptation seulement si les données disponibles la justifient clairement.
 - Si les données sont insuffisantes, dis exactement quoi mieux renseigner la semaine prochaine.
-- Ton direct, utile et encourageant, sans exagération.
+- Ton clair, utile et factuel, sans exagération.
 - Réponds uniquement en JSON valide, sans markdown.
 
 FORMAT :
@@ -384,7 +384,7 @@ FORMAT :
           ← Retour
         </button>
         <div style={{ fontSize: 11, color: ACCENT, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.11em' }}>Weekly Review</div>
-        <div style={{ fontSize: 24, fontWeight: 950, color: '#fff', marginTop: 4 }}>TA SEMAINE NOX</div>
+        <div style={{ fontSize: 24, fontWeight: 950, color: '#0A0A0A', marginTop: 4 }}>TA SEMAINE NOX</div>
         <div style={{ color: '#666', fontSize: 12, lineHeight: 1.5, marginTop: 6 }}>
           Entraînement, corps, nutrition et récupération réunis dans un seul bilan.
         </div>
@@ -403,7 +403,7 @@ FORMAT :
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#555', fontSize: 10, fontWeight: 900, letterSpacing: '.09em', marginBottom: 5 }}>SCORE HEBDOMADAIRE</div>
-                <div style={{ color: '#fff', fontSize: 21, fontWeight: 950 }}>{analysis.titre}</div>
+                <div style={{ color: '#0A0A0A', fontSize: 21, fontWeight: 950 }}>{analysis.titre}</div>
               </div>
               <div style={{ color: noteColor, fontSize: 42, lineHeight: 1, fontWeight: 950 }}>
                 {analysis.note}<span style={{ color: '#444', fontSize: 15 }}>/10</span>
@@ -426,7 +426,7 @@ FORMAT :
               ].map(card => (
                 <div key={card.label} style={{ background: SURFACE, border: '1px solid ' + (card.good ? ACCENT + '2c' : BORDER), borderRadius: 14, padding: 15 }}>
                   <div style={{ color: '#555', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', marginBottom: 6 }}>{card.label}</div>
-                  <div style={{ color: '#fff', fontSize: 21, fontWeight: 950 }}>{card.value}</div>
+                  <div style={{ color: '#0A0A0A', fontSize: 21, fontWeight: 950 }}>{card.value}</div>
                   <div style={{ color: '#555', fontSize: 10, marginTop: 4 }}>{card.sub}</div>
                 </div>
               ))}
@@ -437,15 +437,15 @@ FORMAT :
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                 <div>
                   <div style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>Suivi</div>
-                  <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, marginTop: 3 }}>{nutritionStatus}</div>
+                  <div style={{ color: '#0A0A0A', fontSize: 18, fontWeight: 900, marginTop: 3 }}>{nutritionStatus}</div>
                 </div>
                 <div>
                   <div style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>Calories</div>
-                  <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, marginTop: 3 }}>{data.avg_kcal != null ? data.avg_kcal : '—'}</div>
+                  <div style={{ color: '#0A0A0A', fontSize: 18, fontWeight: 900, marginTop: 3 }}>{data.avg_kcal != null ? data.avg_kcal : '—'}</div>
                 </div>
                 <div>
                   <div style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>Protéines</div>
-                  <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, marginTop: 3 }}>{data.avg_protein != null ? `${data.avg_protein}g` : '—'}</div>
+                  <div style={{ color: '#0A0A0A', fontSize: 18, fontWeight: 900, marginTop: 3 }}>{data.avg_protein != null ? `${data.avg_protein}g` : '—'}</div>
                 </div>
               </div>
 
@@ -468,15 +468,15 @@ FORMAT :
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                 <div>
                   <div style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>Check-ins</div>
-                  <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, marginTop: 3 }}>{data.recovery_checkins}/7</div>
+                  <div style={{ color: '#0A0A0A', fontSize: 18, fontWeight: 900, marginTop: 3 }}>{data.recovery_checkins}/7</div>
                 </div>
                 <div>
                   <div style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>Humeur</div>
-                  <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, marginTop: 3 }}>{data.avg_mood != null ? `${data.avg_mood}/5` : '—'}</div>
+                  <div style={{ color: '#0A0A0A', fontSize: 18, fontWeight: 900, marginTop: 3 }}>{data.avg_mood != null ? `${data.avg_mood}/5` : '—'}</div>
                 </div>
                 <div>
                   <div style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>Readiness</div>
-                  <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, marginTop: 3 }}>{data.avg_recovery != null ? data.avg_recovery : '—'}</div>
+                  <div style={{ color: '#0A0A0A', fontSize: 18, fontWeight: 900, marginTop: 3 }}>{data.avg_recovery != null ? data.avg_recovery : '—'}</div>
                 </div>
               </div>
             </div>
@@ -485,7 +485,7 @@ FORMAT :
               <div style={{ background: ACCENT + '08', border: '1px solid ' + ACCENT + '22', borderRadius: 15, padding: 15, marginBottom: 16 }}>
                 <div style={{ color: ACCENT, fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 9 }}>PROGRESSION · RECORDS</div>
                 {data.pr_details.map((record: string) => (
-                  <div key={record} style={{ color: '#bbb', fontSize: 12, lineHeight: 1.55, marginTop: 4 }}>
+                  <div key={record} style={{ color: '#555', fontSize: 12, lineHeight: 1.55, marginTop: 4 }}>
                     <span style={{ color: ACCENT, marginRight: 7 }}>↑</span>{record}
                   </div>
                 ))}
@@ -514,7 +514,7 @@ FORMAT :
         {analysis?.lecture_trajectoire && (
           <div style={{ background: '#4488ff0b', border: '1px solid #4488ff2c', borderRadius: 16, padding: 16, marginBottom: 14 }}>
             <div style={{ color: '#6699ff', fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 7 }}>TRAJECTOIRE</div>
-            <div style={{ color: '#aaa', fontSize: 13, lineHeight: 1.6 }}>{analysis.lecture_trajectoire}</div>
+            <div style={{ color: '#555', fontSize: 13, lineHeight: 1.6 }}>{analysis.lecture_trajectoire}</div>
           </div>
         )}
 
@@ -522,7 +522,7 @@ FORMAT :
           <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 16, marginBottom: 12 }}>
             <div style={{ color: ACCENT, fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 9 }}>CE QUI A MARCHÉ</div>
             {analysis.points_forts.map((point: string) => (
-              <div key={point} style={{ display: 'flex', gap: 8, color: '#bbb', fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>
+              <div key={point} style={{ display: 'flex', gap: 8, color: '#444', fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>
                 <span style={{ color: ACCENT }}>✓</span><span>{point}</span>
               </div>
             ))}
@@ -533,7 +533,7 @@ FORMAT :
           <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 16, marginBottom: 12 }}>
             <div style={{ color: '#ffaa00', fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 9 }}>À AJUSTER</div>
             {analysis.points_ameliorer.map((point: string) => (
-              <div key={point} style={{ display: 'flex', gap: 8, color: '#bbb', fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>
+              <div key={point} style={{ display: 'flex', gap: 8, color: '#444', fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>
                 <span style={{ color: '#ffaa00' }}>→</span><span>{point}</span>
               </div>
             ))}
@@ -546,7 +546,7 @@ FORMAT :
             {analysis.priorites_semaine_prochaine.slice(0, 3).map((priority: string, index: number) => (
               <div key={priority} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: index ? 9 : 0 }}>
                 <div style={{ width: 21, height: 21, borderRadius: 7, background: ACCENT, color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 950, flexShrink: 0 }}>{index + 1}</div>
-                <div style={{ color: '#ccc', fontSize: 13, lineHeight: 1.5 }}>{priority}</div>
+                <div style={{ color: '#333', fontSize: 13, lineHeight: 1.5 }}>{priority}</div>
               </div>
             ))}
           </div>
@@ -555,7 +555,7 @@ FORMAT :
         {analysis?.conseil && (
           <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 16, marginBottom: 20 }}>
             <div style={{ color: '#555', fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 7 }}>CONSEIL NOX</div>
-            <div style={{ color: '#bbb', fontSize: 13, lineHeight: 1.6 }}>{analysis.conseil}</div>
+            <div style={{ color: '#444', fontSize: 13, lineHeight: 1.6 }}>{analysis.conseil}</div>
           </div>
         )}
 
@@ -568,7 +568,7 @@ FORMAT :
         {!generating && !analysis && data && (
           <button
             onClick={() => generateAnalysis(data)}
-            style={{ width: '100%', padding: 16, background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, color: '#fff', fontWeight: 900, cursor: 'pointer', marginBottom: 12 }}
+            style={{ width: '100%', padding: 16, background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, color: '#0A0A0A', fontWeight: 900, cursor: 'pointer', marginBottom: 12 }}
           >
             RELANCER L'ANALYSE NOX
           </button>
