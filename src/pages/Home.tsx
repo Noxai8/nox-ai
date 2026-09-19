@@ -178,6 +178,7 @@ export default function Home() {
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
   const [goalWeight, setGoalWeight] = useState<number | null>(null);
   const [latestSleepHours, setLatestSleepHours] = useState<number | null>(null);
+  const [latestSleepDate, setLatestSleepDate] = useState<string | null>(null);
   const [xp, setXp] = useState(0);
   const [tomorrowMealPlanned, setTomorrowMealPlanned] = useState(false);
   const [tomorrowMealCount, setTomorrowMealCount] = useState(0);
@@ -306,6 +307,7 @@ export default function Home() {
       const recovery = recoveryLogs?.[0];
       const sleepHours = Number(recovery?.sleep_hours ?? recovery?.sleep_duration_hours ?? recovery?.sleep_duration ?? 0);
       setLatestSleepHours(Number.isFinite(sleepHours) && sleepHours > 0 ? sleepHours : null);
+      setLatestSleepDate(recovery?.created_at || recovery?.recorded_at || null);
       setXp(prof?.xp || 0);
       setTomorrowMealPlanned((tomorrowMeals?.length || 0) > 0);
       setTomorrowMealCount(tomorrowMeals?.length || 0);
@@ -398,6 +400,8 @@ export default function Home() {
   const briefLabel = dayPeriod==='morning' ? 'NOX MORNING BRIEF' : dayPeriod==='evening' ? 'NOX EVENING RECAP' : 'NOX DAILY BRIEF';
   const briefTitle = dayPeriod==='morning' ? 'TA JOURNÉE COMMENCE ICI' : dayPeriod==='evening' ? 'LE RÉCAP DE TA JOURNÉE' : 'TA JOURNÉE EN 10 SECONDES';
   const weightToGoal = latestWeight!==null&&goalWeight!==null ? latestWeight-goalWeight : null;
+  const sleepAgeHours = latestSleepDate ? (Date.now()-new Date(latestSleepDate).getTime())/3600000 : null;
+  const freshSleepHours = sleepAgeHours!==null && sleepAgeHours>=0 && sleepAgeHours<=48 ? latestSleepHours : null;
   const nutritionProgress = effectiveTargetKcal ? Math.min(1, todayKcal / effectiveTargetKcal) : 0;
   const proteinProgress = targetProtein ? Math.min(1, todayProtein / targetProtein) : 0;
   const carbsProgress = targetCarbs ? Math.min(1, todayCarbs / targetCarbs) : 0;
@@ -747,8 +751,8 @@ export default function Home() {
             {waterMessage&&<div style={{fontSize:9.5,color:MUTED,marginTop:8}}>{waterMessage}</div>}
           </div>
 
-          {latestSleepHours!==null&&<button onClick={()=>navigate('/recovery')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}><div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>SOMMEIL & RÉCUPÉRATION</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{latestSleepHours.toFixed(1)} <span style={{fontSize:12,color:MUTED}}>h de sommeil</span></div></div><span style={{width:40,height:40,borderRadius:13,background:SURFACE_2,display:'grid',placeItems:'center'}}><MoonStar size={20}/></span></div>
+          {freshSleepHours!==null&&<button onClick={()=>navigate('/recovery')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}><div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>SOMMEIL & RÉCUPÉRATION</div><div style={{fontSize:19,fontWeight:950,marginTop:4}}>{freshSleepHours!.toFixed(1)} <span style={{fontSize:12,color:MUTED}}>h de sommeil</span></div></div><span style={{width:40,height:40,borderRadius:13,background:SURFACE_2,display:'grid',placeItems:'center'}}><MoonStar size={20}/></span></div>
             <div style={{fontSize:10.5,color:MUTED,marginTop:9}}>Dernière donnée disponible · ouvre Récupération pour le contexte détaillé.</div>
           </button>}
 
