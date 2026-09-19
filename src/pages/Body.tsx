@@ -409,6 +409,13 @@ export default function Body() {
   const previousWeight = rangeWeightLogs.length > 1 ? Number(rangeWeightLogs[rangeWeightLogs.length - 2].weight) : null;
   const recentWeightChange = previousWeight !== null && latestRangeWeight !== null ? latestRangeWeight - previousWeight : null;
   const avgActiveMinutesPerDay = rangeDays ? Math.round(activeMinutesRange / Math.max(1, rangeDays)) : null;
+  const weeklyWindow = Date.now() - 7 * 86400000;
+  const weeklyFoods = foodEntries.filter(e => new Date(e.created_at).getTime() >= weeklyWindow);
+  const weeklyActivities = activities.filter(a => new Date(a.performed_at || a.created_at).getTime() >= weeklyWindow);
+  const weeklyWorkouts = workouts.filter(w => new Date(w.completed_at || w.created_at).getTime() >= weeklyWindow && (w.status === 'completed' || w.completed_at));
+  const weeklyNutritionDays = new Set(weeklyFoods.map(e => new Date(e.created_at).toLocaleDateString('en-CA'))).size;
+  const weeklyMinutes = Math.round(weeklyActivities.reduce((s,a)=>s+Number(a.duration_minutes||0),0));
+  const weeklyReportReady = weeklyNutritionDays > 0 || weeklyActivities.length > 0 || weeklyWorkouts.length > 0 || sevenDayAverage !== null;
   const progressSummary = [
     weightChange === null ? null : `Poids : ${weightChange > 0 ? '+' : ''}${weightChange.toFixed(1)} kg sur la période.`,
     rangeFoods.length ? `Nutrition suivie sur ${trackedDays} jour(s), moyenne ${avgCalories} kcal et ${avgProtein} g de protéines par jour.` : null,
@@ -590,6 +597,24 @@ export default function Body() {
                   <div style={{ color:'#888', fontSize:12, lineHeight:1.5, marginTop:14 }}>Continue à enregistrer ton poids, tes repas, tes activités et tes séances pour construire ta synthèse.</div>
                 )}
                 <div style={{ color:'#777', fontSize:9.5, lineHeight:1.45, marginTop:13 }}>Synthèse descriptive basée uniquement sur tes données enregistrées dans NOX. Les tendances ne garantissent pas un résultat futur.</div>
+              </div>
+
+              <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>WEEKLY REVIEW</div>
+              <div style={{ background:'#fff', border:`1px solid ${BORDER}`, borderRadius:20, padding:17, marginBottom:18 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12 }}>
+                  <div>
+                    <div style={{ fontSize:17, fontWeight:950 }}>TES 7 DERNIERS JOURS</div>
+                    <div style={{ fontSize:11, color:'#777', marginTop:4 }}>Nutrition · activité · training · poids</div>
+                  </div>
+                  <div style={{ width:10, height:10, borderRadius:999, background:weeklyReportReady?ACCENT:'#DDD', marginTop:5 }} />
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:8, marginTop:14 }}>
+                  <div style={{background:'#F7F7F7',borderRadius:13,padding:11}}><div style={{fontSize:9,color:'#888'}}>NUTRITION</div><strong>{weeklyNutritionDays} j suivis</strong></div>
+                  <div style={{background:'#F7F7F7',borderRadius:13,padding:11}}><div style={{fontSize:9,color:'#888'}}>ACTIVITÉ</div><strong>{weeklyMinutes} min</strong></div>
+                  <div style={{background:'#F7F7F7',borderRadius:13,padding:11}}><div style={{fontSize:9,color:'#888'}}>TRAINING</div><strong>{weeklyWorkouts.length} séance(s)</strong></div>
+                  <div style={{background:'#F7F7F7',borderRadius:13,padding:11}}><div style={{fontSize:9,color:'#888'}}>POIDS MOY. 7J</div><strong>{sevenDayAverage !== null ? sevenDayAverage.toFixed(1)+' kg' : '—'}</strong></div>
+                </div>
+                <button onClick={()=>navigate('/weekly-review')} style={{width:'100%',border:0,borderRadius:13,background:'#0A0A0A',color:'#fff',padding:13,marginTop:12,fontSize:11,fontWeight:950,cursor:'pointer'}}>OUVRIR LE WEEKLY REVIEW</button>
               </div>
 
               <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>ÉVOLUTION DES MENSURATIONS</div>
