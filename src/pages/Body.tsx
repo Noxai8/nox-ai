@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
@@ -10,7 +10,7 @@ const SURFACE = '#FFFFFF';
 const BORDER = '#EAEAEA';
 
 type Tab = 'progress' | 'activity' | 'photos';
-type ActivityMode = 'manual' | 'scan' | 'confirm';
+type ActivityMode = 'manual' | 'confirm';
 
 type ActivityForm = {
   activity_type: string;
@@ -53,6 +53,7 @@ function parseJsonObject(raw: string): any | null {
 export default function Body() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState<Tab>('progress');
   const [logs, setLogs] = useState<any[]>([]);
@@ -72,7 +73,7 @@ export default function Body() {
   const [showActivity, setShowActivity] = useState(false);
   const [activityMode, setActivityMode] = useState<ActivityMode>('manual');
   const [activityForm, setActivityForm] = useState<ActivityForm>(EMPTY_ACTIVITY);
-  const [activitySource, setActivitySource] = useState<'manual' | 'scan'>('manual');
+  const [activitySource, setActivitySource] = useState<'manual' | 'machine_scan'>('manual');
   const [activityError, setActivityError] = useState('');
   const [activitySuccess, setActivitySuccess] = useState(false);
   const [activitySaving, setActivitySaving] = useState(false);
@@ -203,83 +204,27 @@ export default function Body() {
     setShowActivity(true);
   };
 
-  const openScanActivity = () => {
-    setActivityForm(EMPTY_ACTIVITY);
-    setActivitySource('scan');
-    setActivityMode('scan');
+  const openScanActivity = () => navigate('/food-scan', { state: { scanMode: 'cardio' } });
+
+  useEffect(() => {
+    const scan = (location.state as any)?.machineScan;
+    if (!scan) return;
+    const activity = scan.activity || scan;
+    setTab('activity');
+    setActivityForm({
+      activity_type: String(activity.activity_type || activity.type || activity.description || ''),
+      duration_minutes: activity.duration_minutes != null ? String(activity.duration_minutes) : '',
+      calories_burned: activity.calories_burned != null ? String(activity.calories_burned) : '',
+      distance_km: activity.distance_km != null ? String(activity.distance_km) : '',
+      notes: String(activity.notes || ''),
+    });
+    setActivitySource('machine_scan');
+    setActivityMode('confirm');
     setActivityError('');
     setActivitySuccess(false);
-    setScanPreview(null);
     setShowActivity(true);
-  };
-
-  const scanMachine = async (file: File) => {
-    if (!user || scanning) return;
-    setActivityError('');
-    setScanning(true);
-
-    try {
-      if (!file.type.startsWith('image/')) throw new Error('Sélectionne une photo de l’écran de la machine.');
-      if (file.size > 8 * 1024 * 1024) throw new Error('La photo est trop lourde. Maximum 8 Mo.');
-
-      const preview = URL.createObjectURL(file);
-      setScanPreview(previous => {
-        if (previous?.startsWith('blob:')) URL.revokeObjectURL(previous);
-        return preview;
-      });
-
-      const reader = new FileReader();
-      const imageBase64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(String(reader.result || ''));
-        reader.onerror = () => reject(new Error('Impossible de lire la photo.'));
-        reader.readAsDataURL(file);
-      });
-
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error('Session expirée. Reconnecte-toi puis réessaie.');
-
-      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-activity`;
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ image: imageBase64 }),
-      });
-
-      const raw = await response.text();
-      let payload: any = null;
-      try { payload = JSON.parse(raw); } catch { payload = null; }
-
-      if (!response.ok) {
-        throw new Error(payload?.error || `Analyse impossible (${response.status}).`);
-      }
-
-      const extracted = payload?.activity || parseJsonObject(payload?.text || payload?.content || raw);
-      if (!extracted || typeof extracted !== 'object') {
-        throw new Error("NOX n'a pas pu lire les données de la machine. Tu peux les saisir manuellement.");
-      }
-
-      setActivityForm({
-        activity_type: String(extracted.activity_type || extracted.type || ''),
-        duration_minutes: extracted.duration_minutes != null ? String(extracted.duration_minutes) : '',
-        calories_burned: extracted.calories_burned != null ? String(extracted.calories_burned) : '',
-        distance_km: extracted.distance_km != null ? String(extracted.distance_km) : '',
-        notes: String(extracted.notes || ''),
-      });
-      setActivitySource('scan');
-      setActivityMode('confirm');
-    } catch (error: any) {
-      console.error('ACTIVITY_SCAN_ERROR', error);
-      setActivityError(error?.message || "Impossible d'analyser la machine.");
-    } finally {
-      setScanning(false);
-      if (scanInputRef.current) scanInputRef.current.value = '';
-    }
-  };
+    navigate(location.pathname + location.search, { replace: true, state: null });
+  }, [location.state]);
 
   const validateActivity = () => {
     setActivityError('');
@@ -743,7 +688,7 @@ export default function Body() {
                     <div>
                       <div style={{ fontWeight: 950, fontSize: 15 }}>{activity.activity_type}</div>
                       <div style={{ color: '#666', fontSize: 10.5, marginTop: 4 }}>
-                        {new Date(activity.performed_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} · {activity.source === 'scan' ? 'scan machine' : 'saisie manuelle'}
+                        {new Date(activity.performed_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} · {activity.source === 'machine_scan' ? 'scan machine' : 'saisie manuelle'}
                       </div>
                     </div>
                     <button onClick={() => void deleteActivity(activity.id)} aria-label="Supprimer l'activité" style={{ border: 0, background: 'transparent', color: '#555', cursor: 'pointer', fontSize: 18 }}>×</button>
@@ -822,27 +767,11 @@ export default function Body() {
               <div>
                 <div style={{ fontSize: 10, color: ACCENT, fontWeight: 900, letterSpacing: '.1em' }}>NOX ACTIVITY</div>
                 <div style={{ fontSize: 19, fontWeight: 950, marginTop: 3 }}>
-                  {activityMode === 'scan' ? 'SCANNER UNE MACHINE' : activityMode === 'confirm' ? 'CONFIRMER LES DONNÉES' : 'NOUVELLE ACTIVITÉ'}
+                  {activityMode === 'confirm' ? 'CONFIRMER LES DONNÉES' : 'NOUVELLE ACTIVITÉ'}
                 </div>
               </div>
               <button onClick={() => setShowActivity(false)} style={{ width: 36, height: 36, borderRadius: 12, border: `1px solid ${BORDER}`, background: '#F3F3F3', color: '#666', fontSize: 21, cursor: 'pointer' }}>×</button>
             </div>
-
-            {activityMode === 'scan' && (
-              <>
-                <div style={{ borderRadius: 18, padding: '24px 18px', border: '1px dashed #333', background: SURFACE, textAlign: 'center' }}>
-                  <div style={{ fontSize: 16, fontWeight: 950 }}>PHOTO DE L'ÉCRAN</div>
-                  <div style={{ color: '#777', fontSize: 12, lineHeight: 1.55, margin: '8px auto 17px', maxWidth: 340 }}>
-                    Cadre l’écran pour que la durée, les calories et la distance soient lisibles. NOX te demandera toujours de confirmer avant d’enregistrer.
-                  </div>
-                  <input ref={scanInputRef} type="file" accept="image/*" capture="environment" onChange={e => e.target.files?.[0] && void scanMachine(e.target.files[0])} style={{ display: 'none' }} />
-                  <button disabled={scanning} onClick={() => scanInputRef.current?.click()} style={{ border: 0, borderRadius: 13, background: scanning ? '#2a2a2a' : ACCENT, color: scanning ? '#777' : '#050505', padding: '13px 18px', fontWeight: 950, cursor: scanning ? 'wait' : 'pointer' }}>
-                    {scanning ? 'ANALYSE EN COURS...' : 'PRENDRE / CHOISIR UNE PHOTO'}
-                  </button>
-                </div>
-                {scanPreview && <img src={scanPreview} alt="Écran de machine à confirmer" style={{ width: '100%', maxHeight: 230, objectFit: 'contain', borderRadius: 16, marginTop: 12, background: '#050505' }} />}
-              </>
-            )}
 
             {(activityMode === 'manual' || activityMode === 'confirm') && (
               <>
