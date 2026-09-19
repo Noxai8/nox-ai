@@ -160,6 +160,7 @@ export default function Home() {
   const [todayProtein, setTodayProtein] = useState(0);
   const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
   const [todayFoodCount, setTodayFoodCount] = useState(0);
+  const [targetKcal, setTargetKcal] = useState(2200);
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
   const [xp, setXp] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -183,6 +184,7 @@ export default function Home() {
         { data: fuel },
         { data: bodyLogs },
         { data: todayActivity },
+        { data: nutritionTarget },
       ] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase.from('workout_programs').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
@@ -206,6 +208,7 @@ export default function Home() {
           .order('created_at', { ascending: false })
           .limit(1),
         supabase.from('activity_logs').select('duration_minutes').eq('user_id', user.id).gte('performed_at', today + 'T00:00:00'),
+        supabase.from('nutrition_targets').select('calories').eq('user_id', user.id).maybeSingle(),
       ]);
 
       setProfile(prof);
@@ -217,6 +220,9 @@ export default function Home() {
       setTodayProtein(fuel?.reduce((sum: number, item: any) => sum + Number(item.protein || 0), 0) || 0);
       setTodayFoodCount(fuel?.length || 0);
       setTodayActivityMinutes(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.duration_minutes || 0), 0) || 0);
+      const centralizedTarget = Number(nutritionTarget?.calories || 0);
+      const profileTarget = Number(prof?.daily_calories || prof?.calorie_target || 0);
+      setTargetKcal(centralizedTarget > 0 ? centralizedTarget : profileTarget > 0 ? profileTarget : 2200);
       setLatestWeight(bodyLogs?.[0]?.weight || null);
       setXp(prof?.xp || 0);
 
@@ -253,7 +259,7 @@ export default function Home() {
       hasWeight: !!latestWeight,
       hasFuel: todayKcal > 0,
       todayKcal,
-      targetKcal: 2200,
+      targetKcal,
       streak: profile?.streak_days || 0,
       xp,
     });
@@ -280,7 +286,7 @@ export default function Home() {
   const noxScore = getNoxScore();
   const firstName = profile?.display_name?.split(' ')[0] || 'ATHLÈTE';
   const sessionGoal = program?.days_per_week || program?.program_json?.days_per_week || 3;
-  const remainingKcal = Math.max(0, 2200 - todayKcal);
+  const remainingKcal = Math.max(0, targetKcal - todayKcal);
 
   return (
     <div style={{ minHeight: '100vh', background: BG, color: TEXT, paddingBottom: 104 }}>
@@ -507,10 +513,10 @@ export default function Home() {
           </div>
 
           <div style={{...cardStyle,padding:18,marginBottom:14}}>
-            <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>NOX MORNING BRIEF</div>
+            <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>NOX DAILY BRIEF</div>
             <div style={{fontSize:19,fontWeight:950,marginTop:5}}>TA JOURNÉE EN 10 SECONDES</div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:13}}>
-              <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayKcal)}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>KCAL</div></div>
+              <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayKcal)} / {Math.round(targetKcal)}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>KCAL</div></div>
               <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayProtein)}g</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>PROTÉINES</div></div>
               <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayActivityMinutes)}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>MIN ACTIVES</div></div>
             </div>
@@ -650,7 +656,7 @@ export default function Home() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 9 }}>
             {[
               { label: 'Programme', icon: CalendarDays, path: '/program' },
-              { label: 'Coach IA', icon: Bot, path: '/coach' },
+              { label: 'Assistant NOX', icon: Bot, path: '/coach' },
               { label: 'Profil', icon: UserRound, path: '/settings' },
             ].map(({ label, icon: Icon, path }) => (
               <button
