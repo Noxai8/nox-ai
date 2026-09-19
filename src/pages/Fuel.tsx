@@ -197,6 +197,8 @@ export default function Fuel() {
   const [addMode, setAddMode] = useState<AddMode>('choose');
   const [selectedMeal, setSelectedMeal] = useState('Déjeuner');
   const [search, setSearch] = useState('');
+  const [brandResults, setBrandResults] = useState<any[]>([]);
+  const [brandLoading, setBrandLoading] = useState(false);
   const [category, setCategory] = useState<string>('Tous');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [custom, setCustom] = useState({ name: '', kcal: '', protein: '', carbs: '', fat: '' });
@@ -224,6 +226,31 @@ export default function Fuel() {
       if (Array.isArray(savedFavorites)) setFavorites(savedFavorites);
     } catch { setFavorites([]); }
   }, [user]);
+
+  const searchBrands = async () => {
+    const q = search.trim();
+    if (q.length < 2) { setBrandResults([]); return; }
+    setBrandLoading(true); setFuelError('');
+    try {
+      const resp = await fetch('https://world.openfoodfacts.org/cgi/search.pl?search_terms=' + encodeURIComponent(q) + '&search_simple=1&action=process&json=1&page_size=12');
+      if (!resp.ok) throw new Error('Recherche marques indisponible.');
+      const data = await resp.json();
+      const rows = (data?.products || []).map((p:any) => {
+        const n = p.nutriments || {};
+        return {
+          name: [p.product_name || p.generic_name || 'Produit', p.brands].filter(Boolean).join(' · '),
+          kcal: Number(n['energy-kcal_100g'] || 0),
+          protein: Number(n.proteins_100g || 0),
+          carbs: Number(n.carbohydrates_100g || 0),
+          fat: Number(n.fat_100g || 0),
+          category: 'Marques',
+          per100g: true,
+        };
+      }).filter((p:any) => p.kcal > 0 || p.protein > 0 || p.carbs > 0 || p.fat > 0);
+      setBrandResults(rows);
+    } catch (e:any) { setFuelError(e?.message || 'Recherche marques indisponible.'); }
+    finally { setBrandLoading(false); }
+  };
 
   const toggleFavorite = (name: string) => {
     if (!user) return;
@@ -585,6 +612,7 @@ export default function Fuel() {
     setScanError('');
     setSelectedFood(null);
     setSearch('');
+    setBrandResults([]);
     setQty('1');
   };
 
@@ -862,8 +890,8 @@ export default function Fuel() {
                   </div>
 
                   <button onClick={() => setAddMode('custom')} style={{ padding: 15, background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 15, cursor: 'pointer', textAlign: 'left', color: '#0A0A0A' }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 900 }}>Saisie manuelle</div>
-                    <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>Entrer directement calories et macros</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 900 }}>Quick Add</div>
+                    <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>Ajouter rapidement calories et macros</div>
                   </button>
                 </div>
               </div>
@@ -953,6 +981,8 @@ export default function Fuel() {
               <>
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un aliment…" autoFocus
                   style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', background: '#FFFFFF', border: '1px solid #EAEAEA', borderRadius: 13, color: '#0A0A0A', fontSize: 13, outline: 'none', marginBottom: 8 }} />
+                <button onClick={()=>void searchBrands()} disabled={brandLoading || search.trim().length<2} style={{width:'100%',padding:11,marginBottom:8,border:'1px solid '+BORDER,borderRadius:11,background:'#0A0A0A',color:'#fff',fontSize:10.5,fontWeight:900,cursor:'pointer'}}>{brandLoading?'RECHERCHE…':'RECHERCHER AUSSI LES MARQUES'}</button>
+                {brandResults.length>0&&<div style={{margin:'4px 0 12px'}}><div style={{fontSize:9.5,color:'#666',fontWeight:900,letterSpacing:'.08em',marginBottom:7}}>PRODUITS & MARQUES · VALEURS / 100 G</div><div style={{display:'grid',gap:7}}>{brandResults.map((f:any,i:number)=><button key={f.name+i} onClick={()=>setSelectedFood(f)} style={{background:'#FFFFFF',border:'1px solid #EAEAEA',borderRadius:13,padding:13,cursor:'pointer',textAlign:'left',display:'flex',justifyContent:'space-between',gap:10,color:'#0A0A0A'}}><div><div style={{fontSize:12.5,fontWeight:850}}>{f.name}</div><div style={{fontSize:10,color:'#666',marginTop:3}}>P {f.protein.toFixed(1)}g · G {f.carbs.toFixed(1)}g · L {f.fat.toFixed(1)}g</div></div><div style={{color:'#5A7200',fontSize:11.5,fontWeight:900,flexShrink:0}}>{Math.round(f.kcal)} kcal</div></button>)}</div></div>}
                 <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: 6 }}>
                   {categories.map(cat => (
                     <button key={cat} onClick={() => setCategory(cat)}
