@@ -180,7 +180,7 @@ export default function Home() {
   const [todayWorkoutMinutes, setTodayWorkoutMinutes] = useState(0);
   const [todayWorkoutCalories, setTodayWorkoutCalories] = useState(0);
   const [targetKcal, setTargetKcal] = useState<number | null>(null);
-  const [nutritionTargetSource, setNutritionTargetSource] = useState<'nutrition'|'profile'|'none'>('none');
+  const [nutritionTargetSource, setNutritionTargetSource] = useState<'nutrition'|'none'>('none');
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
   const [goalWeight, setGoalWeight] = useState<number | null>(null);
   const [latestSleepHours, setLatestSleepHours] = useState<number | null>(null);
@@ -329,12 +329,10 @@ export default function Home() {
       setTodayActiveCalories(uniqueActivity.reduce((sum: number, item: any) => sum + Number(item.calories_burned || 0), 0) || 0);
       setTodayImportedCalories(uniqueActivity.filter((item:any)=>String(item.source||'manual')!=='manual').reduce((sum:number,item:any)=>sum+Number(item.calories_burned||0),0));
       const centralizedTarget = Number(nutritionTarget?.calories || 0);
-      const profileTarget = Number(prof?.daily_calories || prof?.calorie_target || 0);
-      setNutritionTargetSource(centralizedTarget > 0 ? 'nutrition' : profileTarget > 0 ? 'profile' : 'none');
-      setTargetKcal(centralizedTarget > 0 ? centralizedTarget : profileTarget > 0 ? profileTarget : null);
+      setNutritionTargetSource(centralizedTarget > 0 ? 'nutrition' : 'none');
+      setTargetKcal(centralizedTarget > 0 ? centralizedTarget : null);
       const centralizedProtein = Number(nutritionTarget?.protein || 0);
-      const profileProtein = Number(prof?.protein_target || 0);
-      setTargetProtein(centralizedProtein > 0 ? centralizedProtein : profileProtein > 0 ? profileProtein : null);
+      setTargetProtein(centralizedProtein > 0 ? centralizedProtein : null);
       const centralizedCarbs = Number(nutritionTarget?.carbs || 0);
       const centralizedFat = Number(nutritionTarget?.fat || 0);
       setTargetCarbs(centralizedCarbs > 0 ? centralizedCarbs : null);
@@ -460,7 +458,7 @@ export default function Home() {
   const sleepAgeHours = latestSleepDate ? (Date.now()-new Date(latestSleepDate).getTime())/3600000 : null;
   const freshSleepHours = sleepAgeHours!==null && sleepAgeHours>=0 && sleepAgeHours<=48 ? latestSleepHours : null;
   const nutritionProgress = effectiveTargetKcal ? Math.min(1, todayKcal / effectiveTargetKcal) : 0;
-  const nutritionTargetLabel = nutritionTargetLoading ? 'Chargement cible' : nutritionTargetSource === 'nutrition' ? 'Cible Nutrition' : nutritionTargetSource === 'profile' ? 'Cible profil' : 'Cible à définir';
+  const nutritionTargetLabel = nutritionTargetLoading ? 'Chargement cible' : nutritionTargetSource === 'nutrition' ? 'Cible Nutrition' : 'Cible à définir';
   const hasNutritionTarget = nutritionTargetSource === 'nutrition';
   const hasPersonalTarget = effectiveTargetKcal !== null && targetProtein !== null;
   const proteinProgress = targetProtein ? Math.min(1, todayProtein / targetProtein) : 0;
