@@ -160,7 +160,7 @@ export default function Home() {
   const [todayProtein, setTodayProtein] = useState(0);
   const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
   const [todayFoodCount, setTodayFoodCount] = useState(0);
-  const [targetKcal, setTargetKcal] = useState(2200);
+  const [targetKcal, setTargetKcal] = useState<number | null>(null);
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
   const [xp, setXp] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -222,7 +222,7 @@ export default function Home() {
       setTodayActivityMinutes(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.duration_minutes || 0), 0) || 0);
       const centralizedTarget = Number(nutritionTarget?.calories || 0);
       const profileTarget = Number(prof?.daily_calories || prof?.calorie_target || 0);
-      setTargetKcal(centralizedTarget > 0 ? centralizedTarget : profileTarget > 0 ? profileTarget : 2200);
+      setTargetKcal(centralizedTarget > 0 ? centralizedTarget : profileTarget > 0 ? profileTarget : null);
       setLatestWeight(bodyLogs?.[0]?.weight || null);
       setXp(prof?.xp || 0);
 
@@ -259,7 +259,7 @@ export default function Home() {
       hasWeight: !!latestWeight,
       hasFuel: todayKcal > 0,
       todayKcal,
-      targetKcal,
+      targetKcal: targetKcal || 0,
       streak: profile?.streak_days || 0,
       xp,
     });
@@ -286,7 +286,7 @@ export default function Home() {
   const noxScore = getNoxScore();
   const firstName = profile?.display_name?.split(' ')[0] || 'ATHLÈTE';
   const sessionGoal = program?.days_per_week || program?.program_json?.days_per_week || 3;
-  const remainingKcal = Math.max(0, targetKcal - todayKcal);
+  const remainingKcal = targetKcal ? Math.max(0, targetKcal - todayKcal) : null;
 
   return (
     <div style={{ minHeight: '100vh', background: BG, color: TEXT, paddingBottom: 104 }}>
@@ -516,11 +516,11 @@ export default function Home() {
             <div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>NOX DAILY BRIEF</div>
             <div style={{fontSize:19,fontWeight:950,marginTop:5}}>TA JOURNÉE EN 10 SECONDES</div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:13}}>
-              <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayKcal)} / {Math.round(targetKcal)}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>KCAL</div></div>
+              <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayKcal)} / {targetKcal ? Math.round(targetKcal) : '—'}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>KCAL</div></div>
               <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayProtein)}g</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>PROTÉINES</div></div>
               <div style={{background:SURFACE_2,borderRadius:13,padding:10}}><strong>{Math.round(todayActivityMinutes)}</strong><div style={{fontSize:9,color:MUTED,marginTop:3}}>MIN ACTIVES</div></div>
             </div>
-            <div style={{fontSize:11.5,color:MUTED,lineHeight:1.5,marginTop:11}}>{todayKcal===0&&todayActivityMinutes===0?'Commence ta journée : ajoute ton premier repas ou une activité.':remainingKcal>0?`Il te reste environ ${Math.round(remainingKcal)} kcal sur ton repère actuel. Continue à enregistrer ta journée pour garder une vue complète.`:'Tes apports enregistrés ont atteint ton repère calorique actuel. Consulte Nutrition pour le détail.'}</div>
+            <div style={{fontSize:11.5,color:MUTED,lineHeight:1.5,marginTop:11}}>{todayKcal===0&&todayActivityMinutes===0?'Commence ta journée : ajoute ton premier repas ou une activité.':remainingKcal===null?'Ajoute ta cible dans Nutrition pour afficher ton repère calorique quotidien.':remainingKcal>0?`Il te reste environ ${Math.round(remainingKcal)} kcal sur ton repère actuel. Continue à enregistrer ta journée pour garder une vue complète.`:'Tes apports enregistrés ont atteint ton repère calorique actuel. Consulte Nutrition pour le détail.'}</div>
           </div>
 
           <div style={{...cardStyle,padding:18,marginBottom:14,background:TEXT,color:'#fff'}}>
@@ -559,21 +559,21 @@ export default function Home() {
             />
             <MetricCard
               icon={BarChart3}
-              eyebrow="Body"
+              eyebrow="Progrès"
               value={latestWeight ? `${latestWeight} kg` : '—'}
-              detail={latestWeight ? 'Dernier check-in' : 'Ajoute ton premier check-in'}
+              detail={latestWeight ? 'Dernier poids enregistré' : 'Ajoute ton premier poids'}
               onClick={() => navigate('/body')}
             />
             <MetricCard
               icon={Apple}
-              eyebrow="Fuel"
+              eyebrow="Nutrition"
               value={todayKcal ? `${todayKcal}` : '0'}
-              detail={todayKcal ? `${remainingKcal} kcal restantes` : 'Commence ton suivi nutrition'}
+              detail={todayKcal ? (remainingKcal===null ? 'Définis ta cible dans Nutrition' : `${Math.round(remainingKcal)} kcal restantes`) : 'Commence ton suivi nutrition'}
               onClick={() => navigate('/fuel')}
             />
             <MetricCard
               icon={Trophy}
-              eyebrow="Play"
+              eyebrow="Progression"
               value={`${prCount} PR`}
               detail={`${xp} XP · progression NOX`}
               onClick={() => navigate('/play')}
