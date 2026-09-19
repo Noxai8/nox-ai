@@ -542,8 +542,12 @@ export default function Body() {
                   </div>
 
                   <div style={{ borderRadius: 15, padding: '12px 10px 4px', background: '#F7F7F7', border: '1px solid #EAEAEA' }}>
-                    {weightLogs.length >= 2 ? <div style={{fontSize:10.5,color:'#777',marginBottom:10}}>Moyenne 7 jours · <strong style={{color:'#0A0A0A'}}>{sevenDayAverage !== null ? sevenDayAverage.toFixed(1)+' kg' : '—'}</strong></div>
-              <MiniChart /> : (
+                    {weightLogs.length >= 2 ? (
+                      <>
+                        <div style={{fontSize:10.5,color:'#777',marginBottom:10}}>Moyenne 7 jours · <strong style={{color:'#0A0A0A'}}>{sevenDayAverage !== null ? sevenDayAverage.toFixed(1)+' kg' : '—'}</strong></div>
+                        <MiniChart />
+                      </>
+                    ) : (
                       <div style={{ height: 80, display: 'grid', placeItems: 'center', color: '#555', fontSize: 11.5 }}>Encore un check-in pour afficher ta courbe</div>
                     )}
                   </div>
