@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
@@ -9,16 +9,14 @@ const BG = '#F7F7F7';
 const SURFACE = '#FFFFFF';
 const BORDER = '#EAEAEA';
 
-type Mode = 'menu' | 'fridge' | 'meals' | 'grocery' | 'tips';
+type Mode = 'menu' | 'grocery' | 'tips';
 
 export default function FuelAI() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const fileRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<Mode>('menu');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const [photo, setPhoto] = useState<string | null>(null);
   const [budget, setBudget] = useState('');
   const [people, setPeople] = useState('1');
   const [days, setDays] = useState('7');
@@ -76,107 +74,6 @@ export default function FuelAI() {
     const match = cleaned.match(/\{[\s\S]*\}/);
     if (!match) throw new Error("NOX n'a pas renvoyé un résultat exploitable. Réessaie.");
     return JSON.parse(match[0]);
-  };
-
-  const analyzeFridge = async (base64: string) => {
-    setLoading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error('Session expirée. Reconnecte-toi pour continuer.');
-      const _fr = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/analyze-meal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-        body: JSON.stringify({ base64, mime: 'image/jpeg' }),
-      });
-      const fridgeData = await _fr.json().catch(() => null);
-      if (!_fr.ok) {
-        throw new Error(
-          fridgeData?.error ||
-          fridgeData?.message ||
-          `Analyse du frigo indisponible (${_fr.status}).`
-        );
-      }
-      if (fridgeData?.error) {
-        throw new Error(typeof fridgeData.error === 'string' ? fridgeData.error : "Impossible d'analyser le frigo.");
-      }
-      const text = fridgeData ? JSON.stringify(fridgeData) : '';
-      // La réponse est déjà parsée depuis analyze-meal
-      if (fridgeData && !fridgeData.error) {
-        // Reformater pour le frigo si besoin
-        const fridgeResult = fridgeData.aliments ? {
-          ingredients_detectes: fridgeData.aliments.map((a: any) => a.nom),
-          repas: [{ nom: fridgeData.description, temps: '20 min', difficulte: 'Facile', calories_approx: fridgeData.total?.kcal || 0, protein_approx: fridgeData.total?.protein || 0, ingredients_utilises: fridgeData.aliments.map((a: any) => a.nom), ingredients_manquants: [], recette_rapide: 'Prépare les ingrédients détectés selon tes préférences', pourquoi_sain: fridgeData.note || 'Suggestion à vérifier et ajuster selon ta journée' }]
-        } : (text ? JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || '{}') : {});
-        setResult({ type: 'fridge', data: fridgeResult });
-      } else {
-        throw new Error("NOX n'a pas reconnu suffisamment d'éléments sur cette photo.");
-      }
-    } catch (e: any) {
-      console.error(e);
-      setError(e?.message || "Impossible d'analyser le frigo pour le moment.");
-    }
-    setLoading(false);
-  };
-
-  const generateMeals = async () => {
-    if (!user) return;
-    setLoading(true);
-    setResult(null);
-    setError('');
-
-    try {
-      const ctx = await loadNutritionContext();
-
-      const text = await callAI(`Tu es la couche d'analyse nutritionnelle de NOX. Génère un plan de repas sur 3 jours cohérent avec la cible nutritionnelle centrale de l'utilisateur.
-
-PROFIL :
-- Objectif : ${ctx.profileGoal}
-- Cible calorique NOX : ${ctx.calories ? `${Math.round(ctx.calories)} kcal/jour` : 'non disponible'}
-- Cible protéines NOX : ${ctx.protein ? `${Math.round(ctx.protein)} g/jour` : 'non disponible'}
-- Budget : ${budget ? budget + '€/semaine' : 'économique'}
-- Personnes : ${people}
-- Restrictions : non renseignées
-
-RÈGLES :
-- Si une cible NOX est disponible, utilise-la : n'invente pas une nouvelle cible calorique ou protéique.
-- Si elle n'est pas disponible, ne prétends pas qu'une valeur arbitraire est la cible personnelle de l'utilisateur.
-- Répartis les repas de manière réaliste sur la journée.
-- Ne recommande pas de restriction extrême.
-- Les coûts sont des estimations.
-- Réponds uniquement en JSON valide, sans markdown.
-
-FORMAT :
-{
-  "objectif_calorique": ${ctx.calories ? Math.round(ctx.calories) : 'null'},
-  "objectif_proteines": ${ctx.protein ? Math.round(ctx.protein) : 'null'},
-  "jours": [
-    {
-      "jour": "Lundi",
-      "repas": [
-        {
-          "moment": "Petit-déjeuner",
-          "nom": "Nom du plat",
-          "calories": 400,
-          "proteines": 30,
-          "ingredients": ["ingrédient 1"],
-          "preparation": "Rapide description",
-          "cout_approx": 2.5
-        }
-      ],
-      "total_calories": ${ctx.calories ? Math.round(ctx.calories) : 'null'},
-      "total_proteines": ${ctx.protein ? Math.round(ctx.protein) : 'null'}
-    }
-  ],
-  "conseil_chef": "Conseil nutrition personnalisé"
-}`);
-
-      setResult({ type: 'meals', data: parseAIJson(text) });
-    } catch (e: any) {
-      console.error('FUEL_AI_MEALS_ERROR', e);
-      setError(e?.message || 'Impossible de générer le plan repas.');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const generateGrocery = async () => {
@@ -348,30 +245,6 @@ FORMAT :
     }
   };
 
-  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const max = 800;
-      let { width, height } = img;
-      if (width > max || height > max) {
-        if (width > height) { height = Math.round(height * max / width); width = max; }
-        else { width = Math.round(width * max / height); height = max; }
-      }
-      canvas.width = width; canvas.height = height;
-      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-      setPhoto(dataUrl);
-      analyzeFridge(dataUrl.split(',')[1]);
-      URL.revokeObjectURL(url);
-    };
-    img.src = url;
-    e.target.value = '';
-  };
-
   const MenuCard = ({ id, icon, title, desc, onClick }: any) => (
     <button onClick={onClick}
       style={{ width: '100%', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: '18px 20px', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 16, marginBottom: 10, touchAction: 'manipulation' }}>
@@ -386,16 +259,14 @@ FORMAT :
 
   return (
     <div style={{ minHeight: '100vh', background: BG, paddingBottom: 80 }}>
-      <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhoto} />
-
       <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid ' + BORDER }}>
         {mode !== 'menu' && (
-          <button onClick={() => { setMode('menu'); setResult(null); setPhoto(null); setError(''); }}
+          <button onClick={() => { setMode('menu'); setResult(null); setError(''); }}
             style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 14, marginBottom: 12, display: 'block' }}>← Retour</button>
         )}
         <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Intelligence NOX</div>
         <div style={{ fontSize: 22, fontWeight: 900, color: '#0A0A0A' }}>
-          {mode === 'menu' ? 'NUTRITION NOX' : mode === 'fridge' ? '🧊 ANALYSE FRIGO' : mode === 'meals' ? '🍽️ PLAN REPAS' : mode === 'grocery' ? '🛒 LISTE DE COURSES' : '💡 ASTUCES NUTRITION'}
+          {mode === 'menu' ? 'NUTRITION NOX' : mode === 'grocery' ? '🛒 LISTE DE COURSES' : '💡 ASTUCES NUTRITION'}
         </div>
       </div>
 
@@ -411,7 +282,7 @@ FORMAT :
         {/* MENU */}
         {mode === 'menu' && (
           <>
-            <MenuCard icon="🧊" title="Analyse mon frigo" desc="Photo de ton frigo → idées de repas à partir des ingrédients détectés" onClick={() => { setMode('fridge'); }} />
+            <MenuCard icon="🧊" title="Scanner mon frigo" desc="Passe par NOX Scan pour identifier les ingrédients et obtenir des idées de repas" onClick={() => navigate('/food-scan', { state: { scanMode: 'fridge' } })} />
             <MenuCard icon="🍽️" title="Plan de repas" desc="Construis ta semaine alimentaire selon ton objectif" onClick={() => navigate('/meal-planner')} />
             <MenuCard icon="🛒" title="Liste de courses" desc="Budget + objectifs → liste optimisée avec prix approximatifs" onClick={() => setMode('grocery')} />
             <MenuCard icon="💡" title="Astuces nutrition" desc="Repères personnalisés à partir de ta cible et de ton suivi récent" onClick={() => { setMode('tips'); generateTips(); }} />
@@ -420,132 +291,6 @@ FORMAT :
           <MenuCard icon="👨‍🍳" title="Mes recettes" desc="Créer et sauvegarder tes propres recettes réutilisables" onClick={() => navigate('/recipes')} />
           <MenuCard icon="📅" title="Planifier mes repas" desc="Organise ta semaine alimentaire à l'avance" onClick={() => navigate('/meal-planner')} />
           </>
-        )}
-
-        {/* FRIGO */}
-        {mode === 'fridge' && !result && (
-          <div style={{ textAlign: 'center', paddingTop: 40 }}>
-            {photo ? (
-              <>
-                <img src={photo} style={{ width: '100%', borderRadius: 16, marginBottom: 20, maxHeight: 300, objectFit: 'cover' }} alt="" />
-                {loading && (
-                  <div style={{ padding: '24px 0' }}>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: '#0A0A0A', marginBottom: 8 }}>NOX ANALYSE TON FRIGO...</div>
-                    <div style={{ fontSize: 13, color: '#555' }}>Détection des aliments et suggestions de repas</div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div style={{ fontSize: 64, marginBottom: 16 }}>🧊</div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: '#0A0A0A', marginBottom: 8 }}>PHOTO DE TON FRIGO</div>
-                <div style={{ fontSize: 14, color: '#555', marginBottom: 32, lineHeight: 1.5, maxWidth: 300, margin: '0 auto 32px' }}>
-                  Ouvre ton frigo, prends une photo et NOX identifie les ingrédients visibles pour proposer des idées de repas à vérifier.
-                </div>
-                <button onClick={() => fileRef.current?.click()}
-                  style={{ width: '100%', padding: 18, background: ACCENT, border: 'none', borderRadius: 14, color: '#000', fontWeight: 900, fontSize: 15, cursor: 'pointer', touchAction: 'manipulation' }}>
-                  📸 PHOTOGRAPHIER MON FRIGO
-                </button>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* RÉSULTAT FRIGO */}
-        {mode === 'fridge' && result?.type === 'fridge' && (
-          <div>
-            {photo && <img src={photo} style={{ width: '100%', borderRadius: 14, marginBottom: 16, maxHeight: 200, objectFit: 'cover' }} alt="" />}
-            <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: '12px 16px', marginBottom: 16 }}>
-              <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>DÉTECTÉ DANS TON FRIGO</div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {result.data.ingredients_detectes?.map((ing: string) => (
-                  <span key={ing} style={{ background: '#F3F3F3', borderRadius: 20, padding: '4px 12px', fontSize: 12, color: '#333' }}>{ing}</span>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>3 REPAS QUE TU PEUX FAIRE</div>
-            {result.data.repas?.map((repas: any, i: number) => (
-              <div key={i} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 18, marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: '#0A0A0A' }}>{repas.nom}</div>
-                    <div style={{ fontSize: 12, color: '#555', marginTop: 3 }}>{repas.temps} · {repas.difficulte}</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: ACCENT }}>{repas.calories_approx} kcal</div>
-                    <div style={{ fontSize: 11, color: '#555' }}>~{repas.protein_approx}g protéines</div>
-                  </div>
-                </div>
-                <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6, marginBottom: 10 }}>{repas.recette_rapide}</div>
-                <div style={{ fontSize: 12, color: ACCENT + 'cc' }}>✓ {repas.pourquoi_sain}</div>
-                {repas.ingredients_manquants?.length > 0 && (
-                  <div style={{ marginTop: 8, fontSize: 12, color: '#ff6600' }}>
-                    Manque : {repas.ingredients_manquants.join(', ')}
-                  </div>
-                )}
-              </div>
-            ))}
-
-            <button onClick={() => { setPhoto(null); setResult(null); fileRef.current?.click(); }}
-              style={{ width: '100%', padding: 14, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#0A0A0A', fontWeight: 700, cursor: 'pointer', marginTop: 8 }}>
-              📸 Nouveau scan
-            </button>
-          </div>
-        )}
-
-        {/* PLAN REPAS */}
-        {mode === 'meals' && !result && (
-          <div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 12, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: 8 }}>Budget hebdo (€) — optionnel</label>
-              <input value={budget} onChange={e => setBudget(e.target.value)} type="number" placeholder="ex: 80"
-                style={{ width: '100%', padding: '14px 16px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: '#0A0A0A', fontSize: 16, boxSizing: 'border-box', outline: 'none' }} />
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 12, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: 8 }}>Objectif spécifique — optionnel</label>
-              <input value={goal} onChange={e => setGoal(e.target.value)} placeholder="ex: perdre du gras, prendre du muscle..."
-                style={{ width: '100%', padding: '14px 16px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: '#0A0A0A', fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
-            </div>
-            <button onClick={generateMeals} disabled={loading}
-              style={{ width: '100%', padding: 18, background: ACCENT, border: 'none', borderRadius: 14, color: '#000', fontWeight: 900, fontSize: 15, cursor: 'pointer', touchAction: 'manipulation' }}>
-              {loading ? 'GÉNÉRATION...' : '🍽️ GÉNÉRER MON PLAN REPAS'}
-            </button>
-          </div>
-        )}
-
-        {/* RÉSULTAT PLAN REPAS */}
-        {mode === 'meals' && result?.type === 'meals' && (
-          <div>
-            <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 14, padding: '12px 16px', marginBottom: 16 }}>
-              <div style={{ fontSize: 12, color: '#4F7100', fontWeight: 800, marginBottom: 4 }}>OBJECTIF QUOTIDIEN</div>
-              <div style={{ fontSize: 14, color: '#444' }}>{result.data.objectif_calorique} kcal · {result.data.objectif_proteines}g protéines</div>
-              {result.data.conseil_chef && <div style={{ fontSize: 12, color: '#888', marginTop: 6, fontStyle: 'italic' }}>"{result.data.conseil_chef}"</div>}
-            </div>
-            {result.data.jours?.map((jour: any) => (
-              <div key={jour.jour} style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 900, color: '#0A0A0A', marginBottom: 10, display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{jour.jour}</span>
-                  <span style={{ color: '#555', fontWeight: 400, fontSize: 12 }}>{jour.total_calories} kcal · {jour.total_proteines}g prot.</span>
-                </div>
-                {jour.repas?.map((repas: any, i: number) => (
-                  <div key={i} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '12px 16px', marginBottom: 8 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em' }}>{repas.moment}</div>
-                      <div style={{ fontSize: 12, color: '#555' }}>~{repas.cout_approx}€</div>
-                    </div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#0A0A0A', marginBottom: 4 }}>{repas.nom}</div>
-                    <div style={{ fontSize: 12, color: '#888' }}>{repas.calories} kcal · {repas.proteines}g prot.</div>
-                    <div style={{ fontSize: 11, color: '#555', marginTop: 4 }}>{repas.preparation}</div>
-                  </div>
-                ))}
-              </div>
-            ))}
-            <button onClick={() => setResult(null)}
-              style={{ width: '100%', padding: 14, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#0A0A0A', fontWeight: 700, cursor: 'pointer' }}>
-              Regénérer
-            </button>
-          </div>
         )}
 
         {/* LISTE DE COURSES */}
