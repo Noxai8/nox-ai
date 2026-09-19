@@ -50,6 +50,7 @@ export function BottomNav({ active }: { active: string }) {
         { icon: '🏆', label: 'Classement', path: '/leaderboard' },
         { icon: '👥', label: 'Partenaire', path: '/partner' },
         { icon: '📋', label: 'Bilan', path: '/weekly-review' },
+        { icon: '📆', label: 'Calendrier', path: '/calendar' },
       ],
     },
     {

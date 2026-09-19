@@ -100,6 +100,8 @@ const [showNotes, setShowNotes] = useState(false);
 const [warmupSets, setWarmupSets] = useState<Record<number, boolean>>({});
 const [showSubstitute, setShowSubstitute] = useState(false);
 const [comebackMode, setComebackMode] = useState(false);
+const [isOffline, setIsOffline] = useState(!navigator.onLine);
+const [pendingSync, setPendingSync] = useState(0);
 const [overloadSuggestion, setOverloadSuggestion] = useState<any>(null);
 const [stagnation, setStagnation] = useState<any>(null);
 const [trainingError, setTrainingError] = useState('');
@@ -348,7 +350,27 @@ setResting(false);
 setRestTime(0);
 };
 const validateSet = async () => {
-if (savingSet || !user) return;
+    if (savingSet || !user) return;
+
+    // Si hors réseau, stocker localement
+    if (isOffline) {
+      const ex = exercises[currentIdx];
+      if (ex) {
+        queueOffline('workout_set', {
+          workout_id: workoutId,
+          exercise_name: ex.name,
+          set_number: currentSet,
+          weight: parseFloat(String(weight).replace(',','.')) || 0,
+          reps: parseInt(String(reps)) || 0,
+          created_at: new Date().toISOString(),
+          workoutId,
+        });
+        setCurrentSet(s => s + 1);
+        setWeight('');
+        setReps('');
+      }
+      return;
+    }
 
 const ex = exercises[currentIdx];
 if (!ex || !workoutId) {
@@ -681,6 +703,24 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
       <div style={{ margin: '0 20px 12px', background: '#FAFAF8', border: '1px solid #E1E1DC', borderRadius: 13, padding: '11px 13px' }}>
         <div style={{ fontSize: 9.5, color: '#111', fontWeight: 1000, textTransform: 'uppercase', letterSpacing: '.07em' }}>ANALYSE NOX</div>
         <div style={{ fontSize: 11, color: '#66665F', marginTop: 4, lineHeight: 1.45 }}>{stagnation.suggestion}</div>
+      </div>
+    )}
+
+    {/* Offline Banner */}
+    {isOffline && (
+      <div style={{ margin: '0 20px 10px', background: '#ff440011', border: '1px solid #ff440033', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 16 }}>📡</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, color: '#ff6666', fontWeight: 800 }}>MODE HORS LIGNE</div>
+          <div style={{ fontSize: 11, color: '#555' }}>Tes séries sont sauvegardées localement et sync au retour réseau</div>
+        </div>
+        {pendingSync > 0 && <div style={{ fontSize: 11, color: '#ff6666', fontWeight: 700 }}>{pendingSync} en attente</div>}
+      </div>
+    )}
+    {!isOffline && pendingSync > 0 && (
+      <div style={{ margin: '0 20px 10px', background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 16 }}>🔄</span>
+        <div style={{ fontSize: 11, color: ACCENT, fontWeight: 700 }}>Synchronisation en cours... {pendingSync} séries en attente</div>
       </div>
     )}
 

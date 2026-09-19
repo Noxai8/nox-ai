@@ -35,6 +35,9 @@ export default function WeeklyReview() {
   const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [proposalMode, setProposalMode] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [applied, setApplied] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -331,30 +334,13 @@ FORMAT :
       parsed.note = Math.max(0, Math.min(10, Number(parsed.note) || 0));
       setAnalysis(parsed);
 
-      // Une adaptation n'est appliquée que si l'IA renvoie explicitement un programme complet.
+      // L'adaptation est PROPOSÉE, pas appliquée automatiquement
       if (
         parsed.programme_modifie === true &&
         Array.isArray(parsed.sessions_mises_a_jour) &&
-        parsed.sessions_mises_a_jour.length > 0 &&
-        weekData.program?.id
+        parsed.sessions_mises_a_jour.length > 0
       ) {
-        const updatedProgramJson = {
-          ...weekData.program.program_json,
-          sessions: parsed.sessions_mises_a_jour,
-          last_adapted: new Date().toISOString(),
-          last_adaptation_reason: parsed.adaptations_programme || parsed.raison_decision || 'Weekly Review NOX',
-        };
-
-        const { error: updateError } = await supabase
-          .from('workout_programs')
-          .update({
-            program_json: updatedProgramJson,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', weekData.program.id)
-          .eq('user_id', user!.id);
-
-        if (updateError) throw updateError;
+        setProposalMode(true); // Afficher l'écran de proposition
       }
     } catch (e: any) {
       console.error('WeeklyReview analysis error:', e);
@@ -362,6 +348,23 @@ FORMAT :
     } finally {
       setGenerating(false);
     }
+  };
+
+  const applyAdaptation = async () => {
+    if (!analysis?.sessions_mises_a_jour || !data?.program?.id) return;
+    setApplying(true);
+    const updatedProgramJson = {
+      ...data.program.program_json,
+      sessions: analysis.sessions_mises_a_jour,
+      last_adapted: new Date().toISOString(),
+      last_adaptation_reason: analysis.adaptations_programme || analysis.raison_decision || 'Weekly Review NOX',
+    };
+    const { error } = await supabase.from('workout_programs').update({
+      program_json: updatedProgramJson,
+      updated_at: new Date().toISOString(),
+    }).eq('id', data.program.id).eq('user_id', user!.id);
+    if (!error) { setApplied(true); setProposalMode(false); }
+    setApplying(false);
   };
 
   const noteColor = analysis?.note >= 7 ? ACCENT : analysis?.note >= 5 ? '#ffaa00' : '#ff5555';
@@ -575,6 +578,37 @@ FORMAT :
           >
             RELANCER L'ANALYSE NOX
           </button>
+        )}
+
+        {/* Proposition d'adaptation avec bouton Appliquer explicite */}
+        {proposalMode && analysis?.sessions_mises_a_jour && !applied && (
+          <div style={{ background: '#ffaa0011', border: '1px solid #ffaa0033', borderRadius: 16, padding: 20, marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: '#ffaa00', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>
+              ⚡ NOX PROPOSE UNE ADAPTATION
+            </div>
+            <div style={{ fontSize: 13, color: '#ccc', lineHeight: 1.6, marginBottom: 12 }}>
+              {analysis.adaptations_programme || analysis.raison_decision}
+            </div>
+            <div style={{ fontSize: 12, color: '#888', marginBottom: 16 }}>
+              {analysis.sessions_mises_a_jour.length} séance{analysis.sessions_mises_a_jour.length > 1 ? 's' : ''} modifiée{analysis.sessions_mises_a_jour.length > 1 ? 's' : ''} — cette action remplacera ton programme actuel.
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setProposalMode(false)}
+                style={{ flex: 1, padding: 13, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 12, color: '#555', fontWeight: 700, cursor: 'pointer' }}>
+                Ignorer
+              </button>
+              <button onClick={applyAdaptation} disabled={applying}
+                style={{ flex: 2, padding: 13, background: '#ffaa00', border: 'none', borderRadius: 12, color: '#000', fontWeight: 900, cursor: 'pointer' }}>
+                {applying ? 'Application...' : "✓ APPLIQUER L'ADAPTATION"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {applied && (
+          <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 14, padding: 14, marginBottom: 14, textAlign: 'center' }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: ACCENT }}>✓ Programme mis à jour !</div>
+          </div>
         )}
 
         <button

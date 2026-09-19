@@ -35,6 +35,7 @@ const FoodScan = lazy(() => import('./pages/FoodScan'));
 const TrainingCalendar = lazy(() => import('./pages/TrainingCalendar'));
 const Progress = lazy(() => import('./pages/Progress'));
 const SocialProfile = lazy(() => import('./pages/SocialProfile'));
+const NoxCalendar = lazy(() => import('./pages/NoxCalendar'));
 const Reschedule = lazy(() => import('./pages/Reschedule'));
 
 const Loader = () => <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#c8ff00', fontWeight: 900, letterSpacing: '.15em', fontSize: 18 }}>NOX</div></div>;
@@ -85,6 +86,7 @@ function AppRoutes() {
         <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><SocialProfile /></ProtectedRoute>} />
         <Route path="/profile/:userId" element={<ProtectedRoute><SocialProfile /></ProtectedRoute>} />
+        <Route path="/calendar" element={<ProtectedRoute><NoxCalendar /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Suspense>

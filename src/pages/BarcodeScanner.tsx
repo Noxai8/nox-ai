@@ -54,6 +54,13 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: { onAdd
   const add = async () => {
     if (!product) return;
     const ratio = (parseFloat(qty) || 100) / 100;
+  const COMMON_PORTIONS = product ? [
+    { label: '1 portion', g: product.serving ? parseInt(product.serving) || 100 : 100 },
+    { label: '100g', g: 100 },
+    { label: '150g', g: 150 },
+    { label: '200g', g: 200 },
+    { label: '250g', g: 250 },
+  ] : [];
     const entry = {
       user_id: user!.id,
       meal_type: selectedMeal,
@@ -72,6 +79,13 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: { onAdd
   };
 
   const ratio = (parseFloat(qty) || 100) / 100;
+  const COMMON_PORTIONS = product ? [
+    { label: '1 portion', g: product.serving ? parseInt(product.serving) || 100 : 100 },
+    { label: '100g', g: 100 },
+    { label: '150g', g: 150 },
+    { label: '200g', g: 200 },
+    { label: '250g', g: 250 },
+  ] : [];
 
   return (
     <div style={{ padding: '0 0 20px' }}>
@@ -102,9 +116,12 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: { onAdd
           <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: 16, marginBottom: 14 }}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
               {product.image && <img src={product.image} style={{ width: 56, height: 56, borderRadius: 10, objectFit: 'cover' }} alt="" />}
-              <div>
+              <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{product.name}</div>
                 {product.brand && <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>{product.brand}</div>}
+                <div style={{ fontSize: 10, color: product.per100g.kcal > 0 ? ACCENT : '#ff6666', marginTop: 4, fontWeight: 700 }}>
+                  {product.per100g.kcal > 0 ? '✓ Données nutritionnelles disponibles' : "⚠️ Données incomplètes — vérifie l'emballage"}
+                </div>
               </div>
             </div>
 
