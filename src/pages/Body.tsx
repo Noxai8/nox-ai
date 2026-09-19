@@ -782,12 +782,26 @@ export default function Body() {
           )}
 
           {tab === 'photos' && (
-            <div style={{ minHeight: 330, borderRadius: 22, border: '1px solid rgba(183,255,0,.16)', background: 'radial-gradient(circle at 50% 15%, rgba(183,255,0,.20), transparent 34%), #FFFFFF', padding: '44px 22px', textAlign: 'center' }}>
-              <div style={{ display: 'inline-block', color: ACCENT, fontSize: 10, fontWeight: 950, letterSpacing: '.12em', marginBottom: 13 }}>NOX FUTURE</div>
-              <div style={{ fontSize: 22, fontWeight: 950, letterSpacing: '-.03em' }}>TA TRANSFORMATION EN IMAGES</div>
-              <div style={{ fontSize: 12.5, color: '#858585', lineHeight: 1.6, maxWidth: 330, margin: '10px auto 23px' }}>Ajoute tes photos de progression et accède à ta timeline NOX FUTURE. Tes photos restent privées.</div>
-              <button onClick={() => window.location.href = '/future'} style={{ border: 0, borderRadius: 13, background: ACCENT, color: '#050505', padding: '13px 19px', fontSize: 11.5, fontWeight: 950, cursor: 'pointer' }}>OUVRIR NOX FUTURE</button>
-              <div style={{ fontSize: 9.5, color: '#555', lineHeight: 1.5, marginTop: 16 }}>Les projections IA sont indicatives et ne garantissent pas un résultat physique.</div>
+            <div style={{ display:'grid', gap:12 }}>
+              <div style={{ borderRadius:22, background:'#0A0A0A', color:'#fff', padding:'22px 20px' }}>
+                <div style={{ color:ACCENT, fontSize:10, fontWeight:950, letterSpacing:'.12em' }}>PHOTOS DE PROGRESSION</div>
+                <div style={{ fontSize:23, fontWeight:950, letterSpacing:'-.03em', marginTop:7 }}>TA TIMELINE VISUELLE</div>
+                <div style={{ fontSize:12, color:'#A0A0A0', lineHeight:1.55, marginTop:8 }}>Garde des repères visuels cohérents pour comparer ton évolution dans le temps. Tes photos restent privées par défaut.</div>
+                <button onClick={()=>navigate('/future')} style={{ width:'100%', border:0, borderRadius:13, background:ACCENT, color:'#050505', padding:14, fontSize:11.5, fontWeight:950, cursor:'pointer', marginTop:16 }}>AJOUTER / VOIR MES PHOTOS</button>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                <button onClick={()=>navigate('/future')} style={{ border:'1px solid '+BORDER, borderRadius:18, background:'#fff', padding:16, textAlign:'left', cursor:'pointer' }}>
+                  <div style={{ fontSize:10, color:'#777', fontWeight:900, letterSpacing:'.08em' }}>AVANT / APRÈS</div>
+                  <div style={{ fontSize:15, fontWeight:950, marginTop:7 }}>Comparer 2 dates</div>
+                  <div style={{ fontSize:10.5, color:'#777', lineHeight:1.45, marginTop:5 }}>Face, profil ou dos avec des repères identiques.</div>
+                </button>
+                <button onClick={()=>navigate('/future')} style={{ border:'1px solid '+BORDER, borderRadius:18, background:'#fff', padding:16, textAlign:'left', cursor:'pointer' }}>
+                  <div style={{ fontSize:10, color:'#777', fontWeight:900, letterSpacing:'.08em' }}>PHOTO GHOST</div>
+                  <div style={{ fontSize:15, fontWeight:950, marginTop:7 }}>Reprendre le même cadrage</div>
+                  <div style={{ fontSize:10.5, color:'#777', lineHeight:1.45, marginTop:5 }}>Utilise ta photo précédente comme repère de pose et d’alignement.</div>
+                </button>
+              </div>
+              <div style={{ border:'1px solid '+BORDER, borderRadius:16, background:'#fff', padding:'13px 14px', fontSize:10.5, color:'#777', lineHeight:1.5 }}>Les photos de progression sont distinctes des projections illustratives. NOX ne présente jamais une projection comme un résultat garanti.</div>
             </div>
           )}
         </section>
