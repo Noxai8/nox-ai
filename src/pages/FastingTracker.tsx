@@ -21,6 +21,7 @@ export default function FastingTracker() {
   const [isFasting, setIsFasting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [eatStart, setEatStart] = useState<string>('12:00');
+  const [customFastHours, setCustomFastHours] = useState(16);
   const [waterGoal] = useState(2500);
   const [waterIntake, setWaterIntake] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -61,7 +62,7 @@ export default function FastingTracker() {
 
   const stopFast = () => {
     const duration = elapsed / 3600;
-    if (duration >= protocol.fast * 0.8) setStreak(s => s + 1);
+    if (duration >= (protocol.id === 'custom' ? customFastHours : protocol.fast) * 0.8) setStreak(s => s + 1);
     setFastStart(null);
     setIsFasting(false);
     setElapsed(0);
@@ -82,7 +83,8 @@ export default function FastingTracker() {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
-  const fastGoalSeconds = protocol.fast * 3600;
+  const effectiveFastHours = protocol.id === 'custom' ? customFastHours : protocol.fast;
+  const fastGoalSeconds = effectiveFastHours * 3600;
   const progress = Math.min(1, elapsed / fastGoalSeconds);
   const remainingH = Math.max(0, Math.floor((fastGoalSeconds - elapsed) / 3600));
   const remainingM = Math.max(0, Math.floor(((fastGoalSeconds - elapsed) % 3600) / 60));
@@ -111,8 +113,18 @@ export default function FastingTracker() {
               ))}
             </div>
             <div style={{ fontSize: 12, color: '#888', marginTop: 8 }}>
-              {protocol.desc} · Jeûne {protocol.fast}h · Fenêtre {protocol.eat}h
+              {protocol.desc} · Jeûne {effectiveFastHours}h · Fenêtre {24 - effectiveFastHours}h
             </div>
+            {protocol.id === 'custom' && (
+              <div style={{ marginTop: 12, background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                  <div><div style={{ fontSize: 11, fontWeight: 850, color: '#0A0A0A' }}>Durée personnalisée</div><div style={{ fontSize: 10, color: '#777', marginTop: 2 }}>Choisis ton repère de jeûne</div></div>
+                  <strong style={{ fontSize: 18, color: '#0A0A0A' }}>{customFastHours}h</strong>
+                </div>
+                <input aria-label="Durée du jeûne personnalisé" type="range" min="10" max="20" step="1" value={customFastHours} onChange={e => setCustomFastHours(Number(e.target.value))} style={{ width: '100%', marginTop: 12, accentColor: ACCENT }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#888' }}><span>10h</span><span>20h</span></div>
+              </div>
+            )}
           </div>
         )}
 
