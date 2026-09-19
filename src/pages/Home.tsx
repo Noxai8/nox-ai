@@ -178,6 +178,7 @@ export default function Home() {
   const [xp, setXp] = useState(0);
   const [tomorrowMealPlanned, setTomorrowMealPlanned] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [dataErrors, setDataErrors] = useState<string[]>([]);
 
   const days = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'];
   const todayDay = days[new Date().getDay()];
@@ -214,6 +215,7 @@ export default function Home() {
         { data: nutritionTarget },
         { data: recoveryLogs },
         { data: tomorrowMeals },
+        nutritionTargetResult,
       ] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase.from('workout_programs').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
@@ -248,6 +250,10 @@ export default function Home() {
         supabase.from('recovery_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
         supabase.from('meal_plans').select('id').eq('user_id', user.id).eq('planned_date', tomorrow).limit(1),
       ]);
+
+      const loadErrors:string[]=[];
+      if (nutritionTargetResult?.error) loadErrors.push('Cible nutrition indisponible');
+      setDataErrors(loadErrors);
 
       setProfile(prof);
       setProgram(prog);
