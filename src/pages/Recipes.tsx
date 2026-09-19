@@ -285,8 +285,13 @@ export default function Recipes() {
   };
 
   const goal = normalizeGoal(profile?.goal_type || profile?.goal || profile?.objective);
-  const todayKey = new Date().toISOString().split('T')[0];
-  const todayCalories = recentFoods.filter((f:any) => String(f.created_at || '').startsWith(todayKey)).reduce((sum:number,f:any) => sum + Number(f.calories || 0), 0);
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const todayCalories = recentFoods.filter((f:any) => {
+    const createdAt = new Date(f.created_at || 0);
+    return createdAt >= todayStart && createdAt < tomorrowStart;
+  }).reduce((sum:number,f:any) => sum + Number(f.calories || 0), 0);
   const dailyCalories = Number(nutritionTarget?.calories || 0) > 0
     ? Number(nutritionTarget.calories)
     : null;
