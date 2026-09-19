@@ -217,6 +217,7 @@ export default function Recipes() {
   const [selected, setSelected] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [nutritionTarget, setNutritionTarget] = useState<any>(null);
+  const [recentFoods, setRecentFoods] = useState<any[]>([]);
   const [form, setForm] = useState({
     name: '',
     servings: '1',
@@ -242,19 +243,23 @@ export default function Recipes() {
         { data: recipeData, error: recipeError },
         { data: profileData, error: profileError },
         { data: targetData, error: targetError },
+        { data: recentFoodData, error: recentFoodError },
       ] = await Promise.all([
         supabase.from('recipes').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase.from('nutrition_targets').select('calories, protein, carbs, fat').eq('user_id', user.id).maybeSingle(),
+        supabase.from('food_entries').select('food_name, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(40),
       ]);
 
       if (recipeError) throw recipeError;
       if (profileError) throw profileError;
       if (targetError) throw targetError;
+      if (recentFoodError) throw recentFoodError;
 
       setRecipes(recipeData || []);
       setProfile(profileData || null);
       setNutritionTarget(targetData || null);
+      setRecentFoods(recentFoodData || []);
     } catch (err: any) {
       console.error('RECIPES_LOAD_ERROR', err);
       setError(err?.message || 'Impossible de charger les recettes.');
@@ -264,10 +269,15 @@ export default function Recipes() {
   };
 
   const goal = normalizeGoal(profile?.goal_type || profile?.goal || profile?.objective);
-  const suggestions = useMemo(
-    () => SUGGESTIONS.filter(r => r.goal === goal || r.goal === 'all'),
-    [goal]
-  );
+  const suggestions = useMemo(() => {
+    const recentNames = recentFoods.map(f => String(f.food_name || '').toLowerCase()).filter(Boolean);
+    const scored = SUGGESTIONS.filter(r => r.goal === goal || r.goal === 'all').map(recipe => {
+      const haystack = [recipe.name, ...recipe.ingredients.map(i => i.name)].join(' ').toLowerCase();
+      const familiarity = recentNames.reduce((score, name) => score + (haystack.includes(name) || name.includes(recipe.name.toLowerCase()) ? 1 : 0), 0);
+      return { recipe, familiarity };
+    });
+    return scored.sort((a,b) => b.familiarity - a.familiarity).map(x => x.recipe);
+  }, [goal, recentFoods]);
 
   const addIngredient = () =>
     setForm(f => ({ ...f, ingredients: [...f.ingredients, emptyIngredient()] }));
@@ -480,7 +490,7 @@ export default function Recipes() {
                 <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 950, letterSpacing: '.1em' }}>RECETTES · SUGGESTIONS</div>
                 <div style={{ fontSize: 18, fontWeight: 950, marginTop: 6, color: '#fff' }}>{goalLabel(goal)}</div>
                 <div style={{ fontSize: 11.5, color: '#AAA', lineHeight: 1.5, marginTop: 6 }}>
-                  Idées de repas filtrées selon ton objectif et ta cible nutritionnelle. Ce ne sont pas des notes de qualité alimentaire : les valeurs sont indicatives et restent modifiables avant ajout.
+                  Idées de repas filtrées selon ton objectif, ta cible nutritionnelle et, quand c’est possible, les aliments déjà présents dans ton journal. Ce ne sont pas des notes de qualité alimentaire : les valeurs sont indicatives et restent modifiables avant ajout.
                   {dailyCalories ? ` Même cible que Nutrition : ${Math.round(dailyCalories)} kcal/jour` : ''}
                   {dailyProtein ? ` · ${Math.round(dailyProtein)} g protéines` : ''}.
                   {!dailyCalories ? ' Enregistre une cible dans Nutrition pour personnaliser davantage ces suggestions.' : ''}
@@ -490,7 +500,7 @@ export default function Recipes() {
               <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 950 }}>Idées pour toi</div>
-                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Filtrées pour {goalLabel(goal).toLowerCase()}</div>
+                  <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>Basées sur {goalLabel(goal).toLowerCase()} et ton historique</div>
                 </div>
               </div>
 
