@@ -154,6 +154,8 @@ export default function Home() {
   const [weekWorkouts, setWeekWorkouts] = useState(0);
   const [todayKcal, setTodayKcal] = useState(0);
   const [todayProtein, setTodayProtein] = useState(0);
+  const [todayCarbs, setTodayCarbs] = useState(0);
+  const [todayFat, setTodayFat] = useState(0);
   const [targetProtein, setTargetProtein] = useState<number | null>(null);
   const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
   const [dayPeriod, setDayPeriod] = useState<'morning'|'day'|'evening'>(() => { const h=new Date().getHours(); return h<12?'morning':h<18?'day':'evening'; });
@@ -213,7 +215,7 @@ export default function Home() {
           .gte('created_at', weekStart),
         supabase
           .from('food_entries')
-          .select('calories, protein')
+          .select('calories, protein, carbs, fat')
           .eq('user_id', user.id)
           .gte('created_at', today + 'T00:00:00'),
         supabase
@@ -234,6 +236,8 @@ export default function Home() {
       setWeekWorkouts(weekLogs?.length || 0);
       setTodayKcal(fuel?.reduce((sum: number, item: any) => sum + (item.calories || 0), 0) || 0);
       setTodayProtein(fuel?.reduce((sum: number, item: any) => sum + Number(item.protein || 0), 0) || 0);
+      setTodayCarbs(fuel?.reduce((sum: number, item: any) => sum + Number(item.carbs || 0), 0) || 0);
+      setTodayFat(fuel?.reduce((sum: number, item: any) => sum + Number(item.fat || 0), 0) || 0);
       setTodayFoodCount(fuel?.length || 0);
       const storedWater = Number(localStorage.getItem('nox_water_' + user.id + '_' + today) || 0);
       const storedWaterGoal = Number(localStorage.getItem('nox_water_goal_' + user.id) || 2500);
@@ -543,6 +547,17 @@ export default function Home() {
               )}
             </div>
           </div>
+
+          <button onClick={()=>navigate('/fuel')} style={{...cardStyle,width:'100%',padding:18,marginBottom:14,textAlign:'left',cursor:'pointer',color:TEXT}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>NUTRITION AUJOURD'HUI</div><div style={{fontSize:20,fontWeight:950,marginTop:4}}>{Math.round(todayKcal)} <span style={{fontSize:12,color:MUTED}}>/ {targetKcal ? Math.round(targetKcal) : '—'} kcal</span></div></div><ChevronRight size={18}/></div>
+            <div style={{height:7,borderRadius:99,background:SURFACE_2,overflow:'hidden',marginTop:13}}><div style={{height:'100%',width:`${targetKcal?Math.min(100,(todayKcal/targetKcal)*100):0}%`,background:ACCENT,borderRadius:99}}/></div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:7,marginTop:12}}>
+              <div style={{background:SURFACE_2,borderRadius:12,padding:10}}><b>{Math.round(todayProtein)}g</b><div style={{fontSize:8.5,color:MUTED,marginTop:3}}>PROTÉINES</div></div>
+              <div style={{background:SURFACE_2,borderRadius:12,padding:10}}><b>{Math.round(todayCarbs)}g</b><div style={{fontSize:8.5,color:MUTED,marginTop:3}}>GLUCIDES</div></div>
+              <div style={{background:SURFACE_2,borderRadius:12,padding:10}}><b>{Math.round(todayFat)}g</b><div style={{fontSize:8.5,color:MUTED,marginTop:3}}>LIPIDES</div></div>
+            </div>
+            <div style={{fontSize:10.5,color:MUTED,marginTop:9}}>{remainingKcal===null?'Ajoute ta cible dans Nutrition pour afficher le restant.':`${Math.round(remainingKcal)} kcal restantes sur ton repère actuel`}</div>
+          </button>
 
           <div style={{...cardStyle,padding:18,marginBottom:14}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
