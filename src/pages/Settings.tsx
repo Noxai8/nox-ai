@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
+import { getNoxHealthBridge, getNoxHealthBridgeStatus, NOX_HEALTH_DEFAULT_READ_TYPES, type NoxHealthPermission } from '../lib/noxHealthBridge';
 
 const ACCENT = '#B7FF00';
 const BG = '#F7F7F7';
@@ -13,6 +14,30 @@ export default function Settings() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [healthStatus, setHealthStatus] = useState<{available:boolean;platform:'ios'|'android'|null;source:'apple_health'|'health_connect'|null}>({available:false,platform:null,source:null});
+  const [healthPermissions, setHealthPermissions] = useState<NoxHealthPermission[]>([]);
+  const [healthBusy, setHealthBusy] = useState(false);
+
+  const refreshHealthBridge = async () => {
+    const status = await getNoxHealthBridgeStatus();
+    setHealthStatus(status);
+    const bridge = getNoxHealthBridge();
+    if (!status.available || !bridge) { setHealthPermissions([]); return; }
+    try { setHealthPermissions(await bridge.getPermissions(NOX_HEALTH_DEFAULT_READ_TYPES)); } catch { setHealthPermissions([]); }
+  };
+
+  useEffect(() => { void refreshHealthBridge(); }, []);
+
+  const requestHealthPermissions = async () => {
+    const bridge = getNoxHealthBridge();
+    if (!bridge || !healthStatus.available || healthBusy) return;
+    setHealthBusy(true);
+    try { setHealthPermissions(await bridge.requestPermissions(NOX_HEALTH_DEFAULT_READ_TYPES)); }
+    finally { setHealthBusy(false); await refreshHealthBridge(); }
+  };
+
+  const healthGranted = healthPermissions.filter(p => p.read === 'granted').length;
+  const nativeHealthLabel = healthStatus.source === 'apple_health' ? 'Apple Health / Apple Watch' : healthStatus.source === 'health_connect' ? 'Health Connect' : null;
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -61,13 +86,25 @@ export default function Settings() {
         </Section>
 
         <Section title="NOX Connect">
-          <Row icon="🍎" label="Apple Health / Apple Watch" value="Bridge natif requis" onClick={() => navigate('/recovery')} />
-          <Row icon="🤖" label="Health Connect" value="Bridge Android requis" onClick={() => navigate('/recovery')} />
+          {nativeHealthLabel ? (
+            <>
+              <Row icon={healthStatus.platform === 'ios' ? '🍎' : '🤖'} label={nativeHealthLabel} value={healthGranted > 0 ? `${healthGranted} autorisation(s) active(s)` : 'Disponible'} />
+              <div style={{padding:'0 18px 14px'}}>
+                <button onClick={() => void requestHealthPermissions()} disabled={healthBusy} style={{width:'100%',padding:12,border:0,borderRadius:11,background:ACCENT,color:'#0A0A0A',fontWeight:900,cursor:healthBusy?'wait':'pointer'}}>
+                  {healthBusy ? 'AUTORISATION…' : healthGranted > 0 ? 'GÉRER LES AUTORISATIONS' : 'AUTORISER LA SYNCHRONISATION'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div style={{padding:'15px 18px',fontSize:12,color:'#777',lineHeight:1.5}}>
+              Bridge santé natif non détecté. Apple Health et Health Connect ne demandent aucune permission depuis la version web de NOX.
+            </div>
+          )}
           <Row icon="💠" label="Fitbit" value="OAuth à activer" onClick={() => navigate('/recovery')} />
           <Row icon="⚫" label="WHOOP" value="OAuth à activer" onClick={() => navigate('/recovery')} />
           <Row icon="⚖️" label="Balances connectées" value="Via Health / Fitbit" onClick={() => navigate('/body')} />
           <div style={{padding:'12px 18px',fontSize:10.5,color:'#777',lineHeight:1.5}}>
-            Architecture cible : NOX importe, avec ton autorisation, poids, composition corporelle, activité, entraînements, fréquence cardiaque, sommeil et récupération selon les données exposées par chaque source. Chaque mesure conserve sa source et son identifiant externe pour éviter les doublons.
+            NOX demande les permissions santé uniquement quand le bridge iOS/Android est réellement disponible. Chaque mesure importée conserve sa source et son identifiant externe pour permettre la déduplication.
           </div>
         </Section>
 
