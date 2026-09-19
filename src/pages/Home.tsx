@@ -162,6 +162,9 @@ export default function Home() {
   const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
   const [todayFoodCount, setTodayFoodCount] = useState(0);
   const [todayWaterMl, setTodayWaterMl] = useState(0);
+  const [todaySteps, setTodaySteps] = useState(0);
+  const [todayDistanceKm, setTodayDistanceKm] = useState(0);
+  const [todayActiveCalories, setTodayActiveCalories] = useState(0);
   const [targetKcal, setTargetKcal] = useState<number | null>(null);
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
   const [xp, setXp] = useState(0);
@@ -209,7 +212,7 @@ export default function Home() {
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1),
-        supabase.from('activity_logs').select('duration_minutes').eq('user_id', user.id).gte('performed_at', today + 'T00:00:00'),
+        supabase.from('activity_logs').select('duration_minutes, distance_km, calories_burned, steps').eq('user_id', user.id).gte('performed_at', today + 'T00:00:00'),
         supabase.from('nutrition_targets').select('calories, protein').eq('user_id', user.id).maybeSingle(),
       ]);
 
@@ -223,6 +226,9 @@ export default function Home() {
       setTodayFoodCount(fuel?.length || 0);
       setTodayWaterMl(Number(localStorage.getItem('nox_water_' + user.id + '_' + today) || 0));
       setTodayActivityMinutes(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.duration_minutes || 0), 0) || 0);
+      setTodaySteps(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.steps || 0), 0) || 0);
+      setTodayDistanceKm(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.distance_km || 0), 0) || 0);
+      setTodayActiveCalories(todayActivity?.reduce((sum: number, item: any) => sum + Number(item.calories_burned || 0), 0) || 0);
       const centralizedTarget = Number(nutritionTarget?.calories || 0);
       const profileTarget = Number(prof?.daily_calories || prof?.calorie_target || 0);
       setTargetKcal(centralizedTarget > 0 ? centralizedTarget : profileTarget > 0 ? profileTarget : null);
@@ -515,6 +521,16 @@ export default function Home() {
                   Commencer la séance
                 </button>
               )}
+            </div>
+          </div>
+
+          <div style={{...cardStyle,padding:18,marginBottom:14}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+              <div><div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:MUTED}}>ACTIVITÉ AUJOURD'HUI</div><div style={{fontSize:18,fontWeight:950,marginTop:4}}>TON MOUVEMENT</div></div>
+              <button onClick={()=>navigate('/activity')} style={{border:0,background:'transparent',fontSize:10,fontWeight:900,cursor:'pointer'}}>VOIR <ArrowRight size={12} style={{verticalAlign:'middle'}}/></button>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:6,marginTop:12}}>
+              {[[todaySteps,'PAS'],[Math.round(todayActivityMinutes),'MIN'],[todayDistanceKm.toFixed(1),'KM'],[Math.round(todayActiveCalories),'KCAL']].map(([value,label])=><div key={String(label)} style={{background:SURFACE_2,borderRadius:12,padding:'10px 5px',textAlign:'center'}}><strong style={{fontSize:14}}>{value}</strong><div style={{fontSize:8,color:MUTED,marginTop:3}}>{label}</div></div>)}
             </div>
           </div>
 
