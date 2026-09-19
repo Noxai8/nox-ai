@@ -178,6 +178,8 @@ export default function Home() {
   const todayDay = days[new Date().getDay()];
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const tomorrowDate = new Date(now); tomorrowDate.setDate(tomorrowDate.getDate()+1);
+  const tomorrow = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth()+1).padStart(2,'0')}-${String(tomorrowDate.getDate()).padStart(2,'0')}`;
   const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   useEffect(() => {
@@ -220,14 +222,14 @@ export default function Home() {
           .from('food_entries')
           .select('id, meal_type, food_name, calories, protein, carbs, fat, created_at')
           .eq('user_id', user.id)
-          .gte('created_at', today + 'T00:00:00'),
+          .gte('created_at', today + 'T00:00:00').lt('created_at', tomorrow + 'T00:00:00'),
         supabase
           .from('body_logs')
           .select('weight')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1),
-        supabase.from('activity_logs').select('duration_minutes, distance_km, calories_burned, steps').eq('user_id', user.id).gte('performed_at', today + 'T00:00:00'),
+        supabase.from('activity_logs').select('duration_minutes, distance_km, calories_burned, steps').eq('user_id', user.id).gte('performed_at', today + 'T00:00:00').lt('performed_at', tomorrow + 'T00:00:00'),
         supabase.from('nutrition_targets').select('calories, protein').eq('user_id', user.id).maybeSingle(),
         supabase.from('recovery_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1),
       ]);
