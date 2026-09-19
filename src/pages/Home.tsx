@@ -439,11 +439,11 @@ export default function Home() {
   const totalActiveCalories = todayActiveCalories + todayWorkoutCalories;
   const activityProgress = Math.min(1, totalActiveMinutes / 30);
   const stepProgress = stepGoal > 0 ? Math.min(1, todaySteps / stepGoal) : 0;
+  const mealCoverage = Math.min(1, todayMealCount / 3);
   const daySignals = [mealCoverage >= .67, nutritionProgress >= .7, proteinProgress >= .7, totalActiveMinutes >= 20 || todayWorkouts > 0, todayWaterMl >= waterGoal * .7];
   const consistencySignals = daySignals.filter(Boolean).length;
   const dailyScore = Math.round((consistencySignals / daySignals.length) * 100);
   const dailyScoreLabel = consistencySignals===5?'5/5 REPÈRES':consistencySignals===4?'4/5 REPÈRES':consistencySignals>=2?consistencySignals+'/5 REPÈRES':consistencySignals+'/5 REPÈRE'+(consistencySignals===1?'':'S');
-  const mealCoverage = Math.min(1, todayMealCount / 3);
   const scoreSignals = [
     { label: 'Nutrition', done: mealCoverage >= .67 },
     { label: 'Calories', done: nutritionProgress >= .7 },
