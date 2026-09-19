@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BottomNav } from '../components/BottomNav';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../lib/AuthContext';
 
 const ACCENT = '#B7FF00';
 const BG = '#F7F7F7';
@@ -13,18 +11,18 @@ const PLANS = [
   {
     id: 'nox',
     name: 'NOX',
-    monthly: '4,99 €',
-    annual: '49,99 €',
-    annualMonthly: '4,17 €',
+    monthly: 'Gratuit',
+    annual: 'Gratuit',
+    annualMonthly: 'Gratuit',
     color: '#0A0A0A',
     features: ['Suivi quotidien', 'Journal nutrition essentiel', 'Calories & macros', 'Poids & hydratation', 'Activité de base', 'Training & progrès essentiels'],
   },
   {
     id: 'plus',
     name: 'NOX+',
-    monthly: '9,99 €',
-    annual: '99,99 €',
-    annualMonthly: '8,33 €',
+    monthly: 'À venir',
+    annual: 'À venir',
+    annualMonthly: 'À venir',
     color: ACCENT,
     badge: 'PLUS COMPLET',
     features: ['Tout NOX inclus', 'Scan nourriture avancé', 'Analyses longue durée', 'Meal Planner avancé', 'Training & statistiques avancés', 'Synthèses personnalisées', 'Fonctions premium selon intégrations disponibles'],
@@ -32,19 +30,9 @@ const PLANS = [
 ];
 
 export default function Subscribe() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [billing, setBilling] = useState<'monthly' | 'annual'>('annual');
   const [selected, setSelected] = useState('plus');
-
-  const startTrial = async () => {
-    const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    await supabase.from('profiles').update({
-      subscription_plan: selected,
-      trial_ends_at: trialEnd,
-    }).eq('id', user!.id);
-    navigate('/home');
-  };
 
   const plan = PLANS.find(p => p.id === selected)!;
 
@@ -55,7 +43,7 @@ export default function Subscribe() {
         <button onClick={() => navigate(-1)} style={{ position: 'absolute', top: 24, left: 20, background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 14 }}>← Retour</button>
         <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.15em', marginBottom: 8 }}>Passe au niveau supérieur</div>
         <div style={{ fontSize: 28, fontWeight: 900, color: '#0A0A0A', letterSpacing: '-.02em' }}>CHOISIS TON EXPÉRIENCE NOX</div>
-        <div style={{ fontSize: 14, color: ACCENT, marginTop: 8, fontWeight: 700 }}>7 jours d’essai gratuit · puis NOX 4,99 €/mois ou NOX+ 9,99 €/mois</div>
+        <div style={{ fontSize: 14, color: ACCENT, marginTop: 8, fontWeight: 700 }}>NOX reste utile gratuitement · NOX+ ajoute les fonctions avancées</div>
       </div>
 
       {/* Billing toggle */}
@@ -85,7 +73,7 @@ export default function Subscribe() {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: 24, fontWeight: 900, color: '#0A0A0A' }}>{billing === 'annual' ? p.annualMonthly : p.monthly}</div>
-                <div style={{ fontSize: 11, color: '#555' }}>{billing === 'annual' ? 'par mois · ' + p.annual + '/an' : 'par mois'}</div>
+                <div style={{ fontSize: 11, color: '#555' }}>{p.id === 'nox' ? 'accès essentiel' : 'tarification à confirmer'}</div>
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -103,19 +91,19 @@ export default function Subscribe() {
       {/* CTA */}
       <div style={{ padding: '24px 20px' }}>
         <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 16, marginBottom: 16, textAlign: 'center' }}>
-          <div style={{ fontSize: 24, fontWeight: 900, color: ACCENT }}>7 JOURS GRATUITS</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: '#0A0A0A' }}>{plan.name}</div>
           <div style={{ fontSize: 13, color: '#555', marginTop: 4 }}>
-            <>Puis {billing === 'annual' ? plan.annual + '/an' : plan.monthly + '/mois'} avec {plan.name}.</>
+            <>{plan.id === 'nox' ? 'Le suivi essentiel reste accessible gratuitement.' : 'Les fonctions avancées NOX+ seront activées avec une tarification confirmée avant commercialisation.'}</>
           </div>
         </div>
 
-        <button onClick={startTrial}
+        <button onClick={() => navigate(plan.id === 'nox' ? '/home' : '/settings')}
           style={{ width: '100%', padding: 18, background: ACCENT, border: 'none', borderRadius: 16, color: '#000', fontWeight: 900, fontSize: 16, cursor: 'pointer', marginBottom: 12 }}>
-          COMMENCER MON ESSAI GRATUIT
+          {plan.id === 'nox' ? 'CONTINUER AVEC NOX' : 'RETOUR AUX PARAMÈTRES'}
         </button>
 
         <div style={{ fontSize: 11, color: '#333', textAlign: 'center', lineHeight: 1.6 }}>
-          Essai gratuit pendant 7 jours. L’activation actuelle enregistre la formule et la fin d’essai dans ton profil ; le paiement et le renouvellement réel doivent être connectés avant commercialisation.
+          Aucun paiement n’est déclenché depuis cet écran. La tarification, le checkout et le renouvellement NOX+ seront connectés avant commercialisation.
         </div>
       </div>
       <BottomNav active="settings" />
