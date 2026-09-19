@@ -4,10 +4,10 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const ACCENT = '#B7FF00';
+const BG = '#F7F7F7';
+const SURFACE = '#FFFFFF';
+const BORDER = '#EAEAEA';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -30,9 +30,9 @@ export default function Settings() {
     <button onClick={onClick} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', background: 'none', border: 'none', borderBottom: '1px solid ' + BORDER, cursor: onClick ? 'pointer' : 'default', textAlign: 'left' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <span style={{ fontSize: 18 }}>{icon}</span>
-        <span style={{ fontSize: 14, color: danger ? '#ff4444' : '#fff', fontWeight: 600 }}>{label}</span>
+        <span style={{ fontSize: 14, color: danger ? '#D93025' : '#0A0A0A', fontWeight: 600 }}>{label}</span>
       </div>
-      {value ? <span style={{ fontSize: 13, color: '#555' }}>{value}</span> : onClick ? <span style={{ color: '#333', fontSize: 16 }}>→</span> : null}
+      {value ? <span style={{ fontSize: 13, color: '#777' }}>{value}</span> : onClick ? <span style={{ color: '#999', fontSize: 16 }}>→</span> : null}
     </button>
   );
 
@@ -40,7 +40,7 @@ export default function Settings() {
     <div style={{ minHeight: '100vh', background: BG, paddingBottom: 80 }}>
       <div style={{ padding: '24px 20px 20px', borderBottom: '1px solid ' + BORDER }}>
         <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Configuration</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>PARAMÈTRES</div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#0A0A0A' }}>PARAMÈTRES</div>
       </div>
 
       <div style={{ paddingTop: 24 }}>
@@ -57,12 +57,20 @@ export default function Settings() {
 
         <Section title="Abonnement">
           <Row icon="⚡" label="Plan actuel" value="NOX Gratuit" />
-          <Row icon="🚀" label="Passer à NOX PRO" onClick={() => navigate('/subscribe')} />
+          <Row icon="🚀" label="Passer à NOX+" onClick={() => navigate('/subscribe')} />
+        </Section>
+
+        <Section title="NOX Connect">
+          <Row icon="⌚" label="Apple Health / Apple Watch" value="À connecter" onClick={() => navigate('/recovery')} />
+          <Row icon="🤖" label="Health Connect" value="À connecter" onClick={() => navigate('/recovery')} />
+          <Row icon="💠" label="Fitbit" value="À connecter" onClick={() => navigate('/recovery')} />
+          <Row icon="⚫" label="WHOOP" value="À connecter" onClick={() => navigate('/recovery')} />
+          <div style={{padding:'12px 18px',fontSize:10.5,color:'#777',lineHeight:1.5}}>NOX Connect centralise les données autorisées. Les connexions disponibles dépendent des intégrations réellement activées.</div>
         </Section>
 
         <Section title="Données">
           <Row icon="📊" label="Mon bilan hebdo" onClick={() => navigate('/weekly-review')} />
-          <Row icon="🌙" label="Recovery & Wearables" onClick={() => navigate('/recovery')} />
+          <Row icon="🌙" label="Sommeil & récupération" onClick={() => navigate('/recovery')} />
           <Row icon="🔔" label="Notifications" onClick={() => navigate('/notification-settings')} />
           <Row icon="🎯" label="Calibration débutant" onClick={() => navigate('/calibration')} />
           <Row icon="👥" label="Mode Partenaire" onClick={() => navigate('/partner')} />
@@ -75,8 +83,8 @@ export default function Settings() {
         </Section>
 
         <div style={{ padding: '16px 20px', textAlign: 'center' }}>
-          <div style={{ fontSize: 12, color: '#333' }}>NOX · Version 1.0.0</div>
-          <div style={{ fontSize: 11, color: '#222', marginTop: 4 }}>Ton système d'exploitation physique</div>
+          <div style={{ fontSize: 12, color: '#777' }}>NOX · Version 1.0.0</div>
+          <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>Ton système d'exploitation physique</div>
         </div>
       </div>
 
