@@ -159,6 +159,7 @@ export default function Home() {
   const [targetProtein, setTargetProtein] = useState<number | null>(null);
   const [targetCarbs, setTargetCarbs] = useState<number | null>(null);
   const [targetFat, setTargetFat] = useState<number | null>(null);
+  const [nutritionTargetLoading, setNutritionTargetLoading] = useState(true);
   const [todayActivityMinutes, setTodayActivityMinutes] = useState(0);
   const [dayPeriod, setDayPeriod] = useState<'morning'|'day'|'evening'>(() => { const h=new Date().getHours(); return h<12?'morning':h<18?'day':'evening'; });
   const [todayFoodCount, setTodayFoodCount] = useState(0);
@@ -337,6 +338,7 @@ export default function Home() {
       const centralizedFat = Number(nutritionTarget?.fat || 0);
       setTargetCarbs(centralizedCarbs > 0 ? centralizedCarbs : null);
       setTargetFat(centralizedFat > 0 ? centralizedFat : null);
+      setNutritionTargetLoading(false);
       setLatestWeight(bodyLogs?.[0]?.weight || null);
       setTodayWeightLogged((todayBodyLogs?.length || 0) > 0);
       const profileGoalWeight = Number(prof?.goal_weight_kg ?? prof?.goal_weight ?? prof?.target_weight ?? 0);
@@ -450,7 +452,7 @@ export default function Home() {
   const noxScore = getNoxScore();
   const firstName = profile?.display_name?.split(' ')[0] || 'ATHLÈTE';
   const effectiveTargetKcal = targetKcal && targetKcal > 0 ? targetKcal : null;
-  const hasPersonalTarget = nutritionTargetSource !== 'none';
+  const hasPersonalTarget = nutritionTargetSource !== 'none' && !nutritionTargetLoading;
   const remainingKcal = effectiveTargetKcal === null ? null : Math.max(0, effectiveTargetKcal - todayKcal);
   const briefLabel = dayPeriod==='morning' ? 'NOX MORNING BRIEF' : dayPeriod==='evening' ? 'NOX EVENING RECAP' : 'NOX DAILY BRIEF';
   const briefTitle = dayPeriod==='morning' ? 'TA JOURNÉE COMMENCE ICI' : dayPeriod==='evening' ? 'LE RÉCAP DE TA JOURNÉE' : 'TA JOURNÉE EN 10 SECONDES';
@@ -458,7 +460,7 @@ export default function Home() {
   const sleepAgeHours = latestSleepDate ? (Date.now()-new Date(latestSleepDate).getTime())/3600000 : null;
   const freshSleepHours = sleepAgeHours!==null && sleepAgeHours>=0 && sleepAgeHours<=48 ? latestSleepHours : null;
   const nutritionProgress = effectiveTargetKcal ? Math.min(1, todayKcal / effectiveTargetKcal) : 0;
-  const nutritionTargetLabel = nutritionTargetSource === 'nutrition' ? 'Cible Nutrition' : nutritionTargetSource === 'profile' ? 'Cible profil' : 'Cible à définir';
+  const nutritionTargetLabel = nutritionTargetLoading ? 'Chargement cible' : nutritionTargetSource === 'nutrition' ? 'Cible Nutrition' : nutritionTargetSource === 'profile' ? 'Cible profil' : 'Cible à définir';
   const proteinProgress = targetProtein ? Math.min(1, todayProtein / targetProtein) : 0;
   const carbsProgress = targetCarbs ? Math.min(1, todayCarbs / targetCarbs) : 0;
   const fatProgress = targetFat ? Math.min(1, todayFat / targetFat) : 0;
