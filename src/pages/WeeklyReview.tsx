@@ -323,7 +323,7 @@ FORMAT :
   "points_ameliorer": ["Action concrète"],
   "priorites_semaine_prochaine": ["Priorité 1", "Priorité 2", "Priorité 3"],
   "lecture_trajectoire": "Lecture prudente de la tendance sans prédiction garantie",
-  "conseil": "Conseil opérationnel",
+  "conseil": "Repère opérationnel fondé uniquement sur les données disponibles",
   "message": "Message NOX en 2 phrases maximum"
 }`;
 
@@ -535,14 +535,14 @@ FORMAT :
 
         {analysis?.conseil && (
           <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 16, marginBottom: 20 }}>
-            <div style={{ color: '#555', fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 7 }}>CONSEIL NOX</div>
+            <div style={{ color: '#555', fontSize: 10, fontWeight: 900, letterSpacing: '.08em', marginBottom: 7 }}>REPÈRE NOX</div>
             <div style={{ color: '#444', fontSize: 13, lineHeight: 1.6 }}>{analysis.conseil}</div>
           </div>
         )}
 
         {generating && !analysis && (
           <div style={{ textAlign: 'center', padding: '30px 0', color: '#666', fontSize: 12 }}>
-            NOX croise entraînement, nutrition et récupération...
+            NOX synthétise entraînement, nutrition et récupération...
           </div>
         )}
 
