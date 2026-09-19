@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
+
+// Deployment refresh: 2026-09-19
 import { AuthProvider, useAuth } from './lib/AuthContext';
 import './styles/globals.css';
 
