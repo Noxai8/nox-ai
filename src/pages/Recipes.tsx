@@ -457,6 +457,20 @@ export default function Recipes() {
     return true;
   };
 
+  const addToShoppingList = (recipe: any) => {
+    if (!user || !Array.isArray(recipe?.ingredients) || recipe.ingredients.length === 0) return;
+    const key = 'nox_shopping_list_' + user.id;
+    let current: any[] = [];
+    try { current = JSON.parse(localStorage.getItem(key) || '[]'); } catch { current = []; }
+    const existing = new Set(current.map((item: any) => String(item.name || '').trim().toLowerCase()));
+    const additions = recipe.ingredients
+      .filter((ing: any) => String(ing?.name || '').trim())
+      .filter((ing: any) => !existing.has(String(ing.name).trim().toLowerCase()))
+      .map((ing: any) => ({ name: String(ing.name).trim(), qty: ing.qty || '', checked: false, source: recipe.name || 'Recette NOX' }));
+    localStorage.setItem(key, JSON.stringify([...current, ...additions]));
+    setActionMessage(additions.length ? `${additions.length} ingrédient${additions.length > 1 ? 's' : ''} ajouté${additions.length > 1 ? 's' : ''} à ta liste de courses.` : 'Ces ingrédients sont déjà dans ta liste de courses.');
+  };
+
   const deleteRecipe = async (id: string) => {
     setError('');
     if (!user) return;
@@ -826,6 +840,8 @@ export default function Recipes() {
               >
                 AJOUTER AU JOURNAL · {Math.round((selected.calories_per_serving || 0) * portions)} KCAL
               </button>
+
+              <button onClick={() => addToShoppingList(selected)} style={{ width: '100%', padding: 14, marginBottom: 9, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, color: '#333', fontWeight: 850, cursor: 'pointer' }}>+ AJOUTER LES INGRÉDIENTS À MA LISTE DE COURSES</button>
 
               {selected.suggested && <button onClick={() => toggleFavorite(selected.id)} style={{ width: '100%', padding: 14, marginBottom: 9, background: favorites.includes(selected.id) ? '#F4FFE0' : SURFACE, border: `1px solid ${favorites.includes(selected.id) ? '#D8F29B' : BORDER}`, borderRadius: 12, color: '#333', fontWeight: 850, cursor: 'pointer' }}>{favorites.includes(selected.id) ? '★ RETIRER DES FAVORIS' : '☆ AJOUTER AUX FAVORIS'}</button>}
 
