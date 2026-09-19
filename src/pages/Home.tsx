@@ -411,6 +411,17 @@ export default function Home() {
     { label: 'Activité', done: totalActiveMinutes >= 20 || todayWorkouts > 0 },
     { label: 'Hydratation', done: todayWaterMl >= waterGoal * .7 },
   ];
+  const nextBestAction = !todayFoodCount
+    ? { label: 'Enregistrer un repas', detail: 'Commence ton suivi nutritionnel du jour.', route: '/fuel' }
+    : nutritionProgress < .7
+      ? { label: 'Compléter ma nutrition', detail: effectiveTargetKcal ? `${Math.max(0, Math.round(effectiveTargetKcal-todayKcal))} kcal restent sur ta cible du jour.` : 'Ajoute ce que tu as mangé aujourd’hui.', route: '/fuel' }
+      : proteinProgress < .7
+        ? { label: 'Voir mes protéines', detail: targetProtein ? `${Math.max(0, Math.round(targetProtein-todayProtein))} g restent sur ta cible du jour.` : 'Vérifie ton apport en protéines.', route: '/fuel' }
+        : totalActiveMinutes < 20 && todayWorkouts===0
+          ? { label: 'Bouger aujourd’hui', detail: 'Ajoute une activité ou lance ta séance prévue.', route: '/activity' }
+          : todayWaterMl < waterGoal*.7
+            ? { label: 'Ajouter de l’eau', detail: `${Math.max(0, waterGoal-todayWaterMl)} ml avant ton objectif d’hydratation.`, route: '/fuel' }
+            : { label: 'Journée bien suivie', detail: 'Tes principaux repères du jour sont enregistrés.', route: '/body' };
   const tomorrowSessionPlanned = Boolean(program?.program_json?.sessions?.some((session:any)=>{const tomorrowDay=days[tomorrowDate.getDay()];return session.day===tomorrowDay||(session.days&&session.days.includes(tomorrowDay));}));
   const automaticHabitDone:Record<string,boolean> = {
     nutrition: todayFoodCount > 0,
@@ -643,6 +654,12 @@ export default function Home() {
             </div>
           </div>
 
+
+          <button onClick={()=>navigate(nextBestAction.route)} style={{...cardStyle,width:'100%',padding:16,marginBottom:14,textAlign:'left',cursor:'pointer',display:'flex',alignItems:'center',gap:13,color:TEXT}}>
+            <span style={{width:42,height:42,borderRadius:14,background:ACCENT,display:'grid',placeItems:'center',flexShrink:0}}><ArrowRight size={19}/></span>
+            <span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:9.5,fontWeight:950,letterSpacing:'.11em',color:MUTED}}>PROCHAINE ACTION</span><span style={{display:'block',fontSize:14,fontWeight:950,marginTop:3}}>{nextBestAction.label}</span><span style={{display:'block',fontSize:10.5,color:MUTED,marginTop:3,lineHeight:1.4}}>{nextBestAction.detail}</span></span>
+            <ChevronRight size={18}/>
+          </button>
 
           <div style={{background:TEXT,color:'#fff',borderRadius:22,padding:18,marginBottom:14}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16}}>
