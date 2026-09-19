@@ -229,6 +229,7 @@ export default function Recipes() {
   const [recentFoods, setRecentFoods] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [remainingOnly, setRemainingOnly] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [form, setForm] = useState({
     name: '',
@@ -263,7 +264,7 @@ export default function Recipes() {
         supabase.from('recipes').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase.from('nutrition_targets').select('calories, protein, carbs, fat').eq('user_id', user.id).maybeSingle(),
-        supabase.from('food_entries').select('food_name, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(40),
+        supabase.from('food_entries').select('food_name, calories, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(40),
       ]);
 
       if (recipeError) throw recipeError;
@@ -296,13 +297,14 @@ export default function Recipes() {
 
   const filteredSuggestions = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const base = showFavoritesOnly ? suggestions.filter(recipe => favorites.includes(recipe.id)) : suggestions;
+    let base = showFavoritesOnly ? suggestions.filter(recipe => favorites.includes(recipe.id)) : suggestions;
+    if (remainingOnly && remainingCalories !== null) base = base.filter(recipe => recipe.calories_per_serving <= remainingCalories);
     if (!q) return base;
     return base.filter(recipe =>
       [recipe.name, recipe.subtitle, ...recipe.tags, ...recipe.ingredients.map(i => i.name)]
         .join(' ').toLowerCase().includes(q)
     );
-  }, [suggestions, search, showFavoritesOnly, favorites]);
+  }, [suggestions, search, showFavoritesOnly, favorites, remainingOnly, remainingCalories]);
 
   const filteredRecipes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -467,9 +469,12 @@ export default function Recipes() {
     setPortions(1);
   };
 
+  const todayKey = new Date().toISOString().split('T')[0];
+  const todayCalories = recentFoods.filter((f:any) => String(f.created_at || '').startsWith(todayKey)).reduce((sum:number,f:any) => sum + Number(f.calories || 0), 0);
   const dailyCalories = Number(nutritionTarget?.calories || 0) > 0
     ? Number(nutritionTarget.calories)
     : null;
+  const remainingCalories = dailyCalories ? Math.max(0, dailyCalories - todayCalories) : null;
   const dailyProtein = Number(nutritionTarget?.protein || 0) > 0
     ? Number(nutritionTarget.protein)
     : null;
@@ -542,6 +547,7 @@ export default function Recipes() {
               <div style={{display:'flex',gap:7,marginBottom:12}}>
                 <button onClick={()=>setShowFavoritesOnly(false)} style={{border:'1px solid '+(!showFavoritesOnly?ACCENT:BORDER),background:!showFavoritesOnly?ACCENT:'#fff',borderRadius:999,padding:'7px 11px',fontSize:9.5,fontWeight:900,cursor:'pointer'}}>POUR TOI</button>
                 <button onClick={()=>setShowFavoritesOnly(true)} style={{border:'1px solid '+(showFavoritesOnly?ACCENT:BORDER),background:showFavoritesOnly?ACCENT:'#fff',borderRadius:999,padding:'7px 11px',fontSize:9.5,fontWeight:900,cursor:'pointer'}}>★ FAVORIS</button>
+                <button onClick={()=>setRemainingOnly(v=>!v)} disabled={remainingCalories===null} style={{border:'1px solid '+(remainingOnly?ACCENT:BORDER),background:remainingOnly?ACCENT:'#fff',borderRadius:999,padding:'7px 11px',fontSize:9.5,fontWeight:900,cursor:remainingCalories===null?'not-allowed':'pointer',opacity:remainingCalories===null?.45:1}}>RESTE DU JOUR{remainingCalories!==null?' · '+Math.round(remainingCalories)+' KCAL':''}</button>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', marginBottom: 10 }}>
