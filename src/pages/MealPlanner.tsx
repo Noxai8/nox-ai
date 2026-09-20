@@ -247,6 +247,14 @@ export default function MealPlanner() {
   const [selectedMeal, setSelectedMeal] = useState<PlannedEntry | null>(null);
   const [showTargetSetup, setShowTargetSetup] = useState(false);
   const [targetSaving, setTargetSaving] = useState(false);
+  const [targetDraft, setTargetDraft] = useState({
+    goal: '',
+    sex: '',
+    age: '',
+    weight: '',
+    height: '',
+    activity: '',
+  });
 
 
   const goal = normalizeGoal(profile?.goal_type || profile?.goal || profile?.objective);
@@ -279,7 +287,45 @@ export default function MealPlanner() {
       return;
     }
 
-    setProfile(profileResult.data || null);
+    const loadedProfile = profileResult.data || null;
+    setProfile(loadedProfile);
+
+    if (loadedProfile) {
+      const dob = String(loadedProfile.date_of_birth || '');
+      let derivedAge = Number(loadedProfile.age || 0);
+      if (!derivedAge && dob) {
+        const birth = new Date(`${dob}T12:00:00`);
+        if (!Number.isNaN(birth.getTime())) {
+          const now = new Date();
+          derivedAge = now.getFullYear() - birth.getFullYear();
+          const month = now.getMonth() - birth.getMonth();
+          if (month < 0 || (month === 0 && now.getDate() < birth.getDate())) derivedAge -= 1;
+        }
+      }
+
+      const rawGoal = String(loadedProfile.goal_type || loadedProfile.goal || loadedProfile.objective || '').toLowerCase();
+      const mappedGoal = rawGoal.includes('muscle') || rawGoal.includes('bulk') || rawGoal.includes('masse')
+        ? 'bulk'
+        : rawGoal.includes('perdre') || rawGoal.includes('loss') || rawGoal.includes('cut') || rawGoal.includes('gras')
+          ? 'cut'
+          : rawGoal ? 'maintain' : '';
+
+      const rawSex = String(loadedProfile.sex || loadedProfile.gender || '').toLowerCase();
+      const mappedSex = rawSex === 'homme' || rawSex === 'male' || rawSex === 'm'
+        ? 'homme'
+        : rawSex === 'femme' || rawSex === 'female' || rawSex === 'f'
+          ? 'femme'
+          : '';
+
+      setTargetDraft(current => ({
+        goal: current.goal || mappedGoal,
+        sex: current.sex || mappedSex,
+        age: current.age || (derivedAge ? String(derivedAge) : ''),
+        weight: current.weight || String(loadedProfile.starting_weight_kg ?? loadedProfile.weight ?? ''),
+        height: current.height || String(loadedProfile.height_cm ?? loadedProfile.height ?? ''),
+        activity: current.activity || String(loadedProfile.activity_level || ''),
+      }));
+    }
 
     const target = targetResult.data;
     const kcal = Number(target?.calories || 0);
@@ -336,65 +382,159 @@ export default function MealPlanner() {
     return centralized > 0 ? Math.round(centralized) : 0;
   }, [nutritionTarget]);
 
-  const calculateAndSaveNutritionTarget = async () => {
-    if (!user || !profile || targetSaving) return;
+  const generatePlanWithTarget = async (resolvedTarget: NutritionTarget, modeOverride: PlanMode = planMode) => {
+    if (!user || generating) return;
 
-    const sexRaw = String(profile.sex || profile.gender || '').toLowerCase();
-    const sex = sexRaw === 'homme' || sexRaw === 'male' || sexRaw === 'm'
-      ? 'homme'
-      : sexRaw === 'femme' || sexRaw === 'female' || sexRaw === 'f'
-        ? 'femme'
-        : '';
-
-    const weight = Number(profile.starting_weight_kg ?? profile.weight ?? 0);
-    const height = Number(profile.height ?? (profile as any).height_cm ?? 0);
-    const dob = String(profile.date_of_birth || '');
-
-    let age = Number(profile.age || 0);
-    if (!age && dob) {
-      const birth = new Date(`${dob}T12:00:00`);
-      if (!Number.isNaN(birth.getTime())) {
-        const now = new Date();
-        age = now.getFullYear() - birth.getFullYear();
-        const month = now.getMonth() - birth.getMonth();
-        if (month < 0 || (month === 0 && now.getDate() < birth.getDate())) age -= 1;
-      }
+    if (modeOverride === 'fridge' && !fridgeFoods.length) {
+      setError("Scanne ton frigo avant de générer avec ce mode, ou choisis Courses rapides.");
+      return;
     }
 
-    const activityRaw = String(profile.activity_level || '').toLowerCase();
+    if (modeOverride === 'fridge' && (fridgeAnalysis?.etat === 'insuffisant' || fridgeAnalysis?.etat === 'peu_adapte')) {
+      setPlanMode('shopping');
+      setShowShopping(true);
+      setMessage("Ton frigo ne suffit pas pour une semaine cohérente. Indique ton budget et ton enseigne pour compléter les ingrédients.");
+      return;
+    }
+
+    const budget = Number(String(shoppingPrefs.budget).replace(',', '.'));
+    if (modeOverride === 'shopping' && (!Number.isFinite(budget) || budget <= 0 || !shoppingPrefs.store.trim())) {
+      setShowShopping(true);
+      setError('Renseigne ton budget et ton enseigne avant de continuer.');
+      return;
+    }
+
+    setGenerating(true);
+    setError('');
+    setMessage('Objectif enregistré · NOX crée maintenant tes repas…');
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('generate-meal-plan', {
+        body: {
+          mode: modeOverride,
+          goal: targetDraft.goal || goal,
+          days: modeOverride === 'shopping' ? shoppingPrefs.days : 7,
+          target: {
+            calories: resolvedTarget.calories,
+            protein: resolvedTarget.protein,
+            carbs: Number(resolvedTarget.carbs || 0),
+            fat: Number(resolvedTarget.fat || 0),
+          },
+          fridgeFoods,
+          shopping: modeOverride === 'shopping'
+            ? { budget, store: shoppingPrefs.store.trim() }
+            : null,
+        },
+      });
+
+      if (fnError) throw fnError;
+      if (!data || !Array.isArray(data.days)) throw new Error('Le plan IA reçu est invalide.');
+
+      const existingDates = new Set(
+        week.flatMap(day => day.entries.map(e => `${e.planned_date}|${e.meal_type}`))
+      );
+      const rows: any[] = [];
+
+      for (const day of data.days) {
+        if (!day?.date || !Array.isArray(day?.meals)) continue;
+        for (const meal of day.meals) {
+          if (!meal?.name || !meal?.meal_type) continue;
+          if (existingDates.has(`${day.date}|${meal.meal_type}`)) continue;
+
+          rows.push({
+            user_id: user.id,
+            planned_date: day.date,
+            meal_type: meal.meal_type,
+            food_name: meal.name,
+            calories: Math.max(0, Math.round(Number(meal.calories || 0))),
+            protein: Math.max(0, Math.round(Number(meal.protein || 0))),
+            carbs: Math.max(0, Math.round(Number(meal.carbs || 0))),
+            fat: Math.max(0, Math.round(Number(meal.fat || 0))),
+            ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
+            instructions: Array.isArray(meal.instructions) ? meal.instructions : [],
+            missing_ingredients: Array.isArray(meal.missing_ingredients) ? meal.missing_ingredients : [],
+            fridge_ingredients: Array.isArray(meal.fridge_ingredients) ? meal.fridge_ingredients : [],
+            image_url: null,
+            prep_time_min: Math.max(0, Math.round(Number(meal.prep_time_min || 0))),
+            servings: Math.max(1, Math.round(Number(meal.servings || 1))),
+            ai_generated: true,
+            created_at: new Date().toISOString(),
+          });
+        }
+      }
+
+      if (!rows.length) {
+        setMessage('Aucun nouveau repas à ajouter : les créneaux générés sont déjà planifiés.');
+        return;
+      }
+
+      const { error: insertError } = await supabase.from('meal_plans').insert(rows);
+      if (insertError) throw insertError;
+
+      await load();
+      setMessage('Repas créés à partir de ton frigo · ouvre un repas pour voir les ingrédients et les grammages.');
+    } catch (e: any) {
+      console.error('MEAL_PLAN_AI_GENERATE_ERROR', e);
+      setError(e?.message || 'Impossible de générer le plan repas avec NOX AI.');
+      setMessage('');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const calculateAndSaveNutritionTarget = async () => {
+    if (!user || targetSaving) return;
+
+    const sex = targetDraft.sex;
+    const age = Number(targetDraft.age);
+    const weight = Number(String(targetDraft.weight).replace(',', '.'));
+    const height = Number(String(targetDraft.height).replace(',', '.'));
+    const activityRaw = targetDraft.activity;
+
     const activityFactors: Record<string, number> = {
       sedentaire: 1.2,
-      sedentary: 1.2,
       leger: 1.375,
-      léger: 1.375,
-      light: 1.375,
       modere: 1.55,
-      modéré: 1.55,
-      moderate: 1.55,
       actif: 1.725,
-      active: 1.725,
       tres_actif: 1.9,
-      'très_actif': 1.9,
-      very_active: 1.9,
     };
     const activityFactor = activityFactors[activityRaw] || 0;
 
-    if (!sex || weight < 35 || weight > 350 || height < 120 || height > 230 || age < 18 || age > 100 || !activityFactor) {
-      setError("Ton profil n'a pas encore assez d'informations pour calculer une cible fiable. Termine l'onboarding NOX.");
-      setShowTargetSetup(true);
+    if (!targetDraft.goal) {
+      setError('Choisis ton objectif.');
+      return;
+    }
+    if (sex !== 'homme' && sex !== 'femme') {
+      setError('Choisis ton sexe pour calculer la cible.');
+      return;
+    }
+    if (!Number.isFinite(age) || age < 18 || age > 100) {
+      setError('Indique un âge entre 18 et 100 ans.');
+      return;
+    }
+    if (!Number.isFinite(weight) || weight < 35 || weight > 350) {
+      setError('Indique un poids valide entre 35 et 350 kg.');
+      return;
+    }
+    if (!Number.isFinite(height) || height < 120 || height > 230) {
+      setError('Indique une taille valide entre 120 et 230 cm.');
+      return;
+    }
+    if (!activityFactor) {
+      setError("Choisis ton niveau d'activité.");
       return;
     }
 
     const bmr = 10 * weight + 6.25 * height - 5 * age + (sex === 'homme' ? 5 : -161);
     const maintenance = bmr * activityFactor;
-    const goalFactor = goal === 'cut' ? 0.85 : goal === 'bulk' ? 1.08 : 1;
+    const goalFactor = targetDraft.goal === 'cut' ? 0.85 : targetDraft.goal === 'bulk' ? 1.08 : 1;
     const kcal = Math.round((maintenance * goalFactor) / 25) * 25;
-    const prot = Math.round(weight * (goal === 'bulk' ? 2 : 1.8));
+    const prot = Math.round(weight * (targetDraft.goal === 'bulk' ? 2 : targetDraft.goal === 'maintain' ? 1.8 : 1.8));
     const fat = Math.round(weight * 0.8);
     const carbs = Math.max(0, Math.round((kcal - prot * 4 - fat * 9) / 4));
 
     if (!Number.isFinite(kcal) || kcal < 1200 || kcal > 5000 || prot <= 0) {
-      setError("Impossible de calculer une cible nutritionnelle cohérente avec ce profil.");
+      setError("Impossible de calculer une cible nutritionnelle cohérente.");
       return;
     }
 
@@ -402,7 +542,28 @@ export default function MealPlanner() {
     setError('');
 
     try {
-      const target = {
+      const goalType = targetDraft.goal === 'cut'
+        ? 'perdre_gras'
+        : targetDraft.goal === 'bulk'
+          ? 'prendre_muscle'
+          : 'maintien';
+
+      const profilePatch: any = {
+        goal_type: goalType,
+        sex,
+        starting_weight_kg: weight,
+        height_cm: height,
+        activity_level: activityRaw,
+      };
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update(profilePatch)
+        .eq('id', user.id);
+      if (profileError) throw profileError;
+
+      const targetRow = {
+        user_id: user.id,
         calories: kcal,
         protein_g: prot,
         carbs_g: carbs,
@@ -413,15 +574,17 @@ export default function MealPlanner() {
         is_active: true,
       };
 
-      const { error: upsertError } = await supabase
+      const { error: targetError } = await supabase
         .from('nutrition_targets')
-        .upsert({ user_id: user.id, ...target }, { onConflict: 'user_id' });
+        .upsert(targetRow, { onConflict: 'user_id' });
+      if (targetError) throw targetError;
 
-      if (upsertError) throw upsertError;
-
-      setNutritionTarget({ calories: kcal, protein: prot, carbs, fat });
+      const resolvedTarget = { calories: kcal, protein: prot, carbs, fat };
+      setNutritionTarget(resolvedTarget);
+      setProfile(current => current ? { ...current, ...profilePatch } : profilePatch);
       setShowTargetSetup(false);
-      setMessage(`Objectif nutritionnel configuré : ${kcal} kcal · ${prot} g de protéines.`);
+
+      await generatePlanWithTarget(resolvedTarget, 'fridge');
     } catch (e: any) {
       console.error('MEAL_PLANNER_TARGET_SAVE_ERROR', e);
       setError(e?.message || "Impossible d'enregistrer l'objectif nutritionnel.");
@@ -1015,37 +1178,87 @@ export default function MealPlanner() {
 
       {showTargetSetup && (
         <div onClick={() => setShowTargetSetup(false)} style={{ position: 'fixed', inset: 0, zIndex: 340, background: 'rgba(0,0,0,.48)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 620, background: '#fff', borderRadius: '26px 26px 0 0', padding: '22px 20px max(26px, env(safe-area-inset-bottom))' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 620, maxHeight: '92vh', overflowY: 'auto', background: '#fff', borderRadius: '26px 26px 0 0', padding: '22px 20px max(26px, env(safe-area-inset-bottom))' }}>
             <div style={{ width: 42, height: 5, borderRadius: 99, background: '#E2E4DE', margin: '0 auto 18px' }} />
-            <div style={{ fontSize: 10, color: '#777C73', fontWeight: 900, letterSpacing: '.1em' }}>OBJECTIF NUTRITIONNEL</div>
-            <div style={{ marginTop: 5, fontSize: 24, lineHeight: 1.05, fontWeight: 950 }}>Adapter les repas à ton objectif</div>
+            <div style={{ fontSize: 10, color: '#777C73', fontWeight: 900, letterSpacing: '.1em' }}>UNE SEULE FOIS</div>
+            <div style={{ marginTop: 5, fontSize: 24, lineHeight: 1.05, fontWeight: 950 }}>Personnaliser mes repas</div>
             <div style={{ marginTop: 9, color: '#777C73', fontSize: 12, lineHeight: 1.55 }}>
-              NOX utilise ton profil enregistré pour calculer une cible de départ. Cette cible sert ensuite à dimensionner le petit-déjeuner, le déjeuner et le dîner générés depuis ton frigo.
+              Complète les informations manquantes. NOX calcule ta cible, l’enregistre puis crée immédiatement les repas avec les aliments détectés dans ton frigo.
             </div>
 
-            <div style={{ marginTop: 16, padding: 14, borderRadius: 16, background: '#F4FFE0', border: '1px solid #DCF1A3' }}>
-              <div style={{ fontSize: 10, fontWeight: 950 }}>OBJECTIF · {goalLabel(goal).toUpperCase()}</div>
-              <div style={{ marginTop: 5, color: '#657052', fontSize: 10.5, lineHeight: 1.45 }}>
-                Calcul basé sur le sexe, l'âge, le poids, la taille et le niveau d'activité enregistrés dans ton profil.
+            <div style={{ marginTop: 18 }}>
+              <span style={fieldLabel}>OBJECTIF</span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 7 }}>
+                {[
+                  ['cut', 'Perdre du gras'],
+                  ['maintain', 'Maintien'],
+                  ['bulk', 'Prendre du muscle'],
+                ].map(([value, label]) => (
+                  <button key={value} type="button" onClick={() => setTargetDraft(p => ({ ...p, goal: value }))}
+                    style={{ padding: '11px 7px', borderRadius: 11, border: `1px solid ${targetDraft.goal === value ? '#111' : BORDER}`, background: targetDraft.goal === value ? '#111' : SURFACE, color: targetDraft.goal === value ? ACCENT : '#111', fontSize: 9.5, fontWeight: 900 }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginTop: 14 }}>
+              <span style={fieldLabel}>SEXE</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+                {[['homme', 'Homme'], ['femme', 'Femme']].map(([value, label]) => (
+                  <button key={value} type="button" onClick={() => setTargetDraft(p => ({ ...p, sex: value }))}
+                    style={{ padding: 11, borderRadius: 11, border: `1px solid ${targetDraft.sex === value ? '#111' : BORDER}`, background: targetDraft.sex === value ? '#111' : SURFACE, color: targetDraft.sex === value ? ACCENT : '#111', fontSize: 10, fontWeight: 900 }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+              <label>
+                <span style={fieldLabel}>ÂGE</span>
+                <input value={targetDraft.age} onChange={e => setTargetDraft(p => ({ ...p, age: e.target.value }))} inputMode="numeric" placeholder="28" style={fieldInput} />
+              </label>
+              <label>
+                <span style={fieldLabel}>POIDS KG</span>
+                <input value={targetDraft.weight} onChange={e => setTargetDraft(p => ({ ...p, weight: e.target.value }))} inputMode="decimal" placeholder="80" style={fieldInput} />
+              </label>
+              <label>
+                <span style={fieldLabel}>TAILLE CM</span>
+                <input value={targetDraft.height} onChange={e => setTargetDraft(p => ({ ...p, height: e.target.value }))} inputMode="numeric" placeholder="180" style={fieldInput} />
+              </label>
+            </div>
+
+            <div style={{ marginTop: 14 }}>
+              <span style={fieldLabel}>ACTIVITÉ QUOTIDIENNE</span>
+              <div style={{ display: 'grid', gap: 7 }}>
+                {[
+                  ['sedentaire', 'Sédentaire', 'Peu de mouvement au quotidien'],
+                  ['leger', 'Légère', '1 à 3 activités par semaine'],
+                  ['modere', 'Modérée', '3 à 5 activités par semaine'],
+                  ['actif', 'Active', '6 à 7 activités par semaine'],
+                  ['tres_actif', 'Très active', 'Activité physique intense / métier physique'],
+                ].map(([value, label, hint]) => (
+                  <button key={value} type="button" onClick={() => setTargetDraft(p => ({ ...p, activity: value }))}
+                    style={{ width: '100%', padding: '11px 12px', borderRadius: 12, border: `1px solid ${targetDraft.activity === value ? '#111' : BORDER}`, background: targetDraft.activity === value ? '#F3FFD1' : SURFACE, textAlign: 'left', color: '#111' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 950 }}>{label}</div>
+                    <div style={{ marginTop: 2, color: '#777C73', fontSize: 9 }}>{hint}</div>
+                  </button>
+                ))}
               </div>
             </div>
 
             <button
               type="button"
               onClick={() => void calculateAndSaveNutritionTarget()}
-              disabled={targetSaving}
-              style={{ width: '100%', marginTop: 16, padding: 15, border: 0, borderRadius: 14, background: ACCENT, color: '#111', fontWeight: 950, cursor: targetSaving ? 'wait' : 'pointer' }}
+              disabled={targetSaving || generating}
+              style={{ width: '100%', marginTop: 18, padding: 15, border: 0, borderRadius: 14, background: ACCENT, color: '#111', fontWeight: 950, cursor: targetSaving || generating ? 'wait' : 'pointer' }}
             >
-              {targetSaving ? 'CALCUL ET ENREGISTREMENT...' : 'CALCULER MON OBJECTIF'}
+              {targetSaving || generating ? 'NOX PRÉPARE TES REPAS…' : 'ENREGISTRER ET CRÉER MES REPAS'}
             </button>
-            <button
-              type="button"
-              onClick={() => setShowTargetSetup(false)}
-              disabled={targetSaving}
-              style={{ width: '100%', marginTop: 8, padding: 12, border: `1px solid ${BORDER}`, borderRadius: 12, background: '#fff', color: '#666B63', fontWeight: 850 }}
-            >
-              PLUS TARD
-            </button>
+            <div style={{ marginTop: 8, textAlign: 'center', color: '#8A8F86', fontSize: 9.5 }}>
+              La cible pourra être modifiée plus tard dans ton profil.
+            </div>
           </div>
         </div>
       )}
