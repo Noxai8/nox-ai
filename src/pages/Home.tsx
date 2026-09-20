@@ -49,31 +49,43 @@ export function BottomNav({ active }: { active: NavActive | string }) {
   const quickActions = [
     {
       label: 'Repas',
-      sub: 'Journal alimentaire',
+      sub: 'Ajouter un repas',
       icon: Utensils,
-      path: '/fuel#journal',
+      path: '/fuel?add=meal',
     },
     {
-      label: 'Scanner',
-      sub: 'Photo ou code-barres',
+      label: 'Scanner repas',
+      sub: 'Analyser une photo',
+      icon: Camera,
+      path: '/fuel?add=photo',
+    },
+    {
+      label: 'Code-barres',
+      sub: 'Scanner un aliment',
       icon: ScanLine,
-      path: '/food-scan',
+      path: '/fuel?add=barcode',
+    },
+    {
+      label: 'Aliment',
+      sub: 'Rechercher et ajouter',
+      icon: Apple,
+      path: '/fuel?add=food',
     },
     {
       label: 'Eau',
       sub: 'Hydratation',
       icon: Droplets,
-      path: '/fuel#eau',
+      path: '/fuel?add=water',
     },
     {
       label: 'Poids',
       sub: 'Nouvelle mesure',
       icon: Scale,
-      path: '/body',
+      path: '/body?add=weight',
     },
     {
-      label: 'Entrainement',
-      sub: 'Lancer une seance',
+      label: 'Entraînement',
+      sub: 'Lancer une séance',
       icon: Dumbbell,
       path: '/program',
     },
@@ -81,11 +93,11 @@ export function BottomNav({ active }: { active: NavActive | string }) {
       label: 'Mensuration',
       sub: 'Suivre ton corps',
       icon: Ruler,
-      path: '/body',
+      path: '/body?add=measurements',
     },
     {
-      label: 'Jeune',
-      sub: 'Jeune intermittent',
+      label: 'Jeûne',
+      sub: 'Jeûne intermittent',
       icon: Moon,
       path: '/fasting',
     },
@@ -97,7 +109,7 @@ export function BottomNav({ active }: { active: NavActive | string }) {
     },
     {
       label: 'Courses',
-      sub: 'Liste de courses',
+      sub: 'Selon ton objectif',
       icon: Zap,
       path: '/meal-planner',
     },
@@ -302,12 +314,7 @@ export function BottomNav({ active }: { active: NavActive | string }) {
                     onClick={() => go(action.path)}
                     style={{
                       border: `1px solid ${BORDER}`,
-                      background:
-                        action.label === 'Repas' ||
-                        action.label === 'Scanner' ||
-                        action.label === 'Entraînement'
-                          ? '#090909'
-                          : '#FAFBF7',
+                      background: '#FAFBF7',
                       borderRadius: 20,
                       minHeight: 112,
                       padding: 14,
@@ -322,18 +329,8 @@ export function BottomNav({ active }: { active: NavActive | string }) {
                         borderRadius: 13,
                         display: 'grid',
                         placeItems: 'center',
-                        background:
-                          action.label === 'Repas' ||
-                          action.label === 'Scanner' ||
-                          action.label === 'Entraînement'
-                            ? ACCENT
-                            : BLACK,
-                        color:
-                          action.label === 'Repas' ||
-                          action.label === 'Scanner' ||
-                          action.label === 'Entraînement'
-                            ? BLACK
-                            : ACCENT,
+                        background: '#EEF0E8',
+                        color: BLACK,
                         marginBottom: 12,
                       }}
                     >
@@ -343,12 +340,7 @@ export function BottomNav({ active }: { active: NavActive | string }) {
                     <div
                       style={{
                         fontSize: 13,
-                        color:
-                          action.label === 'Repas' ||
-                          action.label === 'Scanner' ||
-                          action.label === 'Entraînement'
-                            ? '#FFFFFF'
-                            : BLACK,
+                        color: BLACK,
                         fontWeight: 900,
                       }}
                     >
@@ -359,12 +351,7 @@ export function BottomNav({ active }: { active: NavActive | string }) {
                       style={{
                         fontSize: 9.5,
                         lineHeight: 1.3,
-                        color:
-                          action.label === 'Repas' ||
-                          action.label === 'Scanner' ||
-                          action.label === 'Entraînement'
-                            ? '#777B72'
-                            : '#9A9D96',
+                        color: '#9A9D96',
                         marginTop: 3,
                       }}
                     >
@@ -1344,7 +1331,7 @@ Réponse directe et motivante. Pas de markdown.`;
               label="Eau"
               value="—"
               sub="Objectif quotidien"
-              onClick={() => navigate('/fuel')}
+              onClick={() => navigate('/fuel?add=water')}
             />
 
             <MetricCard
