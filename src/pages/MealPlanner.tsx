@@ -382,10 +382,11 @@ export default function MealPlanner() {
     return centralized > 0 ? Math.round(centralized) : 0;
   }, [nutritionTarget]);
 
-  const generatePlanWithTarget = async (resolvedTarget: NutritionTarget, modeOverride: PlanMode = planMode) => {
+  const generatePlanWithTarget = async (resolvedTarget: NutritionTarget, modeOverride: PlanMode = planMode, foodsOverride?: FridgeFood[]) => {
+    const foodsForPlan = foodsOverride ?? fridgeFoods;
     if (!user || generating) return;
 
-    if (modeOverride === 'fridge' && !fridgeFoods.length) {
+    if (modeOverride === 'fridge' && !foodsForPlan.length) {
       setError("Scanne ton frigo avant de générer avec ce mode, ou choisis Courses rapides.");
       return;
     }
@@ -420,7 +421,7 @@ export default function MealPlanner() {
             carbs: Number(resolvedTarget.carbs || 0),
             fat: Number(resolvedTarget.fat || 0),
           },
-          fridgeFoods,
+          fridgeFoods: foodsForPlan,
           shopping: modeOverride === 'shopping'
             ? { budget, store: shoppingPrefs.store.trim() }
             : null,
@@ -640,13 +641,32 @@ export default function MealPlanner() {
       setFridgeFoods(result.aliments || []);
 
       if (result.etat === 'vide') {
-        setMessage("Analyse terminée · le frigo semble vide. NOX peut préparer des courses selon ton budget et ton enseigne.");
-      } else if (result.etat === 'peu_adapte') {
-        setMessage("Analyse terminée · le contenu détecté ne suffit pas pour un plan cohérent. NOX proposera les compléments à acheter.");
-      } else if (result.etat === 'insuffisant') {
-        setMessage("Analyse terminée · quelques aliments sont utilisables, mais il manque des éléments pour construire le plan complet.");
+        setPlanMode('shopping');
+        setShowShopping(true);
+        setMessage("Frigo vide détecté · indique ton budget et ton enseigne pour préparer des courses adaptées.");
+      } else if (result.etat === 'peu_adapte' || result.etat === 'insuffisant') {
+        setPlanMode('shopping');
+        setShowShopping(true);
+        setMessage("Le contenu détecté ne suffit pas pour créer des repas cohérents. NOX te propose de compléter avec des courses.");
+      } else if (!result.aliments.length) {
+        setMessage("Analyse terminée · aucun aliment exploitable détecté.");
+      } else if (!targetCalories || !targetProtein || !nutritionTarget) {
+        setError("Ta cible nutritionnelle n'est pas disponible. Termine l'onboarding NOX avant de générer tes repas.");
+        setMessage('');
       } else {
-        setMessage("Analyse terminée · vérifie les aliments détectés puis crée tes repas.");
+        setPlanMode('fridge');
+        setShowShopping(false);
+        setMessage("Frigo analysé · NOX crée automatiquement les repas du jour…");
+        await generatePlanWithTarget(
+          {
+            calories: targetCalories,
+            protein: targetProtein,
+            carbs: Number(nutritionTarget.carbs || 0),
+            fat: Number(nutritionTarget.fat || 0),
+          },
+          'fridge',
+          result.aliments,
+        );
       }
     } catch (e: any) {
       console.error('FRIDGE_ANALYSIS_ERROR', e);
@@ -931,7 +951,7 @@ export default function MealPlanner() {
             <div style={{ width: 44, height: 44, borderRadius: 14, background: '#111', color: ACCENT, display: 'grid', placeItems: 'center', fontWeight: 950, fontSize: 11 }}>SCAN</div>
             <div style={{ marginTop: 16, fontSize: 23, fontWeight: 950, letterSpacing: '-.035em' }}>Qu’est-ce qu’il y a dans ton frigo ?</div>
             <div style={{ marginTop: 7, maxWidth: 470, fontSize: 12.5, lineHeight: 1.55, color: '#394000' }}>
-              Prends une photo. NOX pourra identifier les aliments, te laisser corriger la détection puis construire des repas adaptés.
+              Prends une photo. NOX identifie les aliments et crée automatiquement les repas du jour adaptés à ton objectif.
             </div>
             <button
               onClick={() => fridgeInputRef.current?.click()}
