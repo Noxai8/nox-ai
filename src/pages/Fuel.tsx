@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
@@ -11,7 +11,6 @@ const SURFACE = '#FFFFFF';
 const BORDER = '#E8E8E3';
 const DARK = '#111';
 
-const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4';
 const FN = 'https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1';
 
 const MEALS = ['Petit-déjeuner', 'Déjeuner', 'Dîner', 'Snacks'];
@@ -54,6 +53,7 @@ type Tab = 'journal' | 'macros' | 'eau' | 'idees';
 export default function Fuel() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const fileRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<Tab>('journal');
   const [entries, setEntries] = useState<any[]>([]);
@@ -79,6 +79,27 @@ export default function Fuel() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { if (user) load(); }, [user]);
+
+  useEffect(() => {
+    const add = searchParams.get('add');
+    if (!add) return;
+
+    if (add === 'meal') {
+      setTab('journal'); setShowAdd(true); setAddMode('choose');
+    } else if (add === 'food') {
+      setTab('journal'); setShowAdd(true); setAddMode('search');
+    } else if (add === 'water') {
+      setTab('eau'); setShowAdd(false);
+    } else if (add === 'photo') {
+      setTab('journal'); setShowAdd(true); setAddMode('photo');
+    } else if (add === 'barcode') {
+      setTab('journal'); setShowAdd(true); setAddMode('barcode');
+    }
+
+    const next = new URLSearchParams(searchParams);
+    next.delete('add');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const todayBounds = () => {
     const d = new Date();
@@ -154,7 +175,7 @@ export default function Fuel() {
         const { data: { session } } = await supabase.auth.getSession();
         const resp = await fetch(`${FN}/analyze-meal`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ANON}` },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
           body: JSON.stringify({ image: base64 }),
         });
         const data = await resp.json();
@@ -195,7 +216,7 @@ export default function Fuel() {
       const { data: { session } } = await supabase.auth.getSession();
       const resp = await fetch(`${FN}/generate-program`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ANON}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
         body: JSON.stringify({ prompt: `Tu es un nutritionniste. Il reste ${kcalLeft} kcal et ${Math.round(Math.max(0, targets.protein - totals.protein))}g de protéines à consommer aujourd'hui. Propose 3 idées de repas simples et rapides sous forme de liste, sans markdown, sans emojis. Chaque idée sur une ligne avec les calories approximatives entre parenthèses.` }),
       });
       const data = await resp.json();
@@ -229,7 +250,7 @@ export default function Fuel() {
             <div style={{ fontSize: 22, fontWeight: 900, color: DARK }}>MON JOURNAL</div>
           </div>
           <button onClick={() => { setShowAdd(true); setAddMode('choose'); }}
-            style={{ background: DARK, color: ACCENT, border: 'none', borderRadius: 12, padding: '10px 18px', fontWeight: 800, fontSize: 13, cursor: 'pointer', touchAction: 'manipulation' }}>
+            style={{ background: ACCENT, color: '#111', border: '1px solid #A7D900', borderRadius: 12, padding: '10px 18px', fontWeight: 800, fontSize: 13, cursor: 'pointer', touchAction: 'manipulation' }}>
             + AJOUTER
           </button>
         </div>
@@ -473,9 +494,9 @@ export default function Fuel() {
             {addMode === 'choose' && (
               <div style={{ display: 'grid', gap: 10 }}>
                 <button onClick={() => { setAddMode('photo'); fileRef.current?.click(); }}
-                  style={{ padding: '16px 18px', background: DARK, borderRadius: 14, border: 'none', cursor: 'pointer', textAlign: 'left', touchAction: 'manipulation' }}>
-                  <div style={{ fontSize: 11, color: ACCENT, fontWeight: 800, textTransform: 'uppercase', marginBottom: 4 }}>Recommande</div>
-                  <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>Scanner mon repas en photo</div>
+                  style={{ padding: '16px 18px', background: '#FFFFFF', borderRadius: 14, border: '1px solid ' + BORDER, cursor: 'pointer', textAlign: 'left', touchAction: 'manipulation' }}>
+                  <div style={{ fontSize: 11, color: '#6B7600', fontWeight: 800, textTransform: 'uppercase', marginBottom: 4 }}>Recommande</div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: DARK }}>Scanner mon repas en photo</div>
                   <div style={{ fontSize: 12, color: '#888', marginTop: 3 }}>NOX identifie les aliments et estime les macros</div>
                 </button>
 
@@ -611,7 +632,7 @@ export default function Fuel() {
             {/* Code-barres */}
             {addMode === 'barcode' && (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>📱</div>
+                <div style={{ width: 58, height: 42, margin: "0 auto 14px", border: "2px solid #111", borderRadius: 8, display: "grid", placeItems: "center", color: "#111", fontSize: 11, fontWeight: 1000, letterSpacing: ".08em" }}>BAR</div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: DARK, marginBottom: 8 }}>Scanner un code-barres</div>
                 <div style={{ fontSize: 12, color: '#999', marginBottom: 20 }}>Scanne le code sur l'emballage du produit</div>
                 <button onClick={() => navigate('/barcode-scanner')}
@@ -647,7 +668,7 @@ export default function Fuel() {
               <div style={{ textAlign: 'center' }}>
                 <button onClick={startVoice} disabled={listening}
                   style={{ width: 90, height: 90, borderRadius: '50%', background: listening ? '#ff4444' : DARK, border: 'none', fontSize: 32, cursor: 'pointer', margin: '10px auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation' }}>
-                  🎤
+                  MIC
                 </button>
                 {listening && <div style={{ color: '#ff4444', fontSize: 13, marginBottom: 12 }}>Ecoute...</div>}
                 {voiceText && !listening && (
