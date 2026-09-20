@@ -49,9 +49,9 @@ export function BottomNav({ active }: { active: NavActive | string }) {
   const quickActions = [
     {
       label: 'Repas',
-      sub: 'Ajouter un repas',
+      sub: 'Journal alimentaire',
       icon: Utensils,
-      path: '/fuel',
+      path: '/fuel#journal',
     },
     {
       label: 'Scanner',
@@ -60,32 +60,20 @@ export function BottomNav({ active }: { active: NavActive | string }) {
       path: '/food-scan',
     },
     {
-      label: 'Aliment',
-      sub: 'Recherche rapide',
-      icon: Apple,
-      path: '/fuel',
-    },
-    {
       label: 'Eau',
       sub: 'Hydratation',
       icon: Droplets,
-      path: '/fuel',
+      path: '/fuel#eau',
     },
     {
       label: 'Poids',
       sub: 'Nouvelle mesure',
       icon: Scale,
-      path: '/body?add=weight',
+      path: '/body',
     },
     {
-      label: 'Activité',
-      sub: 'Ajouter une activité',
-      icon: Activity,
-      path: '/body?add=activity',
-    },
-    {
-      label: 'Entraînement',
-      sub: 'Lancer une séance',
+      label: 'Entrainement',
+      sub: 'Lancer une seance',
       icon: Dumbbell,
       path: '/program',
     },
@@ -93,13 +81,25 @@ export function BottomNav({ active }: { active: NavActive | string }) {
       label: 'Mensuration',
       sub: 'Suivre ton corps',
       icon: Ruler,
-      path: '/body?add=measurements',
+      path: '/body',
     },
     {
-      label: 'Photo',
-      sub: 'Photo de progression',
-      icon: Camera,
-      path: '/progress?add=photo',
+      label: 'Jeune',
+      sub: 'Jeune intermittent',
+      icon: Moon,
+      path: '/fasting',
+    },
+    {
+      label: 'NOX Future',
+      sub: 'Projection IA',
+      icon: Sparkles,
+      path: '/future',
+    },
+    {
+      label: 'Courses',
+      sub: 'Liste de courses',
+      icon: Zap,
+      path: '/meal-planner',
     },
   ];
 

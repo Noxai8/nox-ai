@@ -4,9 +4,9 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
 const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const BG = '#F6F7F2';
+const SURFACE = '#FFFFFF';
+const BORDER = '#E8E8E3';
 const MEALS = ['Petit-déjeuner', 'Déjeuner', 'Dîner', 'Snacks'];
 
 export default function FoodScan() {
@@ -109,7 +109,7 @@ export default function FoodScan() {
       <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid ' + BORDER, flexShrink: 0 }}>
         <button onClick={() => navigate('/fuel')} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 22, marginBottom: 12, display: 'block' }}>←</button>
         <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Fuel</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>📸 SCANNER UN REPAS</div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#111' }}>📸 SCANNER UN REPAS</div>
       </div>
 
       <div style={{ padding: '12px 20px', borderBottom: '1px solid ' + BORDER, display: 'flex', gap: 8, flexShrink: 0, overflowX: 'auto' }}>
@@ -127,7 +127,7 @@ export default function FoodScan() {
         {scanning && (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 8 }}>Analyse en cours...</div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: '#111', marginBottom: 8 }}>Analyse en cours...</div>
             <div style={{ fontSize: 13, color: '#555' }}>NOX identifie les aliments</div>
           </div>
         )}
@@ -140,7 +140,7 @@ export default function FoodScan() {
           <div>
             <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 14, padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 11, color: ACCENT, fontWeight: 800, textTransform: 'uppercase', marginBottom: 6 }}>REPAS DÉTECTÉ · {result.fiabilite || 'moyenne'}</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{result.description}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#111' }}>{result.description}</div>
               {result.note && <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>{result.note}</div>}
             </div>
 
@@ -149,7 +149,7 @@ export default function FoodScan() {
               <div style={{ display: 'flex', textAlign: 'center' }}>
                 {[
                   { label: 'Calories', val: Math.round(result.total?.kcal ?? 0), color: ACCENT },
-                  { label: 'Protéines', val: Math.round(result.total?.protein ?? 0) + 'g', color: '#fff' },
+                  { label: 'Protéines', val: Math.round(result.total?.protein ?? 0) + 'g', color: '#111' },
                   { label: 'Glucides', val: Math.round(result.total?.carbs ?? 0) + 'g', color: '#8da0ff' },
                   { label: 'Lipides', val: Math.round(result.total?.fat ?? 0) + 'g', color: '#ff806b' },
                 ].map(({ label, val, color }) => (
@@ -164,7 +164,7 @@ export default function FoodScan() {
             {result.aliments?.map((a: any, i: number) => (
               <div key={i} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '12px 14px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{a.nom}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>{a.nom}</div>
                   <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{a.quantite} · P:{a.protein}g G:{a.carbs}g L:{a.fat}g</div>
                 </div>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -180,7 +180,7 @@ export default function FoodScan() {
         {!photoBase64 && !scanning && !result && (
           <div style={{ textAlign: 'center', paddingTop: 40 }}>
             <div style={{ fontSize: 72, marginBottom: 20 }}>📸</div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 8 }}>Prends une photo de ton repas</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#111', marginBottom: 8 }}>Prends une photo de ton repas</div>
             <div style={{ fontSize: 14, color: '#555', marginBottom: 32, lineHeight: 1.5 }}>NOX identifie les aliments et calcule les macros</div>
           </div>
         )}
