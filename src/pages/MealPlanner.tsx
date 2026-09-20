@@ -254,6 +254,11 @@ export default function MealPlanner() {
   const [showShopping, setShowShopping] = useState(false);
   const [shoppingPrefs, setShoppingPrefs] = useState<ShoppingPrefs>({ budget: '', store: '', days: 7 });
   const [selectedMeal, setSelectedMeal] = useState<PlannedEntry | null>(null);
+  const [creationStage, setCreationStage] = useState<'idle' | 'analysis' | 'recipes' | 'images' | 'done'>('idle');
+  const [creationProgress, setCreationProgress] = useState(0);
+  const [createdMealsCount, setCreatedMealsCount] = useState(0);
+  const [imageReadyCount, setImageReadyCount] = useState(0);
+  const [imageTotalCount, setImageTotalCount] = useState(0);
   const [showTargetSetup, setShowTargetSetup] = useState(false);
   const [targetSaving, setTargetSaving] = useState(false);
   const [targetDraft, setTargetDraft] = useState({
@@ -419,6 +424,11 @@ export default function MealPlanner() {
     }
 
     setGenerating(true);
+    setCreationStage('recipes');
+    setCreationProgress(0);
+    setCreatedMealsCount(0);
+    setImageReadyCount(0);
+    setImageTotalCount(0);
     setError('');
     setMessage('NOX construit ta semaine complète…');
 
@@ -521,12 +531,16 @@ export default function MealPlanner() {
         }
 
         added += insertedRows.length;
+        setCreatedMealsCount(added);
+        setCreationProgress(Math.round(((dayIndex + 1) / 7) * 100));
 
         // Les plats du jour sont visibles tout de suite.
         await load();
 
         // Lance immédiatement les images des plats qui viennent d'être créés.
         // On n'attend pas la fin des 7 jours pour commencer les visuels.
+        setImageTotalCount(current => current + insertedRows.length);
+
         void Promise.allSettled(
           insertedRows.map(async (row) => {
             try {
@@ -543,6 +557,8 @@ export default function MealPlanner() {
 
               if (updateError) throw updateError;
 
+              setImageReadyCount(current => current + 1);
+
               // Recharge pour faire apparaître l'image dès qu'elle est prête.
               await load();
             } catch (imageError) {
@@ -556,9 +572,9 @@ export default function MealPlanner() {
 
       // À ce stade toute la semaine est déjà utilisable.
       setGenerating(false);
+      setCreationStage('images');
+      setCreationProgress(100);
       setMessage(`${added} repas créés · semaine prête. Les images arrivent progressivement…`);
-
-      setMessage(`${added} repas créés · semaine complète. Les images continuent d'arriver automatiquement.`);
 
     } catch (e: any) {
       console.error('MEAL_PLAN_AI_GENERATE_ERROR', e);
@@ -684,6 +700,11 @@ export default function MealPlanner() {
 
     // Give immediate feedback before image decoding/compression starts.
     setFridgeAnalyzing(true);
+    setCreationStage('analysis');
+    setCreationProgress(8);
+    setCreatedMealsCount(0);
+    setImageReadyCount(0);
+    setImageTotalCount(0);
     setError('');
     setMessage('Photo reçue · préparation de l’image…');
 
@@ -692,6 +713,7 @@ export default function MealPlanner() {
       await new Promise(resolve => setTimeout(resolve, 60));
 
       const payload = await imageFileToPayload(file);
+      setCreationProgress(28);
       setMessage('Photo prête · analyse du frigo avec NOX AI…');
 
       let data: any = null;
@@ -724,6 +746,7 @@ export default function MealPlanner() {
       const result = data as FridgeAnalysis;
       setFridgeAnalysis(result);
       setFridgeFoods(result.aliments || []);
+      setCreationProgress(100);
 
       if (result.etat === 'vide') {
         setPlanMode('shopping');
@@ -843,6 +866,17 @@ export default function MealPlanner() {
     );
   };
 
+  useEffect(() => {
+    if (
+      creationStage === 'images' &&
+      imageTotalCount > 0 &&
+      imageReadyCount >= imageTotalCount
+    ) {
+      setCreationStage('done');
+      setMessage(`${createdMealsCount || imageTotalCount} repas créés · semaine complète avec ses visuels.`);
+    }
+  }, [creationStage, imageReadyCount, imageTotalCount, createdMealsCount]);
+
   const addPlanned = async () => {
     if (!user || !showAdd || !foodName.trim() || saving) return;
 
@@ -939,6 +973,94 @@ export default function MealPlanner() {
 
           {message && <Notice text={message} success />}
           {error && <Notice text={error} />}
+
+          {(fridgeAnalyzing || generating || creationStage === 'images' || creationStage === 'done') && (
+            <div style={{
+              marginTop: 14,
+              borderRadius: 22,
+              padding: 16,
+              background: '#0D1512',
+              color: '#fff',
+              border: '1px solid #1E2A25',
+              boxShadow: '0 14px 34px rgba(10,18,14,.10)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 9, fontWeight: 950, letterSpacing: '.12em', color: ACCENT }}>
+                    NOX AI · EN DIRECT
+                  </div>
+                  <div style={{ marginTop: 5, fontSize: 17, fontWeight: 950, letterSpacing: '-.025em' }}>
+                    {creationStage === 'analysis'
+                      ? 'Analyse de ton frigo'
+                      : creationStage === 'recipes'
+                        ? 'Création de tes plats'
+                        : creationStage === 'images'
+                          ? 'On dresse les plats'
+                          : 'Ta semaine est prête'}
+                  </div>
+                </div>
+                <div style={{
+                  minWidth: 52, height: 52, borderRadius: 18,
+                  background: ACCENT, color: '#111',
+                  display: 'grid', placeItems: 'center',
+                  fontSize: 12, fontWeight: 950,
+                }}>
+                  {creationStage === 'analysis'
+                    ? `${creationProgress}%`
+                    : creationStage === 'recipes'
+                      ? `${Math.min(7, Math.ceil(creationProgress / (100 / 7)))}/7`
+                      : creationStage === 'images'
+                        ? `${imageReadyCount}/${imageTotalCount || '…'}`
+                        : 'OK'}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 14, height: 7, borderRadius: 999, overflow: 'hidden', background: '#26312C' }}>
+                <div style={{
+                  height: '100%',
+                  width: `${
+                    creationStage === 'images'
+                      ? (imageTotalCount ? Math.min(100, Math.round((imageReadyCount / imageTotalCount) * 100)) : 4)
+                      : creationStage === 'done'
+                        ? 100
+                        : creationProgress
+                  }%`,
+                  borderRadius: 999,
+                  background: ACCENT,
+                  transition: 'width .35s ease',
+                }} />
+              </div>
+
+              <div style={{ marginTop: 13, display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 7 }}>
+                {[
+                  ['1', 'ANALYSE', creationStage !== 'idle'],
+                  ['2', 'RECETTES', creationStage === 'recipes' || creationStage === 'images' || creationStage === 'done'],
+                  ['3', 'IMAGES', creationStage === 'images' || creationStage === 'done'],
+                ].map(([num, label, active]) => (
+                  <div key={String(label)} style={{
+                    padding: '9px 7px',
+                    borderRadius: 12,
+                    textAlign: 'center',
+                    background: active ? 'rgba(200,255,0,.10)' : '#151F1B',
+                    border: `1px solid ${active ? 'rgba(200,255,0,.30)' : '#26312C'}`,
+                  }}>
+                    <div style={{ fontSize: 9, fontWeight: 950, color: active ? ACCENT : '#69736D' }}>{num}</div>
+                    <div style={{ marginTop: 2, fontSize: 8, fontWeight: 900, color: active ? '#fff' : '#69736D' }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 11, fontSize: 10, lineHeight: 1.45, color: '#AEB8B2' }}>
+                {creationStage === 'analysis'
+                  ? 'NOX reconnaît les aliments et estime les quantités disponibles.'
+                  : creationStage === 'recipes'
+                    ? `${createdMealsCount} plat${createdMealsCount > 1 ? 's' : ''} créé${createdMealsCount > 1 ? 's' : ''}. Les premiers visuels se préparent déjà.`
+                    : creationStage === 'images'
+                      ? `${imageReadyCount} visuel${imageReadyCount > 1 ? 's' : ''} prêt${imageReadyCount > 1 ? 's' : ''} sur ${imageTotalCount || '…'}. Tu peux déjà consulter tes recettes.`
+                      : 'Recettes et visuels prêts à consulter.'}
+              </div>
+            </div>
+          )}
         </header>
 
         <section style={{ padding: '0 20px 18px' }}>
