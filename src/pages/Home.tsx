@@ -74,13 +74,13 @@ export function BottomNav({ active }: { active: NavActive | string }) {
       label: 'Poids',
       sub: 'Nouvelle mesure',
       icon: Scale,
-      path: '/body',
+      path: '/body?add=weight',
     },
     {
       label: 'Activité',
       sub: 'Ajouter une activité',
       icon: Activity,
-      path: '/program',
+      path: '/body?add=activity',
     },
     {
       label: 'Entraînement',
@@ -92,7 +92,7 @@ export function BottomNav({ active }: { active: NavActive | string }) {
       label: 'Mensuration',
       sub: 'Suivre ton corps',
       icon: Ruler,
-      path: '/body',
+      path: '/body?add=measurements',
     },
     {
       label: 'Photo',
