@@ -159,17 +159,10 @@ export default function Onboarding() {
       }).eq('id', user.id);
       if (profileError) throw new Error(`Profil : ${profileError.message}`);
 
-      // On met à jour la ligne existante au lieu de créer des doublons.
-      const { data: existing, error: loadError } = await supabase
-        .from('nutrition_targets')
-        .select('id')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (loadError) throw new Error(`Nutrition : ${loadError.message}`);
-
+      // Une seule source de vérité par utilisateur.
+      // La contrainte UNIQUE(user_id) permet un upsert sûr et évite les doublons.
       const target = {
+        user_id: user.id,
         calories: preview.calories,
         protein_g: preview.protein,
         carbs_g: preview.carbs,
@@ -181,22 +174,11 @@ export default function Onboarding() {
         is_active: true,
       };
 
-      if (existing?.id) {
-        const { error: updateError } = await supabase
-          .from('nutrition_targets').update(target)
-          .eq('id', existing.id).eq('user_id', user.id);
-        if (updateError) throw new Error(`Nutrition : ${updateError.message}`);
+      const { error: targetError } = await supabase
+        .from('nutrition_targets')
+        .upsert(target, { onConflict: 'user_id' });
 
-        // Toute ancienne ligne éventuelle devient inactive.
-        await supabase.from('nutrition_targets')
-          .update({ is_active: false })
-          .eq('user_id', user.id).neq('id', existing.id).eq('is_active', true);
-      } else {
-        const { error: insertError } = await supabase.from('nutrition_targets').insert({
-          user_id: user.id, ...target,
-        });
-        if (insertError) throw new Error(`Nutrition : ${insertError.message}`);
-      }
+      if (targetError) throw new Error(`Nutrition : ${targetError.message}`);
 
       const { error: completeError } = await supabase.from('profiles').update({
         onboarding_completed: true,
