@@ -12,8 +12,8 @@ import {
   resolveNoxExercise,
 } from '../lib/noxExercises';
 
-const ACCENT = '#c8ff00';
-const BG = '#F7F7F5';
+const ACCENT = '#B7FF00';
+const BG = '#F6F7F2';
 const SURFACE = '#FFFFFF';
 const BORDER = '#E4E4DF';
 const MUTED = '#77776F';
@@ -233,45 +233,38 @@ export default function Program() {
 
   if (selectedSession) {
     const sessionIndex = Math.max(0, sessions.findIndex(s => s === selectedSession));
-    return (
-      <SessionDetail
-        session={selectedSession}
-        sessionIndex={sessionIndex}
-        sessionLength={sessionLength}
-        onBack={() => setSelectedSession(null)}
-        onStart={() => navigate('/training/' + (selectedSession.id || sessionIndex))}
-        onExercise={setSelectedExercise}
-      />
-    );
-  }
+    const todaySessionIndex = sessions.length
+    ? Math.min(Math.max(currentDay - 1, 0), sessions.length - 1)
+    : 0;
+  const todaySession = sessions[todaySessionIndex] || sessions[0] || null;
+  const todayExerciseCount = todaySession?.exercises?.length || 0;
+  const todayDuration = todaySession?.duration || sessionLength;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F7F7F5', color: '#111', paddingBottom: 92 }}>
-      <main style={{ maxWidth: 560, minHeight: '100vh', margin: '0 auto', background: '#fff' }}>
-        <header style={{ padding: '18px 18px 0', background: '#fff' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 76px', alignItems: 'center' }}>
-            <button
-              onClick={() => navigate('/home')}
-              aria-label="Retour"
-              style={iconButton}
-            >
-              ‹
-            </button>
-
-            <div style={{ justifySelf: 'center' }}>
-              <NoxMark />
+    <div style={{ minHeight: '100vh', background: BG, color: '#090909', paddingBottom: 104 }}>
+      <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
+        <header style={{ padding: '24px 20px 16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 28, fontWeight: 1000, lineHeight: 1, letterSpacing: '-.07em' }}>NOX</div>
+                <div style={{ width: 9, height: 9, borderRadius: '50%', background: ACCENT }} />
+              </div>
+              <div style={{ color: '#9A9D96', fontSize: 10, fontWeight: 850, marginTop: 7, letterSpacing: '.06em' }}>
+                ACTIVITÉ
+              </div>
             </div>
 
             <button
               onClick={() => navigate('/generate-program')}
               style={{
-                justifySelf: 'end',
                 border: 0,
-                background: ACCENT,
-                color: '#111',
-                borderRadius: 9,
-                padding: '8px 10px',
-                fontSize: 9,
+                borderRadius: 14,
+                background: '#090909',
+                color: ACCENT,
+                minHeight: 42,
+                padding: '0 14px',
+                fontSize: 9.5,
                 fontWeight: 950,
                 cursor: 'pointer',
               }}
@@ -280,215 +273,260 @@ export default function Program() {
             </button>
           </div>
 
-          <div style={{ marginTop: 25 }}>
-            <h1 style={{ margin: 0, fontSize: 31, lineHeight: .92, fontWeight: 1000, letterSpacing: '-.055em' }}>
-              PROGRAMME
+          <div style={{ marginTop: 27 }}>
+            <div style={{ color: MUTED, fontSize: 13, fontWeight: 700 }}>
+              {program ? `${programGoal} · ${phaseLabel}` : 'Ton entraînement'}
+            </div>
+            <h1 style={{ margin: '4px 0 0', fontSize: 34, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.06em' }}>
+              Activité.
             </h1>
-            <div style={{ marginTop: 7, color: '#73736D', fontSize: 12.5 }}>
-              {program ? `${programGoal} — ${phaseLabel} · ${sessions.length || 0} jours` : 'Ton plan personnalisé'}
-            </div>
-          </div>
-
-          {program && (
-            <div style={{ marginTop: 17 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ height: 5, flex: 1, background: '#ECECE8', borderRadius: 999, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${displayedProgress}%`, background: ACCENT, borderRadius: 999 }} />
-                </div>
-                <div style={{ fontSize: 11, fontWeight: 900 }}>{displayedProgress}%</div>
-              </div>
-              <div style={{ textAlign: 'center', marginTop: 8, fontSize: 10.5, color: '#55554F', fontWeight: 700 }}>
-                Jour {currentDay} sur {totalSessions}
-              </div>
-            </div>
-          )}
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              background: '#F1F1EE',
-              padding: 3,
-              borderRadius: 12,
-              marginTop: 16,
-            }}
-          >
-            {[
-              { id: 'plan', label: 'PLAN' },
-              { id: 'exercises', label: 'EXERCICES' },
-            ].map(item => {
-              const active = tab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setTab(item.id as 'plan' | 'exercises')}
-                  style={{
-                    border: 0,
-                    borderRadius: 9,
-                    minHeight: 38,
-                    cursor: 'pointer',
-                    background: active ? ACCENT : 'transparent',
-                    color: '#111',
-                    fontSize: 11,
-                    fontWeight: 950,
-                  }}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
           </div>
         </header>
 
         {!program ? (
           <EmptyProgram onCreate={() => navigate('/generate-program')} />
-        ) : tab === 'plan' ? (
-          <section style={{ padding: '15px 18px 24px' }}>
-            <div
-              style={{
-                border: `1.5px solid ${ACCENT}`,
-                borderRadius: 15,
-                background: '#FCFFF4',
-                padding: '14px 14px 14px 13px',
-                display: 'grid',
-                gridTemplateColumns: '34px 1fr',
-                gap: 10,
-                alignItems: 'start',
-              }}
-            >
-              <div style={{ color: ACCENT, fontSize: 31, lineHeight: 1, fontWeight: 1000 }}>ϟ</div>
-              <div>
-                <div style={{ fontSize: 9.5, color: '#55554F', fontWeight: 900, letterSpacing: '.04em' }}>
-                  PLAN ACTIF
-                </div>
-                <div style={{ marginTop: 2, fontSize: 15, lineHeight: 1.13, fontWeight: 1000 }}>
-                  {sessions.length} séances pour progresser cette semaine
-                </div>
-                <div style={{ marginTop: 5, color: '#74746E', fontSize: 10.5, lineHeight: 1.4 }}>
-                  {program.program_json?.progression_notes || 'Valide tes séries et laisse NOX suivre ta progression.'}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gap: 9, marginTop: 13 }}>
-              {sessions.map((session: any, si: number) => (
-                <SessionRow
-                  key={`${session.name}-${si}`}
-                  session={session}
-                  index={si}
-                  sessionLength={sessionLength}
-                  onOpen={() => setSelectedSession(session)}
-                  onStart={() => navigate('/training/' + (session.id || si))}
-                />
-              ))}
-            </div>
-
-            <button
-              onClick={() => navigate('/body')}
-              style={{
-                width: '100%',
-                marginTop: 12,
-                minHeight: 62,
-                border: '1px solid #E4E4DF',
-                background: '#fff',
-                borderRadius: 13,
-                padding: '10px 13px',
-                display: 'grid',
-                gridTemplateColumns: '38px 1fr auto',
-                gap: 10,
-                alignItems: 'center',
-                textAlign: 'left',
-                cursor: 'pointer',
-                color: '#111',
-              }}
-            >
-              <div style={{ width: 34, height: 34, borderRadius: 10, display: 'grid', placeItems: 'center', background: '#F3F3EF', fontSize: 20 }}>
-                ◎
-              </div>
-              <div>
-                <div style={{ fontSize: 10, color: '#77776F', fontWeight: 800 }}>Objectif</div>
-                <div style={{ marginTop: 2, fontSize: 12.5, fontWeight: 850 }}>{objectiveText}</div>
-              </div>
-              <span style={{ fontSize: 22 }}>›</span>
-            </button>
-          </section>
         ) : (
-          <section style={{ padding: '15px 18px 24px' }}>
-            <div
-              style={{
-                minHeight: 44,
-                borderRadius: 12,
-                border: '1px solid #E3E3DE',
-                background: '#FAFAF8',
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0 12px',
-                gap: 9,
-                color: '#8A8A83',
-              }}
-            >
-              {searchIcon()}
-              <input
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Rechercher un exercice..."
-                style={{
-                  flex: 1,
-                  border: 0,
-                  outline: 0,
-                  background: 'transparent',
-                  color: '#111',
-                  fontSize: 12,
-                }}
-              />
-              <span style={{ fontSize: 16 }}>≡</span>
-            </div>
+          <>
+            <section style={{ padding: '0 20px' }}>
+              {todaySession && (
+                <div
+                  style={{
+                    background: '#090909',
+                    color: '#fff',
+                    borderRadius: 29,
+                    padding: 21,
+                    boxShadow: '0 16px 38px rgba(0,0,0,.13)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                    <div>
+                      <div style={{ color: '#777', fontSize: 9.5, fontWeight: 900, letterSpacing: '.1em' }}>
+                        SÉANCE DU JOUR
+                      </div>
+                      <div style={{ marginTop: 5, color: ACCENT, fontSize: 10.5, fontWeight: 950 }}>
+                        Jour {currentDay}
+                      </div>
+                    </div>
+                    <div style={{ background: '#171717', color: ACCENT, borderRadius: 999, padding: '7px 10px', fontSize: 9, fontWeight: 950 }}>
+                      PRÊT
+                    </div>
+                  </div>
 
-            <div style={{ display: 'flex', gap: 7, overflowX: 'auto', padding: '12px 0 10px', scrollbarWidth: 'none' }}>
-              {(['Tous', 'Pectoraux', 'Dos', 'Jambes', 'Épaules', 'Bras'] as Filter[]).map(item => {
-                const active = item === filter;
-                return (
+                  <h2 style={{ margin: '18px 0 0', fontSize: 30, lineHeight: .95, fontWeight: 1000, letterSpacing: '-.055em' }}>
+                    {todaySession.name || `Séance ${todaySessionIndex + 1}`}
+                  </h2>
+
+                  <div style={{ marginTop: 8, color: '#888', fontSize: 11.5, lineHeight: 1.45 }}>
+                    {todayExerciseCount} exercices · {todayDuration} min
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginTop: 22 }}>
+                    {[
+                      [String(todayDuration), 'MIN'],
+                      [String(todayExerciseCount), 'EXERCICES'],
+                      [String(todaySessionIndex + 1), 'SÉANCE'],
+                    ].map(([value, label]) => (
+                      <div key={label} style={{ borderRadius: 15, background: '#151515', padding: '13px 10px' }}>
+                        <div style={{ fontSize: 20, fontWeight: 1000, letterSpacing: '-.04em' }}>{value}</div>
+                        <div style={{ marginTop: 4, color: '#666', fontSize: 7.5, fontWeight: 900 }}>{label}</div>
+                      </div>
+                    ))}
+                  </div>
+
                   <button
-                    key={item}
-                    onClick={() => setFilter(item)}
+                    onClick={() => navigate('/training/' + (todaySession.id || todaySessionIndex))}
                     style={{
-                      flexShrink: 0,
-                      borderRadius: 10,
-                      border: active ? `1px solid ${ACCENT}` : '1px solid #E4E4DF',
-                      background: active ? ACCENT : '#fff',
-                      color: '#111',
-                      padding: '8px 11px',
-                      fontSize: 10,
-                      fontWeight: active ? 900 : 700,
+                      width: '100%',
+                      minHeight: 52,
+                      marginTop: 18,
+                      border: 0,
+                      borderRadius: 15,
+                      background: ACCENT,
+                      color: '#090909',
+                      fontSize: 11,
+                      fontWeight: 1000,
                       cursor: 'pointer',
                     }}
                   >
-                    {item}
+                    COMMENCER LA SÉANCE →
                   </button>
-                );
-              })}
-            </div>
+                </div>
+              )}
 
-            <div style={{ display: 'grid', gap: 8 }}>
-              {filteredExercises.map((exercise: any, i: number) => (
-                <ExerciseListRow
-                  key={`${exercise.name}-${i}`}
-                  exercise={exercise}
-                  onOpen={() => setSelectedExercise(exercise)}
-                />
-              ))}
-            </div>
-
-            {filteredExercises.length === 0 && (
-              <div style={{ padding: '48px 20px', textAlign: 'center', color: '#77776F', fontSize: 12 }}>
-                Aucun exercice trouvé.
+              <div style={{ marginTop: 13, background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 22, padding: 17 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 950 }}>Progression du programme</div>
+                    <div style={{ marginTop: 4, color: MUTED, fontSize: 10.5 }}>
+                      Jour {currentDay} sur {totalSessions}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 19, fontWeight: 1000 }}>{displayedProgress}%</div>
+                </div>
+                <div style={{ height: 6, marginTop: 13, background: '#EFF0EB', borderRadius: 999, overflow: 'hidden' }}>
+                  <div style={{ width: `${displayedProgress}%`, height: '100%', background: ACCENT, borderRadius: 999 }} />
+                </div>
               </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 4,
+                  padding: 4,
+                  marginTop: 13,
+                  borderRadius: 15,
+                  background: '#EDEEE9',
+                }}
+              >
+                {[
+                  { id: 'plan', label: 'MON PLAN' },
+                  { id: 'exercises', label: 'EXERCICES' },
+                ].map(item => {
+                  const active = tab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setTab(item.id as 'plan' | 'exercises')}
+                      style={{
+                        minHeight: 42,
+                        border: 0,
+                        borderRadius: 12,
+                        background: active ? '#fff' : 'transparent',
+                        color: '#090909',
+                        boxShadow: active ? '0 3px 12px rgba(0,0,0,.05)' : 'none',
+                        fontSize: 10,
+                        fontWeight: 950,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {tab === 'plan' ? (
+              <section style={{ padding: '23px 20px 26px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 13 }}>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: 21, fontWeight: 1000, letterSpacing: '-.045em' }}>Ton programme</h2>
+                    <div style={{ marginTop: 3, color: '#9A9D96', fontSize: 10.5 }}>
+                      {sessions.length} séance{sessions.length !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 10, color: MUTED, fontWeight: 850 }}>{phaseLabel}</div>
+                </div>
+
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {sessions.map((session: any, si: number) => (
+                    <SessionRow
+                      key={`${session.name}-${si}`}
+                      session={session}
+                      index={si}
+                      sessionLength={sessionLength}
+                      onOpen={() => setSelectedSession(session)}
+                      onStart={() => navigate('/training/' + (session.id || si))}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => navigate('/progress')}
+                  style={{
+                    width: '100%',
+                    marginTop: 13,
+                    minHeight: 68,
+                    border: `1px solid ${BORDER}`,
+                    background: '#fff',
+                    borderRadius: 20,
+                    padding: '11px 14px',
+                    display: 'grid',
+                    gridTemplateColumns: '42px 1fr auto',
+                    gap: 11,
+                    alignItems: 'center',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    color: '#090909',
+                  }}
+                >
+                  <div style={{ width: 42, height: 42, borderRadius: 14, background: ACCENT, display: 'grid', placeItems: 'center', fontWeight: 1000 }}>↗</div>
+                  <div>
+                    <div style={{ fontSize: 10, color: MUTED, fontWeight: 800 }}>Objectif</div>
+                    <div style={{ marginTop: 2, fontSize: 13, fontWeight: 900 }}>{objectiveText}</div>
+                  </div>
+                  <span style={{ fontSize: 22 }}>›</span>
+                </button>
+              </section>
+            ) : (
+              <section style={{ padding: '23px 20px 26px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 13 }}>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: 21, fontWeight: 1000, letterSpacing: '-.045em' }}>Exercices</h2>
+                    <div style={{ marginTop: 3, color: '#9A9D96', fontSize: 10.5 }}>
+                      {uniqueExercises.length} dans ton programme
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ minHeight: 48, borderRadius: 15, border: `1px solid ${BORDER}`, background: '#fff', display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10, color: '#92958D' }}>
+                  {searchIcon()}
+                  <input
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    placeholder="Rechercher un exercice..."
+                    style={{ flex: 1, border: 0, outline: 0, background: 'transparent', color: '#090909', fontSize: 12.5 }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: 7, overflowX: 'auto', padding: '12px 0', scrollbarWidth: 'none' }}>
+                  {(['Tous', 'Pectoraux', 'Dos', 'Jambes', 'Épaules', 'Bras'] as Filter[]).map(item => {
+                    const active = item === filter;
+                    return (
+                      <button
+                        key={item}
+                        onClick={() => setFilter(item)}
+                        style={{
+                          flexShrink: 0,
+                          borderRadius: 999,
+                          border: active ? `1px solid ${ACCENT}` : `1px solid ${BORDER}`,
+                          background: active ? ACCENT : '#fff',
+                          color: '#090909',
+                          padding: '8px 12px',
+                          fontSize: 9.5,
+                          fontWeight: active ? 950 : 750,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: 'grid', gap: 9 }}>
+                  {filteredExercises.map((exercise: any, i: number) => (
+                    <ExerciseListRow
+                      key={`${exercise.name}-${i}`}
+                      exercise={exercise}
+                      onOpen={() => setSelectedExercise(exercise)}
+                    />
+                  ))}
+                </div>
+
+                {filteredExercises.length === 0 && (
+                  <div style={{ padding: '48px 20px', textAlign: 'center', color: MUTED, fontSize: 12 }}>
+                    Aucun exercice trouvé.
+                  </div>
+                )}
+              </section>
             )}
-          </section>
+          </>
         )}
       </main>
 
-      <BottomNav active="training" />
+      <BottomNav active="activity" />
     </div>
   );
 }
@@ -541,7 +579,7 @@ function SessionRow({
       style={{
         minHeight: 68,
         border: '1px solid #E4E4DF',
-        borderRadius: 13,
+        borderRadius: 20,
         background: '#fff',
         padding: '8px 9px',
         display: 'grid',
@@ -613,7 +651,7 @@ function SessionDetail({
   onExercise: (exercise: any) => void;
 }) {
   return (
-    <div style={{ minHeight: '100vh', background: '#F7F7F5', color: '#111', paddingBottom: 92 }}>
+    <div style={{ minHeight: '100vh', background: '#F6F7F2', color: '#111', paddingBottom: 92 }}>
       <main style={{ maxWidth: 560, minHeight: '100vh', margin: '0 auto', background: '#fff', padding: '18px 18px 28px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 36px', alignItems: 'center' }}>
           <button onClick={onBack} style={iconButton}>‹</button>
@@ -663,7 +701,7 @@ function SessionDetail({
           COMMENCER LA SÉANCE →
         </button>
       </main>
-      <BottomNav active="training" />
+      <BottomNav active="activity" />
     </div>
   );
 }
@@ -755,7 +793,7 @@ function ExerciseDetail({
       : technique.steps;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F7F7F5', color: '#111' }}>
+    <div style={{ minHeight: '100vh', background: '#F6F7F2', color: '#111' }}>
       <main style={{ maxWidth: 560, minHeight: '100vh', margin: '0 auto', background: '#fff', padding: '18px 18px 34px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 36px', alignItems: 'center' }}>
           <button onClick={onBack} style={iconButton}>‹</button>
