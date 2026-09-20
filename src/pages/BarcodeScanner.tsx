@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { ScanLine, Search, X, Check, AlertTriangle } from 'lucide-react';
+import {
+  AlertTriangle,
+  Camera,
+  CameraOff,
+  Check,
+  Keyboard,
+  ScanLine,
+  Search,
+  X,
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
@@ -16,27 +25,90 @@ type Props = {
   onClose: () => void;
 };
 
+type BarcodeDetectorLike = {
+  detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue?: string; format?: string }>>;
+};
+
+declare global {
+  interface Window {
+    BarcodeDetector?: new (options?: { formats?: string[] }) => BarcodeDetectorLike;
+  }
+}
+
 export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) {
   const { user } = useAuth();
+
   const [barcode, setBarcode] = useState('');
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [qty, setQty] = useState('100');
+
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraStarting, setCameraStarting] = useState(false);
+  const [cameraSupported, setCameraSupported] = useState(true);
+  const [cameraMessage, setCameraMessage] = useState('');
+  const [detectedCode, setDetectedCode] = useState('');
+
   const inputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const detectorRef = useRef<BarcodeDetectorLike | null>(null);
+  const scanTimerRef = useRef<number | null>(null);
+  const scanningRef = useRef(false);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    const supported =
+      typeof navigator !== 'undefined' &&
+      !!navigator.mediaDevices?.getUserMedia &&
+      typeof window !== 'undefined' &&
+      'BarcodeDetector' in window;
+
+    setCameraSupported(supported);
+
+    if (!supported) {
+      setCameraMessage(
+        'Le scan caméra natif n’est pas disponible sur ce navigateur. La saisie du code reste disponible.',
+      );
+    }
+
+    return () => stopCamera();
   }, []);
+
+  const clearScanTimer = () => {
+    if (scanTimerRef.current !== null) {
+      window.clearTimeout(scanTimerRef.current);
+      scanTimerRef.current = null;
+    }
+  };
+
+  const stopCamera = () => {
+    clearScanTimer();
+    scanningRef.current = false;
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    setCameraActive(false);
+    setCameraStarting(false);
+  };
 
   const search = async (rawCode: string) => {
     const code = rawCode.replace(/\D/g, '').trim();
+
     if (code.length < 8) {
       setError('Entre un code-barres valide.');
       return;
     }
 
+    setBarcode(code);
     setLoading(true);
     setError('');
     setProduct(null);
@@ -51,12 +123,13 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
       const data = await res.json();
 
       if (data.status !== 1 || !data.product) {
-        setError('Produit non trouvé. Tu peux l’ajouter manuellement.');
+        setError('Produit non trouvé. Tu peux saisir un autre code.');
         return;
       }
 
       const p = data.product;
       const n = p.nutriments || {};
+
       const servingGrams =
         Number.parseFloat(String(p.serving_quantity || '')) ||
         Number.parseFloat(String(p.serving_size || '').replace(',', '.')) ||
@@ -85,6 +158,134 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
       setError('Impossible de rechercher ce produit pour le moment.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const scanFrame = async () => {
+    if (
+      !cameraActive ||
+      !detectorRef.current ||
+      !videoRef.current ||
+      scanningRef.current
+    ) {
+      return;
+    }
+
+    const video = videoRef.current;
+
+    if (video.readyState < 2 || video.videoWidth === 0) {
+      scanTimerRef.current = window.setTimeout(scanFrame, 250);
+      return;
+    }
+
+    scanningRef.current = true;
+
+    try {
+      const results = await detectorRef.current.detect(video);
+      const result = results.find((item) => item.rawValue);
+
+      if (result?.rawValue) {
+        const code = result.rawValue.replace(/\D/g, '');
+
+        if (code.length >= 8) {
+          setDetectedCode(code);
+          setBarcode(code);
+          stopCamera();
+          await search(code);
+          return;
+        }
+      }
+    } catch (scanError) {
+      console.error('Barcode detection:', scanError);
+    } finally {
+      scanningRef.current = false;
+    }
+
+    scanTimerRef.current = window.setTimeout(scanFrame, 220);
+  };
+
+  useEffect(() => {
+    if (!cameraActive) return;
+
+    scanTimerRef.current = window.setTimeout(scanFrame, 300);
+
+    return clearScanTimer;
+  }, [cameraActive]);
+
+  const startCamera = async () => {
+    setError('');
+    setCameraMessage('');
+    setDetectedCode('');
+
+    if (
+      typeof navigator === 'undefined' ||
+      !navigator.mediaDevices?.getUserMedia ||
+      typeof window === 'undefined' ||
+      !window.BarcodeDetector
+    ) {
+      setCameraSupported(false);
+      setCameraMessage(
+        'Le scan caméra natif n’est pas disponible sur ce navigateur. Utilise la saisie du code ci-dessous.',
+      );
+      inputRef.current?.focus();
+      return;
+    }
+
+    setCameraStarting(true);
+
+    try {
+      detectorRef.current = new window.BarcodeDetector({
+        formats: [
+          'ean_13',
+          'ean_8',
+          'upc_a',
+          'upc_e',
+          'code_128',
+          'code_39',
+          'itf',
+        ],
+      });
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      });
+
+      streamRef.current = stream;
+
+      if (!videoRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        throw new Error('video unavailable');
+      }
+
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+
+      setCameraActive(true);
+      setCameraMessage('Place le code-barres au centre du cadre.');
+    } catch (cameraError: any) {
+      console.error('Camera start:', cameraError);
+      stopCamera();
+
+      if (
+        cameraError?.name === 'NotAllowedError' ||
+        cameraError?.name === 'PermissionDeniedError'
+      ) {
+        setCameraMessage(
+          'Autorise l’accès à la caméra dans ton navigateur, puis réessaie.',
+        );
+      } else {
+        setCameraMessage(
+          'La caméra n’a pas pu démarrer. Tu peux saisir le code manuellement.',
+        );
+      }
+    } finally {
+      setCameraStarting(false);
     }
   };
 
@@ -117,7 +318,9 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
       created_at: new Date().toISOString(),
     };
 
-    const { error: insertError } = await supabase.from('food_entries').insert(entry);
+    const { error: insertError } = await supabase
+      .from('food_entries')
+      .insert(entry);
 
     if (insertError) {
       console.error('Barcode food insert:', insertError);
@@ -145,21 +348,38 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 12,
-          marginBottom: 20,
+          marginBottom: 18,
         }}
       >
         <div>
-          <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em' }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 900,
+              color: MUTED,
+              letterSpacing: '.08em',
+            }}
+          >
             ALIMENT
           </div>
-          <div style={{ fontSize: 23, fontWeight: 950, letterSpacing: '-.04em', marginTop: 3 }}>
+          <div
+            style={{
+              fontSize: 23,
+              fontWeight: 950,
+              letterSpacing: '-.04em',
+              marginTop: 3,
+            }}
+          >
             Scanner un code-barres
           </div>
         </div>
 
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => {
+            stopCamera();
+            onClose();
+          }}
           aria-label="Fermer"
           style={{
             width: 42,
@@ -179,34 +399,203 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
 
       <div
         style={{
-          background: SURFACE,
-          border: `1px solid ${BORDER}`,
-          borderRadius: 22,
-          padding: 16,
-          boxShadow: '0 6px 24px rgba(20,20,20,.035)',
+          background: '#111',
+          borderRadius: 24,
+          overflow: 'hidden',
+          position: 'relative',
+          minHeight: 260,
+          boxShadow: '0 10px 30px rgba(20,20,20,.08)',
         }}
       >
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          style={{
+            width: '100%',
+            height: 300,
+            objectFit: 'cover',
+            display: cameraActive ? 'block' : 'none',
+          }}
+        />
+
+        {!cameraActive && (
+          <div
+            style={{
+              minHeight: 260,
+              padding: 24,
+              boxSizing: 'border-box',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              color: '#fff',
+            }}
+          >
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 21,
+                background: ACCENT,
+                color: TEXT,
+                display: 'grid',
+                placeItems: 'center',
+                marginBottom: 16,
+              }}
+            >
+              {cameraSupported ? <Camera size={29} /> : <CameraOff size={29} />}
+            </div>
+
+            <div style={{ fontSize: 17, fontWeight: 900 }}>
+              {cameraSupported ? 'Scanner avec la caméra' : 'Caméra non compatible'}
+            </div>
+
+            <div
+              style={{
+                maxWidth: 300,
+                color: '#9A9A95',
+                fontSize: 11,
+                lineHeight: 1.5,
+                marginTop: 7,
+              }}
+            >
+              {cameraSupported
+                ? 'NOX détecte automatiquement les principaux codes EAN et UPC.'
+                : 'Tu peux toujours retrouver le produit en entrant les chiffres du code-barres.'}
+            </div>
+
+            {cameraSupported && (
+              <button
+                type="button"
+                onClick={startCamera}
+                disabled={cameraStarting}
+                style={{
+                  marginTop: 18,
+                  border: 0,
+                  borderRadius: 14,
+                  padding: '12px 17px',
+                  background: ACCENT,
+                  color: TEXT,
+                  fontSize: 12,
+                  fontWeight: 900,
+                  cursor: cameraStarting ? 'default' : 'pointer',
+                  opacity: cameraStarting ? 0.65 : 1,
+                }}
+              >
+                {cameraStarting ? 'Ouverture…' : 'Ouvrir la caméra'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {cameraActive && (
+          <>
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                pointerEvents: 'none',
+                display: 'grid',
+                placeItems: 'center',
+              }}
+            >
+              <div
+                style={{
+                  width: '78%',
+                  height: 118,
+                  border: `2px solid ${ACCENT}`,
+                  borderRadius: 18,
+                  boxShadow: '0 0 0 999px rgba(0,0,0,.24)',
+                  position: 'relative',
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 16,
+                    right: 16,
+                    top: '50%',
+                    height: 2,
+                    background: ACCENT,
+                    boxShadow: `0 0 12px ${ACCENT}`,
+                  }}
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={stopCamera}
+              style={{
+                position: 'absolute',
+                right: 12,
+                top: 12,
+                width: 40,
+                height: 40,
+                borderRadius: 13,
+                border: '1px solid rgba(255,255,255,.16)',
+                background: 'rgba(0,0,0,.55)',
+                color: '#fff',
+                display: 'grid',
+                placeItems: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <X size={18} />
+            </button>
+          </>
+        )}
+      </div>
+
+      {(cameraMessage || detectedCode) && (
         <div
           style={{
-            width: 52,
-            height: 52,
-            borderRadius: 17,
-            background: '#EEF0E8',
-            display: 'grid',
-            placeItems: 'center',
-            marginBottom: 15,
+            marginTop: 9,
+            fontSize: 10.5,
+            color: MUTED,
+            textAlign: 'center',
+            lineHeight: 1.45,
           }}
         >
-          <ScanLine size={24} strokeWidth={2.4} />
+          {detectedCode ? `Code détecté : ${detectedCode}` : cameraMessage}
         </div>
+      )}
 
-        <div style={{ fontSize: 13, fontWeight: 850, marginBottom: 5 }}>
-          Code EAN / UPC
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          margin: '20px 0 11px',
+        }}
+      >
+        <div style={{ height: 1, background: BORDER, flex: 1 }} />
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            color: MUTED,
+            fontSize: 9.5,
+            fontWeight: 850,
+          }}
+        >
+          <Keyboard size={14} />
+          SAISIE MANUELLE
         </div>
-        <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.45, marginBottom: 13 }}>
-          Entre les chiffres sous le code-barres. La lecture caméra sera ajoutée dans l’étape scanner dédiée.
-        </div>
+        <div style={{ height: 1, background: BORDER, flex: 1 }} />
+      </div>
 
+      <div
+        style={{
+          background: SURFACE,
+          border: `1px solid ${BORDER}`,
+          borderRadius: 20,
+          padding: 14,
+        }}
+      >
         <div style={{ display: 'flex', gap: 8 }}>
           <input
             ref={inputRef}
@@ -246,7 +635,8 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
               color: TEXT,
               display: 'grid',
               placeItems: 'center',
-              cursor: loading || barcode.length < 8 ? 'default' : 'pointer',
+              cursor:
+                loading || barcode.length < 8 ? 'default' : 'pointer',
               opacity: loading || barcode.length < 8 ? 0.45 : 1,
             }}
           >
@@ -314,22 +704,40 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
               )}
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 900 }}>{product.name}</div>
+                <div style={{ fontSize: 16, fontWeight: 900 }}>
+                  {product.name}
+                </div>
+
                 {product.brand && (
-                  <div style={{ fontSize: 11, color: MUTED, marginTop: 3 }}>{product.brand}</div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: MUTED,
+                      marginTop: 3,
+                    }}
+                  >
+                    {product.brand}
+                  </div>
                 )}
+
                 <div
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 5,
                     marginTop: 7,
-                    color: product.per100g.kcal > 0 ? '#536000' : '#A53B2F',
+                    color:
+                      product.per100g.kcal > 0 ? '#536000' : '#A53B2F',
                     fontSize: 10,
                     fontWeight: 850,
                   }}
                 >
-                  {product.per100g.kcal > 0 ? <Check size={13} /> : <AlertTriangle size={13} />}
+                  {product.per100g.kcal > 0 ? (
+                    <Check size={13} />
+                  ) : (
+                    <AlertTriangle size={13} />
+                  )}
+
                   {product.per100g.kcal > 0
                     ? 'Données nutritionnelles disponibles'
                     : 'Données nutritionnelles incomplètes'}
@@ -347,9 +755,21 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
             >
               {[
                 ['Calories', Math.round(product.per100g.kcal * ratio), 'kcal'],
-                ['Protéines', Math.round(product.per100g.protein * ratio * 10) / 10, 'g'],
-                ['Glucides', Math.round(product.per100g.carbs * ratio * 10) / 10, 'g'],
-                ['Lipides', Math.round(product.per100g.fat * ratio * 10) / 10, 'g'],
+                [
+                  'Protéines',
+                  Math.round(product.per100g.protein * ratio * 10) / 10,
+                  'g',
+                ],
+                [
+                  'Glucides',
+                  Math.round(product.per100g.carbs * ratio * 10) / 10,
+                  'g',
+                ],
+                [
+                  'Lipides',
+                  Math.round(product.per100g.fat * ratio * 10) / 10,
+                  'g',
+                ],
               ].map(([label, value, unit]) => (
                 <div
                   key={String(label)}
@@ -362,19 +782,50 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
                 >
                   <div style={{ fontSize: 15, fontWeight: 950 }}>
                     {value}
-                    <span style={{ fontSize: 8, marginLeft: 2, color: MUTED }}>{unit}</span>
+                    <span
+                      style={{
+                        fontSize: 8,
+                        marginLeft: 2,
+                        color: MUTED,
+                      }}
+                    >
+                      {unit}
+                    </span>
                   </div>
-                  <div style={{ fontSize: 8.5, color: MUTED, marginTop: 4 }}>{label}</div>
+
+                  <div
+                    style={{
+                      fontSize: 8.5,
+                      color: MUTED,
+                      marginTop: 4,
+                    }}
+                  >
+                    {label}
+                  </div>
                 </div>
               ))}
             </div>
 
             <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: 10, color: MUTED, fontWeight: 850, marginBottom: 8 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: MUTED,
+                  fontWeight: 850,
+                  marginBottom: 8,
+                }}
+              >
                 PORTION
               </div>
 
-              <div style={{ display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 4 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 7,
+                  overflowX: 'auto',
+                  paddingBottom: 4,
+                }}
+              >
                 {portions.map((portion) => (
                   <button
                     key={`${portion.label}-${portion.g}`}
@@ -382,8 +833,15 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
                     onClick={() => setQty(String(portion.g))}
                     style={{
                       flexShrink: 0,
-                      border: `1px solid ${Math.round(quantity) === portion.g ? '#A7D900' : BORDER}`,
-                      background: Math.round(quantity) === portion.g ? ACCENT : '#FAFBF7',
+                      border: `1px solid ${
+                        Math.round(quantity) === portion.g
+                          ? '#A7D900'
+                          : BORDER
+                      }`,
+                      background:
+                        Math.round(quantity) === portion.g
+                          ? ACCENT
+                          : '#FAFBF7',
                       borderRadius: 999,
                       padding: '9px 12px',
                       fontSize: 10,
@@ -397,7 +855,14 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
                 ))}
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 10 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 9,
+                  marginTop: 10,
+                }}
+              >
                 <input
                   value={qty}
                   onChange={(e) => setQty(e.target.value)}
@@ -417,7 +882,15 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
                     boxSizing: 'border-box',
                   }}
                 />
-                <div style={{ fontSize: 12, color: MUTED, fontWeight: 800 }}>g</div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: MUTED,
+                    fontWeight: 800,
+                  }}
+                >
+                  g
+                </div>
               </div>
             </div>
           </div>
@@ -442,13 +915,23 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
           >
             {saving
               ? 'Ajout…'
-              : `Ajouter · ${Math.round(product.per100g.kcal * ratio)} kcal`}
+              : `Ajouter · ${Math.round(
+                  product.per100g.kcal * ratio,
+                )} kcal`}
           </button>
         </div>
       )}
 
-      <div style={{ marginTop: 15, fontSize: 10, color: '#9A9D96', lineHeight: 1.5 }}>
-        Informations produit fournies par Open Food Facts. Vérifie l’étiquette si les données semblent incomplètes.
+      <div
+        style={{
+          marginTop: 15,
+          fontSize: 10,
+          color: '#9A9D96',
+          lineHeight: 1.5,
+        }}
+      >
+        Informations produit fournies par Open Food Facts. Vérifie
+        l’étiquette si les données semblent incomplètes.
       </div>
     </div>
   );
