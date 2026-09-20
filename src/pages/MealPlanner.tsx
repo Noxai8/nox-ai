@@ -955,6 +955,224 @@ export default function MealPlanner() {
     await load();
   };
 
+  const creationActive =
+    fridgeAnalyzing ||
+    generating ||
+    creationStage === 'images';
+
+  const recipeDay = Math.max(
+    1,
+    Math.min(7, Math.ceil(creationProgress / (100 / 7)) || 1),
+  );
+
+  const imagePercent = imageTotalCount
+    ? Math.min(100, Math.round((imageReadyCount / imageTotalCount) * 100))
+    : 0;
+
+  if (creationActive) {
+    const stageTitle =
+      creationStage === 'analysis'
+        ? 'Analyse du frigo'
+        : creationStage === 'recipes'
+          ? 'Création de vos plats'
+          : 'On dresse les plats !';
+
+    const stageSubtitle =
+      creationStage === 'analysis'
+        ? 'NOX reconnaît les aliments et estime les quantités disponibles.'
+        : creationStage === 'recipes'
+          ? 'NOX compose ta semaine avec ton frigo et tes objectifs.'
+          : 'Les recettes sont prêtes. Les visuels arrivent en temps réel.';
+
+    const percent =
+      creationStage === 'analysis'
+        ? creationProgress
+        : creationStage === 'recipes'
+          ? creationProgress
+          : imagePercent;
+
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#09110E',
+        color: '#fff',
+        padding: 'env(safe-area-inset-top) 0 env(safe-area-inset-bottom)',
+      }}>
+        <main style={{
+          width: '100%',
+          maxWidth: 620,
+          minHeight: '100vh',
+          margin: '0 auto',
+          padding: '22px 20px 34px',
+          display: 'flex',
+          flexDirection: 'column',
+          boxSizing: 'border-box',
+        }}>
+          <div style={{ textAlign: 'center', fontSize: 24, fontWeight: 950, letterSpacing: '.08em' }}>
+            NOX
+          </div>
+
+          <div style={{ marginTop: 46 }}>
+            <div style={{ color: ACCENT, fontSize: 10, fontWeight: 950, letterSpacing: '.16em' }}>
+              NOX AI · EN DIRECT
+            </div>
+            <h1 style={{ margin: '9px 0 0', fontSize: 30, lineHeight: 1.04, letterSpacing: '-.045em' }}>
+              {stageTitle}
+            </h1>
+            <p style={{ margin: '10px 0 0', maxWidth: 470, color: '#AAB5AF', fontSize: 13, lineHeight: 1.55 }}>
+              {stageSubtitle}
+            </p>
+          </div>
+
+          <div style={{
+            marginTop: 30,
+            width: 190,
+            height: 190,
+            borderRadius: '50%',
+            alignSelf: 'center',
+            display: 'grid',
+            placeItems: 'center',
+            background: `conic-gradient(${ACCENT} ${Math.max(3, percent)}%, #203029 0)`,
+            boxShadow: '0 0 50px rgba(200,255,0,.08)',
+          }}>
+            <div style={{
+              width: 164,
+              height: 164,
+              borderRadius: '50%',
+              background: '#0D1713',
+              display: 'grid',
+              placeItems: 'center',
+              textAlign: 'center',
+              border: '1px solid #26372F',
+            }}>
+              <div>
+                <div style={{ fontSize: 34, fontWeight: 950, letterSpacing: '-.05em' }}>
+                  {creationStage === 'analysis'
+                    ? `${Math.round(creationProgress)}%`
+                    : creationStage === 'recipes'
+                      ? `${recipeDay}/7`
+                      : `${imageReadyCount}/${imageTotalCount || '…'}`}
+                </div>
+                <div style={{ marginTop: 5, color: '#8D9A93', fontSize: 9, fontWeight: 850, letterSpacing: '.08em' }}>
+                  {creationStage === 'analysis'
+                    ? 'ANALYSE'
+                    : creationStage === 'recipes'
+                      ? 'JOURS CRÉÉS'
+                      : 'VISUELS PRÊTS'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 30, display: 'grid', gap: 9 }}>
+            {[
+              {
+                title: 'Analyse du frigo',
+                text: creationStage === 'analysis'
+                  ? 'Reconnaissance des aliments en cours…'
+                  : `${fridgeFoods.length} aliment${fridgeFoods.length > 1 ? 's' : ''} détecté${fridgeFoods.length > 1 ? 's' : ''}`,
+                state: creationStage === 'analysis' ? 'active' : 'done',
+              },
+              {
+                title: 'Création des recettes',
+                text: creationStage === 'analysis'
+                  ? 'En attente'
+                  : creationStage === 'recipes'
+                    ? `${createdMealsCount} plat${createdMealsCount > 1 ? 's' : ''} créé${createdMealsCount > 1 ? 's' : ''} · jour ${recipeDay}/7`
+                    : `${createdMealsCount} plats créés`,
+                state: creationStage === 'recipes' ? 'active' : creationStage === 'images' ? 'done' : 'waiting',
+              },
+              {
+                title: 'Génération des images',
+                text: creationStage === 'images'
+                  ? `${imageReadyCount} sur ${imageTotalCount || '…'} prêtes`
+                  : creationStage === 'recipes'
+                    ? 'Les premières images démarrent avec les plats'
+                    : 'En attente',
+                state: creationStage === 'images' ? 'active' : 'waiting',
+              },
+            ].map((item, index) => (
+              <div key={item.title} style={{
+                minHeight: 68,
+                padding: '12px 13px',
+                borderRadius: 16,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                background: item.state === 'active' ? 'rgba(200,255,0,.08)' : '#101B16',
+                border: `1px solid ${item.state === 'active' ? 'rgba(200,255,0,.42)' : '#223129'}`,
+              }}>
+                <div style={{
+                  width: 38,
+                  height: 38,
+                  flex: '0 0 38px',
+                  borderRadius: 13,
+                  display: 'grid',
+                  placeItems: 'center',
+                  background: item.state === 'done' ? ACCENT : item.state === 'active' ? '#1B2A22' : '#16211C',
+                  color: item.state === 'done' ? '#111' : item.state === 'active' ? ACCENT : '#5D6962',
+                  fontWeight: 950,
+                }}>
+                  {item.state === 'done' ? '✓' : index + 1}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 950 }}>{item.title}</div>
+                  <div style={{ marginTop: 3, color: item.state === 'active' ? '#DCE4DF' : '#77837C', fontSize: 10.5 }}>
+                    {item.text}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {creationStage !== 'analysis' && createdMealsCount > 0 && (
+            <div style={{
+              marginTop: 18,
+              padding: 15,
+              borderRadius: 18,
+              background: '#111D17',
+              border: '1px solid #25362D',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <div>
+                  <div style={{ color: ACCENT, fontSize: 9, fontWeight: 950, letterSpacing: '.12em' }}>
+                    EN TEMPS RÉEL
+                  </div>
+                  <div style={{ marginTop: 5, fontSize: 14, fontWeight: 900 }}>
+                    {createdMealsCount} repas déjà préparés
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right', color: '#9DA8A2', fontSize: 10 }}>
+                  {imageReadyCount} image{imageReadyCount > 1 ? 's' : ''} prête{imageReadyCount > 1 ? 's' : ''}
+                </div>
+              </div>
+              <div style={{ marginTop: 11, height: 6, borderRadius: 999, background: '#26342D', overflow: 'hidden' }}>
+                <div style={{
+                  width: `${creationStage === 'recipes' ? creationProgress : imagePercent}%`,
+                  height: '100%',
+                  borderRadius: 999,
+                  background: ACCENT,
+                  transition: 'width .35s ease',
+                }} />
+              </div>
+            </div>
+          )}
+
+          <div style={{
+            marginTop: 'auto',
+            paddingTop: 30,
+            textAlign: 'center',
+            color: '#738078',
+            fontSize: 9.5,
+            lineHeight: 1.5,
+          }}>
+            Tu peux laisser NOX travailler · ta semaine s’affichera automatiquement dès qu’elle sera prête.
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#F6F7F2', color: '#111', paddingBottom: 92 }}>
       <main style={{ width: '100%', maxWidth: 620, margin: '0 auto' }}>
@@ -974,93 +1192,6 @@ export default function MealPlanner() {
           {message && <Notice text={message} success />}
           {error && <Notice text={error} />}
 
-          {(fridgeAnalyzing || generating || creationStage === 'images' || creationStage === 'done') && (
-            <div style={{
-              marginTop: 14,
-              borderRadius: 22,
-              padding: 16,
-              background: '#0D1512',
-              color: '#fff',
-              border: '1px solid #1E2A25',
-              boxShadow: '0 14px 34px rgba(10,18,14,.10)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                <div>
-                  <div style={{ fontSize: 9, fontWeight: 950, letterSpacing: '.12em', color: ACCENT }}>
-                    NOX AI · EN DIRECT
-                  </div>
-                  <div style={{ marginTop: 5, fontSize: 17, fontWeight: 950, letterSpacing: '-.025em' }}>
-                    {creationStage === 'analysis'
-                      ? 'Analyse de ton frigo'
-                      : creationStage === 'recipes'
-                        ? 'Création de tes plats'
-                        : creationStage === 'images'
-                          ? 'On dresse les plats'
-                          : 'Ta semaine est prête'}
-                  </div>
-                </div>
-                <div style={{
-                  minWidth: 52, height: 52, borderRadius: 18,
-                  background: ACCENT, color: '#111',
-                  display: 'grid', placeItems: 'center',
-                  fontSize: 12, fontWeight: 950,
-                }}>
-                  {creationStage === 'analysis'
-                    ? `${creationProgress}%`
-                    : creationStage === 'recipes'
-                      ? `${Math.min(7, Math.ceil(creationProgress / (100 / 7)))}/7`
-                      : creationStage === 'images'
-                        ? `${imageReadyCount}/${imageTotalCount || '…'}`
-                        : 'OK'}
-                </div>
-              </div>
-
-              <div style={{ marginTop: 14, height: 7, borderRadius: 999, overflow: 'hidden', background: '#26312C' }}>
-                <div style={{
-                  height: '100%',
-                  width: `${
-                    creationStage === 'images'
-                      ? (imageTotalCount ? Math.min(100, Math.round((imageReadyCount / imageTotalCount) * 100)) : 4)
-                      : creationStage === 'done'
-                        ? 100
-                        : creationProgress
-                  }%`,
-                  borderRadius: 999,
-                  background: ACCENT,
-                  transition: 'width .35s ease',
-                }} />
-              </div>
-
-              <div style={{ marginTop: 13, display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 7 }}>
-                {[
-                  ['1', 'ANALYSE', creationStage !== 'idle'],
-                  ['2', 'RECETTES', creationStage === 'recipes' || creationStage === 'images' || creationStage === 'done'],
-                  ['3', 'IMAGES', creationStage === 'images' || creationStage === 'done'],
-                ].map(([num, label, active]) => (
-                  <div key={String(label)} style={{
-                    padding: '9px 7px',
-                    borderRadius: 12,
-                    textAlign: 'center',
-                    background: active ? 'rgba(200,255,0,.10)' : '#151F1B',
-                    border: `1px solid ${active ? 'rgba(200,255,0,.30)' : '#26312C'}`,
-                  }}>
-                    <div style={{ fontSize: 9, fontWeight: 950, color: active ? ACCENT : '#69736D' }}>{num}</div>
-                    <div style={{ marginTop: 2, fontSize: 8, fontWeight: 900, color: active ? '#fff' : '#69736D' }}>{label}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ marginTop: 11, fontSize: 10, lineHeight: 1.45, color: '#AEB8B2' }}>
-                {creationStage === 'analysis'
-                  ? 'NOX reconnaît les aliments et estime les quantités disponibles.'
-                  : creationStage === 'recipes'
-                    ? `${createdMealsCount} plat${createdMealsCount > 1 ? 's' : ''} créé${createdMealsCount > 1 ? 's' : ''}. Les premiers visuels se préparent déjà.`
-                    : creationStage === 'images'
-                      ? `${imageReadyCount} visuel${imageReadyCount > 1 ? 's' : ''} prêt${imageReadyCount > 1 ? 's' : ''} sur ${imageTotalCount || '…'}. Tu peux déjà consulter tes recettes.`
-                      : 'Recettes et visuels prêts à consulter.'}
-              </div>
-            </div>
-          )}
         </header>
 
         <section style={{ padding: '0 20px 18px' }}>
