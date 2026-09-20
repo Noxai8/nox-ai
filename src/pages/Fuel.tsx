@@ -562,15 +562,16 @@ export default function Fuel() {
                   </div>
                 )}
                 {!photoBase64 && !scanning && (
-                  <button onClick={() => fileRef.current?.click()}
-                    style={{ width: '100%', padding: 20, background: BG, border: '2px dashed ' + BORDER, borderRadius: 14, color: '#999', fontSize: 14, cursor: 'pointer', touchAction: 'manipulation' }}>
-                    Prendre une photo
-                  </button>
-                  <button onClick={() => { setAddMode('photo'); galleryRef.current?.click(); }}
-                    style={{ padding: '14px', background: '#F6F7F2', border: '1px solid #E8E8E3', borderRadius: 14, cursor: 'pointer', textAlign: 'left', touchAction: 'manipulation', marginTop: 8, width: '100%' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#111' }}>Choisir depuis la galerie</div>
-                    <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>Photo existante</div>
-                  </button>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <button onClick={() => fileRef.current?.click()}
+                      style={{ padding: '20px 12px', background: BG, border: '2px dashed ' + BORDER, borderRadius: 14, color: '#999', fontSize: 13, fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' }}>
+                      Prendre une photo
+                    </button>
+                    <button onClick={() => galleryRef.current?.click()}
+                      style={{ padding: '20px 12px', background: BG, border: '1px solid ' + BORDER, borderRadius: 14, color: '#999', fontSize: 13, fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' }}>
+                      Choisir une photo
+                    </button>
+                  </div>
                 )}
               </div>
             )}
