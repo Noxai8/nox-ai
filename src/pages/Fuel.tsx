@@ -469,7 +469,7 @@ export default function Fuel() {
       {/* MODAL AJOUTER */}
       {showAdd && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 200 }} onClick={closeAdd}>
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: SURFACE, borderRadius: '20px 20px 0 0', padding: 24, maxHeight: '85vh', overflowY: 'auto' }}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: SURFACE, borderRadius: '20px 20px 0 0', padding: '18px 24px 130px', maxHeight: '88vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
             onClick={e => e.stopPropagation()}>
 
             {/* Header modal */}
@@ -529,97 +529,72 @@ export default function Fuel() {
             {/* Photo scan */}
             {addMode === 'photo' && (
               <div>
-                {photoBase64 && <img src={photoBase64} style={{ width: '100%', borderRadius: 12, objectFit: 'cover', maxHeight: 200, marginBottom: 14 }} alt="" />}
-                {scanning && <div style={{ textAlign: 'center', padding: '20px 0', color: '#999', fontSize: 13 }}>NOX analyse ton repas...</div>}
+                {/* Aperçu compact : ne pousse jamais le résultat sous la navigation */}
+                {photoBase64 && (
+                  <div style={{ position: 'relative', width: '100%', height: 176, borderRadius: 18, overflow: 'hidden', marginBottom: 14, background: '#111' }}>
+                    <img src={photoBase64} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} alt="Repas à analyser" />
+                    {scanning && (
+                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.46)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10, color: '#fff' }}>
+                        <div style={{ width: 42, height: 42, borderRadius: '50%', background: ACCENT, color: DARK, display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 950 }}>✦</div>
+                        <div style={{ fontSize: 14, fontWeight: 900 }}>NOX analyse ton repas...</div>
+                        <div style={{ fontSize: 11, opacity: .8 }}>Identification des aliments et des macros</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {scanResult && !scanning && (
                   <div>
-                    <div style={{ background: BG, borderRadius: 12, padding: 14, marginBottom: 14 }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: DARK, marginBottom: 8 }}>{scanResult.description || 'Repas detecte'}</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
+                    <div style={{ background: BG, border: '1px solid ' + BORDER, borderRadius: 16, padding: 14, marginBottom: 12 }}>
+                      <div style={{ fontSize: 11, color: '#7d8900', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>Repas détecté</div>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: DARK, marginBottom: 12 }}>{scanResult.description || 'Repas détecté'}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 7 }}>
                         {[
-                          ['Kcal', Math.round(scanResult.total?.kcal || scanResult.total?.calories || 0)],
-                          ['Prot', Math.round(scanResult.total?.protein || scanResult.total?.proteines || 0) + 'g'],
-                          ['Gluc', Math.round(scanResult.total?.carbs || scanResult.total?.glucides || 0) + 'g'],
-                          ['Lip', Math.round(scanResult.total?.fat || scanResult.total?.lipides || 0) + 'g'],
-                        ].map(([l, v]) => (
-                          <div key={l as string} style={{ textAlign: 'center', background: SURFACE, borderRadius: 8, padding: '8px 0' }}>
-                            <div style={{ fontSize: 16, fontWeight: 900, color: DARK }}>{v}</div>
-                            <div style={{ fontSize: 10, color: '#999' }}>{l}</div>
+                          ['Kcal', Math.round(scanResult.total?.kcal || scanResult.total?.calories || 0)], '#111'],
+                          ['Prot.', Math.round(scanResult.total?.protein || scanResult.total?.proteines || 0) + 'g', '#4488ff'],
+                          ['Gluc.', Math.round(scanResult.total?.carbs || scanResult.total?.glucides || 0) + 'g', '#ffaa00'],
+                          ['Lip.', Math.round(scanResult.total?.fat || scanResult.total?.lipides || 0) + 'g', '#ff6b6b'],
+                        ].map(([l, v, c]) => (
+                          <div key={l as string} style={{ textAlign: 'center', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 11, padding: '9px 3px', minWidth: 0 }}>
+                            <div style={{ fontSize: 15, fontWeight: 950, color: c as string }}>{v}</div>
+                            <div style={{ fontSize: 9, color: '#999', marginTop: 2 }}>{l}</div>
                           </div>
                         ))}
                       </div>
                     </div>
+
                     <button onClick={() => addEntry({
-                      food_name: scanResult.description || 'Repas scanne',
+                      food_name: scanResult.description || 'Repas scanné',
                       calories: scanResult.total?.kcal || scanResult.total?.calories || 0,
                       protein: scanResult.total?.protein || scanResult.total?.proteines || 0,
                       carbs: scanResult.total?.carbs || scanResult.total?.glucides || 0,
                       fat: scanResult.total?.fat || scanResult.total?.lipides || 0,
                     })} disabled={saving}
-                      style={{ width: '100%', padding: 16, background: DARK, border: 'none', borderRadius: 12, color: ACCENT, fontWeight: 900, fontSize: 14, cursor: 'pointer', touchAction: 'manipulation' }}>
-                      AJOUTER CE REPAS
+                      style={{ width: '100%', padding: 16, background: ACCENT, border: 'none', borderRadius: 14, color: DARK, fontWeight: 950, fontSize: 14, cursor: saving ? 'wait' : 'pointer', touchAction: 'manipulation', marginBottom: 10 }}>
+                      {saving ? 'AJOUT EN COURS...' : 'AJOUTER CE REPAS'}
+                    </button>
+                    <button onClick={() => { setPhotoBase64(null); setScanResult(null); fileRef.current?.click(); }}
+                      style={{ width: '100%', padding: 12, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 14, color: '#777', fontWeight: 800, fontSize: 12, cursor: 'pointer', touchAction: 'manipulation' }}>
+                      Reprendre une photo
                     </button>
                   </div>
                 )}
+
                 {!photoBase64 && !scanning && (
                   <div>
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 18 }}>
-                      <div style={{ width: 58, height: 58, flexShrink: 0, borderRadius: 18, background: 'linear-gradient(135deg,#f2ffd0,#fbfff1)', display: 'grid', placeItems: 'center' }}>
-                        <div style={{ width: 28, height: 28, border: '3px solid ' + ACCENT, borderRadius: 8, position: 'relative' }}>
-                          <span style={{ position: 'absolute', left: -5, top: 7, width: 8, height: 10, borderTop: '3px solid ' + ACCENT, borderBottom: '3px solid ' + ACCENT }} />
-                          <span style={{ position: 'absolute', right: -5, top: 7, width: 8, height: 10, borderTop: '3px solid ' + ACCENT, borderBottom: '3px solid ' + ACCENT }} />
-                        </div>
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 22, lineHeight: 1.05, fontWeight: 950, color: DARK, letterSpacing: '-.03em' }}>Scanner mon repas</div>
-                        <div style={{ marginTop: 7, color: '#777', fontSize: 12, lineHeight: 1.5 }}>Prends une photo de ton repas et Noxai analyse les aliments pour estimer les calories et les macros.</div>
-                      </div>
+                    <div style={{ textAlign: 'center', margin: '4px 0 18px' }}>
+                      <div style={{ width: 58, height: 58, borderRadius: 18, background: '#f3ffd3', color: DARK, display: 'grid', placeItems: 'center', margin: '0 auto 10px', fontSize: 28 }}>⌗</div>
+                      <div style={{ fontSize: 17, fontWeight: 950, color: DARK }}>Analyse ton repas en photo</div>
+                      <div style={{ fontSize: 12, color: '#888', lineHeight: 1.45, marginTop: 5 }}>NOX estime les aliments, calories et macros en quelques secondes.</div>
                     </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8, marginBottom: 16 }}>
-                      {[
-                        ['⚡','Rapide','Résultat en quelques secondes'],
-                        ['◎','Précis','Analyse des aliments'],
-                        ['◉','Adapté à toi','Selon tes objectifs'],
-                      ].map(([icon,title,sub]) => (
-                        <div key={title} style={{ background: BG, border: '1px solid ' + BORDER, borderRadius: 14, padding: '11px 9px', minWidth: 0 }}>
-                          <div style={{ fontSize: 16, marginBottom: 5 }}>{icon}</div>
-                          <div style={{ fontSize: 11, fontWeight: 900, color: DARK }}>{title}</div>
-                          <div style={{ fontSize: 9, color: '#999', lineHeight: 1.35, marginTop: 3 }}>{sub}</div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div style={{ background: '#fbfbf8', border: '2px dashed ' + BORDER, borderRadius: 20, padding: '24px 14px 16px', textAlign: 'center' }}>
-                      <button onClick={() => fileRef.current?.click()}
-                        style={{ width: 82, height: 82, borderRadius: '50%', background: DARK, border: 'none', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center', margin: '0 auto 12px', touchAction: 'manipulation' }}>
-                        <span style={{ fontSize: 31, lineHeight: 1 }}>▣</span>
-                      </button>
-                      <div style={{ fontSize: 16, fontWeight: 900, color: DARK }}>Prendre une photo</div>
-                      <div style={{ fontSize: 11, color: '#999', marginTop: 3 }}>de ton assiette ou de ton repas</div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '17px 0 13px' }}>
-                        <div style={{ height: 1, background: BORDER, flex: 1 }} />
-                        <span style={{ color: '#aaa', fontSize: 11 }}>ou</span>
-                        <div style={{ height: 1, background: BORDER, flex: 1 }} />
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 }}>
-                        <button onClick={() => galleryRef.current?.click()}
-                          style={{ padding: '13px 8px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: DARK, fontSize: 11, fontWeight: 850, cursor: 'pointer', touchAction: 'manipulation' }}>
-                          ▧ &nbsp; Choisir une photo
-                        </button>
-                        <button onClick={() => navigate('/barcode-scanner')}
-                          style={{ padding: '13px 8px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: DARK, fontSize: 11, fontWeight: 850, cursor: 'pointer', touchAction: 'manipulation' }}>
-                          ▥ &nbsp; Scanner un code-barres
-                        </button>
-                      </div>
-                    </div>
-
-                    <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 14, background: 'linear-gradient(135deg,#f4ffd9,#fbfff2)', display: 'flex', gap: 9, alignItems: 'flex-start' }}>
-                      <span style={{ fontSize: 17 }}>💡</span>
-                      <div style={{ color: '#666', fontSize: 10, lineHeight: 1.45 }}><b style={{ color: DARK }}>Conseil :</b> prends la photo de ton assiette dans un bon éclairage pour une analyse plus précise.</div>
-                    </div>
+                    <button onClick={() => fileRef.current?.click()}
+                      style={{ width: '100%', padding: 17, background: DARK, border: 'none', borderRadius: 14, color: ACCENT, fontSize: 14, fontWeight: 900, cursor: 'pointer', touchAction: 'manipulation', marginBottom: 10 }}>
+                      Prendre une photo
+                    </button>
+                    <button onClick={() => galleryRef.current?.click()}
+                      style={{ width: '100%', padding: 15, background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, color: DARK, fontSize: 13, fontWeight: 850, cursor: 'pointer', touchAction: 'manipulation' }}>
+                      Choisir dans la galerie
+                    </button>
                   </div>
                 )}
               </div>
