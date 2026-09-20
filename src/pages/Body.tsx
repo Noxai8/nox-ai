@@ -64,6 +64,9 @@ export default function Body() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
+const [bodyPhotos, setBodyPhotos] = useState<any[]>([]);
+const [photoUploading, setPhotoUploading] = useState(false);
+const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [showActivity, setShowActivity] = useState(false);
   const [activityMode, setActivityMode] = useState<ActivityMode>('manual');
@@ -591,12 +594,69 @@ export default function Body() {
           )}
 
           {tab === 'photos' && (
-            <div style={{ minHeight: 330, borderRadius: 22, border: '1px solid rgba(200,255,0,.16)', background: 'radial-gradient(circle at 50% 20%, rgba(200,255,0,.10), transparent 28%), linear-gradient(145deg,#151515,#0d0d0d)', padding: '44px 22px', textAlign: 'center' }}>
-              <div style={{ display: 'inline-block', color: ACCENT, fontSize: 10, fontWeight: 950, letterSpacing: '.12em', marginBottom: 13 }}>NOX FUTURE</div>
-              <div style={{ fontSize: 22, fontWeight: 950, letterSpacing: '-.03em' }}>TA TRANSFORMATION EN IMAGES</div>
-              <div style={{ fontSize: 12.5, color: '#858585', lineHeight: 1.6, maxWidth: 330, margin: '10px auto 23px' }}>Ajoute tes photos de progression et accède à ta timeline NOX FUTURE. Tes photos restent privées.</div>
-              <button onClick={() => window.location.href = '/future'} style={{ border: 0, borderRadius: 13, background: ACCENT, color: '#050505', padding: '13px 19px', fontSize: 11.5, fontWeight: 950, cursor: 'pointer' }}>OUVRIR NOX FUTURE</button>
-              <div style={{ fontSize: 9.5, color: '#555', lineHeight: 1.5, marginTop: 16 }}>Les projections IA sont indicatives et ne garantissent pas un résultat physique.</div>
+            <div>
+              {/* Upload */}
+              <div style={{ marginBottom: 16 }}>
+                <input ref={photoInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+                  onChange={async e => {
+                    const file = e.target.files?.[0];
+                    if (!file || !user) return;
+                    setPhotoUploading(true);
+                    try {
+                      const ext = file.name.split('.').pop() || 'jpg';
+                      const path = `${user.id}/${Date.now()}.${ext}`;
+                      const { error: upErr } = await supabase.storage.from('body-photos').upload(path, file, { upsert: false });
+                      if (upErr) throw upErr;
+                      const { data: { publicUrl } } = supabase.storage.from('body-photos').getPublicUrl(path);
+                      await supabase.from('body_photos').insert({
+                        user_id: user.id,
+                        photo_url: publicUrl,
+                        storage_path: path,
+                        created_at: new Date().toISOString(),
+                      });
+                      await loadPhotos();
+                    } catch (err: any) {
+                      alert('Erreur upload : ' + err.message);
+                    }
+                    setPhotoUploading(false);
+                    e.target.value = '';
+                  }} />
+                <button onClick={() => photoInputRef.current?.click()} disabled={photoUploading}
+                  style={{ width: '100%', padding: 16, background: photoUploading ? SURFACE : ACCENT, border: 'none', borderRadius: 14, color: photoUploading ? '#555' : '#000', fontWeight: 900, fontSize: 14, cursor: 'pointer', touchAction: 'manipulation', marginBottom: 8 }}>
+                  {photoUploading ? '⏳ Upload en cours...' : '📸 AJOUTER UNE PHOTO'}
+                </button>
+                <div style={{ fontSize: 11, color: '#555', textAlign: 'center' }}>Tes photos sont privées — stockées sur ton compte uniquement</div>
+              </div>
+
+              {/* Galerie */}
+              {bodyPhotos.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: '#555' }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>📸</div>
+                  <div style={{ fontSize: 14 }}>Pas encore de photos</div>
+                  <div style={{ fontSize: 12, marginTop: 6 }}>Ajoute ta première photo de progression</div>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                  {bodyPhotos.map((p: any) => (
+                    <div key={p.id} style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', aspectRatio: '3/4', background: SURFACE }}>
+                      <img src={p.photo_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,.8)', padding: '20px 10px 10px' }}>
+                        <div style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>
+                          {new Date(p.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </div>
+                      </div>
+                      <button onClick={async () => {
+                        await supabase.storage.from('body-photos').remove([p.storage_path]);
+                        await supabase.from('body_photos').delete().eq('id', p.id);
+                        await loadPhotos();
+                      }}
+                        style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,.6)', border: 'none', color: '#fff', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </section>
