@@ -233,7 +233,19 @@ export default function Program() {
 
   if (selectedSession) {
     const sessionIndex = Math.max(0, sessions.findIndex(s => s === selectedSession));
-    const todaySessionIndex = sessions.length
+    return (
+      <SessionDetail
+        session={selectedSession}
+        sessionIndex={sessionIndex}
+        sessionLength={sessionLength}
+        onBack={() => setSelectedSession(null)}
+        onStart={() => navigate('/training/' + (selectedSession.id || sessionIndex))}
+        onExercise={setSelectedExercise}
+      />
+    );
+  }
+
+  const todaySessionIndex = sessions.length
     ? Math.min(Math.max(currentDay - 1, 0), sessions.length - 1)
     : 0;
   const todaySession = sessions[todaySessionIndex] || sessions[0] || null;
