@@ -406,14 +406,14 @@ export default function MealPlanner() {
 
     setGenerating(true);
     setError('');
-    setMessage('Objectif enregistré · NOX crée maintenant tes repas…');
+    setMessage('Objectif enregistré · NOX crée les repas du jour…');
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke('generate-meal-plan', {
         body: {
           mode: modeOverride,
           goal: targetDraft.goal || goal,
-          days: modeOverride === 'shopping' ? shoppingPrefs.days : 7,
+          days: 1,
           target: {
             calories: resolvedTarget.calories,
             protein: resolvedTarget.protein,
@@ -472,7 +472,7 @@ export default function MealPlanner() {
       if (insertError) throw insertError;
 
       await load();
-      setMessage('Repas créés à partir de ton frigo · ouvre un repas pour voir les ingrédients et les grammages.');
+      setMessage('Repas du jour créés à partir de ton frigo · ouvre un repas pour voir les ingrédients et les grammages.');
     } catch (e: any) {
       console.error('MEAL_PLAN_AI_GENERATE_ERROR', e);
       setError(e?.message || 'Impossible de générer le plan repas avec NOX AI.');
@@ -751,7 +751,7 @@ export default function MealPlanner() {
         body: {
           mode: planMode,
           goal,
-          days: planMode === 'shopping' ? shoppingPrefs.days : 7,
+          days: 1,
           target: {
             calories: targetCalories,
             protein: targetProtein,
@@ -814,8 +814,8 @@ export default function MealPlanner() {
       const shoppingCount = Array.isArray(data.shopping_list) ? data.shopping_list.length : 0;
       setMessage(
         planMode === 'shopping'
-          ? `Plan IA généré pour ${shoppingPrefs.days} jours. ${shoppingCount} article${shoppingCount > 1 ? 's' : ''} de courses proposé${shoppingCount > 1 ? 's' : ''}.`
-          : `Plan IA généré à partir de ton frigo : petits-déjeuners, déjeuners et dîners sont prêts.`
+          ? `Repas du jour générés. ${shoppingCount} article${shoppingCount > 1 ? 's' : ''} de courses proposé${shoppingCount > 1 ? 's' : ''}.`
+          : `Repas du jour générés à partir de ton frigo : petit-déjeuner, déjeuner et dîner sont prêts.`
       );
     } catch (e: any) {
       console.error('MEAL_PLAN_AI_GENERATE_ERROR', e);
