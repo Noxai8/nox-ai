@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
@@ -14,7 +14,19 @@ type MainTab = 'timeline' | 'body' | 'training' | 'nutrition' | 'prs';
 export default function Progress() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState<MainTab>('timeline');
+
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const [showPhotoAdd, setShowPhotoAdd] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState('');
+  const [photoPose, setPhotoPose] = useState('front');
+  const [photoDate, setPhotoDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [photoSaving, setPhotoSaving] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const [photoSuccess, setPhotoSuccess] = useState(false);
   const [profile, setProfile] = useState<any>(null);
 
   // Timeline
@@ -43,6 +55,23 @@ export default function Progress() {
 
   useEffect(() => { if (user) loadAll(); }, [user]);
 
+  useEffect(() => {
+    if (searchParams.get('add') !== 'photo') return;
+    setTab('body');
+    setShowPhotoAdd(true);
+
+    const next = new URLSearchParams(searchParams);
+    next.delete('add');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    return () => {
+      if (photoPreview.startsWith('blob:')) URL.revokeObjectURL(photoPreview);
+    };
+  }, [photoPreview]);
+
+
   const loadAll = async () => {
     const [
       { data: prof },
@@ -64,7 +93,21 @@ export default function Progress() {
 
     setProfile(prof);
     setBodyLogs(body || []);
-    setPhotos(bodyPhotos || []);
+    const signedPhotos = await Promise.all(
+      (bodyPhotos || []).map(async (photo: any) => {
+        const storedValue = String(photo.photo_url || '');
+        if (!storedValue || /^https?:\/\//i.test(storedValue)) {
+          return { ...photo, display_url: storedValue };
+        }
+
+        const { data } = await supabase.storage
+          .from('body-photos')
+          .createSignedUrl(storedValue, 60 * 60);
+
+        return { ...photo, display_url: data?.signedUrl || '' };
+      }),
+    );
+    setPhotos(signedPhotos);
     setPrs(prData || []);
 
     // Build timeline unifiée
@@ -102,6 +145,102 @@ export default function Progress() {
     setNutritionWeeks(nutWeeks);
 
     setWorkouts(wkts || []);
+  };
+
+  const closePhotoAdd = () => {
+    if (photoSaving) return;
+    setShowPhotoAdd(false);
+    setPhotoFile(null);
+    setPhotoPreview('');
+    setPhotoError('');
+    setPhotoSuccess(false);
+    setPhotoPose('front');
+    setPhotoDate(new Date().toISOString().slice(0, 10));
+  };
+
+  const selectPhoto = (file?: File) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('Choisis une image valide.');
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      setPhotoError('La photo doit faire moins de 15 Mo.');
+      return;
+    }
+
+    if (photoPreview.startsWith('blob:')) URL.revokeObjectURL(photoPreview);
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+    setPhotoError('');
+    setPhotoSuccess(false);
+  };
+
+  const saveProgressPhoto = async () => {
+    if (!user || !photoFile || photoSaving) return;
+
+    setPhotoSaving(true);
+    setPhotoError('');
+    setPhotoSuccess(false);
+
+    let filePath = '';
+
+    try {
+      const rawExt = photoFile.name.split('.').pop()?.toLowerCase() || '';
+      const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'].includes(rawExt)
+        ? rawExt
+        : photoFile.type === 'image/png'
+          ? 'png'
+          : photoFile.type === 'image/webp'
+            ? 'webp'
+            : 'jpg';
+
+      const uniqueId =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+      filePath = `${user.id}/${uniqueId}.${safeExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('body-photos')
+        .upload(filePath, photoFile, {
+          cacheControl: '3600',
+          contentType: photoFile.type || 'image/jpeg',
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { error: insertError } = await supabase
+        .from('body_photos')
+        .insert({
+          user_id: user.id,
+          photo_url: filePath,
+          pose: photoPose,
+          taken_at: photoDate,
+        });
+
+      if (insertError) {
+        await supabase.storage.from('body-photos').remove([filePath]);
+        throw insertError;
+      }
+
+      setPhotoSuccess(true);
+      setTab('body');
+      await loadAll();
+
+      window.setTimeout(() => {
+        closePhotoAdd();
+      }, 650);
+    } catch (error: any) {
+      console.error('Progress photo upload:', error);
+      setPhotoError(error?.message || "Impossible d'enregistrer la photo.");
+    } finally {
+      setPhotoSaving(false);
+    }
   };
 
   const getWeekKey = (date: Date) => {
@@ -215,7 +354,7 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
         <div style={{ display: 'flex', gap: 4, overflowX: 'auto', background: '#ECEEE8', borderRadius: 16, padding: 4, marginBottom: 14 }}>
           {TABS.map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
-              style={{ padding: '10px 16px', background: 'none', border: 'none', borderBottom: '2px solid ' + (tab === id ? ACCENT : 'transparent'), color: tab === id ? ACCENT : '#555', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', touchAction: 'manipulation' }}>
+              style={{ padding: '10px 15px', background: tab === id ? '#090909' : 'transparent', border: 'none', borderRadius: 12, color: tab === id ? '#fff' : '#777B72', fontSize: 11, fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap', touchAction: 'manipulation' }}>
               {label}
             </button>
           ))}
@@ -253,6 +392,39 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
         {/* ── CORPS ── */}
         {tab === 'body' && (
           <div>
+            <div style={{ background: '#090909', borderRadius: 24, padding: 18, marginBottom: 18, color: '#fff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.09em', color: '#777B72' }}>PHOTOS DE PROGRESSION</div>
+                  <div style={{ fontSize: 20, fontWeight: 950, letterSpacing: '-.035em', marginTop: 4 }}>
+                    {photos.length ? `${photos.length} photo${photos.length > 1 ? 's' : ''}` : 'Crée ton premier repère'}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#8E918A', marginTop: 5, lineHeight: 1.45 }}>
+                    Tes images restent dans ton espace privé.
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowPhotoAdd(true)}
+                  style={{ flexShrink: 0, border: 0, borderRadius: 16, background: ACCENT, color: '#090909', padding: '12px 14px', fontSize: 11, fontWeight: 950, cursor: 'pointer' }}
+                >
+                  + Photo
+                </button>
+              </div>
+
+              {photos.length > 0 && (
+                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 15, paddingBottom: 2 }}>
+                  {photos.slice(0, 8).map((photo: any) => (
+                    <img
+                      key={photo.id}
+                      src={photo.display_url || photo.photo_url}
+                      alt="Progression"
+                      style={{ width: 76, height: 96, borderRadius: 14, objectFit: 'cover', flexShrink: 0, background: '#1A1A1A' }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Évolution poids */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 11, color: '#8B8F86', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>ÉVOLUTION DU POIDS</div>
@@ -306,7 +478,7 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
                             <option value="">Choisir...</option>
                             {photos.map(p => <option key={p.id} value={p.id}>{new Date(p.created_at).toLocaleDateString('fr-FR')}</option>)}
                           </select>
-                          {compareA?.photo_url && <img src={compareA.photo_url} style={{ width: '100%', borderRadius: 16, objectFit: 'cover', aspectRatio: '3/4' }} alt="Avant" />}
+                          {compareA?.photo_url && <img src={compareA.display_url || compareA.photo_url} style={{ width: '100%', borderRadius: 16, objectFit: 'cover', aspectRatio: '3/4' }} alt="Avant" />}
                         </div>
                         <div>
                           <div style={{ fontSize: 10, color: '#8B8F86', marginBottom: 4 }}>APRÈS</div>
@@ -315,7 +487,7 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
                             <option value="">Choisir...</option>
                             {photos.map(p => <option key={p.id} value={p.id}>{new Date(p.created_at).toLocaleDateString('fr-FR')}</option>)}
                           </select>
-                          {compareB?.photo_url && <img src={compareB.photo_url} style={{ width: '100%', borderRadius: 16, objectFit: 'cover', aspectRatio: '3/4' }} alt="Après" />}
+                          {compareB?.photo_url && <img src={compareB.display_url || compareB.photo_url} style={{ width: '100%', borderRadius: 16, objectFit: 'cover', aspectRatio: '3/4' }} alt="Après" />}
                         </div>
                       </div>
                     </div>
@@ -451,6 +623,183 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
           </div>
         )}
       </div>
+
+      {showPhotoAdd && (
+        <div
+          onClick={closePhotoAdd}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 500,
+            background: 'rgba(0,0,0,.48)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: 560,
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              background: '#fff',
+              borderRadius: '28px 28px 0 0',
+              padding: '10px 20px max(30px, env(safe-area-inset-bottom))',
+              boxSizing: 'border-box',
+              boxShadow: '0 -24px 80px rgba(0,0,0,.2)',
+            }}
+          >
+            <div style={{ width: 42, height: 5, borderRadius: 99, background: '#D8DAD3', margin: '2px auto 20px' }} />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+              <div>
+                <div style={{ fontSize: 10, color: '#8B8F86', fontWeight: 900, letterSpacing: '.1em' }}>PROGRESSION</div>
+                <div style={{ fontSize: 27, fontWeight: 950, letterSpacing: '-.045em', marginTop: 3 }}>Ajouter une photo</div>
+                <div style={{ fontSize: 11, color: '#8B8F86', marginTop: 5, lineHeight: 1.45 }}>
+                  Stockée dans ton espace privé NOX.
+                </div>
+              </div>
+              <button
+                onClick={closePhotoAdd}
+                disabled={photoSaving}
+                aria-label="Fermer"
+                style={{ width: 40, height: 40, borderRadius: 14, border: `1px solid ${BORDER}`, background: '#F5F6F1', fontSize: 20, cursor: 'pointer' }}
+              >
+                ×
+              </button>
+            </div>
+
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                selectPhoto(e.target.files?.[0]);
+                e.currentTarget.value = '';
+              }}
+              style={{ display: 'none' }}
+            />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                selectPhoto(e.target.files?.[0]);
+                e.currentTarget.value = '';
+              }}
+              style={{ display: 'none' }}
+            />
+
+            {!photoPreview ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 22 }}>
+                <button
+                  onClick={() => cameraInputRef.current?.click()}
+                  style={{ minHeight: 128, border: 0, borderRadius: 22, background: '#090909', color: '#fff', padding: 16, textAlign: 'left', cursor: 'pointer' }}
+                >
+                  <div style={{ width: 42, height: 42, borderRadius: 14, display: 'grid', placeItems: 'center', background: ACCENT, color: '#090909', fontSize: 20 }}>📷</div>
+                  <div style={{ fontSize: 15, fontWeight: 950, marginTop: 18 }}>Caméra</div>
+                  <div style={{ fontSize: 10, color: '#8B8F86', marginTop: 4 }}>Prendre une photo maintenant</div>
+                </button>
+
+                <button
+                  onClick={() => galleryInputRef.current?.click()}
+                  style={{ minHeight: 128, border: `1px solid ${BORDER}`, borderRadius: 22, background: '#F8F9F5', color: '#090909', padding: 16, textAlign: 'left', cursor: 'pointer' }}
+                >
+                  <div style={{ width: 42, height: 42, borderRadius: 14, display: 'grid', placeItems: 'center', background: '#090909', color: ACCENT, fontSize: 20 }}>▣</div>
+                  <div style={{ fontSize: 15, fontWeight: 950, marginTop: 18 }}>Galerie</div>
+                  <div style={{ fontSize: 10, color: '#8B8F86', marginTop: 4 }}>Choisir une image existante</div>
+                </button>
+              </div>
+            ) : (
+              <div style={{ marginTop: 20 }}>
+                <div style={{ position: 'relative', borderRadius: 24, overflow: 'hidden', background: '#ECEEE8' }}>
+                  <img src={photoPreview} alt="Aperçu" style={{ width: '100%', maxHeight: 430, display: 'block', objectFit: 'cover' }} />
+                  <button
+                    onClick={() => {
+                      setPhotoFile(null);
+                      setPhotoPreview('');
+                      setPhotoError('');
+                    }}
+                    disabled={photoSaving}
+                    style={{ position: 'absolute', right: 12, top: 12, border: 0, borderRadius: 999, background: 'rgba(0,0,0,.72)', color: '#fff', padding: '8px 11px', fontSize: 10, fontWeight: 900, cursor: 'pointer' }}
+                  >
+                    Changer
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14 }}>
+                  <label style={{ display: 'block' }}>
+                    <div style={{ fontSize: 10, fontWeight: 850, color: '#777B72', marginBottom: 6 }}>POSE</div>
+                    <select
+                      value={photoPose}
+                      onChange={(e) => setPhotoPose(e.target.value)}
+                      disabled={photoSaving}
+                      style={{ width: '100%', height: 48, borderRadius: 15, border: `1px solid ${BORDER}`, background: '#F8F9F5', padding: '0 12px', color: '#090909', fontWeight: 800 }}
+                    >
+                      <option value="front">Face</option>
+                      <option value="side">Profil</option>
+                      <option value="back">Dos</option>
+                    </select>
+                  </label>
+
+                  <label style={{ display: 'block' }}>
+                    <div style={{ fontSize: 10, fontWeight: 850, color: '#777B72', marginBottom: 6 }}>DATE</div>
+                    <input
+                      type="date"
+                      value={photoDate}
+                      max={new Date().toISOString().slice(0, 10)}
+                      onChange={(e) => setPhotoDate(e.target.value)}
+                      disabled={photoSaving}
+                      style={{ width: '100%', height: 48, boxSizing: 'border-box', borderRadius: 15, border: `1px solid ${BORDER}`, background: '#F8F9F5', padding: '0 12px', color: '#090909', fontWeight: 800 }}
+                    />
+                  </label>
+                </div>
+
+                {photoError && (
+                  <div style={{ marginTop: 12, padding: '11px 13px', borderRadius: 14, background: '#FFF1F1', color: '#A32929', fontSize: 11, fontWeight: 750 }}>
+                    {photoError}
+                  </div>
+                )}
+
+                {photoSuccess && (
+                  <div style={{ marginTop: 12, padding: '11px 13px', borderRadius: 14, background: '#F1F9DF', color: '#314B00', fontSize: 11, fontWeight: 850 }}>
+                    Photo enregistrée ✓
+                  </div>
+                )}
+
+                <button
+                  onClick={saveProgressPhoto}
+                  disabled={photoSaving || !photoFile}
+                  style={{
+                    width: '100%',
+                    marginTop: 14,
+                    height: 54,
+                    border: 0,
+                    borderRadius: 18,
+                    background: photoSaving ? '#D9DDD2' : ACCENT,
+                    color: '#090909',
+                    fontSize: 13,
+                    fontWeight: 950,
+                    cursor: photoSaving ? 'default' : 'pointer',
+                  }}
+                >
+                  {photoSaving ? 'Enregistrement…' : 'Enregistrer la photo'}
+                </button>
+              </div>
+            )}
+
+            {photoError && !photoPreview && (
+              <div style={{ marginTop: 12, padding: '11px 13px', borderRadius: 14, background: '#FFF1F1', color: '#A32929', fontSize: 11, fontWeight: 750 }}>
+                {photoError}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <BottomNav active="progress" />
     </div>
