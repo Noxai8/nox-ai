@@ -55,6 +55,7 @@ export default function Fuel() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const fileRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<Tab>('journal');
   const [entries, setEntries] = useState<any[]>([]);
   const [targets, setTargets] = useState({ kcal: 2200, protein: 160, carbs: 220, fat: 70 });
@@ -240,6 +241,8 @@ export default function Fuel() {
   return (
     <div style={{ minHeight: '100vh', background: BG, paddingBottom: 90 }}>
       <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) handlePhoto(f); e.target.value = ''; }} />
+      <input ref={galleryRef} type="file" accept="image/*" style={{ display: 'none' }}
         onChange={e => { const f = e.target.files?.[0]; if (f) handlePhoto(f); e.target.value = ''; }} />
 
       {/* HEADER / NUTRITION OVERVIEW */}
@@ -562,6 +565,11 @@ export default function Fuel() {
                   <button onClick={() => fileRef.current?.click()}
                     style={{ width: '100%', padding: 20, background: BG, border: '2px dashed ' + BORDER, borderRadius: 14, color: '#999', fontSize: 14, cursor: 'pointer', touchAction: 'manipulation' }}>
                     Prendre une photo
+                  </button>
+                  <button onClick={() => { setAddMode('photo'); galleryRef.current?.click(); }}
+                    style={{ padding: '14px', background: '#F6F7F2', border: '1px solid #E8E8E3', borderRadius: 14, cursor: 'pointer', textAlign: 'left', touchAction: 'manipulation', marginTop: 8, width: '100%' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#111' }}>Choisir depuis la galerie</div>
+                    <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>Photo existante</div>
                   </button>
                 )}
               </div>
