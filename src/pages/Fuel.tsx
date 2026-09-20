@@ -562,15 +562,64 @@ export default function Fuel() {
                   </div>
                 )}
                 {!photoBase64 && !scanning && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    <button onClick={() => fileRef.current?.click()}
-                      style={{ padding: '20px 12px', background: BG, border: '2px dashed ' + BORDER, borderRadius: 14, color: '#999', fontSize: 13, fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' }}>
-                      Prendre une photo
-                    </button>
-                    <button onClick={() => galleryRef.current?.click()}
-                      style={{ padding: '20px 12px', background: BG, border: '1px solid ' + BORDER, borderRadius: 14, color: '#999', fontSize: 13, fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' }}>
-                      Choisir une photo
-                    </button>
+                  <div>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 18 }}>
+                      <div style={{ width: 58, height: 58, flexShrink: 0, borderRadius: 18, background: 'linear-gradient(135deg,#f2ffd0,#fbfff1)', display: 'grid', placeItems: 'center' }}>
+                        <div style={{ width: 28, height: 28, border: '3px solid ' + ACCENT, borderRadius: 8, position: 'relative' }}>
+                          <span style={{ position: 'absolute', left: -5, top: 7, width: 8, height: 10, borderTop: '3px solid ' + ACCENT, borderBottom: '3px solid ' + ACCENT }} />
+                          <span style={{ position: 'absolute', right: -5, top: 7, width: 8, height: 10, borderTop: '3px solid ' + ACCENT, borderBottom: '3px solid ' + ACCENT }} />
+                        </div>
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 22, lineHeight: 1.05, fontWeight: 950, color: DARK, letterSpacing: '-.03em' }}>Scanner mon repas</div>
+                        <div style={{ marginTop: 7, color: '#777', fontSize: 12, lineHeight: 1.5 }}>Prends une photo de ton repas et Noxai analyse les aliments pour estimer les calories et les macros.</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8, marginBottom: 16 }}>
+                      {[
+                        ['⚡','Rapide','Résultat en quelques secondes'],
+                        ['◎','Précis','Analyse des aliments'],
+                        ['◉','Adapté à toi','Selon tes objectifs'],
+                      ].map(([icon,title,sub]) => (
+                        <div key={title} style={{ background: BG, border: '1px solid ' + BORDER, borderRadius: 14, padding: '11px 9px', minWidth: 0 }}>
+                          <div style={{ fontSize: 16, marginBottom: 5 }}>{icon}</div>
+                          <div style={{ fontSize: 11, fontWeight: 900, color: DARK }}>{title}</div>
+                          <div style={{ fontSize: 9, color: '#999', lineHeight: 1.35, marginTop: 3 }}>{sub}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ background: '#fbfbf8', border: '2px dashed ' + BORDER, borderRadius: 20, padding: '24px 14px 16px', textAlign: 'center' }}>
+                      <button onClick={() => fileRef.current?.click()}
+                        style={{ width: 82, height: 82, borderRadius: '50%', background: DARK, border: 'none', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center', margin: '0 auto 12px', touchAction: 'manipulation' }}>
+                        <span style={{ fontSize: 31, lineHeight: 1 }}>▣</span>
+                      </button>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: DARK }}>Prendre une photo</div>
+                      <div style={{ fontSize: 11, color: '#999', marginTop: 3 }}>de ton assiette ou de ton repas</div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '17px 0 13px' }}>
+                        <div style={{ height: 1, background: BORDER, flex: 1 }} />
+                        <span style={{ color: '#aaa', fontSize: 11 }}>ou</span>
+                        <div style={{ height: 1, background: BORDER, flex: 1 }} />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 }}>
+                        <button onClick={() => galleryRef.current?.click()}
+                          style={{ padding: '13px 8px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: DARK, fontSize: 11, fontWeight: 850, cursor: 'pointer', touchAction: 'manipulation' }}>
+                          ▧ &nbsp; Choisir une photo
+                        </button>
+                        <button onClick={() => navigate('/barcode-scanner')}
+                          style={{ padding: '13px 8px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, color: DARK, fontSize: 11, fontWeight: 850, cursor: 'pointer', touchAction: 'manipulation' }}>
+                          ▥ &nbsp; Scanner un code-barres
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 14, background: 'linear-gradient(135deg,#f4ffd9,#fbfff2)', display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: 17 }}>💡</span>
+                      <div style={{ color: '#666', fontSize: 10, lineHeight: 1.45 }}><b style={{ color: DARK }}>Conseil :</b> prends la photo de ton assiette dans un bon éclairage pour une analyse plus précise.</div>
+                    </div>
                   </div>
                 )}
               </div>
