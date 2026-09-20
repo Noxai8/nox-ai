@@ -4,10 +4,10 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const ACCENT = '#B7FF00';
+const BG = '#F6F7F2';
+const SURFACE = '#FFFFFF';
+const BORDER = '#E8EAE2';
 
 type Tab = 'progress' | 'activity' | 'photos';
 type ActivityMode = 'manual' | 'scan' | 'confirm';
@@ -372,7 +372,7 @@ export default function Body() {
   };
 
   const activityInput = (key: keyof ActivityForm, label: string, unit?: string, placeholder = '') => (
-    <label style={{ display: 'block', background: '#111', border: `1px solid ${BORDER}`, borderRadius: 14, padding: 12 }}>
+    <label style={{ display: 'block', background: '#F7F8F4', border: `1px solid ${BORDER}`, borderRadius: 14, padding: 12 }}>
       <div style={{ fontSize: 9.5, color: '#777', fontWeight: 850, textTransform: 'uppercase' }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'center', marginTop: 5 }}>
         <input
@@ -381,7 +381,7 @@ export default function Body() {
           placeholder={placeholder}
           type={key === 'activity_type' || key === 'notes' ? 'text' : 'number'}
           inputMode={key === 'activity_type' || key === 'notes' ? undefined : 'decimal'}
-          style={{ width: '100%', minWidth: 0, border: 0, outline: 0, background: 'transparent', color: '#fff', fontSize: 16, fontWeight: 850 }}
+          style={{ width: '100%', minWidth: 0, border: 0, outline: 0, background: 'transparent', color: '#090909', fontSize: 16, fontWeight: 850 }}
         />
         {unit && <span style={{ color: '#555', fontSize: 10 }}>{unit}</span>}
       </div>
@@ -391,24 +391,27 @@ export default function Body() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: BG, display: 'grid', placeItems: 'center' }}>
-        <div style={{ color: ACCENT, fontWeight: 900, letterSpacing: '.14em' }}>NOX BODY</div>
+        <div style={{ color: '#090909', fontWeight: 950, letterSpacing: '.1em' }}>NOX <span style={{ color: ACCENT }}>●</span></div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, color: '#fff', paddingBottom: 100 }}>
+    <div style={{ minHeight: '100vh', background: BG, color: '#090909', paddingBottom: 100 }}>
       <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
-        <header style={{ padding: '24px 20px 18px', background: 'radial-gradient(circle at 88% 0%, rgba(200,255,0,.06), transparent 30%), #0a0a0a', borderBottom: `1px solid ${BORDER}` }}>
+        <header style={{ padding: '24px 20px 18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
             <div>
-              <div style={{ fontSize: 10, color: '#777', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '.14em' }}>Progression physique</div>
-              <div style={{ fontSize: 27, fontWeight: 950, letterSpacing: '-.04em', marginTop: 4 }}>BODY</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 28, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.07em' }}>NOX</div>
+                <div style={{ width: 9, height: 9, borderRadius: '50%', background: ACCENT }} />
+              </div>
+              <div style={{ fontSize: 10, color: '#999D95', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 7 }}>CORPS & ACTIVITÉ</div>
             </div>
             <button onClick={() => setShowAdd(true)} style={{ border: 0, borderRadius: 13, background: ACCENT, color: '#050505', padding: '11px 15px', fontSize: 11, fontWeight: 950, letterSpacing: '.04em', cursor: 'pointer' }}>+ CHECK-IN</button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', background: '#111', padding: 4, borderRadius: 14, marginTop: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', background: '#EDEEE9', padding: 4, borderRadius: 15, marginTop: 20 }}>
             {([
               ['progress', 'PROGRESSION'],
               ['activity', 'ACTIVITÉ'],
@@ -416,8 +419,8 @@ export default function Body() {
             ] as [Tab, string][]).map(([id, label]) => (
               <button key={id} onClick={() => setTab(id)} style={{
                 border: 0, borderRadius: 11, padding: '10px 3px', cursor: 'pointer',
-                background: tab === id ? '#202020' : 'transparent',
-                color: tab === id ? '#fff' : '#666', fontSize: 9.5, fontWeight: 900, letterSpacing: '.035em'
+                background: tab === id ? '#FFFFFF' : 'transparent',
+                color: tab === id ? '#090909' : '#777B72', fontSize: 9.5, fontWeight: 900, letterSpacing: '.035em'
               }}>{label}</button>
             ))}
           </div>
@@ -427,7 +430,7 @@ export default function Body() {
           {tab === 'progress' && (
             <>
               {latest ? (
-                <div style={{ background: 'linear-gradient(145deg,#151515,#0e0e0e)', border: `1px solid ${BORDER}`, borderRadius: 22, padding: 20, marginBottom: 14 }}>
+                <div style={{ background: '#090909', border: `1px solid ${BORDER}`, borderRadius: 22, padding: 20, marginBottom: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ fontSize: 10, color: '#777', fontWeight: 850, letterSpacing: '.09em' }}>POIDS ACTUEL</div>
@@ -456,7 +459,7 @@ export default function Body() {
                     ))}
                   </div>
 
-                  <div style={{ borderRadius: 15, padding: '12px 10px 4px', background: '#0b0b0b', border: '1px solid #1d1d1d' }}>
+                  <div style={{ borderRadius: 15, padding: '12px 10px 4px', background: '#F7F8F4', border: `1px solid ${BORDER}` }}>
                     {weightLogs.length >= 2 ? <MiniChart /> : (
                       <div style={{ height: 80, display: 'grid', placeItems: 'center', color: '#555', fontSize: 11.5 }}>Encore un check-in pour afficher ta courbe</div>
                     )}
@@ -504,7 +507,7 @@ export default function Body() {
                       { key: 'arms_cm', label: 'Bras' },
                       { key: 'thighs_cm', label: 'Cuisses' },
                     ].filter(m => log[m.key]).map(({ key, label }) => (
-                      <div key={key} style={{ background: '#0b0b0b', border: '1px solid #1d1d1d', borderRadius: 13, padding: 13 }}>
+                      <div key={key} style={{ background: '#F7F8F4', border: `1px solid ${BORDER}`, borderRadius: 13, padding: 13 }}>
                         <div style={{ fontSize: 18, fontWeight: 950 }}>{log[key]} <span style={{ fontSize: 10, color: '#666' }}>cm</span></div>
                         <div style={{ fontSize: 9.5, color: '#777', marginTop: 4, textTransform: 'uppercase', fontWeight: 800 }}>{label}</div>
                       </div>
@@ -534,7 +537,7 @@ export default function Body() {
 
               <div style={{ display: 'grid', gap: 10 }}>
                 <button onClick={openManualActivity} style={{ border: 0, borderRadius: 16, background: ACCENT, color: '#050505', padding: 15, fontSize: 11.5, fontWeight: 950, cursor: 'pointer' }}>+ SAISIR UNE ACTIVITÉ</button>
-                <button onClick={openScanActivity} style={{ borderRadius: 16, border: `1px solid ${BORDER}`, background: SURFACE, color: '#fff', padding: 15, fontSize: 11.5, fontWeight: 950, cursor: 'pointer' }}>SCANNER L'ÉCRAN D'UNE MACHINE</button>
+                <button onClick={openScanActivity} style={{ borderRadius: 16, border: `1px solid ${BORDER}`, background: SURFACE, color: '#090909', padding: 15, fontSize: 11.5, fontWeight: 950, cursor: 'pointer' }}>SCANNER L'ÉCRAN D'UNE MACHINE</button>
               </div>
 
               {activityError && !showActivity && (
@@ -579,15 +582,15 @@ export default function Body() {
       </main>
 
       {showAdd && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.82)', backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: 560, background: '#0d0d0d', border: `1px solid ${BORDER}`, borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px max(24px, env(safe-area-inset-bottom))', maxHeight: '88vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.48)', backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 560, background: '#FFFFFF', border: `1px solid ${BORDER}`, borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px max(24px, env(safe-area-inset-bottom))', maxHeight: '88vh', overflowY: 'auto' }}>
             <div style={{ width: 38, height: 4, background: '#2b2b2b', borderRadius: 999, margin: '2px auto 17px' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div>
                 <div style={{ fontSize: 10, color: ACCENT, fontWeight: 900, letterSpacing: '.1em' }}>BODY</div>
                 <div style={{ fontSize: 19, fontWeight: 950, marginTop: 3 }}>NOUVEAU CHECK-IN</div>
               </div>
-              <button onClick={() => setShowAdd(false)} style={{ width: 36, height: 36, borderRadius: 12, border: `1px solid ${BORDER}`, background: '#151515', color: '#888', fontSize: 21, cursor: 'pointer' }}>×</button>
+              <button onClick={() => setShowAdd(false)} style={{ width: 36, height: 36, borderRadius: 12, border: `1px solid ${BORDER}`, background: '#F4F5F0', color: '#090909', fontSize: 21, cursor: 'pointer' }}>×</button>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>
@@ -599,10 +602,10 @@ export default function Body() {
                 { key: 'arms_cm', label: 'Bras', unit: 'cm', placeholder: '—' },
                 { key: 'thighs_cm', label: 'Cuisses', unit: 'cm', placeholder: '—' },
               ].map(({ key, label, unit, placeholder }) => (
-                <label key={key} style={{ display: 'block', background: '#111', border: `1px solid ${BORDER}`, borderRadius: 14, padding: 12 }}>
+                <label key={key} style={{ display: 'block', background: '#F7F8F4', border: `1px solid ${BORDER}`, borderRadius: 14, padding: 12 }}>
                   <div style={{ fontSize: 9.5, color: '#777', fontWeight: 850, textTransform: 'uppercase' }}>{label}</div>
                   <div style={{ display: 'flex', alignItems: 'center', marginTop: 5 }}>
-                    <input value={(form as any)[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} type="number" inputMode="decimal" style={{ width: '100%', minWidth: 0, border: 0, outline: 0, background: 'transparent', color: '#fff', fontSize: 18, fontWeight: 900 }} />
+                    <input value={(form as any)[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} type="number" inputMode="decimal" style={{ width: '100%', minWidth: 0, border: 0, outline: 0, background: 'transparent', color: '#090909', fontSize: 18, fontWeight: 900 }} />
                     <span style={{ color: '#555', fontSize: 10 }}>{unit}</span>
                   </div>
                 </label>
@@ -611,7 +614,7 @@ export default function Body() {
 
             <label style={{ display: 'block', marginTop: 10 }}>
               <div style={{ fontSize: 9.5, color: '#777', fontWeight: 850, textTransform: 'uppercase', marginBottom: 6 }}>Note</div>
-              <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Comment tu te sens aujourd'hui ?" type="text" style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${BORDER}`, outline: 0, background: '#111', color: '#fff', borderRadius: 14, padding: '13px 14px', fontSize: 13 }} />
+              <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Comment tu te sens aujourd'hui ?" type="text" style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${BORDER}`, outline: 0, background: '#F7F8F4', color: '#090909', borderRadius: 14, padding: '13px 14px', fontSize: 13 }} />
             </label>
 
             {saveError && <div role="alert" style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(255,95,95,.08)', border: '1px solid rgba(255,95,95,.22)', color: '#ff8a8a', fontSize: 11.5, lineHeight: 1.45 }}>{saveError}</div>}
@@ -622,8 +625,8 @@ export default function Body() {
       )}
 
       {showActivity && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.86)', backdropFilter: 'blur(8px)', zIndex: 210, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: 560, background: '#0d0d0d', border: `1px solid ${BORDER}`, borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px max(24px, env(safe-area-inset-bottom))', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.48)', backdropFilter: 'blur(8px)', zIndex: 210, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 560, background: '#FFFFFF', border: `1px solid ${BORDER}`, borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px max(24px, env(safe-area-inset-bottom))', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ width: 38, height: 4, background: '#2b2b2b', borderRadius: 999, margin: '2px auto 17px' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
               <div>
@@ -632,7 +635,7 @@ export default function Body() {
                   {activityMode === 'scan' ? 'SCANNER UNE MACHINE' : activityMode === 'confirm' ? 'CONFIRMER LES DONNÉES' : 'NOUVELLE ACTIVITÉ'}
                 </div>
               </div>
-              <button onClick={() => setShowActivity(false)} style={{ width: 36, height: 36, borderRadius: 12, border: `1px solid ${BORDER}`, background: '#151515', color: '#888', fontSize: 21, cursor: 'pointer' }}>×</button>
+              <button onClick={() => setShowActivity(false)} style={{ width: 36, height: 36, borderRadius: 12, border: `1px solid ${BORDER}`, background: '#F4F5F0', color: '#090909', fontSize: 21, cursor: 'pointer' }}>×</button>
             </div>
 
             {activityMode === 'scan' && (
@@ -682,7 +685,7 @@ export default function Body() {
         </div>
       )}
 
-      <BottomNav active="body" />
+      <BottomNav active="progress" />
     </div>
   );
 }
