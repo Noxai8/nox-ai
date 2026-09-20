@@ -965,37 +965,16 @@ export default function MealPlanner() {
     Math.min(7, Math.ceil(creationProgress / (100 / 7)) || 1),
   );
 
-  const imagePercent = imageTotalCount
-    ? Math.min(100, Math.round((imageReadyCount / imageTotalCount) * 100))
-    : 0;
-
   if (creationActive) {
-    const stageTitle =
-      creationStage === 'analysis'
-        ? 'Analyse du frigo'
-        : creationStage === 'recipes'
-          ? 'Création de vos plats'
-          : 'On dresse les plats !';
-
-    const stageSubtitle =
-      creationStage === 'analysis'
-        ? 'NOX reconnaît les aliments et estime les quantités disponibles.'
-        : creationStage === 'recipes'
-          ? 'NOX compose ta semaine avec ton frigo et tes objectifs.'
-          : 'Les recettes sont prêtes. Les visuels arrivent en temps réel.';
-
-    const percent =
-      creationStage === 'analysis'
-        ? creationProgress
-        : creationStage === 'recipes'
-          ? creationProgress
-          : imagePercent;
+    const isAnalysis = creationStage === 'analysis';
+    const shownFoods = fridgeFoods.slice(0, 8);
+    const remainingFoods = Math.max(0, fridgeFoods.length - shownFoods.length);
 
     return (
       <div style={{
         minHeight: '100vh',
-        background: '#09110E',
-        color: '#fff',
+        background: '#F7F8F3',
+        color: '#10110F',
         padding: 'env(safe-area-inset-top) 0 env(safe-area-inset-bottom)',
       }}>
         <main style={{
@@ -1004,169 +983,249 @@ export default function MealPlanner() {
           minHeight: '100vh',
           margin: '0 auto',
           padding: '22px 20px 34px',
-          display: 'flex',
-          flexDirection: 'column',
           boxSizing: 'border-box',
         }}>
-          <div style={{ textAlign: 'center', fontSize: 24, fontWeight: 950, letterSpacing: '.08em' }}>
-            NOX
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: 23, fontWeight: 950, letterSpacing: '.08em' }}>NOX</div>
+            <div style={{
+              padding: '8px 10px',
+              borderRadius: 999,
+              background: '#111',
+              color: ACCENT,
+              fontSize: 8.5,
+              fontWeight: 950,
+              letterSpacing: '.1em',
+            }}>
+              NOX AI
+            </div>
           </div>
 
-          <div style={{ marginTop: 46 }}>
-            <div style={{ color: ACCENT, fontSize: 10, fontWeight: 950, letterSpacing: '.16em' }}>
-              NOX AI · EN DIRECT
+          <div style={{ marginTop: 42 }}>
+            <div style={{ color: '#6E756C', fontSize: 9.5, fontWeight: 950, letterSpacing: '.14em' }}>
+              {isAnalysis ? 'ANALYSE DU FRIGO' : 'TA SEMAINE SE CRÉE'}
             </div>
-            <h1 style={{ margin: '9px 0 0', fontSize: 30, lineHeight: 1.04, letterSpacing: '-.045em' }}>
-              {stageTitle}
+            <h1 style={{
+              margin: '8px 0 0',
+              maxWidth: 510,
+              fontSize: 34,
+              lineHeight: 1.02,
+              letterSpacing: '-.05em',
+              fontWeight: 950,
+            }}>
+              {isAnalysis ? 'Voyons ce que tu as déjà.' : `Jour ${recipeDay} sur 7`}
             </h1>
-            <p style={{ margin: '10px 0 0', maxWidth: 470, color: '#AAB5AF', fontSize: 13, lineHeight: 1.55 }}>
-              {stageSubtitle}
+            <p style={{ margin: '11px 0 0', maxWidth: 470, color: '#777D75', fontSize: 13, lineHeight: 1.55 }}>
+              {isAnalysis
+                ? 'NOX identifie les aliments disponibles avant de composer tes repas.'
+                : 'Tes repas apparaissent au fur et à mesure. Tu peux suivre la semaine se construire en direct.'}
             </p>
           </div>
 
           <div style={{
-            marginTop: 30,
-            width: 190,
-            height: 190,
-            borderRadius: '50%',
-            alignSelf: 'center',
-            display: 'grid',
-            placeItems: 'center',
-            background: `conic-gradient(${ACCENT} ${Math.max(3, percent)}%, #203029 0)`,
-            boxShadow: '0 0 50px rgba(200,255,0,.08)',
+            marginTop: 26,
+            height: 7,
+            borderRadius: 999,
+            background: '#E4E7DE',
+            overflow: 'hidden',
           }}>
             <div style={{
-              width: 164,
-              height: 164,
-              borderRadius: '50%',
-              background: '#0D1713',
-              display: 'grid',
-              placeItems: 'center',
-              textAlign: 'center',
-              border: '1px solid #26372F',
-            }}>
-              <div>
-                <div style={{ fontSize: 34, fontWeight: 950, letterSpacing: '-.05em' }}>
-                  {creationStage === 'analysis'
-                    ? `${Math.round(creationProgress)}%`
-                    : creationStage === 'recipes'
-                      ? `${recipeDay}/7`
-                      : `${imageReadyCount}/${imageTotalCount || '…'}`}
-                </div>
-                <div style={{ marginTop: 5, color: '#8D9A93', fontSize: 9, fontWeight: 850, letterSpacing: '.08em' }}>
-                  {creationStage === 'analysis'
-                    ? 'ANALYSE'
-                    : creationStage === 'recipes'
-                      ? 'JOURS CRÉÉS'
-                      : 'VISUELS PRÊTS'}
-                </div>
-              </div>
-            </div>
+              height: '100%',
+              width: `${isAnalysis ? Math.max(8, creationProgress) : creationProgress}%`,
+              borderRadius: 999,
+              background: ACCENT,
+              transition: 'width .35s ease',
+            }} />
           </div>
 
-          <div style={{ marginTop: 30, display: 'grid', gap: 9 }}>
-            {[
-              {
-                title: 'Analyse du frigo',
-                text: creationStage === 'analysis'
-                  ? 'Reconnaissance des aliments en cours…'
-                  : `${fridgeFoods.length} aliment${fridgeFoods.length > 1 ? 's' : ''} détecté${fridgeFoods.length > 1 ? 's' : ''}`,
-                state: creationStage === 'analysis' ? 'active' : 'done',
-              },
-              {
-                title: 'Création des recettes',
-                text: creationStage === 'analysis'
-                  ? 'En attente'
-                  : creationStage === 'recipes'
-                    ? `${createdMealsCount} plat${createdMealsCount > 1 ? 's' : ''} créé${createdMealsCount > 1 ? 's' : ''} · jour ${recipeDay}/7`
-                    : `${createdMealsCount} plats créés`,
-                state: creationStage === 'recipes' ? 'active' : creationStage === 'images' ? 'done' : 'waiting',
-              },
-              {
-                title: 'Génération des images',
-                text: creationStage === 'images'
-                  ? `${imageReadyCount} sur ${imageTotalCount || '…'} prêtes`
-                  : creationStage === 'recipes'
-                    ? 'Les premières images démarrent avec les plats'
-                    : 'En attente',
-                state: creationStage === 'images' ? 'active' : 'waiting',
-              },
-            ].map((item, index) => (
-              <div key={item.title} style={{
-                minHeight: 68,
-                padding: '12px 13px',
-                borderRadius: 16,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                background: item.state === 'active' ? 'rgba(200,255,0,.08)' : '#101B16',
-                border: `1px solid ${item.state === 'active' ? 'rgba(200,255,0,.42)' : '#223129'}`,
-              }}>
-                <div style={{
-                  width: 38,
-                  height: 38,
-                  flex: '0 0 38px',
-                  borderRadius: 13,
-                  display: 'grid',
-                  placeItems: 'center',
-                  background: item.state === 'done' ? ACCENT : item.state === 'active' ? '#1B2A22' : '#16211C',
-                  color: item.state === 'done' ? '#111' : item.state === 'active' ? ACCENT : '#5D6962',
-                  fontWeight: 950,
-                }}>
-                  {item.state === 'done' ? '✓' : index + 1}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 950 }}>{item.title}</div>
-                  <div style={{ marginTop: 3, color: item.state === 'active' ? '#DCE4DF' : '#77837C', fontSize: 10.5 }}>
-                    {item.text}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {creationStage !== 'analysis' && createdMealsCount > 0 && (
+          {isAnalysis ? (
             <div style={{
-              marginTop: 18,
-              padding: 15,
-              borderRadius: 18,
-              background: '#111D17',
-              border: '1px solid #25362D',
+              marginTop: 28,
+              borderRadius: 28,
+              background: '#101512',
+              color: '#fff',
+              padding: 22,
+              minHeight: 330,
+              boxShadow: '0 20px 50px rgba(20,30,20,.10)',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                <div>
-                  <div style={{ color: ACCENT, fontSize: 9, fontWeight: 950, letterSpacing: '.12em' }}>
-                    EN TEMPS RÉEL
-                  </div>
-                  <div style={{ marginTop: 5, fontSize: 14, fontWeight: 900 }}>
-                    {createdMealsCount} repas déjà préparés
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right', color: '#9DA8A2', fontSize: 10 }}>
-                  {imageReadyCount} image{imageReadyCount > 1 ? 's' : ''} prête{imageReadyCount > 1 ? 's' : ''}
-                </div>
+              <div style={{
+                width: 54,
+                height: 54,
+                borderRadius: 18,
+                background: ACCENT,
+                color: '#111',
+                display: 'grid',
+                placeItems: 'center',
+                fontSize: 11,
+                fontWeight: 950,
+              }}>
+                SCAN
               </div>
-              <div style={{ marginTop: 11, height: 6, borderRadius: 999, background: '#26342D', overflow: 'hidden' }}>
-                <div style={{
-                  width: `${creationStage === 'recipes' ? creationProgress : imagePercent}%`,
-                  height: '100%',
-                  borderRadius: 999,
-                  background: ACCENT,
-                  transition: 'width .35s ease',
-                }} />
+              <div style={{ marginTop: 30, fontSize: 24, fontWeight: 950, letterSpacing: '-.035em' }}>
+                Analyse en cours…
+              </div>
+              <div style={{ marginTop: 8, color: '#A7B0AA', fontSize: 12.5, lineHeight: 1.55 }}>
+                Reconnaissance des aliments et estimation des quantités.
+              </div>
+
+              <div style={{ marginTop: 34, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 9 }}>
+                {['Aliments', 'Quantités', 'Cohérence'].map((label, i) => (
+                  <div key={label} style={{
+                    height: 78,
+                    borderRadius: 18,
+                    background: i === 0 ? 'rgba(200,255,0,.10)' : '#18201C',
+                    border: `1px solid ${i === 0 ? 'rgba(200,255,0,.35)' : '#28322D'}`,
+                    display: 'grid',
+                    placeItems: 'center',
+                    textAlign: 'center',
+                    color: i === 0 ? ACCENT : '#7D8881',
+                    fontSize: 9.5,
+                    fontWeight: 900,
+                  }}>
+                    {label}
+                  </div>
+                ))}
               </div>
             </div>
+          ) : (
+            <>
+              <div style={{
+                marginTop: 24,
+                padding: 18,
+                borderRadius: 24,
+                background: '#111512',
+                color: '#fff',
+              }}>
+                <div style={{ color: ACCENT, fontSize: 9, fontWeight: 950, letterSpacing: '.12em' }}>
+                  FRIGO ANALYSÉ
+                </div>
+                <div style={{ marginTop: 6, fontSize: 18, fontWeight: 950 }}>
+                  {fridgeFoods.length} aliment{fridgeFoods.length > 1 ? 's' : ''} détecté{fridgeFoods.length > 1 ? 's' : ''}
+                </div>
+
+                {!!shownFoods.length && (
+                  <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                    {shownFoods.map((food, index) => (
+                      <div key={`${food.nom}-${index}`} style={{
+                        padding: '8px 10px',
+                        borderRadius: 999,
+                        background: '#202A24',
+                        border: '1px solid #303B35',
+                        color: '#E9ECE9',
+                        fontSize: 9.5,
+                        fontWeight: 800,
+                      }}>
+                        {food.nom}
+                      </div>
+                    ))}
+                    {remainingFoods > 0 && (
+                      <div style={{
+                        padding: '8px 10px',
+                        borderRadius: 999,
+                        background: ACCENT,
+                        color: '#111',
+                        fontSize: 9.5,
+                        fontWeight: 950,
+                      }}>
+                        +{remainingFoods}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginTop: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 12 }}>
+                  <div>
+                    <div style={{ color: '#777D75', fontSize: 9, fontWeight: 950, letterSpacing: '.12em' }}>
+                      CRÉATION EN DIRECT
+                    </div>
+                    <div style={{ marginTop: 4, fontSize: 22, fontWeight: 950, letterSpacing: '-.035em' }}>
+                      Tes plats arrivent
+                    </div>
+                  </div>
+                  <div style={{
+                    padding: '8px 11px',
+                    borderRadius: 12,
+                    background: ACCENT,
+                    fontSize: 10,
+                    fontWeight: 950,
+                  }}>
+                    {createdMealsCount} créés
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {Array.from({ length: Math.min(Math.max(createdMealsCount, 4), 6) }).map((_, index) => {
+                    const entry = week.flatMap(day => day.entries)[index];
+                    return (
+                      <div key={entry?.id || index} style={{
+                        minHeight: 145,
+                        borderRadius: 22,
+                        overflow: 'hidden',
+                        background: '#fff',
+                        border: `1px solid ${BORDER}`,
+                        boxShadow: '0 10px 30px rgba(20,30,20,.05)',
+                      }}>
+                        <div style={{
+                          height: 82,
+                          background: entry?.image_url
+                            ? `url("${entry.image_url}") center/cover no-repeat`
+                            : 'linear-gradient(135deg,#E9ECDFFF,#F7F8F3)',
+                          display: 'grid',
+                          placeItems: 'center',
+                        }}>
+                          {!entry?.image_url && (
+                            <div style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: 10,
+                              background: ACCENT,
+                              display: 'grid',
+                              placeItems: 'center',
+                              fontSize: 10,
+                              fontWeight: 950,
+                            }}>
+                              {entry ? 'OK' : '…'}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ padding: '10px 11px 12px' }}>
+                          <div style={{
+                            fontSize: 11,
+                            lineHeight: 1.25,
+                            fontWeight: 950,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}>
+                            {entry?.food_name || 'Création du prochain plat…'}
+                          </div>
+                          <div style={{ marginTop: 5, color: '#7A8078', fontSize: 9 }}>
+                            {entry ? `${Math.round(entry.calories || 0)} kcal · ${Math.round(entry.protein || 0)} g prot.` : `Jour ${recipeDay}/7`}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
           )}
 
           <div style={{
-            marginTop: 'auto',
-            paddingTop: 30,
-            textAlign: 'center',
-            color: '#738078',
-            fontSize: 9.5,
+            marginTop: 26,
+            padding: '14px 16px',
+            borderRadius: 18,
+            background: '#EEF1E8',
+            color: '#646B63',
+            fontSize: 10.5,
             lineHeight: 1.5,
+            textAlign: 'center',
           }}>
-            Tu peux laisser NOX travailler · ta semaine s’affichera automatiquement dès qu’elle sera prête.
+            {isAnalysis
+              ? 'La création de ta semaine démarre automatiquement après l’analyse.'
+              : `${createdMealsCount} repas créés · jour ${recipeDay}/7`}
           </div>
         </main>
       </div>
