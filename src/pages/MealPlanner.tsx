@@ -744,7 +744,7 @@ export default function MealPlanner() {
       } else {
         setPlanMode('fridge');
         setShowShopping(false);
-        setMessage("Frigo analysé · NOX crée automatiquement les repas du jour…");
+        setMessage("Frigo analysé · NOX crée automatiquement ta semaine de repas…");
         await generatePlanWithTarget(
           {
             calories: targetCalories,
@@ -827,110 +827,23 @@ export default function MealPlanner() {
 
   const generatePlan = async () => {
     if (!user || generating) return;
-    if (!targetCalories || !targetProtein) {
+
+    if (!targetCalories || !targetProtein || !nutritionTarget) {
       setShowTargetSetup(true);
       setError('');
       return;
     }
-    if (planMode === 'fridge' && !fridgeFoods.length) {
-      setError("Scanne ton frigo avant de générer avec ce mode, ou choisis Courses rapides.");
-      return;
-    }
-    if (planMode === 'fridge' && (fridgeAnalysis?.etat === 'insuffisant' || fridgeAnalysis?.etat === 'peu_adapte')) {
-      setPlanMode('shopping');
-      setShowShopping(true);
-      setMessage("Ton frigo ne suffit pas pour une semaine cohérente. Indique ton budget et ton enseigne pour compléter les ingrédients.");
-      return;
-    }
 
-    const budget = Number(String(shoppingPrefs.budget).replace(',', '.'));
-    if (planMode === 'shopping' && (!Number.isFinite(budget) || budget <= 0 || !shoppingPrefs.store.trim())) {
-      setShowShopping(true);
-      setError('Renseigne ton budget et ton enseigne avant de continuer.');
-      return;
-    }
-
-    setGenerating(true);
-    setError('');
-    setMessage('');
-
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke('generate-meal-plan', {
-        body: {
-          mode: planMode,
-          goal,
-          days: 1,
-          target: {
-            calories: targetCalories,
-            protein: targetProtein,
-            carbs: Number(nutritionTarget?.carbs || 0),
-            fat: Number(nutritionTarget?.fat || 0),
-          },
-          fridgeFoods,
-          shopping: planMode === 'shopping'
-            ? { budget, store: shoppingPrefs.store.trim() }
-            : null,
-        },
-      });
-
-      if (fnError) throw fnError;
-      if (!data || !Array.isArray(data.days)) throw new Error('Le plan IA reçu est invalide.');
-
-      const existingDates = new Set(
-        week.flatMap(day => day.entries.map(e => `${e.planned_date}|${e.meal_type}`))
-      );
-      const rows: any[] = [];
-
-      for (const day of data.days) {
-        if (!day?.date || !Array.isArray(day?.meals)) continue;
-        for (const meal of day.meals) {
-          if (!meal?.name || !meal?.meal_type) continue;
-          if (existingDates.has(`${day.date}|${meal.meal_type}`)) continue;
-
-          rows.push({
-            user_id: user.id,
-            planned_date: day.date,
-            meal_type: meal.meal_type,
-            food_name: meal.name,
-            calories: Math.max(0, Math.round(Number(meal.calories || 0))),
-            protein: Math.max(0, Math.round(Number(meal.protein || 0))),
-            carbs: Math.max(0, Math.round(Number(meal.carbs || 0))),
-            fat: Math.max(0, Math.round(Number(meal.fat || 0))),
-            ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
-            instructions: Array.isArray(meal.instructions) ? meal.instructions : [],
-            missing_ingredients: Array.isArray(meal.missing_ingredients) ? meal.missing_ingredients : [],
-            fridge_ingredients: Array.isArray(meal.fridge_ingredients) ? meal.fridge_ingredients : [],
-            image_url: null,
-            prep_time_min: Math.max(0, Math.round(Number(meal.prep_time_min || 0))),
-            servings: Math.max(1, Math.round(Number(meal.servings || 1))),
-            ai_generated: true,
-            created_at: new Date().toISOString(),
-          });
-        }
-      }
-
-      if (!rows.length) {
-        setMessage('Aucun nouveau repas à ajouter : les créneaux générés sont déjà planifiés.');
-        return;
-      }
-
-      const { error: insertError } = await supabase.from('meal_plans').insert(rows);
-      if (insertError) throw insertError;
-
-      await load();
-
-      const shoppingCount = Array.isArray(data.shopping_list) ? data.shopping_list.length : 0;
-      setMessage(
-        planMode === 'shopping'
-          ? `Repas du jour générés. ${shoppingCount} article${shoppingCount > 1 ? 's' : ''} de courses proposé${shoppingCount > 1 ? 's' : ''}.`
-          : `Repas du jour générés à partir de ton frigo : petit-déjeuner, déjeuner et dîner sont prêts.`
-      );
-    } catch (e: any) {
-      console.error('MEAL_PLAN_AI_GENERATE_ERROR', e);
-      setError(e?.message || 'Impossible de générer le plan repas avec NOX AI.');
-    } finally {
-      setGenerating(false);
-    }
+    await generatePlanWithTarget(
+      {
+        calories: targetCalories,
+        protein: targetProtein,
+        carbs: Number(nutritionTarget.carbs || 0),
+        fat: Number(nutritionTarget.fat || 0),
+      },
+      planMode,
+      fridgeFoods,
+    );
   };
 
   const addPlanned = async () => {
@@ -1039,7 +952,7 @@ export default function MealPlanner() {
             <div style={{ width: 44, height: 44, borderRadius: 14, background: '#111', color: ACCENT, display: 'grid', placeItems: 'center', fontWeight: 950, fontSize: 11 }}>SCAN</div>
             <div style={{ marginTop: 16, fontSize: 23, fontWeight: 950, letterSpacing: '-.035em' }}>Qu’est-ce qu’il y a dans ton frigo ?</div>
             <div style={{ marginTop: 7, maxWidth: 470, fontSize: 12.5, lineHeight: 1.55, color: '#394000' }}>
-              Prends une photo. NOX identifie les aliments et crée automatiquement les repas du jour adaptés à ton objectif.
+              Prends une photo. NOX identifie les aliments et crée automatiquement ta semaine de repas adaptée à ton objectif.
             </div>
             <button
               onClick={() => fridgeInputRef.current?.click()}
