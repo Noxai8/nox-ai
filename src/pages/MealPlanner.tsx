@@ -391,9 +391,8 @@ export default function MealPlanner() {
     return centralized > 0 ? Math.round(centralized) : 0;
   }, [nutritionTarget]);
 
-  const generateOneDay = async (
+  const generatePlanWithTarget = async (
     resolvedTarget: NutritionTarget,
-    startDate: string,
     modeOverride: PlanMode = planMode,
     foodsOverride?: FridgeFood[],
   ) => {
@@ -402,6 +401,13 @@ export default function MealPlanner() {
 
     if (modeOverride === 'fridge' && !foodsForPlan.length) {
       setError("Scanne ton frigo avant de générer avec ce mode, ou choisis Courses rapides.");
+      return;
+    }
+
+    if (modeOverride === 'fridge' && (fridgeAnalysis?.etat === 'insuffisant' || fridgeAnalysis?.etat === 'peu_adapte')) {
+      setPlanMode('shopping');
+      setShowShopping(true);
+      setMessage("Ton frigo ne suffit pas pour une semaine cohérente. Indique ton budget et ton enseigne pour compléter les ingrédients.");
       return;
     }
 
@@ -414,120 +420,141 @@ export default function MealPlanner() {
 
     setGenerating(true);
     setError('');
-    setMessage(`NOX prépare les repas du ${startDate}…`);
+    setMessage('NOX construit ta semaine complète…');
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('generate-meal-plan', {
-        body: {
-          mode: modeOverride,
-          goal: targetDraft.goal || goal,
-          days: 1,
-          startDate,
-          target: {
-            calories: resolvedTarget.calories,
-            protein: resolvedTarget.protein,
-            carbs: Number(resolvedTarget.carbs || 0),
-            fat: Number(resolvedTarget.fat || 0),
+      let added = 0;
+      const imageJobs: Array<{
+        id: string;
+        food_name: string;
+        ingredients: any[];
+      }> = [];
+
+      // Les 7 jours sont générés et enregistrés d'abord.
+      // Les images ne bloquent plus l'affichage de la semaine.
+      for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
+        const date = new Date();
+        date.setHours(12, 0, 0, 0);
+        date.setDate(date.getDate() + dayIndex);
+        const startDate = isoDate(date);
+
+        setMessage(`Création de la semaine · jour ${dayIndex + 1}/7…`);
+
+        const { data, error: fnError } = await supabase.functions.invoke('generate-meal-plan', {
+          body: {
+            mode: modeOverride,
+            goal: targetDraft.goal || goal,
+            days: 1,
+            startDate,
+            target: {
+              calories: resolvedTarget.calories,
+              protein: resolvedTarget.protein,
+              carbs: Number(resolvedTarget.carbs || 0),
+              fat: Number(resolvedTarget.fat || 0),
+            },
+            fridgeFoods: foodsForPlan,
+            shopping: modeOverride === 'shopping'
+              ? { budget, store: shoppingPrefs.store.trim() }
+              : null,
           },
-          fridgeFoods: foodsForPlan,
-          shopping: modeOverride === 'shopping'
-            ? { budget, store: shoppingPrefs.store.trim() }
-            : null,
-        },
-      });
+        });
 
-      if (fnError) throw fnError;
-      if (!data || !Array.isArray(data.days)) throw new Error('Le plan IA reçu est invalide.');
+        if (fnError) throw fnError;
+        if (!data || !Array.isArray(data.days)) {
+          throw new Error(`Le jour ${dayIndex + 1} reçu est invalide.`);
+        }
 
-      const rows: any[] = [];
-      for (const day of data.days) {
-        if (!day?.date || !Array.isArray(day?.meals)) continue;
-        for (const meal of day.meals) {
-          if (!meal?.name || !meal?.meal_type) continue;
-          rows.push({
-            user_id: user.id,
-            planned_date: day.date,
-            meal_type: meal.meal_type,
-            food_name: meal.name,
-            calories: Math.max(0, Math.round(Number(meal.calories || 0))),
-            protein: Math.max(0, Math.round(Number(meal.protein || 0))),
-            carbs: Math.max(0, Math.round(Number(meal.carbs || 0))),
-            fat: Math.max(0, Math.round(Number(meal.fat || 0))),
-            ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
-            instructions: Array.isArray(meal.instructions) ? meal.instructions : [],
-            missing_ingredients: Array.isArray(meal.missing_ingredients) ? meal.missing_ingredients : [],
-            fridge_ingredients: Array.isArray(meal.fridge_ingredients) ? meal.fridge_ingredients : [],
-            image_url: null,
-            prep_time_min: Math.max(0, Math.round(Number(meal.prep_time_min || 0))),
-            servings: Math.max(1, Math.round(Number(meal.servings || 1))),
-            ai_generated: true,
-            created_at: new Date().toISOString(),
+        const rows: any[] = [];
+        for (const day of data.days) {
+          if (!day?.date || !Array.isArray(day?.meals)) continue;
+          for (const meal of day.meals) {
+            if (!meal?.name || !meal?.meal_type) continue;
+            rows.push({
+              user_id: user.id,
+              planned_date: day.date,
+              meal_type: meal.meal_type,
+              food_name: meal.name,
+              calories: Math.max(0, Math.round(Number(meal.calories || 0))),
+              protein: Math.max(0, Math.round(Number(meal.protein || 0))),
+              carbs: Math.max(0, Math.round(Number(meal.carbs || 0))),
+              fat: Math.max(0, Math.round(Number(meal.fat || 0))),
+              ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
+              instructions: Array.isArray(meal.instructions) ? meal.instructions : [],
+              missing_ingredients: Array.isArray(meal.missing_ingredients) ? meal.missing_ingredients : [],
+              fridge_ingredients: Array.isArray(meal.fridge_ingredients) ? meal.fridge_ingredients : [],
+              image_url: null,
+              prep_time_min: Math.max(0, Math.round(Number(meal.prep_time_min || 0))),
+              servings: Math.max(1, Math.round(Number(meal.servings || 1))),
+              ai_generated: true,
+              created_at: new Date().toISOString(),
+            });
+          }
+        }
+
+        if (!rows.length) continue;
+
+        const { error: deleteError } = await supabase
+          .from('meal_plans')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('planned_date', startDate)
+          .eq('ai_generated', true);
+        if (deleteError) throw deleteError;
+
+        // Insert + select permet de récupérer les IDs nécessaires pour
+        // rattacher ensuite chaque image au bon repas.
+        const { data: inserted, error: insertError } = await supabase
+          .from('meal_plans')
+          .insert(rows)
+          .select('id, food_name, ingredients');
+
+        if (insertError) throw insertError;
+
+        for (const row of inserted || []) {
+          imageJobs.push({
+            id: row.id,
+            food_name: row.food_name,
+            ingredients: Array.isArray(row.ingredients) ? row.ingredients : [],
           });
         }
+
+        added += rows.length;
+        // Chaque journée apparaît immédiatement.
+        await load();
       }
 
-      if (!rows.length) throw new Error("NOX n'a reçu aucun repas exploitable.");
+      if (!added) throw new Error("NOX n'a reçu aucun repas exploitable.");
 
-      setMessage('Recettes prêtes · création des images des plats…');
-      for (const row of rows) {
-        try {
-          row.image_url = await mealImageBase64ToDataUrl(row.food_name, row.ingredients);
-        } catch (imageError) {
-          console.error('MEAL_IMAGE_GENERATE_ERROR', row.food_name, imageError);
-          row.image_url = null;
-        }
-      }
+      // À ce stade toute la semaine est déjà utilisable.
+      setGenerating(false);
+      setMessage(`${added} repas créés · semaine prête. Les images arrivent progressivement…`);
 
-      const { error: deleteError } = await supabase
-        .from('meal_plans')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('planned_date', startDate)
-        .eq('ai_generated', true);
-      if (deleteError) throw deleteError;
-
-      const { error: insertError } = await supabase.from('meal_plans').insert(rows);
-      if (insertError) throw insertError;
-
-      await load();
-      setMessage(`${rows.length} repas créés pour cette journée · images incluses.`);
+      // Les images sont lancées en parallèle APRÈS l'enregistrement des recettes.
+      // Une image en erreur n'empêche jamais le plan alimentaire de fonctionner.
+      void Promise.allSettled(
+        imageJobs.map(async (job) => {
+          try {
+            const imageUrl = await mealImageBase64ToDataUrl(job.food_name, job.ingredients);
+            const { error: updateError } = await supabase
+              .from('meal_plans')
+              .update({ image_url: imageUrl })
+              .eq('id', job.id)
+              .eq('user_id', user.id);
+            if (updateError) throw updateError;
+          } catch (imageError) {
+            console.error('MEAL_IMAGE_GENERATE_ERROR', job.food_name, imageError);
+          }
+        }),
+      ).then(async () => {
+        await load();
+        setMessage(`${added} repas créés · semaine complète avec les visuels disponibles.`);
+      });
     } catch (e: any) {
       console.error('MEAL_PLAN_AI_GENERATE_ERROR', e);
-      setError(e?.message || 'Impossible de générer cette journée.');
-      setMessage('');
-    } finally {
+      setError(e?.message || 'La génération s’est arrêtée avant la fin de la semaine.');
+      setMessage('Les jours déjà créés restent enregistrés. Tu peux relancer pour compléter.');
       setGenerating(false);
     }
-  };
-
-  const generatePlanWithTarget = async (
-    resolvedTarget: NutritionTarget,
-    modeOverride: PlanMode = planMode,
-    foodsOverride?: FridgeFood[],
-  ) => {
-    const today = isoDate(new Date());
-    await generateOneDay(resolvedTarget, today, modeOverride, foodsOverride);
-  };
-
-  const generateNextDay = async () => {
-    if (!nutritionTarget || !targetCalories || !targetProtein || generating) return;
-
-    const firstEmptyDay = week.find(day => day.entries.length === 0);
-    if (!firstEmptyDay) {
-      setMessage('Les 7 jours de ton plan sont déjà remplis.');
-      return;
-    }
-
-    await generateOneDay(
-      {
-        calories: targetCalories,
-        protein: targetProtein,
-        carbs: Number(nutritionTarget.carbs || 0),
-        fat: Number(nutritionTarget.fat || 0),
-      },
-      firstEmptyDay.date,
-      planMode,
-    );
   };
 
   const calculateAndSaveNutritionTarget = async () => {
@@ -1106,9 +1133,9 @@ export default function MealPlanner() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 10 }}>
             <div>
               <div style={{ fontSize: 10, color: '#777C73', fontWeight: 900, letterSpacing: '.1em' }}>GÉNÉRATION</div>
-              <div style={{ marginTop: 3, fontSize: 19, fontWeight: 950 }}>Construire mon plan</div>
+              <div style={{ marginTop: 3, fontSize: 19, fontWeight: 950 }}>Construire ma semaine</div>
             </div>
-            <div style={{ fontSize: 10, color: '#777C73' }}>jour par jour</div>
+            <div style={{ fontSize: 10, color: '#777C73' }}>7 jours</div>
           </div>
 
           <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 20, padding: 16 }}>
@@ -1175,11 +1202,7 @@ export default function MealPlanner() {
                   setError('');
                   return;
                 }
-                if (week.some(day => day.entries.length > 0)) {
-                  void generateNextDay();
-                } else {
-                  void generatePlan();
-                }
+                void generatePlan();
               }}
               disabled={generating || loading}
               style={{
@@ -1189,7 +1212,7 @@ export default function MealPlanner() {
                 fontWeight: 950, cursor: generating ? 'wait' : 'pointer'
               }}
             >
-              {generating ? 'GÉNÉRATION...' : !targetCalories || !targetProtein ? 'CONFIGURER MON OBJECTIF' : week.every(d => d.entries.length) ? 'SEMAINE COMPLÈTE' : week.some(d => d.entries.length) ? 'GÉNÉRER LE PROCHAIN JOUR' : 'GÉNÉRER AUJOURD’HUI'}
+              {generating ? 'GÉNÉRATION...' : !targetCalories || !targetProtein ? 'CONFIGURER MON OBJECTIF' : week.some(d => d.entries.length) ? 'RECRÉER MA SEMAINE' : 'GÉNÉRER MA SEMAINE'}
             </button>
           </div>
         </section>
