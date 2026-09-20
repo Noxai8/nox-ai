@@ -529,26 +529,40 @@ export default function MealPlanner() {
       setGenerating(false);
       setMessage(`${added} repas créés · semaine prête. Les images arrivent progressivement…`);
 
-      // Les images sont lancées en parallèle APRÈS l'enregistrement des recettes.
-      // Une image en erreur n'empêche jamais le plan alimentaire de fonctionner.
-      void Promise.allSettled(
-        imageJobs.map(async (job) => {
-          try {
-            const imageUrl = await mealImageBase64ToDataUrl(job.food_name, job.ingredients);
-            const { error: updateError } = await supabase
-              .from('meal_plans')
-              .update({ image_url: imageUrl })
-              .eq('id', job.id)
-              .eq('user_id', user.id);
-            if (updateError) throw updateError;
-          } catch (imageError) {
-            console.error('MEAL_IMAGE_GENERATE_ERROR', job.food_name, imageError);
-          }
-        }),
-      ).then(async () => {
+      // Génère les visuels par petits lots pour éviter de saturer le navigateur/API.
+      // Chaque lot est attendu et sauvegardé avant de passer au suivant : les images
+      // ne sont donc plus abandonnées si React continue son cycle de rendu.
+      const IMAGE_BATCH_SIZE = 3;
+
+      for (let i = 0; i < imageJobs.length; i += IMAGE_BATCH_SIZE) {
+        const batch = imageJobs.slice(i, i + IMAGE_BATCH_SIZE);
+        const doneBefore = i;
+        setMessage(
+          `${added} repas prêts · images ${doneBefore + 1}–${Math.min(doneBefore + batch.length, imageJobs.length)}/${imageJobs.length}…`,
+        );
+
+        await Promise.allSettled(
+          batch.map(async (job) => {
+            try {
+              const imageUrl = await mealImageBase64ToDataUrl(job.food_name, job.ingredients);
+              const { error: updateError } = await supabase
+                .from('meal_plans')
+                .update({ image_url: imageUrl })
+                .eq('id', job.id)
+                .eq('user_id', user.id);
+
+              if (updateError) throw updateError;
+            } catch (imageError) {
+              console.error('MEAL_IMAGE_GENERATE_ERROR', job.food_name, imageError);
+            }
+          }),
+        );
+
+        // Les nouvelles images apparaissent progressivement dans l'interface.
         await load();
-        setMessage(`${added} repas créés · semaine complète avec les visuels disponibles.`);
-      });
+      }
+
+      setMessage(`${added} repas créés · semaine complète avec les visuels disponibles.`);
     } catch (e: any) {
       console.error('MEAL_PLAN_AI_GENERATE_ERROR', e);
       setError(e?.message || 'La génération s’est arrêtée avant la fin de la semaine.');
