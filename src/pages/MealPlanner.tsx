@@ -407,77 +407,92 @@ export default function MealPlanner() {
 
     setGenerating(true);
     setError('');
-    setMessage('Objectif enregistré · NOX crée les repas du jour…');
+    setMessage('NOX prépare le jour 1 sur 7…');
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('generate-meal-plan', {
-        body: {
-          mode: modeOverride,
-          goal: targetDraft.goal || goal,
-          days: 1,
-          target: {
-            calories: resolvedTarget.calories,
-            protein: resolvedTarget.protein,
-            carbs: Number(resolvedTarget.carbs || 0),
-            fat: Number(resolvedTarget.fat || 0),
+      let added = 0;
+
+      for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
+        const date = new Date();
+        date.setHours(12, 0, 0, 0);
+        date.setDate(date.getDate() + dayIndex);
+        const startDate = isoDate(date);
+
+        setMessage(`NOX prépare le jour ${dayIndex + 1} sur 7…`);
+
+        const { data, error: fnError } = await supabase.functions.invoke('generate-meal-plan', {
+          body: {
+            mode: modeOverride,
+            goal: targetDraft.goal || goal,
+            days: 1,
+            startDate,
+            target: {
+              calories: resolvedTarget.calories,
+              protein: resolvedTarget.protein,
+              carbs: Number(resolvedTarget.carbs || 0),
+              fat: Number(resolvedTarget.fat || 0),
+            },
+            fridgeFoods: foodsForPlan,
+            shopping: modeOverride === 'shopping'
+              ? { budget, store: shoppingPrefs.store.trim() }
+              : null,
           },
-          fridgeFoods: foodsForPlan,
-          shopping: modeOverride === 'shopping'
-            ? { budget, store: shoppingPrefs.store.trim() }
-            : null,
-        },
-      });
+        });
 
-      if (fnError) throw fnError;
-      if (!data || !Array.isArray(data.days)) throw new Error('Le plan IA reçu est invalide.');
+        if (fnError) throw fnError;
+        if (!data || !Array.isArray(data.days)) throw new Error(`Le jour ${dayIndex + 1} reçu est invalide.`);
 
-      const existingDates = new Set(
-        week.flatMap(day => day.entries.map(e => `${e.planned_date}|${e.meal_type}`))
-      );
-      const rows: any[] = [];
-
-      for (const day of data.days) {
-        if (!day?.date || !Array.isArray(day?.meals)) continue;
-        for (const meal of day.meals) {
-          if (!meal?.name || !meal?.meal_type) continue;
-          if (existingDates.has(`${day.date}|${meal.meal_type}`)) continue;
-
-          rows.push({
-            user_id: user.id,
-            planned_date: day.date,
-            meal_type: meal.meal_type,
-            food_name: meal.name,
-            calories: Math.max(0, Math.round(Number(meal.calories || 0))),
-            protein: Math.max(0, Math.round(Number(meal.protein || 0))),
-            carbs: Math.max(0, Math.round(Number(meal.carbs || 0))),
-            fat: Math.max(0, Math.round(Number(meal.fat || 0))),
-            ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
-            instructions: Array.isArray(meal.instructions) ? meal.instructions : [],
-            missing_ingredients: Array.isArray(meal.missing_ingredients) ? meal.missing_ingredients : [],
-            fridge_ingredients: Array.isArray(meal.fridge_ingredients) ? meal.fridge_ingredients : [],
-            image_url: null,
-            prep_time_min: Math.max(0, Math.round(Number(meal.prep_time_min || 0))),
-            servings: Math.max(1, Math.round(Number(meal.servings || 1))),
-            ai_generated: true,
-            created_at: new Date().toISOString(),
-          });
+        const rows: any[] = [];
+        for (const day of data.days) {
+          if (!day?.date || !Array.isArray(day?.meals)) continue;
+          for (const meal of day.meals) {
+            if (!meal?.name || !meal?.meal_type) continue;
+            rows.push({
+              user_id: user.id,
+              planned_date: day.date,
+              meal_type: meal.meal_type,
+              food_name: meal.name,
+              calories: Math.max(0, Math.round(Number(meal.calories || 0))),
+              protein: Math.max(0, Math.round(Number(meal.protein || 0))),
+              carbs: Math.max(0, Math.round(Number(meal.carbs || 0))),
+              fat: Math.max(0, Math.round(Number(meal.fat || 0))),
+              ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
+              instructions: Array.isArray(meal.instructions) ? meal.instructions : [],
+              missing_ingredients: Array.isArray(meal.missing_ingredients) ? meal.missing_ingredients : [],
+              fridge_ingredients: Array.isArray(meal.fridge_ingredients) ? meal.fridge_ingredients : [],
+              image_url: null,
+              prep_time_min: Math.max(0, Math.round(Number(meal.prep_time_min || 0))),
+              servings: Math.max(1, Math.round(Number(meal.servings || 1))),
+              ai_generated: true,
+              created_at: new Date().toISOString(),
+            });
+          }
         }
+
+        if (rows.length) {
+          // Regenerating a day replaces only its AI meals, avoiding duplicate slots.
+          const { error: deleteError } = await supabase
+            .from('meal_plans')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('planned_date', startDate)
+            .eq('ai_generated', true);
+          if (deleteError) throw deleteError;
+
+          const { error: insertError } = await supabase.from('meal_plans').insert(rows);
+          if (insertError) throw insertError;
+          added += rows.length;
+        }
+
+        // Show each completed day immediately instead of waiting for all seven.
+        await load();
       }
 
-      if (!rows.length) {
-        setMessage('Aucun nouveau repas à ajouter : les créneaux générés sont déjà planifiés.');
-        return;
-      }
-
-      const { error: insertError } = await supabase.from('meal_plans').insert(rows);
-      if (insertError) throw insertError;
-
-      await load();
-      setMessage('Repas du jour créés à partir de ton frigo · ouvre un repas pour voir les ingrédients et les grammages.');
+      setMessage(`${added} repas créés · ta semaine est prête. Ouvre un repas pour voir les ingrédients et les grammages.`);
     } catch (e: any) {
       console.error('MEAL_PLAN_AI_GENERATE_ERROR', e);
-      setError(e?.message || 'Impossible de générer le plan repas avec NOX AI.');
-      setMessage('');
+      setError(e?.message || 'La génération s’est arrêtée avant la fin de la semaine.');
+      setMessage('Les jours déjà créés restent enregistrés. Tu peux relancer pour compléter.');
     } finally {
       setGenerating(false);
     }
