@@ -942,6 +942,56 @@ export default function MealPlanner() {
       setError(updateError.message);
       return;
     }
+    setSelectedMeal({ ...entry, logged: true });
+    await load();
+  };
+
+  const undoLogged = async (entry: PlannedEntry) => {
+    if (!user || !entry.logged) return;
+    setError('');
+
+    // Retire uniquement la dernière entrée correspondante ajoutée à Nutrition.
+    const { data: matches, error: findError } = await supabase
+      .from('food_entries')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('meal_type', entry.meal_type)
+      .eq('food_name', entry.food_name)
+      .eq('calories', entry.calories)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (findError) {
+      setError(findError.message);
+      return;
+    }
+
+    const foodEntryId = matches?.[0]?.id;
+    if (foodEntryId) {
+      const { error: deleteFoodError } = await supabase
+        .from('food_entries')
+        .delete()
+        .eq('id', foodEntryId)
+        .eq('user_id', user.id);
+
+      if (deleteFoodError) {
+        setError(deleteFoodError.message);
+        return;
+      }
+    }
+
+    const { error: updateError } = await supabase
+      .from('meal_plans')
+      .update({ logged: false })
+      .eq('id', entry.id)
+      .eq('user_id', user.id);
+
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+
+    setSelectedMeal({ ...entry, logged: false });
     await load();
   };
 
@@ -1543,10 +1593,26 @@ export default function MealPlanner() {
               ))}
             </div>
 
-            <button onClick={() => void logNow(selectedMeal)} disabled={!!selectedMeal.logged}
-              style={{ width: '100%', marginTop: 22, padding: 14, border: 0, borderRadius: 13, background: selectedMeal.logged ? '#E8EAE4' : ACCENT, color: '#111', fontWeight: 950 }}>
-              {selectedMeal.logged ? 'DÉJÀ MANGÉ ✓' : 'MANGÉ ✓'}
-            </button>
+            {!selectedMeal.logged ? (
+              <button
+                onClick={() => void logNow(selectedMeal)}
+                style={{ width: '100%', marginTop: 22, padding: 14, border: 0, borderRadius: 13, background: ACCENT, color: '#111', fontWeight: 950 }}
+              >
+                MANGÉ ✓
+              </button>
+            ) : (
+              <div style={{ marginTop: 22 }}>
+                <div style={{ width: '100%', padding: 14, borderRadius: 13, background: '#E8EAE4', color: '#111', fontWeight: 950, textAlign: 'center', boxSizing: 'border-box' }}>
+                  MANGÉ ✓
+                </div>
+                <button
+                  onClick={() => void undoLogged(selectedMeal)}
+                  style={{ width: '100%', marginTop: 8, padding: 11, border: '1px solid #DDD', borderRadius: 13, background: '#fff', color: '#666', fontSize: 11, fontWeight: 850 }}
+                >
+                  ANNULER
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
