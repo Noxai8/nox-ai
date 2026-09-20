@@ -795,16 +795,38 @@ function ExerciseDetail({
   const technique = exerciseTechnique(exercise);
   const thumbnail = getNoxExerciseThumbnail(exercise);
   const hdCover = getNoxExerciseHdCover(exercise);
-  const displayName = nox?.name || exercise.name;
-  const description = exercise.description?.trim() || technique.description;
-  const steps =
-    exercise.instructions?.trim()
-      ? exercise.instructions
+  const displayName = String(nox?.name || exercise?.name || 'Exercice');
+
+  const rawDescription =
+    typeof exercise?.description === 'string'
+      ? exercise.description.trim()
+      : '';
+
+  const description = rawDescription || technique.description;
+
+  const rawInstructions = exercise?.instructions;
+
+  const customSteps: string[] = Array.isArray(rawInstructions)
+    ? rawInstructions
+        .map((step: unknown) => {
+          if (typeof step === 'string') return step.trim();
+          if (step && typeof step === 'object') {
+            const value = step as Record<string, unknown>;
+            return String(value.cue || value.text || value.title || '').trim();
+          }
+          return '';
+        })
+        .filter(Boolean)
+        .slice(0, 5)
+    : typeof rawInstructions === 'string'
+      ? rawInstructions
           .split(/\n|\. /)
-          .map((s: string) => s.trim())
+          .map((step: string) => step.trim())
           .filter(Boolean)
           .slice(0, 5)
-      : technique.steps;
+      : [];
+
+  const steps = customSteps.length ? customSteps : technique.steps;
 
   return (
     <div style={{ minHeight: '100vh', background: '#F6F7F2', color: '#111' }}>
