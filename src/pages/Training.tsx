@@ -787,8 +787,8 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
           </div>
         </button>
             <button onClick={() => setShowNotes(true)}
-              style={{ flexShrink: 0, padding: '8px 14px', background: '#FFFFFF', border: '1px solid ' + BORDER, borderRadius: 12, color: exerciseNotes[currentExercise?.name || ''] ? '#090909' : '#777B72', fontSize: 11, fontWeight: 800, cursor: 'pointer', touchAction: 'manipulation' as const }}>
-              📝 {exerciseNotes[currentExercise?.name || ''] ? 'Note ✓' : 'Notes'}
+              style={{ flexShrink: 0, padding: '8px 14px', background: '#FFFFFF', border: '1px solid ' + BORDER, borderRadius: 12, color: exerciseNotes[exercise?.name || ''] ? '#090909' : '#777B72', fontSize: 11, fontWeight: 800, cursor: 'pointer', touchAction: 'manipulation' as const }}>
+              📝 {exerciseNotes[exercise?.name || ''] ? 'Note ✓' : 'Notes'}
             </button>
 
         {tags.length > 0 && <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 15 }}>
