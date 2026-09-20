@@ -171,12 +171,12 @@ export default function Onboarding() {
 
       const target = {
         calories: preview.calories,
-        protein: preview.protein,
-        carbs: preview.carbs,
-        fat: preview.fat,
         protein_g: preview.protein,
         carbs_g: preview.carbs,
         fat_g: preview.fat,
+        // Compatibilité avec le schéma actuel : carbs/fat existent aussi en colonnes historiques.
+        carbs: preview.carbs,
+        fat: preview.fat,
         start_date: new Date().toISOString().slice(0, 10),
         is_active: true,
       };
