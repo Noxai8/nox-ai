@@ -98,7 +98,7 @@ export function BottomNav({ active }: { active: NavActive | string }) {
       label: 'Photo',
       sub: 'Photo de progression',
       icon: Camera,
-      path: '/progress',
+      path: '/progress?add=photo',
     },
   ];
 
