@@ -50,10 +50,10 @@ cursor.setDate(cursor.getDate() - 1);
 }
 return streak;
 }
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#121212';
-const BORDER = '#242424';
+const ACCENT = '#B7FF00';
+const BG = '#F6F7F2';
+const SURFACE = '#FFFFFF';
+const BORDER = '#E8EAE2';
 function resolvedNoxExercise(exercise: any) {
   return resolveNoxExercise({
     exercise_id: exercise?.exercise_id,
@@ -637,7 +637,7 @@ const exerciseProgress = ((currentIdx + (currentSet - 1) / totalSets) / exercise
 return (
 <div style={{
 minHeight: '100vh',
-background: resting ? '#0a0a0a' : '#F4F4F1',
+background: resting ? '#090909' : '#F6F7F2',
 color: resting ? '#fff' : '#111',
 display: 'flex',
 flexDirection: 'column',
@@ -648,7 +648,7 @@ width: '100%',
 maxWidth: 560,
 minHeight: '100vh',
 margin: '0 auto',
-background: resting ? '#0a0a0a' : '#FFFFFF',
+background: resting ? '#090909' : '#F6F7F2',
 display: 'flex',
 flexDirection: 'column',
 }}>
@@ -775,7 +775,7 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
 
         {/* Grande maquette de l'exercice. Le PLAY ouvre la démo guidée 1/3 → 3/3. */}
         <button onClick={() => setShowDemo(true)} aria-label={`Voir la démonstration de ${ex?.name || 'cet exercice'}`}
-          style={{ width: '100%', border: '1px solid #E7E7E2', padding: 0, borderRadius: 26, overflow: 'hidden', background: '#FFFFFF', cursor: 'pointer', marginBottom: 12, textAlign: 'left', boxShadow: '0 10px 30px rgba(0,0,0,.055)' }}>
+          style={{ width: '100%', border: '1px solid #E8EAE2', padding: 0, borderRadius: 28, overflow: 'hidden', background: '#FFFFFF', cursor: 'pointer', marginBottom: 12, textAlign: 'left', boxShadow: '0 12px 32px rgba(0,0,0,.06)' }}>
           <NoxExerciseCover exercise={ex} tags={tags} />
           <div style={{ padding: '14px 16px 15px', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div style={{ minWidth: 0 }}>
@@ -786,7 +786,7 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
           </div>
         </button>
             <button onClick={() => setShowNotes(true)}
-              style={{ flexShrink: 0, padding: '8px 14px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 10, color: exerciseNotes[currentExercise?.name || ''] ? '#c8ff00' : '#888', fontSize: 11, fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' as const }}>
+              style={{ flexShrink: 0, padding: '8px 14px', background: '#FFFFFF', border: '1px solid ' + BORDER, borderRadius: 12, color: exerciseNotes[currentExercise?.name || ''] ? '#090909' : '#777B72', fontSize: 11, fontWeight: 800, cursor: 'pointer', touchAction: 'manipulation' as const }}>
               📝 {exerciseNotes[currentExercise?.name || ''] ? 'Note ✓' : 'Notes'}
             </button>
 
@@ -794,7 +794,7 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
           {tags.map((tag, i) => <span key={tag} style={{ padding: '7px 11px', background: i === 0 ? '#F3FFE1' : '#F1F1EE', border: i === 0 ? `1px solid ${ACCENT}` : '1px solid transparent', borderRadius: 999, color: '#55554F', fontSize: 10.5, fontWeight: 800 }}>{tag}</span>)}
         </div>}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '14px 16px', borderRadius: 20, background: '#F5FFE3', marginBottom: 17 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '14px 16px', borderRadius: 20, background: '#F7FFE5', marginBottom: 17 }}>
           <div style={{ width: 42, height: 42, borderRadius: 14, background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 20 }}>🎯</div>
           <div><div style={{ fontSize: 9.5, color: '#999991', fontWeight: 950, letterSpacing: '.07em' }}>OBJECTIF DU JOUR</div>
           <div style={{ fontSize: 19, color: '#111', fontWeight: 1000, marginTop: 2 }}>{ex?.reps || '8–12'} répétitions</div></div>
@@ -807,7 +807,7 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
             <span style={{ display: 'flex', gap: 6 }}>{Array.from({ length: totalSets }).map((_, i) => <i key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < currentSet ? ACCENT : '#EDEDEA', display: 'block' }} />)}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#F5FFE3', display: 'grid', placeItems: 'center' }}>🏆</div>
+            <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#F7FFE5', display: 'grid', placeItems: 'center' }}>🏆</div>
             <div><div style={{ fontSize: 10.5, fontWeight: 950 }}>Tu avances bien !</div><div style={{ fontSize: 9.5, color: '#999' }}>Reste concentré.</div></div>
           </div>
         </div>
@@ -878,7 +878,7 @@ function NumberField({
     onChange(mode === 'numeric' ? String(Math.round(next)) : String(Math.round(next * 10) / 10));
   };
   return (
-    <div style={{ border: '1.5px solid #E4E4DF', borderRadius: 18, padding: '12px 10px 14px', background: '#fff' }}>
+    <div style={{ border: '1px solid #E8EAE2', borderRadius: 20, padding: '12px 10px 14px', background: '#fff' }}>
       <label style={{ fontSize: 9.5, color: '#77776F', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: 10, fontWeight: 900 }}>{label}</label>
       <div style={{ display: 'grid', gridTemplateColumns: '42px 1fr 42px', alignItems: 'center', gap: 5 }}>
         <button type="button" onClick={() => changeBy(-step)} style={{ width: 42, height: 42, borderRadius: '50%', border: 0, background: '#F1F1F3', fontSize: 24, cursor: 'pointer' }}>−</button>
