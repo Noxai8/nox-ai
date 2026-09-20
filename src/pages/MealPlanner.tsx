@@ -55,6 +55,14 @@ type NutritionTarget = {
   fat?: number | null;
 };
 
+type PlanMode = 'fridge' | 'shopping';
+
+type ShoppingPrefs = {
+  budget: string;
+  store: string;
+  days: number;
+};
+
 const TEMPLATES: Record<GoalKey, Record<string, MealTemplate[]>> = {
   cut: {
     'Petit-déjeuner': [
@@ -220,6 +228,9 @@ export default function MealPlanner() {
   const [fridgeAnalyzing, setFridgeAnalyzing] = useState(false);
   const [fridgeAnalysis, setFridgeAnalysis] = useState<FridgeAnalysis | null>(null);
   const [fridgeFoods, setFridgeFoods] = useState<FridgeFood[]>([]);
+  const [planMode, setPlanMode] = useState<PlanMode>('fridge');
+  const [showShopping, setShowShopping] = useState(false);
+  const [shoppingPrefs, setShoppingPrefs] = useState<ShoppingPrefs>({ budget: '', store: '', days: 7 });
 
 
   const goal = normalizeGoal(profile?.goal_type || profile?.goal || profile?.objective);
@@ -352,11 +363,81 @@ export default function MealPlanner() {
     setFridgeFoods(current => current.filter((_, i) => i !== index));
   };
 
+  const openShopping = () => {
+    setPlanMode('shopping');
+    setShowShopping(true);
+    setError('');
+  };
+
+  const markFridgeEmpty = () => {
+    setFridgeAnalysis({
+      mode: 'fridge',
+      etat: 'vide',
+      resume: 'Frigo déclaré vide.',
+      aliments: [],
+      manques: ['protéines', 'féculents', 'légumes', 'fruits', 'matières grasses'],
+      fiabilite: 'haute',
+      note: 'Préparer une liste de courses selon le budget et l’enseigne.',
+    });
+    setFridgeFoods([]);
+    openShopping();
+  };
+
+  const selectPlanMode = (mode: PlanMode) => {
+    setPlanMode(mode);
+    setError('');
+    if (mode === 'shopping') {
+      setShowShopping(true);
+      return;
+    }
+    setShowShopping(false);
+    if (!fridgeFoods.length) {
+      setMessage("Scanne d’abord ton frigo pour que NOX puisse utiliser ce que tu as déjà.");
+    } else if (fridgeAnalysis?.etat === 'insuffisant' || fridgeAnalysis?.etat === 'peu_adapte') {
+      setMessage("NOX utilisera ce qui est exploitable et devra compléter avec une liste de courses.");
+    } else {
+      setMessage("Mode frigo sélectionné.");
+    }
+  };
+
+  const validateShopping = () => {
+    const budget = Number(String(shoppingPrefs.budget).replace(',', '.'));
+    if (!Number.isFinite(budget) || budget <= 0) {
+      setError('Indique un budget supérieur à 0 €.');
+      return;
+    }
+    if (!shoppingPrefs.store.trim()) {
+      setError('Indique ton enseigne de courses.');
+      return;
+    }
+    setError('');
+    setShowShopping(false);
+    setMessage(`Courses rapides configurées : ${Math.round(budget)} € · ${shoppingPrefs.store.trim()} · ${shoppingPrefs.days} jours.`);
+  };
+
   const generatePlan = async () => {
     if (!user || generating) return;
     if (!targetCalories || !targetProtein) {
       setError("Complète d'abord ton objectif nutritionnel pour générer un plan.");
       return;
+    }
+    if (planMode === 'fridge' && !fridgeFoods.length) {
+      setError("Scanne ton frigo avant de générer avec ce mode, ou choisis Courses rapides.");
+      return;
+    }
+    if (planMode === 'fridge' && (fridgeAnalysis?.etat === 'insuffisant' || fridgeAnalysis?.etat === 'peu_adapte')) {
+      setPlanMode('shopping');
+      setShowShopping(true);
+      setMessage("Ton frigo ne suffit pas pour une semaine cohérente. Complète d’abord le budget et l’enseigne.");
+      return;
+    }
+    if (planMode === 'shopping') {
+      const budget = Number(String(shoppingPrefs.budget).replace(',', '.'));
+      if (!Number.isFinite(budget) || budget <= 0 || !shoppingPrefs.store.trim()) {
+        setShowShopping(true);
+        setError('Renseigne ton budget et ton enseigne avant de continuer.');
+        return;
+      }
     }
     setGenerating(true);
     setError('');
@@ -373,6 +454,7 @@ export default function MealPlanner() {
       };
 
       week.forEach((day, dayIndex) => {
+        if (dayIndex >= (planMode === 'shopping' ? shoppingPrefs.days : 7)) return;
         MEALS.forEach(meal => {
           if (existingDates.has(`${day.date}|${meal}`)) return;
           const choices = TEMPLATES[goal][meal];
@@ -404,7 +486,11 @@ export default function MealPlanner() {
       if (error) throw error;
 
       await load();
-      setMessage(`Plan ${goalLabel(goal).toLowerCase()} généré pour 7 jours.`);
+      setMessage(
+        planMode === 'shopping'
+          ? `Plan de base créé pour ${shoppingPrefs.days} jours · budget ${shoppingPrefs.budget} € · ${shoppingPrefs.store}.`
+          : `Plan ${goalLabel(goal).toLowerCase()} généré pour 7 jours.`
+      );
     } catch (e: any) {
       console.error('MEAL_PLAN_GENERATE_ERROR', e);
       setError(e?.message || 'Impossible de générer le plan repas.');
@@ -529,7 +615,7 @@ export default function MealPlanner() {
             </button>
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               <button onClick={() => fridgeInputRef.current?.click()} disabled={fridgeAnalyzing} style={secondaryAction}>Importer une photo</button>
-              <button onClick={() => setMessage("Si le frigo est vide, NOX demandera ton budget et ton enseigne avant de préparer la liste.")} style={secondaryAction}>Frigo vide</button>
+              <button onClick={markFridgeEmpty} style={secondaryAction}>Frigo vide</button>
             </div>
             <input
               ref={fridgeInputRef}
@@ -590,9 +676,61 @@ export default function MealPlanner() {
 
           <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 20, padding: 16 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 }}>
-              <ChoiceCard title="Avec mon frigo" text="Priorise les ingrédients détectés et limite le gaspillage." active />
-              <ChoiceCard title="Courses rapides" text="Budget + enseigne + liste adaptée à ton objectif." />
+              <ChoiceCard title="Avec mon frigo" text="Priorise les ingrédients détectés et limite le gaspillage." active={planMode === 'fridge'} onClick={() => selectPlanMode('fridge')} />
+              <ChoiceCard title="Courses rapides" text="Budget + enseigne + liste adaptée à ton objectif." active={planMode === 'shopping'} onClick={() => selectPlanMode('shopping')} />
             </div>
+            {showShopping && (
+              <div style={{ marginTop: 12, padding: 14, borderRadius: 16, background: '#F7F7F4', border: `1px solid ${BORDER}` }}>
+                <div style={{ fontSize: 10, fontWeight: 950, letterSpacing: '.08em' }}>COURSES RAPIDES</div>
+                <div style={{ marginTop: 4, color: '#777C73', fontSize: 10.5, lineHeight: 1.45 }}>
+                  NOX utilisera ces informations pour préparer la prochaine étape : liste de courses adaptée à ton objectif.
+                </div>
+                <label style={{ display: 'block', marginTop: 12 }}>
+                  <span style={fieldLabel}>BUDGET MAXIMUM</span>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      value={shoppingPrefs.budget}
+                      onChange={e => setShoppingPrefs(p => ({ ...p, budget: e.target.value }))}
+                      inputMode="decimal"
+                      placeholder="Ex : 60"
+                      style={{ ...fieldInput, paddingRight: 42 }}
+                    />
+                    <span style={{ position: 'absolute', right: 14, top: 13, fontSize: 12, fontWeight: 900 }}>€</span>
+                  </div>
+                </label>
+                <label style={{ display: 'block', marginTop: 10 }}>
+                  <span style={fieldLabel}>ENSEIGNE</span>
+                  <input
+                    value={shoppingPrefs.store}
+                    onChange={e => setShoppingPrefs(p => ({ ...p, store: e.target.value }))}
+                    placeholder="Ex : Auchan, Carrefour, Lidl..."
+                    style={fieldInput}
+                  />
+                </label>
+                <div style={{ marginTop: 10 }}>
+                  <span style={fieldLabel}>DURÉE</span>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
+                    {[3, 5, 7].map(days => (
+                      <button key={days} onClick={() => setShoppingPrefs(p => ({ ...p, days }))}
+                        style={{
+                          padding: 10, borderRadius: 10,
+                          border: `1px solid ${shoppingPrefs.days === days ? '#111' : BORDER}`,
+                          background: shoppingPrefs.days === days ? '#111' : '#fff',
+                          color: shoppingPrefs.days === days ? ACCENT : '#111',
+                          fontSize: 10, fontWeight: 900, cursor: 'pointer'
+                        }}>
+                        {days} JOURS
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={validateShopping}
+                  style={{ width: '100%', marginTop: 12, padding: 12, border: 0, borderRadius: 11, background: ACCENT, color: '#111', fontWeight: 950, cursor: 'pointer' }}>
+                  VALIDER MES COURSES
+                </button>
+              </div>
+            )}
+
             <button
               onClick={generatePlan}
               disabled={generating || loading || !targetCalories || !targetProtein}
@@ -694,15 +832,29 @@ const secondaryAction: React.CSSProperties = {
   background: 'rgba(255,255,255,.52)', color: '#111', fontSize: 10, fontWeight: 900, cursor: 'pointer'
 };
 
-function ChoiceCard({ title, text, active = false }: { title: string; text: string; active?: boolean }) {
+function ChoiceCard({ title, text, active = false, onClick }: { title: string; text: string; active?: boolean; onClick?: () => void }) {
   return (
-    <div style={{ padding: 13, borderRadius: 14, background: active ? '#F3FFD1' : '#F7F7F4', border: `1px solid ${active ? '#CDEB72' : BORDER}` }}>
+    <button onClick={onClick} type="button" style={{
+      width: '100%', padding: 13, borderRadius: 14, textAlign: 'left', cursor: 'pointer',
+      background: active ? '#F3FFD1' : '#F7F7F4',
+      border: `1px solid ${active ? '#CDEB72' : BORDER}`,
+      color: '#111'
+    }}>
       <div style={{ fontSize: 11.5, fontWeight: 900 }}>{title}</div>
       <div style={{ marginTop: 5, fontSize: 9.5, color: '#777C73', lineHeight: 1.4 }}>{text}</div>
-    </div>
+    </button>
   );
 }
 
+
+const fieldLabel: React.CSSProperties = {
+  display: 'block', marginBottom: 5, color: '#777C73', fontSize: 8.5, fontWeight: 900, letterSpacing: '.05em'
+};
+
+const fieldInput: React.CSSProperties = {
+  width: '100%', boxSizing: 'border-box', padding: '12px 13px', borderRadius: 11,
+  border: `1px solid ${BORDER}`, outline: 0, background: '#fff', color: '#111', fontSize: 12
+};
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
