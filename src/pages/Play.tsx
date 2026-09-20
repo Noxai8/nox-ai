@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
+import TutorialTooltip from '../components/TutorialTooltip';
 import NoxMascot from '../components/NoxMascot';
 
 const ACCENT = '#c8ff00';
@@ -403,6 +404,7 @@ export default function Play() {
         )}
       </div>
 
+      <TutorialTooltip page="play" />
       <BottomNav active="play" />
     </div>
   );

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
+import TutorialTooltip from '../components/TutorialTooltip';
 
 const ACCENT = '#c8ff00';
 const BG = '#0a0a0a';
@@ -620,6 +621,7 @@ FORMAT :
       </div>
 
       <BottomNav active="home" />
+      <TutorialTooltip page="weekly-review" />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import TutorialTooltip from '../components/TutorialTooltip';
 import { useAuth } from '../lib/AuthContext';
 import {
   Activity,
@@ -1681,6 +1682,7 @@ Réponse directe et motivante. Pas de markdown.`;
         </section>
       </main>
 
+      <TutorialTooltip page="home" />
       <BottomNav active="home" />
     </div>
   );

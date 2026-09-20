@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
+import TutorialTooltip from '../components/TutorialTooltip';
 
 const ACCENT = '#c8ff00';
 const BG = '#FFFFFF';
@@ -459,6 +460,7 @@ STYLE :
         textarea::placeholder { color: #AAA9A2; }
       `}</style>
 
+      <TutorialTooltip page="coach" />
       <BottomNav active="coach" />
     </div>
   );

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
+import TutorialTooltip from '../components/TutorialTooltip';
 import {
   getNoxExerciseCoachTips,
   getNoxExerciseHdCover,
@@ -876,44 +877,27 @@ function ExerciseDetail({
 
 function NoxExerciseImage({
   src,
+  fallbackSrc,
   alt,
-  compact = false,
-  fallbackSrc = null,
 }: {
-  src: string;
-  alt: string;
-  compact?: boolean;
+  src: string | null;
   fallbackSrc?: string | null;
+  alt: string;
 }) {
-  const [failed, setFailed] = useState(false);
-  const [usingFallback, setUsingFallback] = useState(false);
+  const [error, setError] = useState(false);
+  const [fallbackError, setFallbackError] = useState(false);
 
-  useEffect(() => {
-    setFailed(false);
-    setUsingFallback(false);
-  }, [src, fallbackSrc]);
-
-  if (!src || failed) {
-    return <NoxExerciseFallback compact={compact} />;
-  }
+  if (!src || (error && (!fallbackSrc || fallbackError))) return <NoxExerciseFallback />;
 
   return (
     <img
-      src={usingFallback && fallbackSrc ? fallbackSrc : src}
+      src={error && fallbackSrc ? fallbackSrc : src}
       alt={alt}
-      loading="lazy"
       onError={() => {
-        if (!usingFallback && fallbackSrc && fallbackSrc !== src) {
-          setUsingFallback(true);
-          return;
-        }
-        setFailed(true);
+        if (!error) setError(true);
+        else setFallbackError(true);
       }}
-      style={
-        compact
-          ? { width: 64, height: 58, objectFit: 'contain', objectPosition: 'center', borderRadius: 9, background: '#fff', display: 'block' }
-          : { width: '100%', aspectRatio: '4 / 3', objectFit: 'contain', objectPosition: 'center', background: '#fff', display: 'block' }
-      }
+      style={{ width: '100%', aspectRatio: '4/3', objectFit: 'contain', background: '#F1F1ED', display: 'block' }}
     />
   );
 }
@@ -1000,6 +984,7 @@ function Metric({ value, label }: { value: string; label: string }) {
         <div style={{ fontSize: 17, fontWeight: 1000, lineHeight: 1.05 }}>{value}</div>
         <div style={{ marginTop: 5, fontSize: 7.5, color: '#77776F', fontWeight: 850 }}>{label}</div>
       </div>
+      <TutorialTooltip page="program" />
     </div>
   );
 }

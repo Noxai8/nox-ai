@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
+import TutorialTooltip from '../components/TutorialTooltip';
 import BarcodeScanner from './BarcodeScanner';
 
 const ACCENT = '#B7FF00';
@@ -1002,6 +1003,7 @@ export default function Fuel() {
         </div>
       )}
 
+      <TutorialTooltip page="fuel" />
       <BottomNav active="fuel" />
     </div>
   );

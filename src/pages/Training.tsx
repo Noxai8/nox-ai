@@ -2,6 +2,7 @@ import { calculateProgressiveOverload, detectStagnation } from '../lib/noxBrain'
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import TutorialTooltip from '../components/TutorialTooltip';
 import { useAuth } from '../lib/AuthContext';
 import {
   getNoxExerciseAnatomyImage,
@@ -1128,6 +1129,7 @@ function DemoNox({ exercise, tags, onClose }: { exercise: any; tags: string[]; o
           </div>
         )}
       </div>
+      <TutorialTooltip page="training" />
     </div>
   );
 }

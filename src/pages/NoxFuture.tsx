@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
+import TutorialTooltip from '../components/TutorialTooltip';
 
 const ACCENT = '#B7FF00';
 const BG = '#F6F7F2';
@@ -692,6 +693,7 @@ Réponds UNIQUEMENT en JSON valide :
       )}
 
       <BottomNav active="future" />
+      <TutorialTooltip page="future" />
     </div>
   );
 }
