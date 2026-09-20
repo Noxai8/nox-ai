@@ -18,6 +18,16 @@ type PlannedEntry = {
   food_name: string;
   calories: number;
   protein: number;
+  carbs?: number;
+  fat?: number;
+  ingredients?: any[];
+  instructions?: string[];
+  missing_ingredients?: string[];
+  fridge_ingredients?: string[];
+  image_url?: string | null;
+  prep_time_min?: number;
+  servings?: number;
+  ai_generated?: boolean;
   logged?: boolean;
 };
 
@@ -231,6 +241,7 @@ export default function MealPlanner() {
   const [planMode, setPlanMode] = useState<PlanMode>('fridge');
   const [showShopping, setShowShopping] = useState(false);
   const [shoppingPrefs, setShoppingPrefs] = useState<ShoppingPrefs>({ budget: '', store: '', days: 7 });
+  const [selectedMeal, setSelectedMeal] = useState<PlannedEntry | null>(null);
 
 
   const goal = normalizeGoal(profile?.goal_type || profile?.goal || profile?.objective);
@@ -428,72 +439,95 @@ export default function MealPlanner() {
     if (planMode === 'fridge' && (fridgeAnalysis?.etat === 'insuffisant' || fridgeAnalysis?.etat === 'peu_adapte')) {
       setPlanMode('shopping');
       setShowShopping(true);
-      setMessage("Ton frigo ne suffit pas pour une semaine cohérente. Complète d’abord le budget et l’enseigne.");
+      setMessage("Ton frigo ne suffit pas pour une semaine cohérente. Indique ton budget et ton enseigne pour compléter les ingrédients.");
       return;
     }
-    if (planMode === 'shopping') {
-      const budget = Number(String(shoppingPrefs.budget).replace(',', '.'));
-      if (!Number.isFinite(budget) || budget <= 0 || !shoppingPrefs.store.trim()) {
-        setShowShopping(true);
-        setError('Renseigne ton budget et ton enseigne avant de continuer.');
-        return;
-      }
+
+    const budget = Number(String(shoppingPrefs.budget).replace(',', '.'));
+    if (planMode === 'shopping' && (!Number.isFinite(budget) || budget <= 0 || !shoppingPrefs.store.trim())) {
+      setShowShopping(true);
+      setError('Renseigne ton budget et ton enseigne avant de continuer.');
+      return;
     }
+
     setGenerating(true);
     setError('');
     setMessage('');
 
     try {
-      const existingDates = new Set(week.flatMap(day => day.entries.map(e => `${e.planned_date}|${e.meal_type}`)));
-      const rows: any[] = [];
-      const split: Record<string, number> = {
-        'Petit-déjeuner': 0.24,
-        'Déjeuner': 0.31,
-        'Dîner': 0.31,
-        'Snacks': 0.14,
-      };
+      const { data, error: fnError } = await supabase.functions.invoke('generate-meal-plan', {
+        body: {
+          mode: planMode,
+          goal,
+          days: planMode === 'shopping' ? shoppingPrefs.days : 7,
+          target: {
+            calories: targetCalories,
+            protein: targetProtein,
+            carbs: Number(nutritionTarget?.carbs || 0),
+            fat: Number(nutritionTarget?.fat || 0),
+          },
+          fridgeFoods,
+          shopping: planMode === 'shopping'
+            ? { budget, store: shoppingPrefs.store.trim() }
+            : null,
+        },
+      });
 
-      week.forEach((day, dayIndex) => {
-        if (dayIndex >= (planMode === 'shopping' ? shoppingPrefs.days : 7)) return;
-        MEALS.forEach(meal => {
-          if (existingDates.has(`${day.date}|${meal}`)) return;
-          const choices = TEMPLATES[goal][meal];
-          const template = choices[(dayIndex + MEALS.indexOf(meal)) % choices.length];
-          const desired = targetCalories * split[meal];
-          const ratio = desired / template.calories;
-          const desiredProtein = targetProtein * split[meal];
-          const calorieScaledProtein = template.protein * Math.min(Math.max(ratio, 0.8), 1.25);
-          const plannedProtein = Math.max(calorieScaledProtein, desiredProtein * 0.9);
+      if (fnError) throw fnError;
+      if (!data || !Array.isArray(data.days)) throw new Error('Le plan IA reçu est invalide.');
+
+      const existingDates = new Set(
+        week.flatMap(day => day.entries.map(e => `${e.planned_date}|${e.meal_type}`))
+      );
+      const rows: any[] = [];
+
+      for (const day of data.days) {
+        if (!day?.date || !Array.isArray(day?.meals)) continue;
+        for (const meal of day.meals) {
+          if (!meal?.name || !meal?.meal_type) continue;
+          if (existingDates.has(`${day.date}|${meal.meal_type}`)) continue;
 
           rows.push({
             user_id: user.id,
             planned_date: day.date,
-            meal_type: meal,
-            food_name: template.name,
-            calories: Math.round(template.calories * ratio),
-            protein: Math.round(plannedProtein),
+            meal_type: meal.meal_type,
+            food_name: meal.name,
+            calories: Math.max(0, Math.round(Number(meal.calories || 0))),
+            protein: Math.max(0, Math.round(Number(meal.protein || 0))),
+            carbs: Math.max(0, Math.round(Number(meal.carbs || 0))),
+            fat: Math.max(0, Math.round(Number(meal.fat || 0))),
+            ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
+            instructions: Array.isArray(meal.instructions) ? meal.instructions : [],
+            missing_ingredients: Array.isArray(meal.missing_ingredients) ? meal.missing_ingredients : [],
+            fridge_ingredients: Array.isArray(meal.fridge_ingredients) ? meal.fridge_ingredients : [],
+            image_url: null,
+            prep_time_min: Math.max(0, Math.round(Number(meal.prep_time_min || 0))),
+            servings: Math.max(1, Math.round(Number(meal.servings || 1))),
+            ai_generated: true,
             created_at: new Date().toISOString(),
           });
-        });
-      });
+        }
+      }
 
       if (!rows.length) {
-        setMessage('Ta semaine est déjà planifiée.');
+        setMessage('Aucun nouveau repas à ajouter : les créneaux générés sont déjà planifiés.');
         return;
       }
 
-      const { error } = await supabase.from('meal_plans').insert(rows);
-      if (error) throw error;
+      const { error: insertError } = await supabase.from('meal_plans').insert(rows);
+      if (insertError) throw insertError;
 
       await load();
+
+      const shoppingCount = Array.isArray(data.shopping_list) ? data.shopping_list.length : 0;
       setMessage(
         planMode === 'shopping'
-          ? `Plan de base créé pour ${shoppingPrefs.days} jours · budget ${shoppingPrefs.budget} € · ${shoppingPrefs.store}.`
-          : `Plan ${goalLabel(goal).toLowerCase()} généré pour 7 jours.`
+          ? `Plan IA généré pour ${shoppingPrefs.days} jours. ${shoppingCount} article${shoppingCount > 1 ? 's' : ''} de courses proposé${shoppingCount > 1 ? 's' : ''}.`
+          : `Plan IA généré à partir de ton frigo : petits-déjeuners, déjeuners et dîners sont prêts.`
       );
     } catch (e: any) {
-      console.error('MEAL_PLAN_GENERATE_ERROR', e);
-      setError(e?.message || 'Impossible de générer le plan repas.');
+      console.error('MEAL_PLAN_AI_GENERATE_ERROR', e);
+      setError(e?.message || 'Impossible de générer le plan repas avec NOX AI.');
     } finally {
       setGenerating(false);
     }
@@ -549,8 +583,8 @@ export default function MealPlanner() {
       food_name: entry.food_name,
       calories: entry.calories,
       protein: entry.protein,
-      carbs: 0,
-      fat: 0,
+      carbs: Number(entry.carbs || 0),
+      fat: Number(entry.fat || 0),
       created_at: new Date().toISOString(),
     });
 
@@ -769,9 +803,13 @@ export default function MealPlanner() {
                 {day.entries.length === 0 ? (
                   <div style={{ padding: 18, color: '#92968E', fontSize: 11.5 }}>Aucun repas planifié.</div>
                 ) : day.entries.map(entry => (
-                  <button key={entry.id} onClick={() => setMessage(`${entry.food_name} · ${entry.calories} kcal · ${entry.protein} g protéines. La fiche détaillée avec grammages et ingrédients sera branchée ensuite.`)}
+                  <button key={entry.id} onClick={() => setSelectedMeal(entry)}
                     style={{ width: '100%', border: 0, borderBottom: `1px solid ${BORDER}`, background: entry.logged ? '#F7F7F4' : '#fff', padding: 13, display: 'flex', gap: 12, textAlign: 'left', cursor: 'pointer' }}>
-                    <div style={{ width: 72, height: 64, borderRadius: 13, flexShrink: 0, background: '#EFF1EA', display: 'grid', placeItems: 'center', color: '#8C9187', fontSize: 9, fontWeight: 900 }}>IMAGE</div>
+                    {entry.image_url ? (
+                      <img src={entry.image_url} alt={entry.food_name} style={{ width: 72, height: 64, borderRadius: 13, flexShrink: 0, objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: 72, height: 64, borderRadius: 13, flexShrink: 0, background: '#EFF1EA', display: 'grid', placeItems: 'center', color: '#8C9187', fontSize: 9, fontWeight: 900 }}>RECETTE IA</div>
+                    )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 9, color: '#8A8A83', fontWeight: 900 }}>{entry.meal_type.toUpperCase()}</div>
                       <div style={{ marginTop: 4, fontSize: 13, fontWeight: 900 }}>{entry.food_name}</div>
@@ -794,6 +832,66 @@ export default function MealPlanner() {
           })}
         </section>
       </main>
+
+      {selectedMeal && (
+        <div onClick={() => setSelectedMeal(null)} style={{ position: 'fixed', inset: 0, zIndex: 320, background: 'rgba(0,0,0,.48)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 620, maxHeight: '90vh', overflowY: 'auto', background: '#fff', borderRadius: '26px 26px 0 0', padding: '22px 20px max(26px, env(safe-area-inset-bottom))' }}>
+            {selectedMeal.image_url && <img src={selectedMeal.image_url} alt={selectedMeal.food_name} style={{ width: '100%', height: 210, objectFit: 'cover', borderRadius: 18, marginBottom: 16 }} />}
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 9, color: '#777C73', fontWeight: 900, letterSpacing: '.08em' }}>{selectedMeal.meal_type.toUpperCase()}</div>
+                <div style={{ marginTop: 4, fontSize: 23, lineHeight: 1.05, fontWeight: 950 }}>{selectedMeal.food_name}</div>
+              </div>
+              <button onClick={() => setSelectedMeal(null)} style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 12, border: `1px solid ${BORDER}`, background: SURFACE, fontWeight: 900 }}>×</button>
+            </div>
+
+            <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
+              <Stat label="KCAL" value={`${Math.round(Number(selectedMeal.calories || 0))}`} />
+              <Stat label="PROT." value={`${Math.round(Number(selectedMeal.protein || 0))} g`} />
+              <Stat label="GLUC." value={`${Math.round(Number(selectedMeal.carbs || 0))} g`} />
+              <Stat label="LIP." value={`${Math.round(Number(selectedMeal.fat || 0))} g`} />
+            </div>
+
+            {!!selectedMeal.prep_time_min && <div style={{ marginTop: 10, color: '#777C73', fontSize: 10.5 }}>Préparation · {selectedMeal.prep_time_min} min · {selectedMeal.servings || 1} portion</div>}
+
+            <div style={{ marginTop: 20, fontSize: 16, fontWeight: 950 }}>Ingrédients</div>
+            <div style={{ marginTop: 8, display: 'grid', gap: 7 }}>
+              {(selectedMeal.ingredients || []).map((ingredient: any, index: number) => (
+                <div key={index} style={{ padding: '10px 12px', borderRadius: 11, background: SURFACE, display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11 }}>
+                  <span style={{ fontWeight: 800 }}>{ingredient?.name || 'Ingrédient'}</span>
+                  <span style={{ color: '#777C73' }}>{ingredient?.grams ? `${ingredient.grams} ${ingredient.unit || 'g'}` : ingredient?.quantity || ''}</span>
+                </div>
+              ))}
+            </div>
+
+            {!!selectedMeal.fridge_ingredients?.length && (
+              <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: '#F4FFE0', border: '1px solid #DCF1A3', fontSize: 10.5 }}>
+                <strong>Déjà dans ton frigo :</strong> {selectedMeal.fridge_ingredients.join(', ')}
+              </div>
+            )}
+            {!!selectedMeal.missing_ingredients?.length && (
+              <div style={{ marginTop: 8, padding: 12, borderRadius: 12, background: '#FFF8E7', border: '1px solid #F0DCA7', fontSize: 10.5 }}>
+                <strong>À acheter :</strong> {selectedMeal.missing_ingredients.join(', ')}
+              </div>
+            )}
+
+            <div style={{ marginTop: 20, fontSize: 16, fontWeight: 950 }}>Préparation</div>
+            <div style={{ marginTop: 8, display: 'grid', gap: 9 }}>
+              {(selectedMeal.instructions || []).map((step, index) => (
+                <div key={index} style={{ display: 'flex', gap: 10, fontSize: 11.5, lineHeight: 1.5 }}>
+                  <div style={{ width: 24, height: 24, flexShrink: 0, borderRadius: 8, background: '#111', color: ACCENT, display: 'grid', placeItems: 'center', fontSize: 9, fontWeight: 950 }}>{index + 1}</div>
+                  <div>{step}</div>
+                </div>
+              ))}
+            </div>
+
+            <button onClick={() => void logNow(selectedMeal)} disabled={!!selectedMeal.logged}
+              style={{ width: '100%', marginTop: 22, padding: 14, border: 0, borderRadius: 13, background: selectedMeal.logged ? '#E8EAE4' : ACCENT, color: '#111', fontWeight: 950 }}>
+              {selectedMeal.logged ? 'DÉJÀ AJOUTÉ AU JOURNAL' : 'AJOUTER AU JOURNAL'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {showAdd && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,.48)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
