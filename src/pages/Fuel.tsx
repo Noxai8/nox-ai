@@ -235,92 +235,97 @@ export default function Fuel() {
     return acc;
   }, {} as Record<string, any[]>);
 
-  const TABS: [Tab, string][] = [['journal', 'Journal'], ['macros', 'Macros'], ['eau', 'Eau'], ['idees', 'Idees']];
+  const TABS: [Tab, string][] = [['journal', 'Journal'], ['macros', 'Macros'], ['eau', 'Eau'], ['idees', 'Frigo IA ✦']];
 
   return (
     <div style={{ minHeight: '100vh', background: BG, paddingBottom: 90 }}>
       <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
         onChange={e => { const f = e.target.files?.[0]; if (f) handlePhoto(f); e.target.value = ''; }} />
 
-      {/* HEADER */}
-      <div style={{ background: SURFACE, borderBottom: '1px solid ' + BORDER, padding: '20px 20px 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      {/* HEADER / NUTRITION OVERVIEW */}
+      <div style={{ background: 'linear-gradient(180deg,#090909 0%,#111 100%)', padding: '20px 20px 18px', color: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '.1em' }}>Nutrition</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: DARK }}>MON JOURNAL</div>
+            <div style={{ fontSize: 34, lineHeight: 1, fontWeight: 950, letterSpacing: '-.04em' }}>Noxai<span style={{ color: ACCENT }}>.</span></div>
+            <div style={{ marginTop: 7, fontSize: 9, letterSpacing: '.28em', color: '#d8d8d8', fontWeight: 700 }}>MANGE MIEUX. VIS PLUS LOIN.</div>
           </div>
-          <button onClick={() => { setShowAdd(true); setAddMode('choose'); }}
-            style={{ background: ACCENT, color: '#111', border: '1px solid #A7D900', borderRadius: 12, padding: '10px 18px', fontWeight: 800, fontSize: 13, cursor: 'pointer', touchAction: 'manipulation' }}>
-            + AJOUTER
-          </button>
+          <div style={{ border: '1px solid #3b3b3b', borderRadius: 18, padding: '10px 14px', fontSize: 12, fontWeight: 800 }}>Aujourd’hui⌄</div>
+        </div>
+      </div>
+
+      <div style={{ background: BG, borderRadius: '28px 28px 0 0', marginTop: -1, padding: '20px 20px 0' }}>
+        <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 22, padding: 18, boxShadow: '0 10px 30px rgba(17,17,17,.04)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'stretch' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 900, color: DARK }}>Calories restantes</div>
+              <div style={{ fontSize: 42, fontWeight: 950, color: DARK, lineHeight: 1, marginTop: 8, letterSpacing: '-.04em' }}>{kcalLeft}</div>
+              <div style={{ fontSize: 13, color: '#777', marginTop: 5 }}>sur {targets.kcal} kcal</div>
+            </div>
+            <div style={{ flex: '0 0 43%', borderRadius: 18, padding: '14px 13px', background: 'linear-gradient(135deg,#f1ffd0,#f8ffe9)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ fontSize: 28 }}>♨</div>
+              <div><div style={{ fontSize: 14, fontWeight: 900, color: DARK, lineHeight: 1.15 }}>Tu es sur la<br/>bonne voie !</div><div style={{ fontSize: 10, color: '#666', marginTop: 5 }}>Continue comme ça ⚡</div></div>
+            </div>
+          </div>
+          <div style={{ height: 10, background: '#ececea', borderRadius: 999, overflow: 'hidden', marginTop: 16 }}>
+            <div style={{ height: '100%', width: kcalPct + '%', background: kcalPct >= 100 ? '#ff5555' : ACCENT, borderRadius: 999, transition: 'width .3s' }} />
+          </div>
+          <div style={{ fontSize: 11, color: '#555', marginTop: 7, fontWeight: 700 }}>{Math.round(totals.kcal)} kcal consommées</div>
         </div>
 
-        {/* Calories overview */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div>
-            <div style={{ fontSize: 32, fontWeight: 900, color: DARK, lineHeight: 1 }}>{Math.round(totals.kcal)}</div>
-            <div style={{ fontSize: 12, color: '#999', marginTop: 2 }}>/ {targets.kcal} kcal</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 26, fontWeight: 900, color: kcalLeft === 0 ? '#44cc88' : DARK }}>{kcalLeft}</div>
-            <div style={{ fontSize: 11, color: '#999' }}>kcal restantes</div>
-          </div>
-        </div>
-        {/* Barre calories */}
-        <div style={{ height: 6, background: '#eee', borderRadius: 3, overflow: 'hidden', marginBottom: 14 }}>
-          <div style={{ height: '100%', width: kcalPct + '%', background: kcalPct >= 100 ? '#ff5555' : ACCENT, borderRadius: 3, transition: 'width .3s' }} />
-        </div>
-
-        {/* Macros mini */}
-        <div style={{ display: 'flex', gap: 0, marginBottom: 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10, marginTop: 12 }}>
           {[
-            { label: 'Prot.', v: Math.round(totals.protein), t: targets.protein, color: '#4488ff' },
-            { label: 'Gluc.', v: Math.round(totals.carbs), t: targets.carbs, color: '#ffaa00' },
-            { label: 'Lip.', v: Math.round(totals.fat), t: targets.fat, color: '#ff6b6b' },
-          ].map(({ label, v, t, color }) => (
-            <div key={label} style={{ flex: 1, textAlign: 'center', padding: '8px 0', borderRight: '1px solid ' + BORDER }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: DARK }}>{v}<span style={{ fontSize: 9, color: '#999' }}>g</span></div>
-              <div style={{ fontSize: 9, color: '#999', marginBottom: 4 }}>{label} / {t}g</div>
-              <div style={{ height: 3, background: '#eee', borderRadius: 2, overflow: 'hidden', margin: '0 8px' }}>
-                <div style={{ height: '100%', width: Math.min(100, v/t*100) + '%', background: color, borderRadius: 2 }} />
-              </div>
+            { label: 'Protéines', v: Math.round(totals.protein), t: targets.protein, color: '#4488ff', icon: '◉' },
+            { label: 'Glucides', v: Math.round(totals.carbs), t: targets.carbs, color: '#ffaa00', icon: '◐' },
+            { label: 'Lipides', v: Math.round(totals.fat), t: targets.fat, color: '#ff6b6b', icon: '◒' },
+          ].map(({ label, v, t, color, icon }) => (
+            <div key={label} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 18, padding: '13px 12px', minWidth: 0 }}>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', color: '#555', fontSize: 11 }}><span style={{ color, fontWeight: 900 }}>{icon}</span><span>{label}</span></div>
+              <div style={{ marginTop: 8, fontSize: 24, fontWeight: 950, color: DARK }}>{v}<span style={{ fontSize: 12, marginLeft: 3 }}>g</span></div>
+              <div style={{ fontSize: 11, color: '#777' }}>/ {t} g</div>
+              <div style={{ height: 6, background: '#eee', borderRadius: 999, overflow: 'hidden', marginTop: 10 }}><div style={{ height: '100%', width: Math.min(100,v/t*100)+'%', background: color, borderRadius: 999 }}/></div>
+              <div style={{ textAlign: 'right', fontSize: 9, color: '#555', marginTop: 4 }}>{Math.round(Math.min(100,v/t*100))}%</div>
             </div>
           ))}
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', borderTop: '1px solid ' + BORDER, marginTop: 0 }}>
-          {TABS.map(([id, label]) => (
-            <button key={id} onClick={() => setTab(id)}
-              style={{ flex: 1, padding: '10px 0', background: 'none', border: 'none', borderBottom: '2px solid ' + (tab === id ? ACCENT : 'transparent'), color: tab === id ? DARK : '#999', fontSize: 12, fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' }}>
-              {label}
-            </button>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 18, padding: 7, marginTop: 14 }}>
+          {TABS.map(([id,label]) => (
+            <button key={id} onClick={() => {
+                if (id === 'idees') {
+                  navigate('/meal-planner');
+                  return;
+                }
+                setTab(id);
+              }} style={{ minWidth: 0, padding: '10px 4px', background: tab===id ? '#f2ffd0' : 'transparent', border: 'none', borderRadius: 14, color: tab===id ? DARK : '#555', fontSize: 11, fontWeight: tab===id ? 900 : 700, cursor: 'pointer', touchAction: 'manipulation' }}>{label}</button>
           ))}
         </div>
       </div>
-
       <div style={{ padding: '16px 20px 0' }}>
 
         {/* ── JOURNAL ── */}
         {tab === 'journal' && (
           <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+              <div><div style={{ fontSize: 22, fontWeight: 950, color: DARK, letterSpacing: '-.03em' }}>Mon journal alimentaire</div><div style={{ fontSize: 12, color: '#8a8a8a', marginTop: 3 }}>Ajoute tes repas et garde le cap sur tes objectifs.</div></div>
+              <button onClick={() => navigate('/fuel-ai')} style={{ flexShrink: 0, padding: '9px 12px', background: SURFACE, border: '1px solid '+BORDER, borderRadius: 999, color: DARK, fontWeight: 800, fontSize: 11, cursor: 'pointer' }}>◎ Objectifs</button>
+            </div>
             {MEALS.map(meal => {
               const mealEntries = mealsByType[meal] || [];
               const mealKcal = mealEntries.reduce((s, e) => s + (e.calories || 0), 0);
               return (
-                <div key={meal} style={{ marginBottom: 16 }}>
+                <div key={meal} style={{ marginBottom: 12, background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 20, padding: 14, boxShadow: '0 8px 24px rgba(17,17,17,.035)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: DARK }}>{meal}</div>
+                    <div><div style={{ fontSize: 16, fontWeight: 900, color: DARK }}>{meal}</div><div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{meal === 'Petit-déjeuner' ? 'Bien commencer la journée' : meal === 'Déjeuner' ? 'Fais le plein d’énergie' : meal === 'Dîner' ? 'Une soirée équilibrée' : 'Les petits plus'}</div></div>
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                       {mealKcal > 0 && <span style={{ fontSize: 12, color: '#999' }}>{Math.round(mealKcal)} kcal</span>}
                       <button onClick={() => { setSelectedMeal(meal); setShowAdd(true); setAddMode('choose'); }}
-                        style={{ width: 28, height: 28, borderRadius: '50%', background: DARK, border: 'none', color: ACCENT, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation' }}>+</button>
+                        style={{ width: 42, height: 42, borderRadius: 14, background: ACCENT, border: 'none', color: DARK, fontSize: 26, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation' }}>+</button>
                     </div>
                   </div>
                   {mealEntries.length === 0 ? (
                     <button onClick={() => { setSelectedMeal(meal); setShowAdd(true); setAddMode('choose'); }}
-                      style={{ width: '100%', padding: '12px 16px', background: SURFACE, border: '1px dashed ' + BORDER, borderRadius: 12, color: '#ccc', fontSize: 12, cursor: 'pointer', textAlign: 'left', touchAction: 'manipulation' }}>
-                      Ajouter un aliment
+                      style={{ width: '100%', padding: '4px 0 0', background: 'transparent', border: 'none', color: '#aaa', fontSize: 12, fontStyle: 'italic', cursor: 'pointer', textAlign: 'left', touchAction: 'manipulation' }}>
+                      Aucun aliment ajouté
                     </button>
                   ) : (
                     <div style={{ background: SURFACE, borderRadius: 12, overflow: 'hidden', border: '1px solid ' + BORDER }}>
@@ -410,11 +415,11 @@ export default function Fuel() {
           </div>
         )}
 
-        {/* ── IDEES REPAS ── */}
+        {/* ── FRIGO IA ── */}
         {tab === 'idees' && (
           <div>
             <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 20, marginBottom: 16 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: DARK, marginBottom: 6 }}>Il te reste</div>
+              <div style={{ fontSize: 20, fontWeight: 950, color: DARK, marginBottom: 6 }}>Frigo IA ✦</div><div style={{ fontSize: 12, color: '#888', lineHeight: 1.5, marginBottom: 14 }}>Analyse ce que tu as sous la main et génère un repas adapté à tes objectifs du jour.</div>
               <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
                 <div style={{ background: BG, borderRadius: 12, padding: '10px 14px', textAlign: 'center', flex: 1 }}>
                   <div style={{ fontSize: 22, fontWeight: 900, color: DARK }}>{kcalLeft}</div>
@@ -427,7 +432,7 @@ export default function Fuel() {
               </div>
               <button onClick={getMealIdeas} disabled={loadingIdeas || kcalLeft < 50}
                 style={{ width: '100%', padding: 14, background: kcalLeft >= 50 ? DARK : '#eee', border: 'none', borderRadius: 12, color: kcalLeft >= 50 ? ACCENT : '#ccc', fontWeight: 800, fontSize: 13, cursor: kcalLeft >= 50 ? 'pointer' : 'not-allowed', touchAction: 'manipulation' }}>
-                {loadingIdeas ? 'NOX reflechit...' : kcalLeft < 50 ? 'Objectif atteint !' : 'Que manger maintenant ?'}
+                {loadingIdeas ? 'NOX analyse...' : kcalLeft < 50 ? 'Objectif atteint !' : 'Générer un repas adapté'}
               </button>
             </div>
 
