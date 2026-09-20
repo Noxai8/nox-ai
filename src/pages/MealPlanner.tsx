@@ -694,6 +694,40 @@ export default function MealPlanner() {
                 <div style={{ marginTop: 9, fontSize: 9, color: '#747970' }}>
                   Vérifie la détection. Touche un aliment pour le retirer avant la génération.
                 </div>
+
+                {fridgeFoods.length > 0 && fridgeAnalysis.etat !== 'vide' && (
+                  <div style={{ marginTop: 14 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPlanMode('fridge');
+                        setShowShopping(false);
+                        void generatePlan();
+                      }}
+                      disabled={generating || loading || !targetCalories || !targetProtein}
+                      style={{
+                        width: '100%',
+                        padding: '15px 14px',
+                        border: 0,
+                        borderRadius: 14,
+                        background: !targetCalories || !targetProtein ? '#E4E6DF' : '#111',
+                        color: !targetCalories || !targetProtein ? '#8E938A' : ACCENT,
+                        fontWeight: 950,
+                        fontSize: 12,
+                        cursor: generating || !targetCalories || !targetProtein ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {generating
+                        ? 'CRÉATION DES REPAS...'
+                        : !targetCalories || !targetProtein
+                          ? 'OBJECTIF NUTRITIONNEL REQUIS'
+                          : 'CRÉER MES REPAS AVEC MON FRIGO'}
+                    </button>
+                    <div style={{ marginTop: 7, textAlign: 'center', color: '#62685E', fontSize: 9.5, lineHeight: 1.4 }}>
+                      Petit-déjeuner · Déjeuner · Dîner · adaptés à ton objectif
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
