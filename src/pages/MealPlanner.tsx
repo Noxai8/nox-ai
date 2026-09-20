@@ -183,7 +183,7 @@ export default function MealPlanner() {
 
     const [profileResult, targetResult] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
-      supabase.from('nutrition_targets').select('calories, protein, carbs, fat').eq('user_id', user.id).maybeSingle(),
+      supabase.from('nutrition_targets').select('calories, protein_g, carbs_g, fat_g, carbs, fat').eq('user_id', user.id).maybeSingle(),
     ]);
 
     if (profileResult.error) {
@@ -202,15 +202,15 @@ export default function MealPlanner() {
 
     const target = targetResult.data;
     const kcal = Number(target?.calories || 0);
-    const protein = Number(target?.protein || 0);
+    const protein = Number(target?.protein_g || 0);
 
     setNutritionTarget(
       kcal > 0
         ? {
             calories: kcal,
             protein: protein > 0 ? protein : 0,
-            carbs: Number(target?.carbs || 0),
-            fat: Number(target?.fat || 0),
+            carbs: Number(target?.carbs_g ?? target?.carbs ?? 0),
+            fat: Number(target?.fat_g ?? target?.fat ?? 0),
           }
         : null,
     );
@@ -247,52 +247,20 @@ export default function MealPlanner() {
 
   const targetCalories = useMemo(() => {
     const centralized = Number(nutritionTarget?.calories || 0);
-    if (centralized > 0) return Math.round(centralized);
-
-    // Filet de sécurité uniquement si nutrition_targets n'a encore jamais été créé.
-    // Fuel reste la source de vérité et synchronisera ensuite cette cible.
-    const stored = Number(profile?.daily_calories || profile?.calorie_target || 0);
-    if (stored > 1000) return Math.round(stored);
-
-    const weight = Number(profile?.starting_weight_kg || profile?.weight || 0);
-    const height = Number(profile?.height || 0);
-    const age = Number(profile?.age || 0);
-    if (!weight || !height || !age) return goal === 'cut' ? 1900 : goal === 'bulk' ? 2600 : 2200;
-
-    const gender = String(profile?.gender || '').toLowerCase();
-    const sexConstant =
-      gender.startsWith('m') || gender.includes('homme')
-        ? 5
-        : gender.startsWith('f') || gender.includes('femme')
-          ? -161
-          : -78;
-
-    const bmr = 10 * weight + 6.25 * height - 5 * age + sexConstant;
-    const activityRaw = String(profile?.activity_level || '').toLowerCase();
-    const factor =
-      activityRaw.includes('very') || activityRaw.includes('high') || activityRaw.includes('très') ? 1.725 :
-      activityRaw.includes('moderate') || activityRaw.includes('modéré') ? 1.55 :
-      activityRaw.includes('light') || activityRaw.includes('léger') ? 1.375 :
-      activityRaw.includes('sedent') ? 1.2 : 1.45;
-
-    const maintenance = bmr * factor;
-    return Math.round(maintenance * (goal === 'cut' ? 0.85 : goal === 'bulk' ? 1.08 : 1));
-  }, [nutritionTarget, profile, goal]);
+    return centralized >= 1200 && centralized <= 5000 ? Math.round(centralized) : 0;
+  }, [nutritionTarget]);
 
   const targetProtein = useMemo(() => {
     const centralized = Number(nutritionTarget?.protein || 0);
-    if (centralized > 0) return Math.round(centralized);
-
-    const stored = Number(profile?.protein_target || 0);
-    if (stored > 0) return Math.round(stored);
-
-    const weight = Number(profile?.starting_weight_kg || profile?.weight || 0);
-    if (!weight) return goal === 'bulk' ? 150 : 140;
-    return Math.round(weight * (goal === 'cut' ? 2 : goal === 'bulk' ? 1.8 : 1.8));
-  }, [nutritionTarget, profile, goal]);
+    return centralized > 0 ? Math.round(centralized) : 0;
+  }, [nutritionTarget]);
 
   const generatePlan = async () => {
     if (!user || generating) return;
+    if (!targetCalories || !targetProtein) {
+      setError("Complète d'abord ton objectif nutritionnel pour générer un plan.");
+      return;
+    }
     setGenerating(true);
     setError('');
     setMessage('');
@@ -427,94 +395,116 @@ export default function MealPlanner() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, color: '#111', paddingBottom: 88 }}>
-      <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
-        <header style={{ padding: '22px 20px 18px', borderBottom: `1px solid ${BORDER}` }}>
-          <div style={{ fontSize: 10, color: '#85857D', fontWeight: 900, letterSpacing: '.13em' }}>NUTRITION · NOX AI</div>
-          <div style={{ marginTop: 4, fontSize: 29, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.05em' }}>PLAN REPAS</div>
-          <div style={{ marginTop: 7, color: '#777770', fontSize: 12.5, lineHeight: 1.5 }}>
-            Une semaine construite autour de ton objectif et de ton budget calorique.
+    <div style={{ minHeight: '100vh', background: '#F6F7F2', color: '#111', paddingBottom: 92 }}>
+      <main style={{ width: '100%', maxWidth: 620, margin: '0 auto' }}>
+        <header style={{ padding: '24px 20px 16px' }}>
+          <div style={{ fontSize: 10, color: '#777C73', fontWeight: 900, letterSpacing: '.14em' }}>NOX AI · NUTRITION</div>
+          <div style={{ marginTop: 5, fontSize: 32, lineHeight: 1, fontWeight: 950, letterSpacing: '-.05em' }}>Plans repas</div>
+          <div style={{ marginTop: 9, color: '#777C73', fontSize: 13, lineHeight: 1.55 }}>
+            Pars de ce que tu as déjà. NOX adapte ensuite les repas à ton objectif.
           </div>
 
-          <div style={{ marginTop: 15, display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 7 }}>
+          <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
             <Stat label="OBJECTIF" value={goalLabel(goal)} />
-            <Stat label="CIBLE" value={`${targetCalories} kcal`} />
-            <Stat label="PROTÉINES" value={`${targetProtein} g`} />
-          </div>
-
-          <button
-            onClick={generatePlan}
-            disabled={generating || loading}
-            style={{
-              width: '100%', marginTop: 11, padding: 13, border: 0, borderRadius: 12,
-              background: generating ? '#ECECE8' : ACCENT, color: '#0a0a0a',
-              fontWeight: 950, fontSize: 11.5, cursor: generating ? 'wait' : 'pointer'
-            }}
-          >
-            {generating ? 'GÉNÉRATION...' : week.some(d => d.entries.length) ? 'COMPLÉTER MA SEMAINE' : 'GÉNÉRER MA SEMAINE'}
-          </button>
-
-          <div style={{ marginTop: 8, color: '#8A8A83', fontSize: 9.5, lineHeight: 1.45 }}>
-            {nutritionTarget
-              ? 'Même cible nutritionnelle que Fuel · recalibrée par NOX quand tes données réelles deviennent suffisantes.'
-              : 'Cible provisoire estimée depuis ton profil · Fuel deviendra la source de vérité dès sa première synchronisation.'}
+            <Stat label="CALORIES" value={targetCalories ? `${targetCalories} kcal` : 'À définir'} />
+            <Stat label="PROTÉINES" value={targetProtein ? `${targetProtein} g` : 'À définir'} />
           </div>
 
           {message && <Notice text={message} success />}
           {error && <Notice text={error} />}
         </header>
 
-        <section style={{ padding: '17px 20px 0' }}>
+        <section style={{ padding: '0 20px 18px' }}>
+          <div style={{
+            background: ACCENT, borderRadius: 24, padding: 20,
+            boxShadow: '0 10px 30px rgba(80,100,0,.08)'
+          }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: '#111', color: ACCENT, display: 'grid', placeItems: 'center', fontWeight: 950, fontSize: 11 }}>SCAN</div>
+            <div style={{ marginTop: 16, fontSize: 23, fontWeight: 950, letterSpacing: '-.035em' }}>Qu’est-ce qu’il y a dans ton frigo ?</div>
+            <div style={{ marginTop: 7, maxWidth: 470, fontSize: 12.5, lineHeight: 1.55, color: '#394000' }}>
+              Prends une photo. NOX pourra identifier les aliments, te laisser corriger la détection puis construire des repas adaptés.
+            </div>
+            <button
+              onClick={() => setMessage("Scanner frigo : interface prête. La connexion à l’analyse photo IA arrive à l’étape suivante.")}
+              style={{ width: '100%', marginTop: 17, padding: 15, border: 0, borderRadius: 14, background: '#111', color: '#fff', fontWeight: 950, cursor: 'pointer' }}
+            >
+              PRENDRE EN PHOTO MON FRIGO
+            </button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button onClick={() => setMessage("Tu pourras importer plusieurs photos du frigo à l’étape scanner.")} style={secondaryAction}>Importer des photos</button>
+              <button onClick={() => setMessage("Si le frigo est vide, NOX demandera ton budget et ton enseigne avant de préparer la liste.")} style={secondaryAction}>Frigo vide</button>
+            </div>
+          </div>
+        </section>
+
+        <section style={{ padding: '0 20px 18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 10 }}>
+            <div>
+              <div style={{ fontSize: 10, color: '#777C73', fontWeight: 900, letterSpacing: '.1em' }}>GÉNÉRATION</div>
+              <div style={{ marginTop: 3, fontSize: 19, fontWeight: 950 }}>Construire ma semaine</div>
+            </div>
+            <div style={{ fontSize: 10, color: '#777C73' }}>7 jours</div>
+          </div>
+
+          <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 20, padding: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 }}>
+              <ChoiceCard title="Avec mon frigo" text="Priorise les ingrédients détectés et limite le gaspillage." active />
+              <ChoiceCard title="Courses rapides" text="Budget + enseigne + liste adaptée à ton objectif." />
+            </div>
+            <button
+              onClick={generatePlan}
+              disabled={generating || loading || !targetCalories || !targetProtein}
+              style={{
+                width: '100%', marginTop: 12, padding: 14, border: 0, borderRadius: 13,
+                background: !targetCalories || !targetProtein ? '#E7E9E2' : '#111',
+                color: !targetCalories || !targetProtein ? '#9A9E96' : ACCENT,
+                fontWeight: 950, cursor: generating ? 'wait' : 'pointer'
+              }}
+            >
+              {generating ? 'GÉNÉRATION...' : !targetCalories ? 'OBJECTIF NUTRITIONNEL REQUIS' : week.some(d => d.entries.length) ? 'COMPLÉTER MA SEMAINE' : 'GÉNÉRER MA SEMAINE'}
+            </button>
+          </div>
+        </section>
+
+        <section style={{ padding: '0 20px' }}>
+          <div style={{ fontSize: 19, fontWeight: 950, marginBottom: 12 }}>Mon plan</div>
           {loading ? (
             <div style={{ padding: 40, textAlign: 'center', color: '#8A8A83', fontSize: 12 }}>Chargement du plan...</div>
           ) : week.map(day => {
             const total = day.entries.reduce((sum, entry) => sum + Number(entry.calories || 0), 0);
             const proteinTotal = day.entries.reduce((sum, entry) => sum + Number(entry.protein || 0), 0);
-
             return (
-              <div key={day.date} style={{ marginBottom: 22 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, marginBottom: 9 }}>
+              <div key={day.date} style={{ marginBottom: 18, background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 20, overflow: 'hidden' }}>
+                <div style={{ padding: '14px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: day.entries.length ? `1px solid ${BORDER}` : 'none' }}>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 950, textTransform: 'capitalize' }}>{day.label}</div>
                     <div style={{ marginTop: 2, color: '#96968F', fontSize: 9.5 }}>{day.date}</div>
                   </div>
-                  {total > 0 && (
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 11, fontWeight: 900 }}>{Math.round(total)} / {targetCalories} kcal</div>
-                      <div style={{ color: '#8A8A83', fontSize: 9 }}>{Math.round(proteinTotal)} g protéines</div>
-                    </div>
-                  )}
+                  {total > 0 && <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 11, fontWeight: 900 }}>{Math.round(total)}{targetCalories ? ` / ${targetCalories}` : ''} kcal</div>
+                    <div style={{ color: '#8A8A83', fontSize: 9 }}>{Math.round(proteinTotal)} g protéines</div>
+                  </div>}
                 </div>
 
-                {day.entries.map(entry => (
-                  <div key={entry.id} style={{
-                    display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6,
-                    padding: '11px 12px', borderRadius: 12, border: `1px solid ${BORDER}`,
-                    background: entry.logged ? '#F3F3F0' : '#fff', opacity: entry.logged ? .65 : 1
-                  }}>
-                    <div style={{ width: 64, flexShrink: 0, color: '#8A8A83', fontSize: 9.2, fontWeight: 850 }}>{entry.meal_type}</div>
+                {day.entries.length === 0 ? (
+                  <div style={{ padding: 18, color: '#92968E', fontSize: 11.5 }}>Aucun repas planifié.</div>
+                ) : day.entries.map(entry => (
+                  <button key={entry.id} onClick={() => setMessage(`${entry.food_name} · ${entry.calories} kcal · ${entry.protein} g protéines. La fiche détaillée avec grammages et ingrédients sera branchée ensuite.`)}
+                    style={{ width: '100%', border: 0, borderBottom: `1px solid ${BORDER}`, background: entry.logged ? '#F7F7F4' : '#fff', padding: 13, display: 'flex', gap: 12, textAlign: 'left', cursor: 'pointer' }}>
+                    <div style={{ width: 72, height: 64, borderRadius: 13, flexShrink: 0, background: '#EFF1EA', display: 'grid', placeItems: 'center', color: '#8C9187', fontSize: 9, fontWeight: 900 }}>IMAGE</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 11.5, fontWeight: 850, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{entry.food_name}</div>
-                      <div style={{ marginTop: 3, color: '#8A8A83', fontSize: 9.5 }}>{entry.calories} kcal · {entry.protein} g prot.</div>
+                      <div style={{ fontSize: 9, color: '#8A8A83', fontWeight: 900 }}>{entry.meal_type.toUpperCase()}</div>
+                      <div style={{ marginTop: 4, fontSize: 13, fontWeight: 900 }}>{entry.food_name}</div>
+                      <div style={{ marginTop: 5, color: '#777C73', fontSize: 10 }}>{entry.calories} kcal · {entry.protein} g prot.</div>
                     </div>
-                    {!entry.logged && day.label === "Aujourd'hui" && (
-                      <button onClick={() => void logNow(entry)} style={{ padding: '6px 8px', border: 0, borderRadius: 8, background: ACCENT, fontSize: 9.5, fontWeight: 900, cursor: 'pointer' }}>LOGGER</button>
-                    )}
-                    {entry.logged && <span style={{ fontSize: 11, fontWeight: 900 }}>✓</span>}
-                    <button onClick={() => void deleteEntry(entry.id)} aria-label="Supprimer" style={{ border: 0, background: 'transparent', color: '#A0A099', fontSize: 18, cursor: 'pointer' }}>×</button>
-                  </div>
+                    <div style={{ alignSelf: 'center', fontSize: 20, color: '#A4A89F' }}>›</div>
+                  </button>
                 ))}
 
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 7 }}>
+                <div style={{ padding: 11, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {MEALS.map(meal => (
-                    <button
-                      key={meal}
-                      onClick={() => setShowAdd({ date: day.date, meal })}
-                      style={{
-                        padding: '5px 8px', borderRadius: 8, border: `1px dashed #D6D6D0`,
-                        background: 'transparent', color: '#777770', fontSize: 9.5, cursor: 'pointer'
-                      }}
-                    >
+                    <button key={meal} onClick={() => setShowAdd({ date: day.date, meal })}
+                      style={{ padding: '7px 9px', borderRadius: 9, border: `1px solid ${BORDER}`, background: '#F8F9F5', color: '#666B63', fontSize: 9.5, cursor: 'pointer' }}>
                       + {meal}
                     </button>
                   ))}
@@ -526,12 +516,11 @@ export default function MealPlanner() {
       </main>
 
       {showAdd && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: 560, maxHeight: '88vh', overflowY: 'auto', background: '#fff', borderRadius: '22px 22px 0 0', padding: '20px 20px max(24px, env(safe-area-inset-bottom))' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,.48)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 620, maxHeight: '88vh', overflowY: 'auto', background: '#fff', borderRadius: '24px 24px 0 0', padding: '22px 20px max(24px, env(safe-area-inset-bottom))' }}>
             <div style={{ fontSize: 10, color: '#777770', fontWeight: 900, letterSpacing: '.1em' }}>AJOUT MANUEL</div>
-            <div style={{ marginTop: 3, fontSize: 20, fontWeight: 950 }}>Planifier un repas</div>
+            <div style={{ marginTop: 4, fontSize: 22, fontWeight: 950 }}>Planifier un repas</div>
             <div style={{ marginTop: 4, marginBottom: 18, fontSize: 11.5, color: '#888881' }}>{showAdd.meal} · {showAdd.date}</div>
-
             {[
               { label: 'Aliment / repas', val: foodName, set: setFoodName, type: 'text', placeholder: 'Ex : Bol de riz au poulet' },
               { label: 'Calories', val: calories, set: setCalories, type: 'number', placeholder: '500' },
@@ -539,20 +528,13 @@ export default function MealPlanner() {
             ].map(({ label, val, set, type, placeholder }) => (
               <label key={label} style={{ display: 'block', marginBottom: 12 }}>
                 <span style={{ display: 'block', marginBottom: 5, color: '#888881', fontSize: 9.5, fontWeight: 850 }}>{label.toUpperCase()}</span>
-                <input
-                  value={val}
-                  onChange={e => set(e.target.value)}
-                  type={type}
-                  inputMode={type === 'number' ? 'decimal' : undefined}
-                  placeholder={placeholder}
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '12px 13px', borderRadius: 11, border: `1px solid ${BORDER}`, outline: 0, background: SURFACE, color: '#111', fontSize: 13 }}
-                />
+                <input value={val} onChange={e => set(e.target.value)} type={type} inputMode={type === 'number' ? 'decimal' : undefined} placeholder={placeholder}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '13px', borderRadius: 12, border: `1px solid ${BORDER}`, outline: 0, background: SURFACE, color: '#111', fontSize: 13 }} />
               </label>
             ))}
-
             <div style={{ display: 'flex', gap: 8, marginTop: 15 }}>
-              <button onClick={() => setShowAdd(null)} disabled={saving} style={{ flex: 1, padding: 13, borderRadius: 11, border: `1px solid ${BORDER}`, background: '#fff', color: '#111', fontWeight: 850, cursor: 'pointer' }}>Annuler</button>
-              <button onClick={() => void addPlanned()} disabled={saving || !foodName.trim()} style={{ flex: 2, padding: 13, borderRadius: 11, border: 0, background: ACCENT, color: '#111', fontWeight: 950, cursor: 'pointer' }}>
+              <button onClick={() => setShowAdd(null)} disabled={saving} style={{ flex: 1, padding: 13, borderRadius: 12, border: `1px solid ${BORDER}`, background: '#fff', fontWeight: 850 }}>Annuler</button>
+              <button onClick={() => void addPlanned()} disabled={saving || !foodName.trim()} style={{ flex: 2, padding: 13, borderRadius: 12, border: 0, background: ACCENT, fontWeight: 950 }}>
                 {saving ? 'ENREGISTREMENT...' : 'PLANIFIER'}
               </button>
             </div>
@@ -564,6 +546,21 @@ export default function MealPlanner() {
     </div>
   );
 }
+
+const secondaryAction: React.CSSProperties = {
+  flex: 1, padding: 11, borderRadius: 12, border: '1px solid rgba(17,17,17,.16)',
+  background: 'rgba(255,255,255,.52)', color: '#111', fontSize: 10, fontWeight: 900, cursor: 'pointer'
+};
+
+function ChoiceCard({ title, text, active = false }: { title: string; text: string; active?: boolean }) {
+  return (
+    <div style={{ padding: 13, borderRadius: 14, background: active ? '#F3FFD1' : '#F7F7F4', border: `1px solid ${active ? '#CDEB72' : BORDER}` }}>
+      <div style={{ fontSize: 11.5, fontWeight: 900 }}>{title}</div>
+      <div style={{ marginTop: 5, fontSize: 9.5, color: '#777C73', lineHeight: 1.4 }}>{text}</div>
+    </div>
+  );
+}
+
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
