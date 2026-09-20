@@ -46,6 +46,8 @@ type Profile = {
   height?: number | null;
   age?: number | null;
   gender?: string | null;
+  sex?: string | null;
+  date_of_birth?: string | null;
   activity_level?: string | number | null;
   daily_calories?: number | null;
   calorie_target?: number | null;
@@ -242,6 +244,8 @@ export default function MealPlanner() {
   const [showShopping, setShowShopping] = useState(false);
   const [shoppingPrefs, setShoppingPrefs] = useState<ShoppingPrefs>({ budget: '', store: '', days: 7 });
   const [selectedMeal, setSelectedMeal] = useState<PlannedEntry | null>(null);
+  const [showTargetSetup, setShowTargetSetup] = useState(false);
+  const [targetSaving, setTargetSaving] = useState(false);
 
 
   const goal = normalizeGoal(profile?.goal_type || profile?.goal || profile?.objective);
@@ -330,6 +334,100 @@ export default function MealPlanner() {
     const centralized = Number(nutritionTarget?.protein || 0);
     return centralized > 0 ? Math.round(centralized) : 0;
   }, [nutritionTarget]);
+
+  const calculateAndSaveNutritionTarget = async () => {
+    if (!user || !profile || targetSaving) return;
+
+    const sexRaw = String(profile.sex || profile.gender || '').toLowerCase();
+    const sex = sexRaw === 'homme' || sexRaw === 'male' || sexRaw === 'm'
+      ? 'homme'
+      : sexRaw === 'femme' || sexRaw === 'female' || sexRaw === 'f'
+        ? 'femme'
+        : '';
+
+    const weight = Number(profile.starting_weight_kg ?? profile.weight ?? 0);
+    const height = Number(profile.height ?? (profile as any).height_cm ?? 0);
+    const dob = String(profile.date_of_birth || '');
+
+    let age = Number(profile.age || 0);
+    if (!age && dob) {
+      const birth = new Date(`${dob}T12:00:00`);
+      if (!Number.isNaN(birth.getTime())) {
+        const now = new Date();
+        age = now.getFullYear() - birth.getFullYear();
+        const month = now.getMonth() - birth.getMonth();
+        if (month < 0 || (month === 0 && now.getDate() < birth.getDate())) age -= 1;
+      }
+    }
+
+    const activityRaw = String(profile.activity_level || '').toLowerCase();
+    const activityFactors: Record<string, number> = {
+      sedentaire: 1.2,
+      sedentary: 1.2,
+      leger: 1.375,
+      léger: 1.375,
+      light: 1.375,
+      modere: 1.55,
+      modéré: 1.55,
+      moderate: 1.55,
+      actif: 1.725,
+      active: 1.725,
+      tres_actif: 1.9,
+      'très_actif': 1.9,
+      very_active: 1.9,
+    };
+    const activityFactor = activityFactors[activityRaw] || 0;
+
+    if (!sex || weight < 35 || weight > 350 || height < 120 || height > 230 || age < 18 || age > 100 || !activityFactor) {
+      setError("Ton profil n'a pas encore assez d'informations pour calculer une cible fiable. Termine l'onboarding NOX.");
+      setShowTargetSetup(true);
+      return;
+    }
+
+    const bmr = 10 * weight + 6.25 * height - 5 * age + (sex === 'homme' ? 5 : -161);
+    const maintenance = bmr * activityFactor;
+    const goalFactor = goal === 'cut' ? 0.85 : goal === 'bulk' ? 1.08 : 1;
+    const kcal = Math.round((maintenance * goalFactor) / 25) * 25;
+    const prot = Math.round(weight * (goal === 'bulk' ? 2 : 1.8));
+    const fat = Math.round(weight * 0.8);
+    const carbs = Math.max(0, Math.round((kcal - prot * 4 - fat * 9) / 4));
+
+    if (!Number.isFinite(kcal) || kcal < 1200 || kcal > 5000 || prot <= 0) {
+      setError("Impossible de calculer une cible nutritionnelle cohérente avec ce profil.");
+      return;
+    }
+
+    setTargetSaving(true);
+    setError('');
+
+    try {
+      const target = {
+        calories: kcal,
+        protein_g: prot,
+        carbs_g: carbs,
+        fat_g: fat,
+        carbs,
+        fat,
+        start_date: new Date().toISOString().slice(0, 10),
+        is_active: true,
+      };
+
+      const { error: upsertError } = await supabase
+        .from('nutrition_targets')
+        .upsert({ user_id: user.id, ...target }, { onConflict: 'user_id' });
+
+      if (upsertError) throw upsertError;
+
+      setNutritionTarget({ calories: kcal, protein: prot, carbs, fat });
+      setShowTargetSetup(false);
+      setMessage(`Objectif nutritionnel configuré : ${kcal} kcal · ${prot} g de protéines.`);
+    } catch (e: any) {
+      console.error('MEAL_PLANNER_TARGET_SAVE_ERROR', e);
+      setError(e?.message || "Impossible d'enregistrer l'objectif nutritionnel.");
+    } finally {
+      setTargetSaving(false);
+    }
+  };
 
   const analyzeFridge = async (file?: File) => {
     if (!file || fridgeAnalyzing) return;
@@ -429,7 +527,8 @@ export default function MealPlanner() {
   const generatePlan = async () => {
     if (!user || generating) return;
     if (!targetCalories || !targetProtein) {
-      setError("Complète d'abord ton objectif nutritionnel pour générer un plan.");
+      setShowTargetSetup(true);
+      setError('');
       return;
     }
     if (planMode === 'fridge' && !fridgeFoods.length) {
@@ -702,9 +801,14 @@ export default function MealPlanner() {
                       onClick={() => {
                         setPlanMode('fridge');
                         setShowShopping(false);
+                        if (!targetCalories || !targetProtein) {
+                          setShowTargetSetup(true);
+                          setError('');
+                          return;
+                        }
                         void generatePlan();
                       }}
-                      disabled={generating || loading || !targetCalories || !targetProtein}
+                      disabled={generating || loading}
                       style={{
                         width: '100%',
                         padding: '15px 14px',
@@ -714,13 +818,13 @@ export default function MealPlanner() {
                         color: !targetCalories || !targetProtein ? '#8E938A' : ACCENT,
                         fontWeight: 950,
                         fontSize: 12,
-                        cursor: generating || !targetCalories || !targetProtein ? 'not-allowed' : 'pointer',
+                        cursor: generating || loading ? 'wait' : 'pointer',
                       }}
                     >
                       {generating
                         ? 'CRÉATION DES REPAS...'
                         : !targetCalories || !targetProtein
-                          ? 'OBJECTIF NUTRITIONNEL REQUIS'
+                          ? 'CONFIGURER MON OBJECTIF ET CRÉER MES REPAS'
                           : 'CRÉER MES REPAS AVEC MON FRIGO'}
                     </button>
                     <div style={{ marginTop: 7, textAlign: 'center', color: '#62685E', fontSize: 9.5, lineHeight: 1.4 }}>
@@ -800,8 +904,15 @@ export default function MealPlanner() {
             )}
 
             <button
-              onClick={generatePlan}
-              disabled={generating || loading || !targetCalories || !targetProtein}
+              onClick={() => {
+                if (!targetCalories || !targetProtein) {
+                  setShowTargetSetup(true);
+                  setError('');
+                  return;
+                }
+                void generatePlan();
+              }}
+              disabled={generating || loading}
               style={{
                 width: '100%', marginTop: 12, padding: 14, border: 0, borderRadius: 13,
                 background: !targetCalories || !targetProtein ? '#E7E9E2' : '#111',
@@ -809,7 +920,7 @@ export default function MealPlanner() {
                 fontWeight: 950, cursor: generating ? 'wait' : 'pointer'
               }}
             >
-              {generating ? 'GÉNÉRATION...' : !targetCalories ? 'OBJECTIF NUTRITIONNEL REQUIS' : week.some(d => d.entries.length) ? 'COMPLÉTER MA SEMAINE' : 'GÉNÉRER MA SEMAINE'}
+              {generating ? 'GÉNÉRATION...' : !targetCalories || !targetProtein ? 'CONFIGURER MON OBJECTIF' : week.some(d => d.entries.length) ? 'COMPLÉTER MA SEMAINE' : 'GÉNÉRER MA SEMAINE'}
             </button>
           </div>
         </section>
@@ -866,6 +977,43 @@ export default function MealPlanner() {
           })}
         </section>
       </main>
+
+      {showTargetSetup && (
+        <div onClick={() => setShowTargetSetup(false)} style={{ position: 'fixed', inset: 0, zIndex: 340, background: 'rgba(0,0,0,.48)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 620, background: '#fff', borderRadius: '26px 26px 0 0', padding: '22px 20px max(26px, env(safe-area-inset-bottom))' }}>
+            <div style={{ width: 42, height: 5, borderRadius: 99, background: '#E2E4DE', margin: '0 auto 18px' }} />
+            <div style={{ fontSize: 10, color: '#777C73', fontWeight: 900, letterSpacing: '.1em' }}>OBJECTIF NUTRITIONNEL</div>
+            <div style={{ marginTop: 5, fontSize: 24, lineHeight: 1.05, fontWeight: 950 }}>Adapter les repas à ton objectif</div>
+            <div style={{ marginTop: 9, color: '#777C73', fontSize: 12, lineHeight: 1.55 }}>
+              NOX utilise ton profil enregistré pour calculer une cible de départ. Cette cible sert ensuite à dimensionner le petit-déjeuner, le déjeuner et le dîner générés depuis ton frigo.
+            </div>
+
+            <div style={{ marginTop: 16, padding: 14, borderRadius: 16, background: '#F4FFE0', border: '1px solid #DCF1A3' }}>
+              <div style={{ fontSize: 10, fontWeight: 950 }}>OBJECTIF · {goalLabel(goal).toUpperCase()}</div>
+              <div style={{ marginTop: 5, color: '#657052', fontSize: 10.5, lineHeight: 1.45 }}>
+                Calcul basé sur le sexe, l'âge, le poids, la taille et le niveau d'activité enregistrés dans ton profil.
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void calculateAndSaveNutritionTarget()}
+              disabled={targetSaving}
+              style={{ width: '100%', marginTop: 16, padding: 15, border: 0, borderRadius: 14, background: ACCENT, color: '#111', fontWeight: 950, cursor: targetSaving ? 'wait' : 'pointer' }}
+            >
+              {targetSaving ? 'CALCUL ET ENREGISTREMENT...' : 'CALCULER MON OBJECTIF'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowTargetSetup(false)}
+              disabled={targetSaving}
+              style={{ width: '100%', marginTop: 8, padding: 12, border: `1px solid ${BORDER}`, borderRadius: 12, background: '#fff', color: '#666B63', fontWeight: 850 }}
+            >
+              PLUS TARD
+            </button>
+          </div>
+        </div>
+      )}
 
       {selectedMeal && (
         <div onClick={() => setSelectedMeal(null)} style={{ position: 'fixed', inset: 0, zIndex: 320, background: 'rgba(0,0,0,.48)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
