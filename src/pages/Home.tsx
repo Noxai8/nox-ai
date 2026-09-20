@@ -98,7 +98,7 @@ export function BottomNav({ active }: { active: NavActive | string }) {
       label: 'Photo',
       sub: 'Photo de progression',
       icon: Camera,
-      path: '/body',
+      path: '/progress',
     },
   ];
 
@@ -139,7 +139,11 @@ export function BottomNav({ active }: { active: NavActive | string }) {
   }: {
     item: (typeof navItems)[number];
   }) => {
-    const selected = active === item.id;
+    const selected =
+      active === item.id ||
+      (item.id === 'fuel' && active === 'nutrition') ||
+      (item.id === 'activity' && ['activity', 'training', 'program'].includes(active)) ||
+      (item.id === 'progress' && ['progress', 'body'].includes(active));
     const Icon = item.icon;
 
     return (
@@ -213,8 +217,9 @@ export function BottomNav({ active }: { active: NavActive | string }) {
               borderRadius: '28px 28px 0 0',
               padding: '10px 20px max(32px, env(safe-area-inset-bottom))',
               boxSizing: 'border-box',
-              maxHeight: '82vh',
+              maxHeight: '86vh',
               overflowY: 'auto',
+              overscrollBehavior: 'contain',
               boxShadow: '0 -20px 70px rgba(0,0,0,.18)',
             }}
           >
@@ -284,6 +289,7 @@ export function BottomNav({ active }: { active: NavActive | string }) {
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
                 gap: 10,
+                paddingBottom: 4,
               }}
             >
               {quickActions.map((action) => {
@@ -295,7 +301,12 @@ export function BottomNav({ active }: { active: NavActive | string }) {
                     onClick={() => go(action.path)}
                     style={{
                       border: `1px solid ${BORDER}`,
-                      background: '#FAFBF7',
+                      background:
+                        action.label === 'Repas' ||
+                        action.label === 'Scanner' ||
+                        action.label === 'Entraînement'
+                          ? '#090909'
+                          : '#FAFBF7',
                       borderRadius: 20,
                       minHeight: 112,
                       padding: 14,
@@ -310,8 +321,18 @@ export function BottomNav({ active }: { active: NavActive | string }) {
                         borderRadius: 13,
                         display: 'grid',
                         placeItems: 'center',
-                        background: BLACK,
-                        color: ACCENT,
+                        background:
+                          action.label === 'Repas' ||
+                          action.label === 'Scanner' ||
+                          action.label === 'Entraînement'
+                            ? ACCENT
+                            : BLACK,
+                        color:
+                          action.label === 'Repas' ||
+                          action.label === 'Scanner' ||
+                          action.label === 'Entraînement'
+                            ? BLACK
+                            : ACCENT,
                         marginBottom: 12,
                       }}
                     >
@@ -321,7 +342,12 @@ export function BottomNav({ active }: { active: NavActive | string }) {
                     <div
                       style={{
                         fontSize: 13,
-                        color: BLACK,
+                        color:
+                          action.label === 'Repas' ||
+                          action.label === 'Scanner' ||
+                          action.label === 'Entraînement'
+                            ? '#FFFFFF'
+                            : BLACK,
                         fontWeight: 900,
                       }}
                     >
@@ -332,7 +358,12 @@ export function BottomNav({ active }: { active: NavActive | string }) {
                       style={{
                         fontSize: 9.5,
                         lineHeight: 1.3,
-                        color: '#9A9D96',
+                        color:
+                          action.label === 'Repas' ||
+                          action.label === 'Scanner' ||
+                          action.label === 'Entraînement'
+                            ? '#777B72'
+                            : '#9A9D96',
                         marginTop: 3,
                       }}
                     >
