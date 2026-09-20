@@ -549,17 +549,22 @@ export default function Fuel() {
                       <div style={{ fontSize: 11, color: '#7d8900', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>Repas détecté</div>
                       <div style={{ fontSize: 16, fontWeight: 900, color: DARK, marginBottom: 12 }}>{scanResult.description || 'Repas détecté'}</div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 7 }}>
-                        {[
-                          ['Kcal', Math.round(scanResult.total?.kcal || scanResult.total?.calories || 0)], '#111'],
-                          ['Prot.', Math.round(scanResult.total?.protein || scanResult.total?.proteines || 0) + 'g', '#4488ff'],
-                          ['Gluc.', Math.round(scanResult.total?.carbs || scanResult.total?.glucides || 0) + 'g', '#ffaa00'],
-                          ['Lip.', Math.round(scanResult.total?.fat || scanResult.total?.lipides || 0) + 'g', '#ff6b6b'],
-                        ].map(([l, v, c]) => (
-                          <div key={l as string} style={{ textAlign: 'center', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 11, padding: '9px 3px', minWidth: 0 }}>
-                            <div style={{ fontSize: 15, fontWeight: 950, color: c as string }}>{v}</div>
-                            <div style={{ fontSize: 9, color: '#999', marginTop: 2 }}>{l}</div>
-                          </div>
-                        ))}
+                        <div style={{ textAlign: 'center', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 11, padding: '9px 3px', minWidth: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 950, color: '#111' }}>{Math.round(scanResult.total?.kcal || scanResult.total?.calories || 0)}</div>
+                          <div style={{ fontSize: 9, color: '#999', marginTop: 2 }}>Kcal</div>
+                        </div>
+                        <div style={{ textAlign: 'center', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 11, padding: '9px 3px', minWidth: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 950, color: '#4488ff' }}>{Math.round(scanResult.total?.protein || scanResult.total?.proteines || 0)}g</div>
+                          <div style={{ fontSize: 9, color: '#999', marginTop: 2 }}>Prot.</div>
+                        </div>
+                        <div style={{ textAlign: 'center', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 11, padding: '9px 3px', minWidth: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 950, color: '#ffaa00' }}>{Math.round(scanResult.total?.carbs || scanResult.total?.glucides || 0)}g</div>
+                          <div style={{ fontSize: 9, color: '#999', marginTop: 2 }}>Gluc.</div>
+                        </div>
+                        <div style={{ textAlign: 'center', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 11, padding: '9px 3px', minWidth: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 950, color: '#ff6b6b' }}>{Math.round(scanResult.total?.fat || scanResult.total?.lipides || 0)}g</div>
+                          <div style={{ fontSize: 9, color: '#999', marginTop: 2 }}>Lip.</div>
+                        </div>
                       </div>
                     </div>
 
