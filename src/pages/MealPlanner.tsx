@@ -222,6 +222,15 @@ async function imageFileToPayload(file: File) {
   return { base64, mime: 'image/jpeg' };
 }
 
+async function mealImageBase64ToDataUrl(mealName: string, ingredients: any[]) {
+  const { data, error } = await supabase.functions.invoke('generate-meal-image', {
+    body: { mealName, ingredients },
+  });
+  if (error) throw error;
+  if (!data?.image_base64) throw new Error(`Image non reçue pour ${mealName}.`);
+  return `data:${data.mime_type || 'image/webp'};base64,${data.image_base64}`;
+}
+
 export default function MealPlanner() {
   const { user } = useAuth();
   const [week, setWeek] = useState<Day[]>(() => buildWeek());
@@ -470,6 +479,19 @@ export default function MealPlanner() {
         }
 
         if (rows.length) {
+          setMessage(`Jour ${dayIndex + 1}/7 · création des images des plats…`);
+
+          for (let mealIndex = 0; mealIndex < rows.length; mealIndex += 1) {
+            const row = rows[mealIndex];
+            try {
+              row.image_url = await mealImageBase64ToDataUrl(row.food_name, row.ingredients);
+            } catch (imageError) {
+              console.error('MEAL_IMAGE_GENERATE_ERROR', row.food_name, imageError);
+              // The recipe remains usable even if one image generation fails.
+              row.image_url = null;
+            }
+          }
+
           // Regenerating a day replaces only its AI meals, avoiding duplicate slots.
           const { error: deleteError } = await supabase
             .from('meal_plans')
