@@ -238,6 +238,7 @@ export default function MealPlanner() {
   const [error, setError] = useState('');
   const fridgeInputRef = useRef<HTMLInputElement | null>(null);
   const [fridgeAnalyzing, setFridgeAnalyzing] = useState(false);
+  const [fridgeCaptureKey, setFridgeCaptureKey] = useState(0);
   const [fridgeAnalysis, setFridgeAnalysis] = useState<FridgeAnalysis | null>(null);
   const [fridgeFoods, setFridgeFoods] = useState<FridgeFood[]>([]);
   const [planMode, setPlanMode] = useState<PlanMode>('fridge');
@@ -431,17 +432,42 @@ export default function MealPlanner() {
 
   const analyzeFridge = async (file?: File) => {
     if (!file || fridgeAnalyzing) return;
+
+    // Give immediate feedback before image decoding/compression starts.
     setFridgeAnalyzing(true);
     setError('');
-    setMessage('');
+    setMessage('Photo reçue · préparation de l’image…');
 
     try {
-      const payload = await imageFileToPayload(file);
-      const { data, error: fnError } = await supabase.functions.invoke('analyze-meal', {
-        body: { ...payload, mode: 'fridge' },
-      });
+      // Let the browser paint the loading state before doing image work.
+      await new Promise(resolve => setTimeout(resolve, 60));
 
-      if (fnError) throw fnError;
+      const payload = await imageFileToPayload(file);
+      setMessage('Photo prête · analyse du frigo avec NOX AI…');
+
+      let data: any = null;
+      let lastError: any = null;
+
+      // One automatic retry handles occasional mobile/network cold-start failures.
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const result = await supabase.functions.invoke('analyze-meal', {
+          body: { ...payload, mode: 'fridge' },
+        });
+
+        if (!result.error && result.data) {
+          data = result.data;
+          lastError = null;
+          break;
+        }
+
+        lastError = result.error;
+        if (attempt === 0) {
+          setMessage('Connexion instable · nouvelle tentative automatique…');
+          await new Promise(resolve => setTimeout(resolve, 700));
+        }
+      }
+
+      if (lastError) throw lastError;
       if (!data || !Array.isArray(data.aliments) || !data.etat) {
         throw new Error("L'analyse du frigo est incomplète.");
       }
@@ -451,20 +477,24 @@ export default function MealPlanner() {
       setFridgeFoods(result.aliments || []);
 
       if (result.etat === 'vide') {
-        setMessage("Le frigo semble vide. NOX va te proposer un parcours courses selon ton budget et ton enseigne.");
+        setMessage("Analyse terminée · le frigo semble vide. NOX peut préparer des courses selon ton budget et ton enseigne.");
       } else if (result.etat === 'peu_adapte') {
-        setMessage("Le contenu détecté ne suffit pas pour construire un plan cohérent. NOX te proposera directement les compléments à acheter.");
+        setMessage("Analyse terminée · le contenu détecté ne suffit pas pour un plan cohérent. NOX proposera les compléments à acheter.");
       } else if (result.etat === 'insuffisant') {
-        setMessage("Quelques aliments sont utilisables, mais il manque des éléments pour construire le plan complet.");
+        setMessage("Analyse terminée · quelques aliments sont utilisables, mais il manque des éléments pour construire le plan complet.");
       } else {
-        setMessage("Frigo analysé. Vérifie les aliments détectés avant la génération.");
+        setMessage("Analyse terminée · vérifie les aliments détectés puis crée tes repas.");
       }
     } catch (e: any) {
       console.error('FRIDGE_ANALYSIS_ERROR', e);
-      setError(e?.message || "Impossible d'analyser le frigo.");
+      setError(e?.message || "La photo a bien été reçue, mais NOX n'a pas pu l'analyser. Réessaie.");
+      setMessage('');
     } finally {
       setFridgeAnalyzing(false);
-      if (fridgeInputRef.current) fridgeInputRef.current.value = '';
+
+      // Recreate the file input instead of only clearing .value.
+      // This is more reliable with mobile camera pickers selecting successive photos.
+      setFridgeCaptureKey(current => current + 1);
     }
   };
 
@@ -742,21 +772,26 @@ export default function MealPlanner() {
             </div>
             <button
               onClick={() => fridgeInputRef.current?.click()}
+              disabled={fridgeAnalyzing}
               style={{ width: '100%', marginTop: 17, padding: 15, border: 0, borderRadius: 14, background: '#111', color: '#fff', fontWeight: 950, cursor: 'pointer' }}
             >
-              PRENDRE EN PHOTO MON FRIGO
+              {fridgeAnalyzing ? 'ANALYSE EN COURS…' : 'PRENDRE EN PHOTO MON FRIGO'}
             </button>
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               <button onClick={() => fridgeInputRef.current?.click()} disabled={fridgeAnalyzing} style={secondaryAction}>Importer une photo</button>
               <button onClick={markFridgeEmpty} style={secondaryAction}>Frigo vide</button>
             </div>
             <input
+              key={fridgeCaptureKey}
               ref={fridgeInputRef}
               type="file"
               accept="image/*"
               capture="environment"
-              onChange={e => void analyzeFridge(e.target.files?.[0])}
-              style={{ display: 'none' }}
+              onChange={e => {
+                const file = e.currentTarget.files?.item(0) || undefined;
+                if (file) void analyzeFridge(file);
+              }}
+              style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
             />
 
             {fridgeAnalysis && (
