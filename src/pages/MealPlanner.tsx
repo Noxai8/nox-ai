@@ -501,8 +501,8 @@ export default function MealPlanner() {
           .eq('ai_generated', true);
         if (deleteError) throw deleteError;
 
-        // Insert + select permet de récupérer les IDs nécessaires pour
-        // rattacher ensuite chaque image au bon repas.
+        // Insère d'abord les plats afin qu'ils apparaissent immédiatement.
+        // Chaque plat inséré déclenche ensuite automatiquement sa propre image.
         const { data: inserted, error: insertError } = await supabase
           .from('meal_plans')
           .insert(rows)
@@ -510,7 +510,9 @@ export default function MealPlanner() {
 
         if (insertError) throw insertError;
 
-        for (const row of inserted || []) {
+        const insertedRows = inserted || [];
+
+        for (const row of insertedRows) {
           imageJobs.push({
             id: row.id,
             food_name: row.food_name,
@@ -518,9 +520,36 @@ export default function MealPlanner() {
           });
         }
 
-        added += rows.length;
-        // Chaque journée apparaît immédiatement.
+        added += insertedRows.length;
+
+        // Les plats du jour sont visibles tout de suite.
         await load();
+
+        // Lance immédiatement les images des plats qui viennent d'être créés.
+        // On n'attend pas la fin des 7 jours pour commencer les visuels.
+        void Promise.allSettled(
+          insertedRows.map(async (row) => {
+            try {
+              const imageUrl = await mealImageBase64ToDataUrl(
+                row.food_name,
+                Array.isArray(row.ingredients) ? row.ingredients : [],
+              );
+
+              const { error: updateError } = await supabase
+                .from('meal_plans')
+                .update({ image_url: imageUrl })
+                .eq('id', row.id)
+                .eq('user_id', user.id);
+
+              if (updateError) throw updateError;
+
+              // Recharge pour faire apparaître l'image dès qu'elle est prête.
+              await load();
+            } catch (imageError) {
+              console.error('MEAL_IMAGE_GENERATE_ERROR', row.food_name, imageError);
+            }
+          }),
+        );
       }
 
       if (!added) throw new Error("NOX n'a reçu aucun repas exploitable.");
@@ -529,40 +558,8 @@ export default function MealPlanner() {
       setGenerating(false);
       setMessage(`${added} repas créés · semaine prête. Les images arrivent progressivement…`);
 
-      // Génère les visuels par petits lots pour éviter de saturer le navigateur/API.
-      // Chaque lot est attendu et sauvegardé avant de passer au suivant : les images
-      // ne sont donc plus abandonnées si React continue son cycle de rendu.
-      const IMAGE_BATCH_SIZE = 3;
+      setMessage(`${added} repas créés · semaine complète. Les images continuent d'arriver automatiquement.`);
 
-      for (let i = 0; i < imageJobs.length; i += IMAGE_BATCH_SIZE) {
-        const batch = imageJobs.slice(i, i + IMAGE_BATCH_SIZE);
-        const doneBefore = i;
-        setMessage(
-          `${added} repas prêts · images ${doneBefore + 1}–${Math.min(doneBefore + batch.length, imageJobs.length)}/${imageJobs.length}…`,
-        );
-
-        await Promise.allSettled(
-          batch.map(async (job) => {
-            try {
-              const imageUrl = await mealImageBase64ToDataUrl(job.food_name, job.ingredients);
-              const { error: updateError } = await supabase
-                .from('meal_plans')
-                .update({ image_url: imageUrl })
-                .eq('id', job.id)
-                .eq('user_id', user.id);
-
-              if (updateError) throw updateError;
-            } catch (imageError) {
-              console.error('MEAL_IMAGE_GENERATE_ERROR', job.food_name, imageError);
-            }
-          }),
-        );
-
-        // Les nouvelles images apparaissent progressivement dans l'interface.
-        await load();
-      }
-
-      setMessage(`${added} repas créés · semaine complète avec les visuels disponibles.`);
     } catch (e: any) {
       console.error('MEAL_PLAN_AI_GENERATE_ERROR', e);
       setError(e?.message || 'La génération s’est arrêtée avant la fin de la semaine.');
