@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
@@ -153,6 +153,55 @@ function buildWeek(): Day[] {
   });
 }
 
+
+type FridgeFood = {
+  nom: string;
+  quantite_estimee?: string;
+  categorie?: string;
+  confiance?: string;
+};
+
+type FridgeAnalysis = {
+  mode?: 'fridge';
+  etat: 'utilisable' | 'insuffisant' | 'peu_adapte' | 'vide';
+  resume?: string;
+  aliments: FridgeFood[];
+  manques?: string[];
+  fiabilite?: string;
+  note?: string;
+};
+
+async function imageFileToPayload(file: File) {
+  if (file.size > 15 * 1024 * 1024) throw new Error('Image trop volumineuse (15 Mo maximum).');
+
+  const bitmap = await createImageBitmap(file);
+  const maxSide = 1400;
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error("Impossible de préparer l'image.");
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+
+  const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', .8));
+  if (!blob) throw new Error("Impossible de compresser l'image.");
+
+  const base64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const value = String(reader.result || '');
+      resolve(value.includes(',') ? value.split(',')[1] : value);
+    };
+    reader.onerror = () => reject(new Error("Impossible de lire l'image."));
+    reader.readAsDataURL(blob);
+  });
+
+  return { base64, mime: 'image/jpeg' };
+}
+
 export default function MealPlanner() {
   const { user } = useAuth();
   const [week, setWeek] = useState<Day[]>(() => buildWeek());
@@ -167,6 +216,11 @@ export default function MealPlanner() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const fridgeInputRef = useRef<HTMLInputElement | null>(null);
+  const [fridgeAnalyzing, setFridgeAnalyzing] = useState(false);
+  const [fridgeAnalysis, setFridgeAnalysis] = useState<FridgeAnalysis | null>(null);
+  const [fridgeFoods, setFridgeFoods] = useState<FridgeFood[]>([]);
+
 
   const goal = normalizeGoal(profile?.goal_type || profile?.goal || profile?.objective);
 
@@ -254,6 +308,49 @@ export default function MealPlanner() {
     const centralized = Number(nutritionTarget?.protein || 0);
     return centralized > 0 ? Math.round(centralized) : 0;
   }, [nutritionTarget]);
+
+  const analyzeFridge = async (file?: File) => {
+    if (!file || fridgeAnalyzing) return;
+    setFridgeAnalyzing(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const payload = await imageFileToPayload(file);
+      const { data, error: fnError } = await supabase.functions.invoke('analyze-meal', {
+        body: { ...payload, mode: 'fridge' },
+      });
+
+      if (fnError) throw fnError;
+      if (!data || !Array.isArray(data.aliments) || !data.etat) {
+        throw new Error("L'analyse du frigo est incomplète.");
+      }
+
+      const result = data as FridgeAnalysis;
+      setFridgeAnalysis(result);
+      setFridgeFoods(result.aliments || []);
+
+      if (result.etat === 'vide') {
+        setMessage("Le frigo semble vide. NOX va te proposer un parcours courses selon ton budget et ton enseigne.");
+      } else if (result.etat === 'peu_adapte') {
+        setMessage("Le contenu détecté ne suffit pas pour construire un plan cohérent. NOX te proposera directement les compléments à acheter.");
+      } else if (result.etat === 'insuffisant') {
+        setMessage("Quelques aliments sont utilisables, mais il manque des éléments pour construire le plan complet.");
+      } else {
+        setMessage("Frigo analysé. Vérifie les aliments détectés avant la génération.");
+      }
+    } catch (e: any) {
+      console.error('FRIDGE_ANALYSIS_ERROR', e);
+      setError(e?.message || "Impossible d'analyser le frigo.");
+    } finally {
+      setFridgeAnalyzing(false);
+      if (fridgeInputRef.current) fridgeInputRef.current.value = '';
+    }
+  };
+
+  const removeFridgeFood = (index: number) => {
+    setFridgeFoods(current => current.filter((_, i) => i !== index));
+  };
 
   const generatePlan = async () => {
     if (!user || generating) return;
@@ -425,15 +522,60 @@ export default function MealPlanner() {
               Prends une photo. NOX pourra identifier les aliments, te laisser corriger la détection puis construire des repas adaptés.
             </div>
             <button
-              onClick={() => setMessage("Scanner frigo : interface prête. La connexion à l’analyse photo IA arrive à l’étape suivante.")}
+              onClick={() => fridgeInputRef.current?.click()}
               style={{ width: '100%', marginTop: 17, padding: 15, border: 0, borderRadius: 14, background: '#111', color: '#fff', fontWeight: 950, cursor: 'pointer' }}
             >
               PRENDRE EN PHOTO MON FRIGO
             </button>
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <button onClick={() => setMessage("Tu pourras importer plusieurs photos du frigo à l’étape scanner.")} style={secondaryAction}>Importer des photos</button>
+              <button onClick={() => fridgeInputRef.current?.click()} disabled={fridgeAnalyzing} style={secondaryAction}>Importer une photo</button>
               <button onClick={() => setMessage("Si le frigo est vide, NOX demandera ton budget et ton enseigne avant de préparer la liste.")} style={secondaryAction}>Frigo vide</button>
             </div>
+            <input
+              ref={fridgeInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={e => void analyzeFridge(e.target.files?.[0])}
+              style={{ display: 'none' }}
+            />
+
+            {fridgeAnalysis && (
+              <div style={{ marginTop: 14, padding: 14, borderRadius: 16, background: 'rgba(255,255,255,.72)', border: '1px solid rgba(17,17,17,.12)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 950, letterSpacing: '.08em' }}>ANALYSE DU FRIGO</div>
+                    <div style={{ marginTop: 3, fontSize: 12, fontWeight: 850 }}>{fridgeAnalysis.resume || 'Contenu détecté'}</div>
+                  </div>
+                  <div style={{ padding: '6px 8px', borderRadius: 9, background: '#111', color: '#fff', fontSize: 8.5, fontWeight: 900 }}>
+                    {fridgeAnalysis.etat.replace('_', ' ').toUpperCase()}
+                  </div>
+                </div>
+
+                {fridgeFoods.length > 0 ? (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+                    {fridgeFoods.map((food, index) => (
+                      <button key={`${food.nom}-${index}`} onClick={() => removeFridgeFood(index)}
+                        title="Retirer cet aliment"
+                        style={{ padding: '8px 10px', borderRadius: 10, border: '1px solid rgba(17,17,17,.12)', background: '#fff', color: '#111', fontSize: 9.5, fontWeight: 850, cursor: 'pointer' }}>
+                        {food.nom}{food.quantite_estimee ? ` · ${food.quantite_estimee}` : ''} ×
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 10, fontSize: 10.5, color: '#666B63' }}>Aucun aliment exploitable détecté.</div>
+                )}
+
+                {!!fridgeAnalysis.manques?.length && (
+                  <div style={{ marginTop: 10, fontSize: 10, lineHeight: 1.5, color: '#555A52' }}>
+                    <strong>À compléter :</strong> {fridgeAnalysis.manques.join(', ')}
+                  </div>
+                )}
+                <div style={{ marginTop: 9, fontSize: 9, color: '#747970' }}>
+                  Vérifie la détection. Touche un aliment pour le retirer avant la génération.
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
