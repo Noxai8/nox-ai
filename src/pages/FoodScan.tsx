@@ -1,19 +1,35 @@
 import { useRef, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Camera,
+  Check,
+  ImagePlus,
+  LoaderCircle,
+  Plus,
+  RefreshCw,
+  ScanLine,
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
-const ACCENT = '#c8ff00';
+const ACCENT = '#B7FF00';
 const BG = '#F6F7F2';
 const SURFACE = '#FFFFFF';
-const BORDER = '#E8E8E3';
+const BORDER = '#E4E4DF';
+const TEXT = '#111111';
+const MUTED = '#74746D';
+
 const MEALS = ['Petit-déjeuner', 'Déjeuner', 'Dîner', 'Snacks'];
 
 export default function FoodScan() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
   const defaultMeal = (location.state as any)?.meal || 'Déjeuner';
+
   const [selectedMeal, setSelectedMeal] = useState(defaultMeal);
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -21,192 +37,1002 @@ export default function FoodScan() {
   const [error, setError] = useState('');
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+
+  const resetScan = () => {
+    setPhotoBase64(null);
+    setResult(null);
+    setError('');
+    setAdded(false);
+  };
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Choisis une image valide.');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      setError('Cette image est trop lourde. Choisis une photo de moins de 15 Mo.');
+      e.target.value = '';
+      return;
+    }
+
+    setError('');
+    setResult(null);
+
     const img = new Image();
     const url = URL.createObjectURL(file);
+
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const max = 800;
-      let { width, height } = img;
-      if (width > max || height > max) {
-        if (width > height) { height = Math.round(height * max / width); width = max; }
-        else { width = Math.round(width * max / height); height = max; }
+      try {
+        const canvas = document.createElement('canvas');
+        const max = 1200;
+
+        let { width, height } = img;
+
+        if (width > max || height > max) {
+          if (width > height) {
+            height = Math.round((height * max) / width);
+            width = max;
+          } else {
+            width = Math.round((width * max) / height);
+            height = max;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+          throw new Error("Impossible de préparer l'image.");
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+        setPhotoBase64(dataUrl);
+
+        const base64 = dataUrl.split(',')[1];
+
+        if (!base64) {
+          throw new Error("Impossible de lire l'image.");
+        }
+
+        void analyze(base64);
+      } catch (err: any) {
+        setError(err?.message || "Impossible de préparer l'image.");
+      } finally {
+        URL.revokeObjectURL(url);
       }
-      canvas.width = width; canvas.height = height;
-      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-      setPhotoBase64(dataUrl);
-      analyze(dataUrl.split(',')[1]);
-      URL.revokeObjectURL(url);
     };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      setError("Impossible d'ouvrir cette image.");
+    };
+
     img.src = url;
     e.target.value = '';
   };
 
   const analyze = async (base64: string) => {
-    setScanning(true); setError(''); setResult(null);
+    setScanning(true);
+    setError('');
+    setResult(null);
+
     try {
-      const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpweHJzbW5wY3l6YWZhd2x3ZXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTI1MDAsImV4cCI6MjEwNDkyODUwMH0.h76-uAn6f4qwtxIOTUt3sSzMdOSg7BzMIRFkXZW6iq4';
-      const resp = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/analyze-meal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON}`, 'apikey': ANON },
-        body: JSON.stringify({ base64, mime: 'image/jpeg' }),
-      });
-      if (!resp.ok) throw new Error('Erreur serveur');
-      const data = await resp.json();
-      if (data.error) throw new Error(data.error);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error('Reconnecte-toi à NOX pour analyser ce repas.');
+      }
+
+      const resp = await fetch(
+        'https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/analyze-meal',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+          },
+          body: JSON.stringify({
+            base64,
+            mime: 'image/jpeg',
+          }),
+        },
+      );
+
+      let data: any = null;
+
+      try {
+        data = await resp.json();
+      } catch {
+        // handled below
+      }
+
+      if (!resp.ok) {
+        throw new Error(
+          data?.error ||
+            data?.message ||
+            "L'analyse du repas n'est pas disponible pour le moment.",
+        );
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (!data) {
+        throw new Error("NOX n'a reçu aucun résultat pour cette photo.");
+      }
+
       setResult(data);
-    } catch (e: any) { setError(e.message || 'Analyse impossible'); }
-    setScanning(false);
+    } catch (err: any) {
+      setError(err?.message || 'Analyse impossible.');
+    } finally {
+      setScanning(false);
+    }
   };
 
   const addAll = async () => {
-    if (!result || adding) return;
+    if (!result || adding || !user) return;
+
     setAdding(true);
+    setError('');
+
     const kcal = result.total?.kcal ?? result.total?.calories ?? 0;
-    const { error: err } = await supabase.from('food_entries').insert({
-      user_id: user!.id, meal_type: selectedMeal,
+
+    const { error: insertError } = await supabase.from('food_entries').insert({
+      user_id: user.id,
+      meal_type: selectedMeal,
       food_name: result.description || 'Repas scanné',
-      calories: Math.round(kcal),
-      protein: Math.round((result.total?.protein ?? 0) * 10) / 10,
-      carbs: Math.round((result.total?.carbs ?? 0) * 10) / 10,
-      fat: Math.round((result.total?.fat ?? 0) * 10) / 10,
+      calories: Math.round(Number(kcal) || 0),
+      protein:
+        Math.round(Number(result.total?.protein || 0) * 10) / 10,
+      carbs:
+        Math.round(Number(result.total?.carbs || 0) * 10) / 10,
+      fat:
+        Math.round(Number(result.total?.fat || 0) * 10) / 10,
       created_at: new Date().toISOString(),
     });
-    if (!err) { setAdded(true); setTimeout(() => navigate('/fuel'), 1200); }
-    else alert('Erreur: ' + err.message);
+
+    if (insertError) {
+      console.error('FoodScan addAll:', insertError);
+      setError("Le repas n'a pas pu être ajouté au journal.");
+      setAdding(false);
+      return;
+    }
+
+    setAdded(true);
     setAdding(false);
+
+    window.setTimeout(() => {
+      navigate('/fuel');
+    }, 900);
   };
 
   const addSingle = async (item: any) => {
-    await supabase.from('food_entries').insert({
-      user_id: user!.id, meal_type: selectedMeal,
+    if (!user || adding) return;
+
+    setAdding(true);
+    setError('');
+
+    const { error: insertError } = await supabase.from('food_entries').insert({
+      user_id: user.id,
+      meal_type: selectedMeal,
       food_name: item.nom || item.name || 'Aliment',
-      calories: Math.round(item.kcal || item.calories || 0),
-      protein: Math.round((item.protein || 0) * 10) / 10,
-      carbs: Math.round((item.carbs || 0) * 10) / 10,
-      fat: Math.round((item.fat || 0) * 10) / 10,
+      calories: Math.round(Number(item.kcal || item.calories || 0)),
+      protein: Math.round(Number(item.protein || 0) * 10) / 10,
+      carbs: Math.round(Number(item.carbs || 0) * 10) / 10,
+      fat: Math.round(Number(item.fat || 0) * 10) / 10,
       created_at: new Date().toISOString(),
     });
-    setAdded(true); setTimeout(() => navigate('/fuel'), 1000);
+
+    if (insertError) {
+      console.error('FoodScan addSingle:', insertError);
+      setError("Cet aliment n'a pas pu être ajouté au journal.");
+      setAdding(false);
+      return;
+    }
+
+    setAdded(true);
+    setAdding(false);
+
+    window.setTimeout(() => {
+      navigate('/fuel');
+    }, 850);
   };
 
-  if (added) return (
-    <div style={{ minHeight: '100vh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-      <div style={{ fontSize: 64 }}>✅</div>
-      <div style={{ fontSize: 20, fontWeight: 900, color: ACCENT }}>Ajouté au journal !</div>
-    </div>
+  const totalKcal = Math.round(
+    Number(result?.total?.kcal ?? result?.total?.calories ?? 0),
   );
 
+  if (added) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: BG,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 14,
+          padding: 24,
+          boxSizing: 'border-box',
+          color: TEXT,
+        }}
+      >
+        <div
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: 24,
+            background: ACCENT,
+            display: 'grid',
+            placeItems: 'center',
+            border: '1px solid #A5E600',
+          }}
+        >
+          <Check size={32} strokeWidth={3} />
+        </div>
+
+        <div
+          style={{
+            fontSize: 21,
+            fontWeight: 950,
+            letterSpacing: '-.03em',
+          }}
+        >
+          Ajouté au journal
+        </div>
+
+        <div
+          style={{
+            fontSize: 12,
+            color: MUTED,
+          }}
+        >
+          Mise à jour de ta nutrition…
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ minHeight: '100vh', background: BG, display: 'flex', flexDirection: 'column' }}>
-      <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhoto} />
+    <div
+      style={{
+        minHeight: '100vh',
+        background: BG,
+        color: TEXT,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={handlePhoto}
+      />
 
-      <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid ' + BORDER, flexShrink: 0 }}>
-        <button onClick={() => navigate('/fuel')} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 22, marginBottom: 12, display: 'block' }}>←</button>
-        <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Fuel</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: '#111' }}>📸 SCANNER UN REPAS</div>
-      </div>
+      <input
+        ref={galleryRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handlePhoto}
+      />
 
-      <div style={{ padding: '12px 20px', borderBottom: '1px solid ' + BORDER, display: 'flex', gap: 8, flexShrink: 0, overflowX: 'auto' }}>
-        {MEALS.map(m => (
-          <button key={m} onClick={() => setSelectedMeal(m)}
-            style={{ padding: '7px 14px', borderRadius: 20, border: '1px solid ' + (selectedMeal === m ? ACCENT : BORDER), background: selectedMeal === m ? ACCENT + '22' : 'transparent', color: selectedMeal === m ? ACCENT : '#555', fontSize: 12, fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation', flexShrink: 0 }}>
-            {m}
+      <header
+        style={{
+          padding: '16px 18px 14px',
+          borderBottom: `1px solid ${BORDER}`,
+          background: BG,
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => navigate('/fuel')}
+            aria-label="Retour"
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 14,
+              border: `1px solid ${BORDER}`,
+              background: SURFACE,
+              color: TEXT,
+              display: 'grid',
+              placeItems: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <ArrowLeft size={19} />
           </button>
-        ))}
+
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 10,
+                color: MUTED,
+                textTransform: 'uppercase',
+                letterSpacing: '.1em',
+                fontWeight: 850,
+              }}
+            >
+              Nutrition
+            </div>
+
+            <div
+              style={{
+                fontSize: 23,
+                fontWeight: 950,
+                letterSpacing: '-.04em',
+                marginTop: 2,
+              }}
+            >
+              Scanner un repas
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div
+        style={{
+          padding: '11px 18px',
+          borderBottom: `1px solid ${BORDER}`,
+          display: 'flex',
+          gap: 7,
+          flexShrink: 0,
+          overflowX: 'auto',
+          background: BG,
+        }}
+      >
+        {MEALS.map((meal) => {
+          const active = selectedMeal === meal;
+
+          return (
+            <button
+              key={meal}
+              type="button"
+              onClick={() => setSelectedMeal(meal)}
+              style={{
+                padding: '9px 13px',
+                borderRadius: 999,
+                border: `1px solid ${active ? '#A5E600' : BORDER}`,
+                background: active ? ACCENT : SURFACE,
+                color: TEXT,
+                fontSize: 11,
+                fontWeight: 850,
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              {meal}
+            </button>
+          );
+        })}
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 0' }}>
-        {photoBase64 && <img src={photoBase64} style={{ width: '100%', borderRadius: 16, marginBottom: 16, maxHeight: 240, objectFit: 'cover' }} alt="" />}
+      <main
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '18px 18px 8px',
+        }}
+      >
+        {photoBase64 && (
+          <div
+            style={{
+              position: 'relative',
+              marginBottom: 14,
+              borderRadius: 22,
+              overflow: 'hidden',
+              background: '#ECEDE8',
+              border: `1px solid ${BORDER}`,
+            }}
+          >
+            <img
+              src={photoBase64}
+              alt="Repas à analyser"
+              style={{
+                display: 'block',
+                width: '100%',
+                height: 260,
+                objectFit: 'cover',
+              }}
+            />
+
+            {scanning && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(17,17,17,.36)',
+                  display: 'grid',
+                  placeItems: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    width: '76%',
+                    height: 118,
+                    borderRadius: 20,
+                    border: `2px solid ${ACCENT}`,
+                    position: 'relative',
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: 14,
+                      right: 14,
+                      top: '50%',
+                      height: 2,
+                      background: ACCENT,
+                      boxShadow: `0 0 14px ${ACCENT}`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {scanning && (
-          <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: '#111', marginBottom: 8 }}>Analyse en cours...</div>
-            <div style={{ fontSize: 13, color: '#555' }}>NOX identifie les aliments</div>
+          <div
+            style={{
+              background: SURFACE,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 20,
+              padding: 20,
+              marginBottom: 14,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 13,
+            }}
+          >
+            <div
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: 15,
+                background: ACCENT,
+                display: 'grid',
+                placeItems: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <LoaderCircle size={22} />
+            </div>
+
+            <div>
+              <div
+                style={{
+                  fontSize: 15,
+                  fontWeight: 900,
+                }}
+              >
+                Analyse en cours…
+              </div>
+
+              <div
+                style={{
+                  fontSize: 11,
+                  color: MUTED,
+                  marginTop: 4,
+                  lineHeight: 1.45,
+                }}
+              >
+                NOX identifie les aliments et estime les quantités.
+              </div>
+            </div>
           </div>
         )}
 
         {error && !scanning && (
-          <div style={{ background: '#ff444422', border: '1px solid #ff4444', borderRadius: 14, padding: 16, marginBottom: 16, fontSize: 13, color: '#ff8888', textAlign: 'center' }}>{error}</div>
+          <div
+            style={{
+              background: '#FFF1EF',
+              border: '1px solid #F3C8C2',
+              borderRadius: 16,
+              padding: 14,
+              marginBottom: 14,
+              fontSize: 12,
+              color: '#A53B2F',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 9,
+              lineHeight: 1.45,
+            }}
+          >
+            <AlertTriangle size={17} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+          </div>
         )}
 
         {result && !scanning && (
           <div>
-            <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 14, padding: 16, marginBottom: 16 }}>
-              <div style={{ fontSize: 11, color: ACCENT, fontWeight: 800, textTransform: 'uppercase', marginBottom: 6 }}>REPAS DÉTECTÉ · {result.fiabilite || 'moyenne'}</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#111' }}>{result.description}</div>
-              {result.note && <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>{result.note}</div>}
+            <div
+              style={{
+                background: SURFACE,
+                border: `1px solid ${BORDER}`,
+                borderRadius: 20,
+                padding: 16,
+                marginBottom: 12,
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 8,
+                }}
+              >
+                <div
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 10,
+                    background: ACCENT,
+                    display: 'grid',
+                    placeItems: 'center',
+                  }}
+                >
+                  <ScanLine size={16} />
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: MUTED,
+                    fontWeight: 900,
+                    textTransform: 'uppercase',
+                    letterSpacing: '.06em',
+                  }}
+                >
+                  Repas détecté
+                  {result.fiabilite ? ` · ${result.fiabilite}` : ''}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  fontSize: 17,
+                  fontWeight: 900,
+                  lineHeight: 1.3,
+                }}
+              >
+                {result.description || 'Repas analysé'}
+              </div>
+
+              {result.note && (
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: MUTED,
+                    marginTop: 7,
+                    lineHeight: 1.45,
+                  }}
+                >
+                  {result.note}
+                </div>
+              )}
             </div>
 
-            <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: 16, marginBottom: 16 }}>
-              <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', marginBottom: 12 }}>TOTAL</div>
-              <div style={{ display: 'flex', textAlign: 'center' }}>
+            <div
+              style={{
+                background: SURFACE,
+                border: `1px solid ${BORDER}`,
+                borderRadius: 20,
+                padding: 15,
+                marginBottom: 12,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  color: MUTED,
+                  fontWeight: 900,
+                  textTransform: 'uppercase',
+                  marginBottom: 12,
+                }}
+              >
+                Estimation nutritionnelle
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4,minmax(0,1fr))',
+                  gap: 7,
+                }}
+              >
                 {[
-                  { label: 'Calories', val: Math.round(result.total?.kcal ?? 0), color: ACCENT },
-                  { label: 'Protéines', val: Math.round(result.total?.protein ?? 0) + 'g', color: '#111' },
-                  { label: 'Glucides', val: Math.round(result.total?.carbs ?? 0) + 'g', color: '#8da0ff' },
-                  { label: 'Lipides', val: Math.round(result.total?.fat ?? 0) + 'g', color: '#ff806b' },
-                ].map(({ label, val, color }) => (
-                  <div key={label} style={{ flex: 1 }}>
-                    <div style={{ fontSize: 22, fontWeight: 900, color }}>{val}</div>
-                    <div style={{ fontSize: 10, color: '#555', marginTop: 3 }}>{label}</div>
+                  {
+                    label: 'Calories',
+                    val: totalKcal,
+                    unit: 'kcal',
+                  },
+                  {
+                    label: 'Protéines',
+                    val: Math.round(Number(result.total?.protein || 0)),
+                    unit: 'g',
+                  },
+                  {
+                    label: 'Glucides',
+                    val: Math.round(Number(result.total?.carbs || 0)),
+                    unit: 'g',
+                  },
+                  {
+                    label: 'Lipides',
+                    val: Math.round(Number(result.total?.fat || 0)),
+                    unit: 'g',
+                  },
+                ].map(({ label, val, unit }) => (
+                  <div
+                    key={label}
+                    style={{
+                      background: '#F7F8F4',
+                      borderRadius: 13,
+                      padding: '11px 4px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 950,
+                      }}
+                    >
+                      {val}
+                      <span
+                        style={{
+                          fontSize: 8,
+                          color: MUTED,
+                          marginLeft: 2,
+                        }}
+                      >
+                        {unit}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 8.5,
+                        color: MUTED,
+                        marginTop: 4,
+                      }}
+                    >
+                      {label}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {result.aliments?.map((a: any, i: number) => (
-              <div key={i} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '12px 14px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>{a.nom}</div>
-                  <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{a.quantite} · P:{a.protein}g G:{a.carbs}g L:{a.fat}g</div>
-                </div>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <div style={{ fontSize: 14, fontWeight: 900, color: ACCENT }}>{a.kcal} kcal</div>
-                  <button onTouchEnd={e => { e.preventDefault(); addSingle(a); }} onClick={() => addSingle(a)}
-                    style={{ padding: '10px 14px', background: ACCENT + '22', border: '1px solid ' + ACCENT + '44', borderRadius: 10, color: ACCENT, fontSize: 14, fontWeight: 900, cursor: 'pointer', touchAction: 'manipulation', minWidth: 44, minHeight: 44 }}>+</button>
-                </div>
+            {Array.isArray(result.aliments) && result.aliments.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                }}
+              >
+                {result.aliments.map((item: any, index: number) => (
+                  <div
+                    key={`${item.nom || item.name || 'food'}-${index}`}
+                    style={{
+                      background: SURFACE,
+                      border: `1px solid ${BORDER}`,
+                      borderRadius: 17,
+                      padding: '13px 13px 13px 14px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: 12,
+                    }}
+                  >
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 850,
+                        }}
+                      >
+                        {item.nom || item.name || 'Aliment'}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: 10.5,
+                          color: MUTED,
+                          marginTop: 4,
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {item.quantite || 'Quantité estimée'}
+                        {' · '}
+                        P {Number(item.protein || 0)}g
+                        {' · '}
+                        G {Number(item.carbs || 0)}g
+                        {' · '}
+                        L {Number(item.fat || 0)}g
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 900,
+                        }}
+                      >
+                        {Math.round(Number(item.kcal || item.calories || 0))}{' '}
+                        kcal
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => void addSingle(item)}
+                        disabled={adding}
+                        aria-label={`Ajouter ${item.nom || item.name || 'cet aliment'}`}
+                        style={{
+                          width: 42,
+                          height: 42,
+                          borderRadius: 13,
+                          border: '1px solid #A5E600',
+                          background: ACCENT,
+                          color: TEXT,
+                          display: 'grid',
+                          placeItems: 'center',
+                          cursor: adding ? 'default' : 'pointer',
+                          opacity: adding ? 0.6 : 1,
+                        }}
+                      >
+                        <Plus size={18} strokeWidth={2.8} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+
+            <div
+              style={{
+                marginTop: 12,
+                fontSize: 10,
+                color: '#989A93',
+                lineHeight: 1.45,
+              }}
+            >
+              Les valeurs issues d’une photo sont des estimations. Vérifie les
+              quantités si tu as besoin d’un suivi plus précis.
+            </div>
           </div>
         )}
 
         {!photoBase64 && !scanning && !result && (
-          <div style={{ textAlign: 'center', paddingTop: 40 }}>
-            <div style={{ fontSize: 72, marginBottom: 20 }}>📸</div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#111', marginBottom: 8 }}>Prends une photo de ton repas</div>
-            <div style={{ fontSize: 14, color: '#555', marginBottom: 32, lineHeight: 1.5 }}>NOX identifie les aliments et calcule les macros</div>
+          <div
+            style={{
+              background: SURFACE,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 24,
+              padding: '30px 22px',
+              textAlign: 'center',
+              marginTop: 8,
+            }}
+          >
+            <div
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: 23,
+                background: ACCENT,
+                display: 'grid',
+                placeItems: 'center',
+                margin: '0 auto 18px',
+              }}
+            >
+              <Camera size={31} strokeWidth={2.3} />
+            </div>
+
+            <div
+              style={{
+                fontSize: 20,
+                fontWeight: 950,
+                letterSpacing: '-.03em',
+              }}
+            >
+              Prends ton repas en photo
+            </div>
+
+            <div
+              style={{
+                maxWidth: 300,
+                margin: '8px auto 0',
+                fontSize: 12,
+                color: MUTED,
+                lineHeight: 1.55,
+              }}
+            >
+              NOX analyse la photo pour identifier les aliments et estimer
+              calories, protéines, glucides et lipides.
+            </div>
+
+            <div
+              style={{
+                marginTop: 20,
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 8,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => cameraRef.current?.click()}
+                style={{
+                  minHeight: 50,
+                  border: '1px solid #A5E600',
+                  borderRadius: 15,
+                  background: ACCENT,
+                  color: TEXT,
+                  fontWeight: 900,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 7,
+                }}
+              >
+                <Camera size={17} />
+                Caméra
+              </button>
+
+              <button
+                type="button"
+                onClick={() => galleryRef.current?.click()}
+                style={{
+                  minHeight: 50,
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: 15,
+                  background: '#FAFBF7',
+                  color: TEXT,
+                  fontWeight: 850,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 7,
+                }}
+              >
+                <ImagePlus size={17} />
+                Galerie
+              </button>
+            </div>
           </div>
         )}
-      </div>
+      </main>
 
-      {/* BOUTONS FIXES EN BAS */}
-      <div style={{ flexShrink: 0, padding: '12px 20px', paddingBottom: 'max(24px, env(safe-area-inset-bottom))', background: BG, borderTop: result ? '1px solid #1a1a1a' : 'none' }}>
+      <footer
+        style={{
+          flexShrink: 0,
+          padding: '11px 18px',
+          paddingBottom: 'max(22px, env(safe-area-inset-bottom))',
+          background: BG,
+          borderTop: result ? `1px solid ${BORDER}` : 'none',
+        }}
+      >
         {result && !scanning ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button onTouchEnd={e => { e.preventDefault(); addAll(); }} onClick={addAll} disabled={adding}
-              style={{ width: '100%', padding: 20, background: ACCENT, border: 'none', borderRadius: 16, color: '#000', fontWeight: 900, fontSize: 18, cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
-              {adding ? 'Ajout...' : `✓ AJOUTER TOUT · ${Math.round(result.total?.kcal ?? 0)} KCAL`}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => void addAll()}
+              disabled={adding}
+              style={{
+                width: '100%',
+                minHeight: 56,
+                padding: '14px 16px',
+                background: ACCENT,
+                border: '1px solid #A5E600',
+                borderRadius: 16,
+                color: TEXT,
+                fontWeight: 950,
+                fontSize: 14,
+                cursor: adding ? 'default' : 'pointer',
+                opacity: adding ? 0.65 : 1,
+              }}
+            >
+              {adding ? 'Ajout…' : `Ajouter le repas · ${totalKcal} kcal`}
             </button>
-            <button onTouchEnd={e => { e.preventDefault(); setPhotoBase64(null); setResult(null); setError(''); fileRef.current?.click(); }}
-              onClick={() => { setPhotoBase64(null); setResult(null); setError(''); fileRef.current?.click(); }}
-              style={{ width: '100%', padding: 14, background: 'transparent', border: '1px solid ' + BORDER, borderRadius: 14, color: '#888', fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' }}>
+
+            <button
+              type="button"
+              onClick={() => {
+                resetScan();
+                cameraRef.current?.click();
+              }}
+              style={{
+                width: '100%',
+                minHeight: 46,
+                padding: '11px 14px',
+                background: SURFACE,
+                border: `1px solid ${BORDER}`,
+                borderRadius: 14,
+                color: TEXT,
+                fontWeight: 800,
+                fontSize: 12,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 7,
+              }}
+            >
+              <RefreshCw size={15} />
               Nouvelle photo
             </button>
           </div>
-        ) : !scanning && (
-          <button onTouchEnd={e => { e.preventDefault(); fileRef.current?.click(); }} onClick={() => fileRef.current?.click()}
-            style={{ width: '100%', padding: 20, background: ACCENT, border: 'none', borderRadius: 16, color: '#000', fontWeight: 900, fontSize: 17, cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
-            📸 OUVRIR L'APPAREIL PHOTO
+        ) : photoBase64 && !scanning && !result ? (
+          <button
+            type="button"
+            onClick={() => {
+              resetScan();
+              cameraRef.current?.click();
+            }}
+            style={{
+              width: '100%',
+              minHeight: 52,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 16,
+              background: SURFACE,
+              color: TEXT,
+              fontWeight: 850,
+              cursor: 'pointer',
+            }}
+          >
+            Réessayer avec une autre photo
           </button>
-        )}
-      </div>
+        ) : null}
+      </footer>
     </div>
   );
 }
