@@ -1545,7 +1545,7 @@ export default function MealPlanner() {
 
             <button onClick={() => void logNow(selectedMeal)} disabled={!!selectedMeal.logged}
               style={{ width: '100%', marginTop: 22, padding: 14, border: 0, borderRadius: 13, background: selectedMeal.logged ? '#E8EAE4' : ACCENT, color: '#111', fontWeight: 950 }}>
-              {selectedMeal.logged ? 'DÉJÀ AJOUTÉ AU JOURNAL' : 'AJOUTER AU JOURNAL'}
+              {selectedMeal.logged ? 'DÉJÀ MANGÉ ✓' : 'MANGÉ ✓'}
             </button>
           </div>
         </div>
