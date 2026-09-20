@@ -539,6 +539,7 @@ export default function Program() {
         )}
       </main>
 
+      <TutorialTooltip page="program" />
       <BottomNav active="activity" />
     </div>
   );
@@ -984,7 +985,6 @@ function Metric({ value, label }: { value: string; label: string }) {
         <div style={{ fontSize: 17, fontWeight: 1000, lineHeight: 1.05 }}>{value}</div>
         <div style={{ marginTop: 5, fontSize: 7.5, color: '#77776F', fontWeight: 850 }}>{label}</div>
       </div>
-      <TutorialTooltip page="program" />
     </div>
   );
 }
