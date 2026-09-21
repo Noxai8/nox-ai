@@ -14,6 +14,7 @@ const Program = lazy(() => import('./pages/Program'));
 const Body = lazy(() => import('./pages/Body'));
 const Coach = lazy(() => import('./pages/Coach'));
 const Fuel = lazy(() => import('./pages/Fuel'));
+const QuickGroceries = lazy(() => import('./pages/QuickGroceries'));
 const Play = lazy(() => import('./pages/Play'));
 const NoxFuture = lazy(() => import('./pages/NoxFuture'));
 const WeeklyReview = lazy(() => import('./pages/WeeklyReview'));
@@ -66,6 +67,7 @@ function AppRoutes() {
         <Route path="/body" element={<ProtectedRoute><Body /></ProtectedRoute>} />
         <Route path="/coach" element={<ProtectedRoute><Coach /></ProtectedRoute>} />
         <Route path="/fuel" element={<ProtectedRoute><Fuel /></ProtectedRoute>} />
+        <Route path="/quick-groceries" element={<ProtectedRoute><QuickGroceries /></ProtectedRoute>} />
         <Route path="/play" element={<ProtectedRoute><Play /></ProtectedRoute>} />
         <Route path="/future" element={<ProtectedRoute><NoxFuture /></ProtectedRoute>} />
         <Route path="/weekly-review" element={<ProtectedRoute><WeeklyReview /></ProtectedRoute>} />
