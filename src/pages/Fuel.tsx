@@ -56,6 +56,9 @@ export default function Fuel() {
   const [searchParams, setSearchParams] = useSearchParams();
   const fileRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const barcodeVideoRef = useRef<HTMLVideoElement>(null);
+  const barcodeStreamRef = useRef<MediaStream | null>(null);
+  const barcodeTimerRef = useRef<number | null>(null);
   const [tab, setTab] = useState<Tab>('journal');
   const [entries, setEntries] = useState<any[]>([]);
   const [targets, setTargets] = useState({ kcal: 2200, protein: 160, carbs: 220, fat: 70 });
@@ -71,6 +74,11 @@ export default function Fuel() {
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<any>(null);
   const [scanError, setScanError] = useState('');
+  const [barcodeStatus, setBarcodeStatus] = useState<'idle'|'starting'|'scanning'|'loading'|'found'|'error'>('idle');
+  const [barcodeError, setBarcodeError] = useState('');
+  const [barcodeValue, setBarcodeValue] = useState('');
+  const [barcodeProduct, setBarcodeProduct] = useState<any>(null);
+  const [barcodeQty, setBarcodeQty] = useState('100');
   const [photoBase64, setPhotoBase64] = useState<string|null>(null);
   const [voiceText, setVoiceText] = useState('');
   const [listening, setListening] = useState(false);
@@ -140,6 +148,7 @@ export default function Fuel() {
     setQty('100'); setSearch(''); setPhotoBase64(null);
     setScanResult(null); setScanError(''); setCustomForm({ name: '', kcal: '', protein: '', carbs: '', fat: '' });
     setQuickKcal(''); setQuickProt(''); setVoiceText('');
+    stopBarcodeScanner(); setBarcodeStatus('idle'); setBarcodeError(''); setBarcodeValue(''); setBarcodeProduct(null); setBarcodeQty('100');
   };
 
   const addEntry = async (data: { food_name: string; calories: number; protein: number; carbs: number; fat: number }) => {
@@ -166,6 +175,106 @@ export default function Fuel() {
     setWater(w => w + ml);
   };
 
+  const stopBarcodeScanner = () => {
+    if (barcodeTimerRef.current !== null) {
+      window.clearInterval(barcodeTimerRef.current);
+      barcodeTimerRef.current = null;
+    }
+    barcodeStreamRef.current?.getTracks().forEach(track => track.stop());
+    barcodeStreamRef.current = null;
+    if (barcodeVideoRef.current) barcodeVideoRef.current.srcObject = null;
+  };
+
+  const lookupBarcode = async (code: string) => {
+    const clean = code.replace(/\D/g, '');
+    if (!clean) return;
+    stopBarcodeScanner();
+    setBarcodeValue(clean);
+    setBarcodeStatus('loading');
+    setBarcodeError('');
+    setBarcodeProduct(null);
+
+    try {
+      const resp = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(clean)}.json`);
+      if (!resp.ok) throw new Error(`Recherche produit impossible (${resp.status}).`);
+      const data = await resp.json();
+      if (data?.status !== 1 || !data?.product) throw new Error('Produit non trouvé dans la base alimentaire.');
+
+      const p = data.product;
+      const n = p.nutriments || {};
+      const kcal = Number(n['energy-kcal_100g'] ?? n['energy-kcal'] ?? 0);
+      const protein = Number(n.proteins_100g ?? 0);
+      const carbs = Number(n.carbohydrates_100g ?? 0);
+      const fat = Number(n.fat_100g ?? 0);
+      const name = p.product_name_fr || p.product_name || p.generic_name_fr || p.generic_name || `Produit ${clean}`;
+
+      setBarcodeProduct({
+        code: clean,
+        name,
+        brand: p.brands || '',
+        image: p.image_front_small_url || p.image_front_url || '',
+        serving: p.serving_size || '',
+        kcal: Number.isFinite(kcal) ? kcal : 0,
+        protein: Number.isFinite(protein) ? protein : 0,
+        carbs: Number.isFinite(carbs) ? carbs : 0,
+        fat: Number.isFinite(fat) ? fat : 0,
+      });
+      setBarcodeQty('100');
+      setBarcodeStatus('found');
+    } catch (err: any) {
+      setBarcodeStatus('error');
+      setBarcodeError(err?.message || 'Impossible de récupérer ce produit.');
+    }
+  };
+
+  const startBarcodeScanner = async () => {
+    stopBarcodeScanner();
+    setBarcodeProduct(null);
+    setBarcodeValue('');
+    setBarcodeError('');
+    setBarcodeStatus('starting');
+
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error("La caméra n'est pas disponible sur ce navigateur.");
+      const Detector = (window as any).BarcodeDetector;
+      if (!Detector) throw new Error("Le scan automatique n'est pas pris en charge ici. Entre le code-barres manuellement ci-dessous.");
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      barcodeStreamRef.current = stream;
+      const video = barcodeVideoRef.current;
+      if (!video) throw new Error('Aperçu caméra indisponible.');
+      video.srcObject = stream;
+      await video.play();
+
+      const supported = typeof Detector.getSupportedFormats === 'function' ? await Detector.getSupportedFormats() : [];
+      const wanted = ['ean_13','ean_8','upc_a','upc_e','code_128'];
+      const formats = supported.length ? wanted.filter((f: string) => supported.includes(f)) : wanted;
+      const detector = formats.length ? new Detector({ formats }) : new Detector();
+      setBarcodeStatus('scanning');
+
+      barcodeTimerRef.current = window.setInterval(async () => {
+        try {
+          if (!barcodeVideoRef.current || barcodeVideoRef.current.readyState < 2) return;
+          const codes = await detector.detect(barcodeVideoRef.current);
+          const value = codes?.[0]?.rawValue;
+          if (value) await lookupBarcode(String(value));
+        } catch {}
+      }, 450);
+    } catch (err: any) {
+      stopBarcodeScanner();
+      setBarcodeStatus('error');
+      setBarcodeError(err?.message || "Impossible d'ouvrir la caméra. Vérifie l'autorisation caméra.");
+    }
+  };
+
+  useEffect(() => {
+    if (!showAdd || addMode !== 'barcode') stopBarcodeScanner();
+    return () => { if (addMode === 'barcode') stopBarcodeScanner(); };
+  }, [showAdd, addMode]);
+
   const handlePhoto = async (file: File) => {
     setAddMode('photo');
     setScanResult(null);
@@ -191,7 +300,7 @@ export default function Fuel() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session?.access_token || ''}`,
           },
-          body: JSON.stringify({ image: base64 }),
+          body: JSON.stringify({ base64, mime: file.type || 'image/jpeg', mode: 'meal' }),
         });
 
         const raw = await resp.text();
@@ -552,7 +661,7 @@ export default function Fuel() {
             </div>
 
             {addMode !== 'choose' && (
-              <button onClick={() => setAddMode('choose')} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 13, marginBottom: 12, display: 'block' }}>
+              <button onClick={() => { if (addMode === 'barcode') stopBarcodeScanner(); setAddMode('choose'); }} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 13, marginBottom: 12, display: 'block' }}>
                 Retour
               </button>
             )}
@@ -622,7 +731,7 @@ export default function Fuel() {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                       <button onClick={() => galleryRef.current?.click()} style={{ padding: 14, border: '1px solid '+BORDER, borderRadius: 14, background: SURFACE, color: DARK, fontWeight: 850, cursor: 'pointer' }}>▧ Galerie</button>
-                      <button onClick={() => navigate('/barcode-scanner')} style={{ padding: 14, border: '1px solid '+BORDER, borderRadius: 14, background: SURFACE, color: DARK, fontWeight: 850, cursor: 'pointer' }}>▥ Code-barres</button>
+                      <button onClick={() => { setAddMode('barcode'); setTimeout(startBarcodeScanner, 80); }} style={{ padding: 14, border: '1px solid '+BORDER, borderRadius: 14, background: SURFACE, color: DARK, fontWeight: 850, cursor: 'pointer' }}>▥ Code-barres</button>
                     </div>
                   </div>
                 )}
@@ -784,14 +893,86 @@ export default function Fuel() {
 
             {/* Code-barres */}
             {addMode === 'barcode' && (
-              <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <div style={{ width: 58, height: 42, margin: "0 auto 14px", border: "2px solid #111", borderRadius: 8, display: "grid", placeItems: "center", color: "#111", fontSize: 11, fontWeight: 1000, letterSpacing: ".08em" }}>BAR</div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: DARK, marginBottom: 8 }}>Scanner un code-barres</div>
-                <div style={{ fontSize: 12, color: '#999', marginBottom: 20 }}>Scanne le code sur l'emballage du produit</div>
-                <button onClick={() => navigate('/barcode-scanner')}
-                  style={{ width: '100%', padding: 16, background: DARK, border: 'none', borderRadius: 12, color: ACCENT, fontWeight: 900, fontSize: 14, cursor: 'pointer', touchAction: 'manipulation' }}>
-                  OUVRIR LE SCANNER
-                </button>
+              <div>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
+                  <div style={{ width: 54, height: 54, borderRadius: 17, background: '#f1ffd0', display: 'grid', placeItems: 'center', fontSize: 25, flexShrink: 0 }}>▥</div>
+                  <div>
+                    <div style={{ fontSize: 19, fontWeight: 950, color: DARK }}>Scanner un produit</div>
+                    <div style={{ fontSize: 12, color: '#777', lineHeight: 1.45, marginTop: 3 }}>Place le code-barres dans le cadre. NOX récupère ensuite ses valeurs nutritionnelles.</div>
+                  </div>
+                </div>
+
+                {!barcodeProduct && (
+                  <>
+                    <div style={{ position: 'relative', height: 245, borderRadius: 20, overflow: 'hidden', background: '#111', marginBottom: 12 }}>
+                      <video ref={barcodeVideoRef} muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
+                        <div style={{ width: '78%', height: 92, border: '2px solid '+ACCENT, borderRadius: 16, boxShadow: '0 0 0 999px rgba(0,0,0,.28)' }} />
+                      </div>
+                      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 14, textAlign: 'center', color: '#fff', fontSize: 11, fontWeight: 800 }}>
+                        {barcodeStatus === 'scanning' ? 'Recherche du code-barres…' : barcodeStatus === 'starting' ? 'Ouverture de la caméra…' : barcodeStatus === 'loading' ? 'Produit détecté…' : 'Caméra prête'}
+                      </div>
+                    </div>
+
+                    {(barcodeStatus === 'idle' || barcodeStatus === 'error') && (
+                      <button onClick={startBarcodeScanner} style={{ width: '100%', padding: 15, background: DARK, border: 'none', borderRadius: 14, color: ACCENT, fontWeight: 950, fontSize: 14, cursor: 'pointer', marginBottom: 10 }}>
+                        OUVRIR LA CAMÉRA
+                      </button>
+                    )}
+
+                    {barcodeError && (
+                      <div style={{ padding: 12, borderRadius: 14, background: '#fff7f7', border: '1px solid #ffd8d8', color: '#777', fontSize: 12, lineHeight: 1.45, marginBottom: 10 }}>{barcodeError}</div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input value={barcodeValue} onChange={e => setBarcodeValue(e.target.value.replace(/\D/g,''))} inputMode="numeric" placeholder="EAN : 3017620422003"
+                        style={{ flex: 1, minWidth: 0, padding: '13px 14px', border: '1px solid '+BORDER, borderRadius: 13, background: BG, color: DARK, fontSize: 14, outline: 'none' }} />
+                      <button onClick={() => lookupBarcode(barcodeValue)} disabled={!barcodeValue || barcodeStatus === 'loading'}
+                        style={{ padding: '0 16px', borderRadius: 13, border: 'none', background: barcodeValue ? ACCENT : '#eee', color: DARK, fontWeight: 900, cursor: barcodeValue ? 'pointer' : 'not-allowed' }}>
+                        {barcodeStatus === 'loading' ? '…' : 'OK'}
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {barcodeProduct && (
+                  <div>
+                    <div style={{ display: 'flex', gap: 13, padding: 14, borderRadius: 18, border: '1px solid '+BORDER, background: SURFACE, marginBottom: 12 }}>
+                      {barcodeProduct.image ? <img src={barcodeProduct.image} alt="Produit" style={{ width: 70, height: 70, borderRadius: 12, objectFit: 'contain', background: BG }} /> : <div style={{ width: 70, height: 70, borderRadius: 12, background: BG, display: 'grid', placeItems: 'center', fontSize: 25 }}>▥</div>}
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 16, fontWeight: 950, color: DARK }}>{barcodeProduct.name}</div>
+                        {barcodeProduct.brand && <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>{barcodeProduct.brand}</div>}
+                        <div style={{ fontSize: 10, color: '#aaa', marginTop: 5 }}>Code {barcodeProduct.code} · valeurs pour 100 g</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 7, marginBottom: 14 }}>
+                      {[
+                        ['kcal', Math.round(barcodeProduct.kcal), '#111'],
+                        ['prot.', Math.round(barcodeProduct.protein*10)/10+'g', '#4488ff'],
+                        ['gluc.', Math.round(barcodeProduct.carbs*10)/10+'g', '#ffaa00'],
+                        ['lip.', Math.round(barcodeProduct.fat*10)/10+'g', '#ff6b6b'],
+                      ].map(([label,value,color]) => (
+                        <div key={label as string} style={{ padding: '11px 3px', borderRadius: 13, border: '1px solid '+BORDER, textAlign: 'center', background: SURFACE }}>
+                          <div style={{ fontSize: 15, fontWeight: 950, color: color as string }}>{value}</div>
+                          <div style={{ fontSize: 9, color: '#999', textTransform: 'uppercase', marginTop: 3 }}>{label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>Quantité consommée (g)</div>
+                    <input value={barcodeQty} onChange={e => setBarcodeQty(e.target.value)} type="number" inputMode="decimal"
+                      style={{ width: '100%', boxSizing: 'border-box', padding: 14, borderRadius: 13, border: '1px solid '+BORDER, background: BG, color: DARK, fontSize: 20, fontWeight: 900, textAlign: 'center', outline: 'none', marginBottom: 12 }} />
+
+                    <button onClick={() => {
+                      const r = Math.max(0, Number(barcodeQty) || 0) / 100;
+                      addEntry({ food_name: `${barcodeProduct.name} (${barcodeQty}g)`, calories: Math.round(barcodeProduct.kcal*r), protein: Math.round(barcodeProduct.protein*r*10)/10, carbs: Math.round(barcodeProduct.carbs*r*10)/10, fat: Math.round(barcodeProduct.fat*r*10)/10 });
+                    }} disabled={saving || !Number(barcodeQty)} style={{ width: '100%', padding: 16, border: 'none', borderRadius: 15, background: ACCENT, color: DARK, fontSize: 14, fontWeight: 950, cursor: 'pointer' }}>
+                      {saving ? 'AJOUT EN COURS…' : `AJOUTER À ${selectedMeal.toUpperCase()}`}
+                    </button>
+                    <button onClick={() => { setBarcodeProduct(null); setBarcodeValue(''); setBarcodeStatus('idle'); setBarcodeError(''); }} style={{ width: '100%', padding: 12, border: 'none', background: 'transparent', color: '#888', fontWeight: 800, marginTop: 4 }}>Scanner un autre produit</button>
+                  </div>
+                )}
               </div>
             )}
 
