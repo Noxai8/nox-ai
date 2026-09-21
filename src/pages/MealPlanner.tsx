@@ -796,6 +796,7 @@ export default function MealPlanner() {
   };
 
   const openShopping = () => {
+    setError('');
     navigate('/quick-groceries');
   };
 
@@ -814,12 +815,12 @@ export default function MealPlanner() {
   };
 
   const selectPlanMode = (mode: PlanMode) => {
-    setPlanMode(mode);
     setError('');
     if (mode === 'shopping') {
-      setShowShopping(true);
+      navigate('/quick-groceries');
       return;
     }
+    setPlanMode('fridge');
     setShowShopping(false);
     if (!fridgeFoods.length) {
       setMessage("Scanne d’abord ton frigo pour que NOX puisse utiliser ce que tu as déjà.");
@@ -1325,9 +1326,9 @@ export default function MealPlanner() {
           <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 20, padding: 16 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 }}>
               <ChoiceCard title="Avec mon frigo" text="Priorise les ingrédients détectés et limite le gaspillage." active={planMode === 'fridge'} onClick={() => selectPlanMode('fridge')} />
-              <ChoiceCard title="Courses rapides" text="Budget + enseigne + liste adaptée à ton objectif." active={planMode === 'shopping'} onClick={() => selectPlanMode('shopping')} />
+              <ChoiceCard title="Courses rapides" text="Budget + enseigne + liste adaptée à ton objectif." active={false} onClick={() => navigate('/quick-groceries')} />
             </div>
-            {showShopping && (
+            {false && showShopping && (
               <div style={{ marginTop: 12, padding: 14, borderRadius: 16, background: '#F7F7F4', border: `1px solid ${BORDER}` }}>
                 <div style={{ fontSize: 10, fontWeight: 950, letterSpacing: '.08em' }}>COURSES RAPIDES</div>
                 <div style={{ marginTop: 4, color: '#777C73', fontSize: 10.5, lineHeight: 1.45 }}>
