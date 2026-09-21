@@ -140,7 +140,7 @@ Contraintes:
 Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
 [{"name":"...","qty":"...","category":"Fruits & légumes|Protéines|Féculents|Produits frais|Épicerie|Petit-déjeuner|Autres","note":"","price":null}]`;
 
-      const resp=await fetch(`${FN}/generate-program`,{
+      const resp=await fetch(`${FN}/generate-groceries`,{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},
         body:JSON.stringify({prompt})
