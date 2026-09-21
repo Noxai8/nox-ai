@@ -238,37 +238,119 @@ export default function Fuel() {
     setBarcodeStatus('starting');
 
     try {
-      if (!navigator.mediaDevices?.getUserMedia) throw new Error("La caméra n'est pas disponible sur ce navigateur.");
-      const Detector = (window as any).BarcodeDetector;
-      if (!Detector) throw new Error("Le scan automatique n'est pas pris en charge ici. Entre le code-barres manuellement ci-dessous.");
+      if (!window.isSecureContext) {
+        throw new Error("La caméra nécessite une connexion HTTPS sécurisée.");
+      }
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("La caméra n'est pas disponible dans ce navigateur.");
+      }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: barcodeFacingRef.current }, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false,
-      });
+      // Sur mobile, certaines versions de Safari/Chrome refusent des contraintes
+      // trop précises. On essaie donc plusieurs configurations, de la meilleure
+      // à la plus permissive.
+      const attempts: MediaStreamConstraints[] = [
+        {
+          video: {
+            facingMode: { exact: barcodeFacingRef.current },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        },
+        {
+          video: {
+            facingMode: { ideal: barcodeFacingRef.current },
+          },
+          audio: false,
+        },
+        { video: true, audio: false },
+      ];
+
+      let stream: MediaStream | null = null;
+      let lastCameraError: any = null;
+
+      for (const constraints of attempts) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          if (stream) break;
+        } catch (cameraErr) {
+          lastCameraError = cameraErr;
+        }
+      }
+
+      if (!stream) {
+        const name = lastCameraError?.name || '';
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+          throw new Error("Accès caméra refusé. Autorise la caméra pour noxai.fr dans les réglages du navigateur puis recharge la page.");
+        }
+        if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+          throw new Error("Aucune caméra n'a été trouvée sur cet appareil.");
+        }
+        if (name === 'NotReadableError' || name === 'TrackStartError') {
+          throw new Error("La caméra est déjà utilisée par une autre application. Ferme les autres apps utilisant la caméra puis réessaie.");
+        }
+        throw lastCameraError || new Error("Impossible d'ouvrir la caméra.");
+      }
+
       barcodeStreamRef.current = stream;
+
       const video = barcodeVideoRef.current;
       if (!video) throw new Error('Aperçu caméra indisponible.');
-      video.srcObject = stream;
-      await video.play();
 
-      const supported = typeof Detector.getSupportedFormats === 'function' ? await Detector.getSupportedFormats() : [];
-      const wanted = ['ean_13','ean_8','upc_a','upc_e','code_128'];
-      const formats = supported.length ? wanted.filter((f: string) => supported.includes(f)) : wanted;
+      video.srcObject = stream;
+      video.muted = true;
+      video.setAttribute('playsinline', 'true');
+
+      try {
+        await video.play();
+      } catch {
+        // Sur iOS, le flux peut déjà être attaché même si play() rejette sa Promise.
+      }
+
+      // IMPORTANT : on vérifie BarcodeDetector APRES avoir ouvert la caméra.
+      // Avant, un iPhone sans BarcodeDetector était affiché à tort comme
+      // « caméra indisponible » alors que la caméra fonctionnait.
+      const Detector = (window as any).BarcodeDetector;
+      if (!Detector) {
+        setBarcodeStatus('scanning');
+        setBarcodeError("Caméra ouverte. La détection automatique des codes-barres n'est pas disponible sur cette version du navigateur. Tu peux utiliser « Saisie manuelle du code ».");
+        return;
+      }
+
+      const supported = typeof Detector.getSupportedFormats === 'function'
+        ? await Detector.getSupportedFormats()
+        : [];
+      const wanted = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'];
+      const formats = supported.length
+        ? wanted.filter((f: string) => supported.includes(f))
+        : wanted;
       const detector = formats.length ? new Detector({ formats }) : new Detector();
+
       setBarcodeStatus('scanning');
 
       barcodeTimerRef.current = window.setInterval(async () => {
         try {
-          if (!barcodeVideoRef.current || barcodeVideoRef.current.readyState < 2) return;
-          const codes = await detector.detect(barcodeVideoRef.current);
+          const currentVideo = barcodeVideoRef.current;
+          if (!currentVideo || currentVideo.readyState < 2) return;
+
+          const codes = await detector.detect(currentVideo);
           const value = codes?.[0]?.rawValue;
-          if (value) await lookupBarcode(String(value));
-        } catch {}
-      }, 450);
+
+          if (value) {
+            if (barcodeTimerRef.current !== null) {
+              window.clearInterval(barcodeTimerRef.current);
+              barcodeTimerRef.current = null;
+            }
+            await lookupBarcode(String(value));
+          }
+        } catch {
+          // Une frame illisible ne doit pas arrêter le scanner.
+        }
+      }, 350);
     } catch (err: any) {
       stopBarcodeScanner();
       setBarcodeStatus('error');
+      console.error('barcode camera:', err);
       setBarcodeError(err?.message || "Impossible d'ouvrir la caméra. Vérifie l'autorisation caméra.");
     }
   };
