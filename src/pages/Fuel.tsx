@@ -61,6 +61,7 @@ export default function Fuel() {
   const barcodeTimerRef = useRef<number | null>(null);
   const barcodeFacingRef = useRef<'environment'|'user'>('environment');
   const barcodeZxingControlsRef = useRef<any>(null);
+  const barcodeRevealTimerRef = useRef<number | null>(null);
   const [tab, setTab] = useState<Tab>('journal');
   const [entries, setEntries] = useState<any[]>([]);
   const [targets, setTargets] = useState({ kcal: 2200, protein: 160, carbs: 220, fat: 70 });
@@ -83,6 +84,7 @@ export default function Fuel() {
   const [barcodeQty, setBarcodeQty] = useState('100');
   const [barcodeManual, setBarcodeManual] = useState(false);
   const [barcodeTorch, setBarcodeTorch] = useState(false);
+  const [barcodeCelebrating, setBarcodeCelebrating] = useState(false);
   const [photoBase64, setPhotoBase64] = useState<string|null>(null);
   const [voiceText, setVoiceText] = useState('');
   const [listening, setListening] = useState(false);
@@ -152,7 +154,9 @@ export default function Fuel() {
     setQty('100'); setSearch(''); setPhotoBase64(null);
     setScanResult(null); setScanError(''); setCustomForm({ name: '', kcal: '', protein: '', carbs: '', fat: '' });
     setQuickKcal(''); setQuickProt(''); setVoiceText('');
-    stopBarcodeScanner(); setBarcodeStatus('idle'); setBarcodeError(''); setBarcodeValue(''); setBarcodeProduct(null); setBarcodeQty('100'); setBarcodeManual(false); setBarcodeTorch(false);
+    stopBarcodeScanner();
+    if (barcodeRevealTimerRef.current !== null) { window.clearTimeout(barcodeRevealTimerRef.current); barcodeRevealTimerRef.current = null; }
+    setBarcodeStatus('idle'); setBarcodeError(''); setBarcodeValue(''); setBarcodeProduct(null); setBarcodeQty('100'); setBarcodeManual(false); setBarcodeTorch(false); setBarcodeCelebrating(false);
   };
 
   const addEntry = async (data: { food_name: string; calories: number; protein: number; carbs: number; fat: number }) => {
@@ -199,6 +203,7 @@ export default function Fuel() {
     setBarcodeStatus('loading');
     setBarcodeError('');
     setBarcodeProduct(null);
+    setBarcodeCelebrating(true);
 
     try {
       const resp = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(clean)}.json`);
@@ -227,7 +232,10 @@ export default function Fuel() {
       });
       setBarcodeQty('100');
       setBarcodeStatus('found');
+      if (barcodeRevealTimerRef.current !== null) window.clearTimeout(barcodeRevealTimerRef.current);
+      barcodeRevealTimerRef.current = window.setTimeout(() => { setBarcodeCelebrating(false); barcodeRevealTimerRef.current = null; }, 1350);
     } catch (err: any) {
+      setBarcodeCelebrating(false);
       setBarcodeStatus('error');
       setBarcodeError(err?.message || 'Impossible de récupérer ce produit.');
     }
@@ -1048,7 +1056,7 @@ export default function Fuel() {
             {/* Code-barres — scanner plein écran */}
             {addMode === 'barcode' && (
               <div style={{ minHeight: '100dvh', background: barcodeProduct || barcodeManual ? SURFACE : '#050505', color: barcodeProduct || barcodeManual ? DARK : '#fff' }}>
-                {!barcodeProduct && !barcodeManual && (
+                {(!barcodeProduct || barcodeCelebrating) && !barcodeManual && (
                   <div style={{ position: 'relative', minHeight: '100dvh', overflow: 'hidden', background: '#050505' }}>
                     <video ref={barcodeVideoRef} muted playsInline autoPlay
                       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', background: '#050505' }} />
@@ -1077,6 +1085,33 @@ export default function Fuel() {
                           </div>
                         </div>
                       </div>
+
+                      {barcodeCelebrating && (
+                        <div style={{ position: 'absolute', inset: 0, zIndex: 8, display: 'grid', placeItems: 'center', padding: 24, background: 'rgba(0,0,0,.48)', backdropFilter: 'blur(5px)' }}>
+                          <div style={{ width: 'min(88vw,390px)', padding: '28px 22px', borderRadius: 26, background: 'rgba(12,14,13,.94)', border: '1px solid rgba(200,255,0,.32)', boxShadow: '0 24px 80px rgba(0,0,0,.5)', textAlign: 'center', animation: 'noxBarcodePop .28s ease-out' }}>
+                            {barcodeStatus === 'loading' ? (
+                              <>
+                                <div style={{ width: 76, height: 76, borderRadius: '50%', margin: '0 auto 18px', display: 'grid', placeItems: 'center', background: ACCENT, color: DARK, fontSize: 40, fontWeight: 950, boxShadow: '0 0 0 10px rgba(200,255,0,.10),0 0 38px rgba(200,255,0,.38)' }}>✓</div>
+                                <div style={{ color: ACCENT, fontSize: 13, fontWeight: 950, letterSpacing: '.04em' }}>CODE DÉTECTÉ !</div>
+                                <div style={{ color: '#fff', fontSize: 21, fontWeight: 950, marginTop: 8 }}>Recherche du produit…</div>
+                                <div style={{ color: 'rgba(255,255,255,.58)', fontSize: 12, marginTop: 7 }}>{barcodeValue}</div>
+                                <div style={{ width: 34, height: 34, margin: '20px auto 0', borderRadius: '50%', border: '3px solid rgba(255,255,255,.18)', borderTopColor: ACCENT, animation: 'noxBarcodeSpin .8s linear infinite' }} />
+                              </>
+                            ) : barcodeProduct ? (
+                              <>
+                                <div style={{ width: 112, height: 112, margin: '0 auto 16px', borderRadius: 22, background: '#fff', display: 'grid', placeItems: 'center', overflow: 'hidden', boxShadow: '0 12px 35px rgba(0,0,0,.28)' }}>
+                                  {barcodeProduct.image ? <img src={barcodeProduct.image} alt={barcodeProduct.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <div style={{ color: DARK, fontSize: 38 }}>▥</div>}
+                                </div>
+                                <div style={{ width: 42, height: 42, borderRadius: '50%', margin: '0 auto 12px', display: 'grid', placeItems: 'center', background: ACCENT, color: DARK, fontSize: 24, fontWeight: 950 }}>✓</div>
+                                <div style={{ color: '#fff', fontSize: 22, fontWeight: 950 }}>Produit trouvé !</div>
+                                <div style={{ color: 'rgba(255,255,255,.82)', fontSize: 14, fontWeight: 800, marginTop: 7 }}>{barcodeProduct.name}</div>
+                                {barcodeProduct.brand && <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 12, marginTop: 3 }}>{barcodeProduct.brand}</div>}
+                              </>
+                            ) : null}
+                          </div>
+                        </div>
+                      )}
+                      <style>{`@keyframes noxBarcodePop{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:scale(1)}} @keyframes noxBarcodeSpin{to{transform:rotate(360deg)}}`}</style>
 
                       {barcodeError && <div style={{ maxWidth: 520, width: '100%', margin: '0 auto 12px', padding: '11px 13px', borderRadius: 13, background: 'rgba(0,0,0,.62)', border: '1px solid rgba(255,255,255,.18)', fontSize: 11, lineHeight: 1.45 }}>{barcodeError}</div>}
 
@@ -1118,7 +1153,7 @@ export default function Fuel() {
                   </div>
                 )}
 
-                {barcodeProduct && (
+                {barcodeProduct && !barcodeCelebrating && (
                   <div style={{ minHeight: '100dvh', padding: 'max(18px,env(safe-area-inset-top)) 20px max(28px,env(safe-area-inset-bottom))', boxSizing: 'border-box' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '44px 1fr 44px', alignItems: 'center', marginBottom: 24 }}>
                       <button onClick={() => { setBarcodeProduct(null); setBarcodeManual(false); setBarcodeValue(''); setBarcodeError(''); }} style={{ border: 'none', background: 'transparent', fontSize: 28, cursor: 'pointer' }}>‹</button>
