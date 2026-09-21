@@ -60,6 +60,7 @@ export default function Fuel() {
   const barcodeStreamRef = useRef<MediaStream | null>(null);
   const barcodeTimerRef = useRef<number | null>(null);
   const barcodeFacingRef = useRef<'environment'|'user'>('environment');
+  const barcodeZxingControlsRef = useRef<any>(null);
   const [tab, setTab] = useState<Tab>('journal');
   const [entries, setEntries] = useState<any[]>([]);
   const [targets, setTargets] = useState({ kcal: 2200, protein: 160, carbs: 220, fat: 70 });
@@ -179,6 +180,8 @@ export default function Fuel() {
   };
 
   const stopBarcodeScanner = () => {
+    try { barcodeZxingControlsRef.current?.stop?.(); } catch {}
+    barcodeZxingControlsRef.current = null;
     if (barcodeTimerRef.current !== null) {
       window.clearInterval(barcodeTimerRef.current);
       barcodeTimerRef.current = null;
@@ -307,46 +310,89 @@ export default function Fuel() {
         // Sur iOS, le flux peut déjà être attaché même si play() rejette sa Promise.
       }
 
-      // IMPORTANT : on vérifie BarcodeDetector APRES avoir ouvert la caméra.
-      // Avant, un iPhone sans BarcodeDetector était affiché à tort comme
-      // « caméra indisponible » alors que la caméra fonctionnait.
+      // Détection : BarcodeDetector natif si disponible, sinon ZXing chargé
+      // directement depuis un CDN. Aucune installation npm n'est nécessaire.
       const Detector = (window as any).BarcodeDetector;
-      if (!Detector) {
-        setBarcodeStatus('scanning');
-        setBarcodeError("Caméra ouverte. La détection automatique des codes-barres n'est pas disponible sur cette version du navigateur. Tu peux utiliser « Saisie manuelle du code ».");
+      setBarcodeStatus('scanning');
+
+      if (Detector) {
+        const supported = typeof Detector.getSupportedFormats === 'function'
+          ? await Detector.getSupportedFormats()
+          : [];
+        const wanted = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'];
+        const formats = supported.length
+          ? wanted.filter((f: string) => supported.includes(f))
+          : wanted;
+        const detector = formats.length ? new Detector({ formats }) : new Detector();
+
+        barcodeTimerRef.current = window.setInterval(async () => {
+          try {
+            const currentVideo = barcodeVideoRef.current;
+            if (!currentVideo || currentVideo.readyState < 2) return;
+            const codes = await detector.detect(currentVideo);
+            const value = codes?.[0]?.rawValue;
+            if (value) {
+              if (barcodeTimerRef.current !== null) {
+                window.clearInterval(barcodeTimerRef.current);
+                barcodeTimerRef.current = null;
+              }
+              await lookupBarcode(String(value));
+            }
+          } catch {
+            // Une frame illisible ne doit pas arrêter le scanner.
+          }
+        }, 300);
         return;
       }
 
-      const supported = typeof Detector.getSupportedFormats === 'function'
-        ? await Detector.getSupportedFormats()
-        : [];
-      const wanted = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'];
-      const formats = supported.length
-        ? wanted.filter((f: string) => supported.includes(f))
-        : wanted;
-      const detector = formats.length ? new Detector({ formats }) : new Detector();
-
-      setBarcodeStatus('scanning');
-
-      barcodeTimerRef.current = window.setInterval(async () => {
-        try {
-          const currentVideo = barcodeVideoRef.current;
-          if (!currentVideo || currentVideo.readyState < 2) return;
-
-          const codes = await detector.detect(currentVideo);
-          const value = codes?.[0]?.rawValue;
-
-          if (value) {
-            if (barcodeTimerRef.current !== null) {
-              window.clearInterval(barcodeTimerRef.current);
-              barcodeTimerRef.current = null;
-            }
-            await lookupBarcode(String(value));
-          }
-        } catch {
-          // Une frame illisible ne doit pas arrêter le scanner.
+      // Fallback iPhone/Safari : charge ZXing au runtime depuis UNPKG.
+      // Cela évite npm install tout en gardant un vrai lecteur EAN/UPC.
+      const loadZXing = async () => {
+        if ((window as any).ZXingBrowser) return (window as any).ZXingBrowser;
+        const existing = document.querySelector('script[data-noxai-zxing="1"]') as HTMLScriptElement | null;
+        if (existing) {
+          await new Promise<void>((resolve, reject) => {
+            if ((window as any).ZXingBrowser) return resolve();
+            existing.addEventListener('load', () => resolve(), { once: true });
+            existing.addEventListener('error', () => reject(new Error('Chargement du lecteur code-barres impossible.')), { once: true });
+          });
+          return (window as any).ZXingBrowser;
         }
-      }, 350);
+
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://unpkg.com/@zxing/browser@0.2.1/umd/zxing-browser.min.js';
+          script.async = true;
+          script.crossOrigin = 'anonymous';
+          script.dataset.noxaiZxing = '1';
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Le lecteur code-barres n’a pas pu être chargé. Vérifie ta connexion internet.'));
+          document.head.appendChild(script);
+        });
+        return (window as any).ZXingBrowser;
+      };
+
+      try {
+        const ZXingBrowser = await loadZXing();
+        if (!ZXingBrowser?.BrowserMultiFormatOneDReader) {
+          throw new Error('Lecteur EAN/UPC indisponible.');
+        }
+
+        const reader = new ZXingBrowser.BrowserMultiFormatOneDReader();
+        const controls = await reader.decodeFromStream(stream, video, async (result: any) => {
+          if (!result) return;
+          const value = typeof result.getText === 'function' ? result.getText() : result.text;
+          if (!value) return;
+          try { barcodeZxingControlsRef.current?.stop?.(); } catch {}
+          barcodeZxingControlsRef.current = null;
+          await lookupBarcode(String(value));
+        });
+        barcodeZxingControlsRef.current = controls;
+        setBarcodeError('');
+      } catch (zxingErr: any) {
+        console.error('ZXing barcode:', zxingErr);
+        setBarcodeError(zxingErr?.message || 'Détection automatique indisponible. Utilise la saisie manuelle du code.');
+      }
     } catch (err: any) {
       stopBarcodeScanner();
       setBarcodeStatus('error');
