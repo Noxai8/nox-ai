@@ -70,7 +70,7 @@ export default function QuickGroceries() {
       const saved = localStorage.getItem('noxai_quick_groceries');
       if (!saved) return;
       const parsed = JSON.parse(saved);
-      if (parsed?.prefs) setPrefs(parsed.prefs);
+      if (parsed?.prefs) { setPrefs(parsed.prefs); setLikesText((parsed.prefs.likes || []).join(', ')); setDislikesText((parsed.prefs.dislikes || []).join(', ')); }
       if (parsed?.store) setStore(parsed.store);
     } catch {}
   }, []);
@@ -129,6 +129,12 @@ export default function QuickGroceries() {
   const grouped = useMemo(() => CATEGORIES.map(category => ({ category, items: items.filter(i=>i.category===category) })).filter(g=>g.items.length), [items]);
 
   return <div style={{minHeight:'100vh',background:BG,color:DARK,paddingBottom:40}}>
+    <style>{`
+      @keyframes noxPulse { 0%,100% { transform:scale(1); box-shadow:0 0 0 10px rgba(200,255,0,.08) } 50% { transform:scale(1.08); box-shadow:0 0 0 22px rgba(200,255,0,.02) } }
+      @keyframes noxShimmer { 0% { transform:translateX(-120%) } 100% { transform:translateX(320%) } }
+      @keyframes noxRise { from { opacity:0; transform:translateY(14px) } to { opacity:1; transform:translateY(0) } }
+      @keyframes noxCheck { 0% { transform:scale(.7) } 60% { transform:scale(1.15) } 100% { transform:scale(1) } }
+    `}</style>
     <div style={{position:'sticky',top:0,zIndex:20,background:'rgba(246,247,242,.94)',backdropFilter:'blur(14px)',borderBottom:`1px solid ${BORDER}`,padding:'14px 18px'}}>
       <div style={{maxWidth:720,margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
         <button onClick={()=> step==='setup' ? navigate(-1) : setStep(step==='list'?'store':'setup')} style={{border:'none',background:SURFACE,width:40,height:40,borderRadius:14,fontSize:20,cursor:'pointer'}}>‹</button>
@@ -189,7 +195,7 @@ export default function QuickGroceries() {
         <Primary onClick={generate}>✦ GÉNÉRER MES COURSES</Primary>
       </>}
 
-      {step==='generating' && <div style={{minHeight:'65vh',display:'grid',placeItems:'center',textAlign:'center'}}><div><div style={{width:84,height:84,borderRadius:'50%',background:DARK,color:ACCENT,display:'grid',placeItems:'center',fontSize:34,fontWeight:950,margin:'0 auto 18px',boxShadow:'0 0 0 12px rgba(200,255,0,.12)'}}>✦</div><div style={{fontSize:25,fontWeight:950}}>NOX prépare tes courses</div><div style={{fontSize:13,color:'#777',marginTop:8}}>Objectif · préférences · allergies · magasin</div><div style={{width:210,height:7,background:'#e7e7e1',borderRadius:99,overflow:'hidden',margin:'20px auto'}}><div style={{height:'100%',width:'72%',background:ACCENT,borderRadius:99}}/></div></div></div>}
+      {step==='generating' && <div style={{minHeight:'65vh',display:'grid',placeItems:'center',textAlign:'center'}}><div style={{animation:'noxRise .35s ease both'}}><div style={{width:84,height:84,borderRadius:'50%',background:DARK,color:ACCENT,display:'grid',placeItems:'center',fontSize:34,fontWeight:950,margin:'0 auto 18px',animation:'noxPulse 1.15s ease-in-out infinite'}}>✦</div><div style={{fontSize:25,fontWeight:950}}>NOX prépare tes courses</div><div style={{fontSize:13,color:'#777',marginTop:8}}>Objectif · préférences · allergies · magasin</div><div style={{width:210,height:7,background:'#e7e7e1',borderRadius:99,overflow:'hidden',margin:'20px auto',position:'relative'}}><div style={{position:'absolute',inset:0,width:'42%',background:ACCENT,borderRadius:99,animation:'noxShimmer 1.15s ease-in-out infinite'}}/></div><div style={{fontSize:11,color:'#999'}}>Construction d’une liste compatible avec ton profil…</div></div></div>}
 
       {step==='list' && <>
         <section style={{background:DARK,borderRadius:24,padding:20,color:'#fff',marginBottom:14}}>
@@ -198,7 +204,7 @@ export default function QuickGroceries() {
         </section>
         {error && <div style={{background:'#fff6df',border:'1px solid #f2dfaa',borderRadius:16,padding:13,fontSize:11,color:'#735c25',marginBottom:12}}>{error}</div>}
         {prefs.allergies.length>0 && <div style={{background:'#fff',border:'1px solid #ffd8cb',borderRadius:16,padding:14,marginBottom:12}}><div style={{fontSize:12,fontWeight:900}}>⚠ Allergies prises en compte</div><div style={{fontSize:11,color:'#777',marginTop:4}}>{prefs.allergies.join(' · ')} — vérifie l’étiquette des produits emballés.</div></div>}
-        {grouped.map(group=><section key={group.category} style={{background:SURFACE,border:`1px solid ${BORDER}`,borderRadius:20,padding:'4px 15px',marginBottom:12}}><div style={{padding:'14px 2px 9px',fontSize:13,fontWeight:950}}>{group.category}</div>{group.items.map((item,idx)=><button key={item.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===item.id?{...x,checked:!x.checked}:x))} style={{width:'100%',display:'flex',gap:12,alignItems:'center',padding:'13px 2px',border:'none',borderTop:idx?`1px solid ${BORDER}`:'none',background:'transparent',textAlign:'left',cursor:'pointer'}}><div style={{width:24,height:24,borderRadius:8,border:`1.5px solid ${item.checked?DARK:'#ccc'}`,background:item.checked?ACCENT:SURFACE,display:'grid',placeItems:'center',fontWeight:950,flexShrink:0}}>{item.checked?'✓':''}</div><div style={{minWidth:0,flex:1}}><div style={{fontSize:13,fontWeight:850,textDecoration:item.checked?'line-through':'none',opacity:item.checked ? .55 : 1}}>{item.name}</div>{item.note&&<div style={{fontSize:10,color:'#9a7540',marginTop:3}}>{item.note}</div>}</div><div style={{fontSize:12,color:'#777',fontWeight:800,flexShrink:0}}>{item.qty}</div></button>)}</section>)}
+        {grouped.map((group,groupIndex)=><section key={group.category} style={{animation:`noxRise .35s ease ${groupIndex*.06}s both`,background:SURFACE,border:`1px solid ${BORDER}`,borderRadius:20,padding:'4px 15px',marginBottom:12}}><div style={{padding:'14px 2px 9px',fontSize:13,fontWeight:950}}>{group.category}</div>{group.items.map((item,idx)=><button key={item.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===item.id?{...x,checked:!x.checked}:x))} style={{width:'100%',display:'flex',gap:12,alignItems:'center',padding:'13px 2px',border:'none',borderTop:idx?`1px solid ${BORDER}`:'none',background:'transparent',textAlign:'left',cursor:'pointer'}}><div style={{width:24,height:24,borderRadius:8,border:`1.5px solid ${item.checked?DARK:'#ccc'}`,background:item.checked?ACCENT:SURFACE,animation:item.checked?'noxCheck .22s ease':'none',display:'grid',placeItems:'center',fontWeight:950,flexShrink:0}}>{item.checked?'✓':''}</div><div style={{minWidth:0,flex:1}}><div style={{fontSize:13,fontWeight:850,textDecoration:item.checked?'line-through':'none',opacity:item.checked ? .55 : 1}}>{item.name}</div>{item.note&&<div style={{fontSize:10,color:'#9a7540',marginTop:3}}>{item.note}</div>}</div><div style={{fontSize:12,color:'#777',fontWeight:800,flexShrink:0}}>{item.qty}</div></button>)}</section>)}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:9,marginTop:16}}><button onClick={()=>setStep('setup')} style={{padding:14,borderRadius:14,border:`1px solid ${BORDER}`,background:SURFACE,fontWeight:850,cursor:'pointer'}}>Modifier</button><button onClick={generate} style={{padding:14,borderRadius:14,border:'none',background:DARK,color:ACCENT,fontWeight:900,cursor:'pointer'}}>↻ Régénérer</button></div>
         {progress===100 && <div style={{textAlign:'center',padding:'28px 10px 10px'}}><div style={{width:66,height:66,borderRadius:'50%',background:ACCENT,display:'grid',placeItems:'center',fontSize:30,fontWeight:950,margin:'0 auto'}}>✓</div><div style={{fontSize:22,fontWeight:950,marginTop:12}}>Courses terminées !</div><div style={{fontSize:12,color:'#888',marginTop:5}}>Ta liste est complète.</div></div>}
       </>}
