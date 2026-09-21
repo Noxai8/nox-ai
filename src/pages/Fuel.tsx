@@ -59,6 +59,7 @@ export default function Fuel() {
   const barcodeVideoRef = useRef<HTMLVideoElement>(null);
   const barcodeStreamRef = useRef<MediaStream | null>(null);
   const barcodeTimerRef = useRef<number | null>(null);
+  const barcodeFacingRef = useRef<'environment'|'user'>('environment');
   const [tab, setTab] = useState<Tab>('journal');
   const [entries, setEntries] = useState<any[]>([]);
   const [targets, setTargets] = useState({ kcal: 2200, protein: 160, carbs: 220, fat: 70 });
@@ -79,6 +80,8 @@ export default function Fuel() {
   const [barcodeValue, setBarcodeValue] = useState('');
   const [barcodeProduct, setBarcodeProduct] = useState<any>(null);
   const [barcodeQty, setBarcodeQty] = useState('100');
+  const [barcodeManual, setBarcodeManual] = useState(false);
+  const [barcodeTorch, setBarcodeTorch] = useState(false);
   const [photoBase64, setPhotoBase64] = useState<string|null>(null);
   const [voiceText, setVoiceText] = useState('');
   const [listening, setListening] = useState(false);
@@ -148,7 +151,7 @@ export default function Fuel() {
     setQty('100'); setSearch(''); setPhotoBase64(null);
     setScanResult(null); setScanError(''); setCustomForm({ name: '', kcal: '', protein: '', carbs: '', fat: '' });
     setQuickKcal(''); setQuickProt(''); setVoiceText('');
-    stopBarcodeScanner(); setBarcodeStatus('idle'); setBarcodeError(''); setBarcodeValue(''); setBarcodeProduct(null); setBarcodeQty('100');
+    stopBarcodeScanner(); setBarcodeStatus('idle'); setBarcodeError(''); setBarcodeValue(''); setBarcodeProduct(null); setBarcodeQty('100'); setBarcodeManual(false); setBarcodeTorch(false);
   };
 
   const addEntry = async (data: { food_name: string; calories: number; protein: number; carbs: number; fat: number }) => {
@@ -240,7 +243,7 @@ export default function Fuel() {
       if (!Detector) throw new Error("Le scan automatique n'est pas pris en charge ici. Entre le code-barres manuellement ci-dessous.");
 
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: { facingMode: { ideal: barcodeFacingRef.current }, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       });
       barcodeStreamRef.current = stream;
@@ -270,10 +273,33 @@ export default function Fuel() {
     }
   };
 
+  const toggleBarcodeTorch = async () => {
+    try {
+      const track = barcodeStreamRef.current?.getVideoTracks()?.[0];
+      if (!track) return;
+      const caps = track.getCapabilities?.() as any;
+      if (!caps?.torch) throw new Error('Lampe non disponible sur cet appareil.');
+      const next = !barcodeTorch;
+      await track.applyConstraints({ advanced: [{ torch: next } as any] });
+      setBarcodeTorch(next);
+    } catch (err: any) {
+      setBarcodeError(err?.message || 'Impossible de contrôler la lampe.');
+    }
+  };
+
+  const switchBarcodeCamera = async () => {
+    barcodeFacingRef.current = barcodeFacingRef.current === 'environment' ? 'user' : 'environment';
+    await startBarcodeScanner();
+  };
+
   useEffect(() => {
-    if (!showAdd || addMode !== 'barcode') stopBarcodeScanner();
-    return () => { if (addMode === 'barcode') stopBarcodeScanner(); };
-  }, [showAdd, addMode]);
+    if (showAdd && addMode === 'barcode' && !barcodeProduct && !barcodeManual) {
+      const t = window.setTimeout(() => startBarcodeScanner(), 120);
+      return () => window.clearTimeout(t);
+    }
+    stopBarcodeScanner();
+    return undefined;
+  }, [showAdd, addMode, barcodeManual]);
 
   const handlePhoto = async (file: File) => {
     setAddMode('photo');
@@ -648,19 +674,19 @@ export default function Fuel() {
 
       {/* MODAL AJOUTER */}
       {showAdd && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 200 }} onClick={closeAdd}>
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: SURFACE, borderRadius: '20px 20px 0 0', padding: '18px 24px 130px', maxHeight: '88vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+        <div style={{ position: 'fixed', inset: 0, background: addMode === 'barcode' ? '#050505' : 'rgba(0,0,0,.5)', zIndex: 200 }} onClick={closeAdd}>
+          <div style={addMode === 'barcode' ? { position: 'absolute', inset: 0, background: barcodeProduct || barcodeManual ? SURFACE : '#050505', padding: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' } : { position: 'absolute', bottom: 0, left: 0, right: 0, background: SURFACE, borderRadius: '20px 20px 0 0', padding: '18px 24px 130px', maxHeight: '88vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
             onClick={e => e.stopPropagation()}>
 
             {/* Header modal */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            {addMode !== 'barcode' && <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: DARK }}>
                 {addMode === 'choose' ? 'Ajouter a ' + selectedMeal : addMode === 'photo' ? 'Scanner mon repas' : addMode === 'search' ? 'Rechercher' : addMode === 'barcode' ? 'Code-barres' : addMode === 'quick' ? 'Ajout rapide' : addMode === 'voice' ? 'Dictee vocale' : 'Saisie manuelle'}
               </div>
               <button onClick={closeAdd} style={{ background: 'none', border: 'none', fontSize: 24, color: '#999', cursor: 'pointer' }}>x</button>
-            </div>
+            </div>}
 
-            {addMode !== 'choose' && (
+            {addMode !== 'choose' && addMode !== 'barcode' && (
               <button onClick={() => { if (addMode === 'barcode') stopBarcodeScanner(); setAddMode('choose'); }} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 13, marginBottom: 12, display: 'block' }}>
                 Retour
               </button>
@@ -891,86 +917,114 @@ export default function Fuel() {
               </div>
             )}
 
-            {/* Code-barres */}
+            {/* Code-barres — scanner plein écran */}
             {addMode === 'barcode' && (
-              <div>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
-                  <div style={{ width: 54, height: 54, borderRadius: 17, background: '#f1ffd0', display: 'grid', placeItems: 'center', fontSize: 25, flexShrink: 0 }}>▥</div>
-                  <div>
-                    <div style={{ fontSize: 19, fontWeight: 950, color: DARK }}>Scanner un produit</div>
-                    <div style={{ fontSize: 12, color: '#777', lineHeight: 1.45, marginTop: 3 }}>Place le code-barres dans le cadre. NOX récupère ensuite ses valeurs nutritionnelles.</div>
+              <div style={{ minHeight: '100dvh', background: barcodeProduct || barcodeManual ? SURFACE : '#050505', color: barcodeProduct || barcodeManual ? DARK : '#fff' }}>
+                {!barcodeProduct && !barcodeManual && (
+                  <div style={{ position: 'relative', minHeight: '100dvh', overflow: 'hidden', background: '#050505' }}>
+                    <video ref={barcodeVideoRef} muted playsInline autoPlay
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', background: '#050505' }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.62) 0%,rgba(0,0,0,.10) 35%,rgba(0,0,0,.10) 62%,rgba(0,0,0,.72) 100%)', pointerEvents: 'none' }} />
+
+                    <div style={{ position: 'relative', zIndex: 2, minHeight: '100dvh', display: 'flex', flexDirection: 'column', padding: 'max(18px,env(safe-area-inset-top)) 18px max(22px,env(safe-area-inset-bottom))' }}>
+                      <div style={{ height: 54, display: 'grid', gridTemplateColumns: '48px 1fr 48px', alignItems: 'center' }}>
+                        <button onClick={() => { stopBarcodeScanner(); setAddMode('choose'); }}
+                          style={{ width: 42, height: 42, borderRadius: '50%', border: '1px solid rgba(255,255,255,.28)', background: 'rgba(0,0,0,.28)', color: '#fff', fontSize: 25, cursor: 'pointer', backdropFilter: 'blur(8px)' }}>‹</button>
+                        <div style={{ textAlign: 'center', fontSize: 17, fontWeight: 900 }}>Code-barres</div>
+                        <button onClick={closeAdd}
+                          style={{ width: 42, height: 42, justifySelf: 'end', borderRadius: '50%', border: '1px solid rgba(255,255,255,.28)', background: 'rgba(0,0,0,.28)', color: '#fff', fontSize: 21, cursor: 'pointer', backdropFilter: 'blur(8px)' }}>×</button>
+                      </div>
+
+                      <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: '20px 0' }}>
+                        <div style={{ width: '100%', maxWidth: 520, textAlign: 'center' }}>
+                          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 18, textShadow: '0 2px 12px rgba(0,0,0,.6)' }}>Place le code-barres dans le cadre</div>
+                          <div style={{ position: 'relative', width: '86%', maxWidth: 430, height: 190, margin: '0 auto', borderRadius: 22 }}>
+                            <div style={{ position: 'absolute', inset: 0, border: '3px solid rgba(255,255,255,.92)', borderRadius: 22, boxShadow: '0 0 0 999px rgba(0,0,0,.16)' }} />
+                            <div style={{ position: 'absolute', left: 16, right: 16, top: '50%', height: 2, background: ACCENT, boxShadow: '0 0 14px '+ACCENT }} />
+                            <div style={{ position: 'absolute', left: -2, top: -2, width: 48, height: 48, borderLeft: '4px solid '+ACCENT, borderTop: '4px solid '+ACCENT, borderRadius: '22px 0 0 0' }} />
+                            <div style={{ position: 'absolute', right: -2, bottom: -2, width: 48, height: 48, borderRight: '4px solid '+ACCENT, borderBottom: '4px solid '+ACCENT, borderRadius: '0 0 22px 0' }} />
+                          </div>
+                          <div style={{ marginTop: 18, fontSize: 12, fontWeight: 750, opacity: .9 }}>
+                            {barcodeStatus === 'starting' ? 'Ouverture de la caméra…' : barcodeStatus === 'loading' ? 'Produit détecté…' : barcodeStatus === 'error' ? 'Caméra indisponible' : 'Détection automatique en cours…'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {barcodeError && <div style={{ maxWidth: 520, width: '100%', margin: '0 auto 12px', padding: '11px 13px', borderRadius: 13, background: 'rgba(0,0,0,.62)', border: '1px solid rgba(255,255,255,.18)', fontSize: 11, lineHeight: 1.45 }}>{barcodeError}</div>}
+
+                      <div style={{ width: '100%', maxWidth: 520, margin: '0 auto' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, marginBottom: 16 }}>
+                          <button onClick={toggleBarcodeTorch} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }}>
+                            <div style={{ width: 48, height: 48, margin: '0 auto 6px', borderRadius: '50%', display: 'grid', placeItems: 'center', background: barcodeTorch ? ACCENT : 'rgba(0,0,0,.46)', color: barcodeTorch ? DARK : '#fff', border: '1px solid rgba(255,255,255,.22)', fontSize: 21 }}>ϟ</div>
+                            <div style={{ fontSize: 11, fontWeight: 800 }}>Lampe</div>
+                          </button>
+                          <button onClick={switchBarcodeCamera} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }}>
+                            <div style={{ width: 48, height: 48, margin: '0 auto 6px', borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,.46)', border: '1px solid rgba(255,255,255,.22)', fontSize: 19 }}>↻</div>
+                            <div style={{ fontSize: 11, fontWeight: 800 }}>Retour caméra</div>
+                          </button>
+                        </div>
+                        <button onClick={() => { stopBarcodeScanner(); setBarcodeManual(true); setBarcodeError(''); }}
+                          style={{ width: '100%', padding: 14, borderRadius: 14, border: '1px solid rgba(255,255,255,.35)', background: 'rgba(245,245,245,.92)', color: DARK, fontSize: 13, fontWeight: 900, cursor: 'pointer' }}>⌨ &nbsp; Saisie manuelle du code</button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {!barcodeProduct && (
-                  <>
-                    <div style={{ position: 'relative', height: 245, borderRadius: 20, overflow: 'hidden', background: '#111', marginBottom: 12 }}>
-                      <video ref={barcodeVideoRef} muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
-                        <div style={{ width: '78%', height: 92, border: '2px solid '+ACCENT, borderRadius: 16, boxShadow: '0 0 0 999px rgba(0,0,0,.28)' }} />
-                      </div>
-                      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 14, textAlign: 'center', color: '#fff', fontSize: 11, fontWeight: 800 }}>
-                        {barcodeStatus === 'scanning' ? 'Recherche du code-barres…' : barcodeStatus === 'starting' ? 'Ouverture de la caméra…' : barcodeStatus === 'loading' ? 'Produit détecté…' : 'Caméra prête'}
-                      </div>
+                {barcodeManual && !barcodeProduct && (
+                  <div style={{ minHeight: '100dvh', padding: 'max(18px,env(safe-area-inset-top)) 20px max(28px,env(safe-area-inset-bottom))', boxSizing: 'border-box' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '44px 1fr 44px', alignItems: 'center', marginBottom: 44 }}>
+                      <button onClick={() => { setBarcodeManual(false); setBarcodeValue(''); }} style={{ border: 'none', background: 'transparent', fontSize: 28, cursor: 'pointer' }}>‹</button>
+                      <div style={{ textAlign: 'center', fontSize: 16, fontWeight: 950 }}>Saisir un code-barres</div>
+                      <button onClick={closeAdd} style={{ border: 'none', background: 'transparent', fontSize: 24, cursor: 'pointer' }}>×</button>
                     </div>
-
-                    {(barcodeStatus === 'idle' || barcodeStatus === 'error') && (
-                      <button onClick={startBarcodeScanner} style={{ width: '100%', padding: 15, background: DARK, border: 'none', borderRadius: 14, color: ACCENT, fontWeight: 950, fontSize: 14, cursor: 'pointer', marginBottom: 10 }}>
-                        OUVRIR LA CAMÉRA
-                      </button>
-                    )}
-
-                    {barcodeError && (
-                      <div style={{ padding: 12, borderRadius: 14, background: '#fff7f7', border: '1px solid #ffd8d8', color: '#777', fontSize: 12, lineHeight: 1.45, marginBottom: 10 }}>{barcodeError}</div>
-                    )}
-
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <input value={barcodeValue} onChange={e => setBarcodeValue(e.target.value.replace(/\D/g,''))} inputMode="numeric" placeholder="EAN : 3017620422003"
-                        style={{ flex: 1, minWidth: 0, padding: '13px 14px', border: '1px solid '+BORDER, borderRadius: 13, background: BG, color: DARK, fontSize: 14, outline: 'none' }} />
+                    <div style={{ maxWidth: 520, margin: '0 auto', textAlign: 'center' }}>
+                      <div style={{ width: 58, height: 48, border: '2px solid '+DARK, borderRadius: 12, display: 'grid', placeItems: 'center', margin: '0 auto 22px', fontWeight: 950 }}>||||</div>
+                      <div style={{ fontSize: 16, fontWeight: 900 }}>Entre le code-barres manuellement</div>
+                      <div style={{ fontSize: 12, color: '#888', marginTop: 6, marginBottom: 20 }}>EAN, UPC ou autre code produit</div>
+                      <input value={barcodeValue} onChange={e => setBarcodeValue(e.target.value.replace(/\D/g,''))} inputMode="numeric" autoFocus placeholder="3017620422003"
+                        style={{ width: '100%', boxSizing: 'border-box', padding: '16px 14px', borderRadius: 14, border: '1px solid '+BORDER, background: BG, color: DARK, fontSize: 19, fontWeight: 900, textAlign: 'center', outline: 'none', marginBottom: 12 }} />
                       <button onClick={() => lookupBarcode(barcodeValue)} disabled={!barcodeValue || barcodeStatus === 'loading'}
-                        style={{ padding: '0 16px', borderRadius: 13, border: 'none', background: barcodeValue ? ACCENT : '#eee', color: DARK, fontWeight: 900, cursor: barcodeValue ? 'pointer' : 'not-allowed' }}>
-                        {barcodeStatus === 'loading' ? '…' : 'OK'}
-                      </button>
+                        style={{ width: '100%', padding: 16, borderRadius: 14, border: 'none', background: barcodeValue ? ACCENT : '#eee', color: DARK, fontWeight: 950, cursor: barcodeValue ? 'pointer' : 'not-allowed' }}>{barcodeStatus === 'loading' ? 'RECHERCHE…' : 'RECHERCHER LE PRODUIT'}</button>
+                      {barcodeError && <div style={{ marginTop: 14, padding: 13, borderRadius: 13, background: '#fff7f7', border: '1px solid #ffd8d8', color: '#777', fontSize: 12 }}>{barcodeError}</div>}
                     </div>
-                  </>
+                  </div>
                 )}
 
                 {barcodeProduct && (
-                  <div>
-                    <div style={{ display: 'flex', gap: 13, padding: 14, borderRadius: 18, border: '1px solid '+BORDER, background: SURFACE, marginBottom: 12 }}>
-                      {barcodeProduct.image ? <img src={barcodeProduct.image} alt="Produit" style={{ width: 70, height: 70, borderRadius: 12, objectFit: 'contain', background: BG }} /> : <div style={{ width: 70, height: 70, borderRadius: 12, background: BG, display: 'grid', placeItems: 'center', fontSize: 25 }}>▥</div>}
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: 16, fontWeight: 950, color: DARK }}>{barcodeProduct.name}</div>
-                        {barcodeProduct.brand && <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>{barcodeProduct.brand}</div>}
-                        <div style={{ fontSize: 10, color: '#aaa', marginTop: 5 }}>Code {barcodeProduct.code} · valeurs pour 100 g</div>
+                  <div style={{ minHeight: '100dvh', padding: 'max(18px,env(safe-area-inset-top)) 20px max(28px,env(safe-area-inset-bottom))', boxSizing: 'border-box' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '44px 1fr 44px', alignItems: 'center', marginBottom: 24 }}>
+                      <button onClick={() => { setBarcodeProduct(null); setBarcodeManual(false); setBarcodeValue(''); setBarcodeError(''); }} style={{ border: 'none', background: 'transparent', fontSize: 28, cursor: 'pointer' }}>‹</button>
+                      <div style={{ textAlign: 'center', fontSize: 16, fontWeight: 950 }}>Produit trouvé</div>
+                      <button onClick={closeAdd} style={{ border: 'none', background: 'transparent', fontSize: 24, cursor: 'pointer' }}>×</button>
+                    </div>
+                    <div style={{ maxWidth: 520, margin: '0 auto' }}>
+                      {barcodeProduct.image && <img src={barcodeProduct.image} alt={barcodeProduct.name} style={{ width: 104, height: 104, objectFit: 'contain', display: 'block', margin: '0 auto 14px', borderRadius: 18 }} />}
+                      <div style={{ fontSize: 27, fontWeight: 950, letterSpacing: '-.03em' }}>{barcodeProduct.name}</div>
+                      {barcodeProduct.brand && <div style={{ fontSize: 14, fontWeight: 750, marginTop: 3 }}>{barcodeProduct.brand}</div>}
+                      <div style={{ fontSize: 11, color: '#888', marginTop: 5 }}>Code : {barcodeProduct.code}</div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginTop: 28, marginBottom: 10 }}><div style={{ fontSize: 13, fontWeight: 900 }}>Valeurs nutritionnelles</div><div style={{ fontSize: 11, color: '#999' }}>Pour 100 g</div></div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 8, marginBottom: 28 }}>
+                        {[
+                          ['kcal', Math.round(barcodeProduct.kcal)],
+                          ['protéines', Math.round(barcodeProduct.protein*10)/10+' g'],
+                          ['glucides', Math.round(barcodeProduct.carbs*10)/10+' g'],
+                          ['lipides', Math.round(barcodeProduct.fat*10)/10+' g'],
+                        ].map(([label,value]) => <div key={label as string} style={{ padding: '14px 4px', borderRadius: 13, background: '#f5f5f2', textAlign: 'center' }}><div style={{ fontSize: 16, fontWeight: 950 }}>{value}</div><div style={{ fontSize: 9, color: '#777', marginTop: 4 }}>{label}</div></div>)}
                       </div>
+
+                      <div style={{ fontSize: 13, fontWeight: 900, marginBottom: 10 }}>Quantité</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 14 }}>
+                        {['25','50','100','150'].map(g => <button key={g} onClick={() => setBarcodeQty(g)} style={{ padding: '13px 4px', borderRadius: 12, border: '1px solid '+(barcodeQty===g?ACCENT:BORDER), background: barcodeQty===g?ACCENT:'#f5f5f2', color: DARK, fontWeight: 900, cursor: 'pointer' }}>{g} g</button>)}
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr 48px', gap: 8, marginBottom: 24 }}>
+                        <button onClick={() => setBarcodeQty(String(Math.max(1,(Number(barcodeQty)||0)-10)))} style={{ border: '1px solid '+BORDER, borderRadius: 12, background: SURFACE, fontSize: 22 }}>−</button>
+                        <input value={barcodeQty} onChange={e => setBarcodeQty(e.target.value.replace(/[^0-9.]/g,''))} inputMode="decimal" style={{ minWidth: 0, textAlign: 'center', border: '1px solid '+BORDER, borderRadius: 12, fontSize: 18, fontWeight: 950, outline: 'none' }} />
+                        <button onClick={() => setBarcodeQty(String((Number(barcodeQty)||0)+10))} style={{ border: '1px solid '+BORDER, borderRadius: 12, background: SURFACE, fontSize: 22 }}>+</button>
+                      </div>
+                      <button onClick={() => { const r=Math.max(0,Number(barcodeQty)||0)/100; addEntry({ food_name: `${barcodeProduct.name} (${barcodeQty}g)`, calories: Math.round(barcodeProduct.kcal*r), protein: Math.round(barcodeProduct.protein*r*10)/10, carbs: Math.round(barcodeProduct.carbs*r*10)/10, fat: Math.round(barcodeProduct.fat*r*10)/10 }); }} disabled={saving || !Number(barcodeQty)}
+                        style={{ width: '100%', padding: 17, borderRadius: 15, border: 'none', background: ACCENT, color: DARK, fontSize: 14, fontWeight: 950, cursor: 'pointer', boxShadow: '0 10px 28px rgba(200,255,0,.28)' }}>{saving ? 'AJOUT EN COURS…' : `AJOUTER À ${selectedMeal.toUpperCase()}`}</button>
                     </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 7, marginBottom: 14 }}>
-                      {[
-                        ['kcal', Math.round(barcodeProduct.kcal), '#111'],
-                        ['prot.', Math.round(barcodeProduct.protein*10)/10+'g', '#4488ff'],
-                        ['gluc.', Math.round(barcodeProduct.carbs*10)/10+'g', '#ffaa00'],
-                        ['lip.', Math.round(barcodeProduct.fat*10)/10+'g', '#ff6b6b'],
-                      ].map(([label,value,color]) => (
-                        <div key={label as string} style={{ padding: '11px 3px', borderRadius: 13, border: '1px solid '+BORDER, textAlign: 'center', background: SURFACE }}>
-                          <div style={{ fontSize: 15, fontWeight: 950, color: color as string }}>{value}</div>
-                          <div style={{ fontSize: 9, color: '#999', textTransform: 'uppercase', marginTop: 3 }}>{label}</div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>Quantité consommée (g)</div>
-                    <input value={barcodeQty} onChange={e => setBarcodeQty(e.target.value)} type="number" inputMode="decimal"
-                      style={{ width: '100%', boxSizing: 'border-box', padding: 14, borderRadius: 13, border: '1px solid '+BORDER, background: BG, color: DARK, fontSize: 20, fontWeight: 900, textAlign: 'center', outline: 'none', marginBottom: 12 }} />
-
-                    <button onClick={() => {
-                      const r = Math.max(0, Number(barcodeQty) || 0) / 100;
-                      addEntry({ food_name: `${barcodeProduct.name} (${barcodeQty}g)`, calories: Math.round(barcodeProduct.kcal*r), protein: Math.round(barcodeProduct.protein*r*10)/10, carbs: Math.round(barcodeProduct.carbs*r*10)/10, fat: Math.round(barcodeProduct.fat*r*10)/10 });
-                    }} disabled={saving || !Number(barcodeQty)} style={{ width: '100%', padding: 16, border: 'none', borderRadius: 15, background: ACCENT, color: DARK, fontSize: 14, fontWeight: 950, cursor: 'pointer' }}>
-                      {saving ? 'AJOUT EN COURS…' : `AJOUTER À ${selectedMeal.toUpperCase()}`}
-                    </button>
-                    <button onClick={() => { setBarcodeProduct(null); setBarcodeValue(''); setBarcodeStatus('idle'); setBarcodeError(''); }} style={{ width: '100%', padding: 12, border: 'none', background: 'transparent', color: '#888', fontWeight: 800, marginTop: 4 }}>Scanner un autre produit</button>
                   </div>
                 )}
               </div>
