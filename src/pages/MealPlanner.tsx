@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
@@ -233,6 +234,7 @@ async function mealImageBase64ToDataUrl(mealName: string, ingredients: any[]) {
 
 export default function MealPlanner() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [week, setWeek] = useState<Day[]>(() => buildWeek());
   const [profile, setProfile] = useState<Profile | null>(null);
   const [nutritionTarget, setNutritionTarget] = useState<NutritionTarget | null>(null);
@@ -794,9 +796,7 @@ export default function MealPlanner() {
   };
 
   const openShopping = () => {
-    setPlanMode('shopping');
-    setShowShopping(true);
-    setError('');
+    navigate('/quick-groceries');
   };
 
   const markFridgeEmpty = () => {
