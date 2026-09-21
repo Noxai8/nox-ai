@@ -12,231 +12,301 @@ const DARK = '#0E100F';
 const MUTED = '#777D78';
 const FN = 'https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1';
 
-type Goal = 'Perte de poids' | 'Maintien' | 'Prise de masse' | 'Manger équilibré';
-type Diet = 'Classique' | 'Végétarien' | 'Vegan' | 'Pescétarien' | 'Halal' | 'Sans porc';
-type Budget = 'Éco' | 'Équilibré' | 'Confort';
-type Step = 'profile' | 'store' | 'prefs' | 'generating' | 'list';
-type Prefs = { goal: Goal; people:number; days:number; budget:Budget; diet:Diet; allergies:string[]; dislikes:string[]; likes:string[] };
-type Store = { chain:string; city:string; label:string };
-type GroceryItem = { id:string; name:string; qty:string; category:string; note?:string; checked?:boolean };
+type Mode = 'empty' | 'complete';
+type Step = 'mode' | 'setup' | 'store' | 'prefs' | 'review' | 'generating' | 'list';
+type Store = { chain:string; city:string };
+type Profile = { goal_type?:string; diet_preferences?:string[] };
+type Target = { calories?:number; protein_g?:number; carbs_g?:number; fat_g?:number };
+type GroceryItem = { id:string; name:string; qty:string; category:string; note?:string; checked?:boolean; price?:number|null; priceSource?:string };
 
 const ALLERGIES = ['Arachides','Fruits à coque','Lait','Œufs','Gluten','Soja','Poisson','Crustacés','Sésame','Moutarde'];
-const DIETS: Diet[] = ['Classique','Végétarien','Vegan','Pescétarien','Halal','Sans porc'];
 const CATEGORIES = ['Fruits & légumes','Protéines','Féculents','Produits frais','Épicerie','Petit-déjeuner','Autres'];
+const STORES = ['Carrefour','E.Leclerc','Intermarché','Auchan','Lidl','Aldi','Monoprix','Franprix','Système U','Autre'];
 
-const STORES = [
-  { name:'Carrefour', domain:'carrefour.fr', mark:'◆', brand:'#0067b1' },
-  { name:'E.Leclerc', domain:'e.leclerc', mark:'L', brand:'#0874bd' },
-  { name:'Intermarché', domain:'intermarche.com', mark:'Inter', brand:'#e21b2d' },
-  { name:'Auchan', domain:'auchan.fr', mark:'A', brand:'#e30613' },
-  { name:'Lidl', domain:'lidl.fr', mark:'L', brand:'#0050aa' },
-  { name:'Aldi', domain:'aldi.fr', mark:'A', brand:'#001e50' },
-  { name:'Monoprix', domain:'monoprix.fr', mark:'MONOPRIX', brand:'#e31b23' },
-  { name:'Franprix', domain:'franprix.fr', mark:'franprix', brand:'#ef4b23' },
-  { name:'Système U', domain:'magasins-u.com', mark:'U', brand:'#00a5c8' },
-];
+const GOAL_LABELS:Record<string,string> = {
+  perdre_gras:'Perdre du gras', prendre_muscle:'Prendre du muscle',
+  recomposition:'Recomposition', force:'Force', performance:'Performance', maintien:'Maintien'
+};
+const DIET_LABELS:Record<string,string> = {
+  omnivore:'Omnivore', vegetarien:'Végétarien', vegan:'Vegan',
+  sans_gluten:'Sans gluten', sans_lactose:'Sans lactose',
+  halal:'Halal', casher:'Casher', keto:'Kéto'
+};
 
-const fallbackItems:GroceryItem[] = [
-  {id:'1',name:'Blanc de poulet',qty:'1,2 kg',category:'Protéines'},
-  {id:'2',name:'Œufs',qty:'12',category:'Protéines'},
-  {id:'3',name:'Saumon',qty:'400 g',category:'Protéines'},
-  {id:'4',name:'Riz',qty:'1 kg',category:'Féculents'},
-  {id:'5',name:'Flocons d’avoine',qty:'500 g',category:'Petit-déjeuner'},
-  {id:'6',name:'Brocoli',qty:'600 g',category:'Fruits & légumes'},
-  {id:'7',name:'Bananes',qty:'7',category:'Fruits & légumes'},
-  {id:'8',name:'Pommes',qty:'6',category:'Fruits & légumes'},
-  {id:'9',name:'Skyr nature',qty:'7 pots',category:'Produits frais'},
-  {id:'10',name:'Huile d’olive',qty:'1 bouteille',category:'Épicerie'},
-];
-
-const inputStyle:React.CSSProperties={width:'100%',boxSizing:'border-box',padding:'15px 16px',border:`1px solid ${BORDER}`,borderRadius:16,background:'#FAFBF7',color:DARK,fontSize:14,outline:'none'};
-const roundBtn:React.CSSProperties={width:42,height:42,borderRadius:14,border:`1px solid ${BORDER}`,background:'#fff',fontSize:24,fontWeight:900,cursor:'pointer'};
+const inputStyle:React.CSSProperties = {
+  width:'100%', boxSizing:'border-box', padding:'15px 16px',
+  border:`1px solid ${BORDER}`, borderRadius:16, background:'#FAFBF7',
+  color:DARK, fontSize:15, outline:'none'
+};
 
 export default function QuickGroceries(){
-  const navigate=useNavigate();
-  const { user }=useAuth();
-  const [step,setStep]=useState<Step>('profile');
-  const [prefs,setPrefs]=useState<Prefs>({goal:'Manger équilibré',people:1,days:7,budget:'Équilibré',diet:'Classique',allergies:[],dislikes:[],likes:[]});
-  const [store,setStore]=useState<Store>({chain:'Carrefour',city:'',label:''});
-  const [items,setItems]=useState<GroceryItem[]>([]);
-  const [error,setError]=useState('');
-  const [likesText,setLikesText]=useState('');
-  const [dislikesText,setDislikesText]=useState('');
-  const [genStage,setGenStage]=useState(0);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
-  useEffect(()=>{try{const saved=localStorage.getItem('noxai_quick_groceries');if(!saved)return;const p=JSON.parse(saved);if(p?.prefs){setPrefs(p.prefs);setLikesText((p.prefs.likes||[]).join(', '));setDislikesText((p.prefs.dislikes||[]).join(', '));}if(p?.store)setStore(p.store);}catch{}},[]);
-  useEffect(()=>{try{localStorage.setItem('noxai_quick_groceries',JSON.stringify({prefs,store}));}catch{}},[prefs,store]);
+  const [step,setStep] = useState<Step>('mode');
+  const [mode,setMode] = useState<Mode>('empty');
+  const [profile,setProfile] = useState<Profile>({});
+  const [target,setTarget] = useState<Target>({});
+  const [loadingProfile,setLoadingProfile] = useState(true);
 
-  const toggleAllergy=(a:string)=>setPrefs(p=>({...p,allergies:p.allergies.includes(a)?p.allergies.filter(x=>x!==a):[...p.allergies,a]}));
-  const parseList=(t:string)=>t.split(',').map(x=>x.trim()).filter(Boolean).slice(0,12);
+  const [people,setPeople] = useState(1);
+  const [days,setDays] = useState(7);
+  const [budget,setBudget] = useState('');
+  const [store,setStore] = useState<Store>({chain:'Carrefour',city:''});
+  const [allergies,setAllergies] = useState<string[]>([]);
+  const [otherAllergy,setOtherAllergy] = useState('');
+  const [likes,setLikes] = useState('');
+  const [dislikes,setDislikes] = useState('');
+  const [fridgeText,setFridgeText] = useState('');
+  const [items,setItems] = useState<GroceryItem[]>([]);
+  const [error,setError] = useState('');
+  const [genStage,setGenStage] = useState(0);
 
-  const safeFallback=()=>{
-    const banned=prefs.allergies.map(a=>a.toLowerCase());
-    return fallbackItems.filter(i=>{
-      const n=i.name.toLowerCase();
-      if(banned.includes('œufs')&&n.includes('œuf'))return false;
-      if(banned.includes('lait')&&(n.includes('skyr')||n.includes('lait')||n.includes('yaourt')))return false;
-      if(banned.includes('gluten')&&(n.includes('avoine')||n.includes('pain')||n.includes('pâtes')))return false;
-      if((prefs.diet==='Végétarien'||prefs.diet==='Vegan')&&(n.includes('poulet')||n.includes('saumon')))return false;
-      if(prefs.diet==='Vegan'&&(n.includes('œuf')||n.includes('skyr')))return false;
-      return true;
-    }).map((x,i)=>({...x,id:`fallback-${i}`}));
-  };
+  useEffect(()=>{
+    if(!user) return;
+    (async()=>{
+      setLoadingProfile(true);
+      const [{data:p},{data:t}] = await Promise.all([
+        supabase.from('profiles').select('goal_type,diet_preferences').eq('id',user.id).maybeSingle(),
+        supabase.from('nutrition_targets').select('calories,protein_g,carbs_g,fat_g').eq('user_id',user.id).eq('is_active',true).maybeSingle()
+      ]);
+      if(p) setProfile(p);
+      if(t) setTarget(t);
+      setLoadingProfile(false);
+    })();
+  },[user]);
 
-  const extractJSON=(text:string)=>{const cleaned=text.replace(/```json/gi,'').replace(/```/g,'').trim();const a=cleaned.indexOf('['),b=cleaned.lastIndexOf(']');if(a<0||b<=a)throw new Error('Réponse IA invalide');return JSON.parse(cleaned.slice(a,b+1));};
+  useEffect(()=>{
+    try{
+      const saved=JSON.parse(localStorage.getItem('noxai_quick_groceries_v4')||'{}');
+      if(saved.people) setPeople(saved.people);
+      if(saved.days) setDays(saved.days);
+      if(saved.budget) setBudget(saved.budget);
+      if(saved.store) setStore(saved.store);
+      if(saved.allergies) setAllergies(saved.allergies);
+      if(saved.otherAllergy) setOtherAllergy(saved.otherAllergy);
+      if(saved.likes) setLikes(saved.likes);
+      if(saved.dislikes) setDislikes(saved.dislikes);
+    }catch{}
+  },[]);
+
+  useEffect(()=>{
+    try{
+      localStorage.setItem('noxai_quick_groceries_v4',JSON.stringify({
+        people,days,budget,store,allergies,otherAllergy,likes,dislikes
+      }));
+    }catch{}
+  },[people,days,budget,store,allergies,otherAllergy,likes,dislikes]);
+
+  const allAllergies = useMemo(()=>{
+    const extra=otherAllergy.split(',').map(x=>x.trim()).filter(Boolean);
+    return [...new Set([...allergies,...extra])];
+  },[allergies,otherAllergy]);
+
+  const diet = (profile.diet_preferences||[]).map(x=>DIET_LABELS[x]||x).join(', ') || 'Non renseigné';
+  const goal = GOAL_LABELS[profile.goal_type||''] || profile.goal_type || 'Profil NOX';
+  const budgetNumber = Number(String(budget).replace(',','.'));
+  const canContinueSetup = people>0 && days>0 && Number.isFinite(budgetNumber) && budgetNumber>0;
+
+  const toggleAllergy=(a:string)=>setAllergies(p=>p.includes(a)?p.filter(x=>x!==a):[...p,a]);
 
   const generate=async()=>{
     setStep('generating'); setGenStage(0); setError('');
-    const timers=[450,1050,1750].map((ms,i)=>window.setTimeout(()=>setGenStage(i+1),ms));
-    const likes=parseList(likesText),dislikes=parseList(dislikesText);
-    const nextPrefs={...prefs,likes,dislikes}; setPrefs(nextPrefs);
+    const timers=[400,900,1450,2000].map((ms,i)=>window.setTimeout(()=>setGenStage(i+1),ms));
+
     try{
       const {data:{session}}=await supabase.auth.getSession();
-      const prompt=`Tu génères une liste de courses nutritionnelle pour NOXAI.
-OBJECTIF: ${nextPrefs.goal}. PERSONNES: ${nextPrefs.people}. DURÉE: ${nextPrefs.days} jours. BUDGET: ${nextPrefs.budget}. RÉGIME: ${nextPrefs.diet}. MAGASIN: ${store.chain}. VILLE/ZONE: ${store.city||'non précisée'}. ALIMENTS AIMÉS: ${likes.join(', ')||'aucun renseigné'}. ALIMENTS À ÉVITER: ${dislikes.join(', ')||'aucun'}. ALLERGIES/INTOLÉRANCES: ${nextPrefs.allergies.join(', ')||'aucune renseignée'}.
-RÈGLE DE SÉCURITÉ ABSOLUE: n'inclus aucun aliment manifestement incompatible avec les allergies indiquées. Pour les produits transformés dont la composition dépend de la marque, ajoute note="Vérifier l’étiquette/allergènes en magasin". N'invente ni prix, ni stock, ni référence magasin.
-Retourne UNIQUEMENT un tableau JSON de 14 à 24 objets: [{"name":"...","qty":"...","category":"Fruits & légumes|Protéines|Féculents|Produits frais|Épicerie|Petit-déjeuner|Autres","note":"..."}]. Quantités réalistes pour ${nextPrefs.people} personne(s) et ${nextPrefs.days} jours.`;
-      const resp=await fetch(`${FN}/generate-program`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({prompt})});
-      if(!resp.ok)throw new Error(`Génération impossible (${resp.status})`);
+
+      const prompt=`Tu construis une liste de courses NOXAI.
+MODE: ${mode==='empty'?'FRIGO VIDE : créer toutes les courses nécessaires':'COMPLÉTER LE FRIGO : ne proposer que ce qui manque'}.
+PROFIL DÉJÀ ENREGISTRÉ: objectif=${goal}; alimentation=${diet}.
+CIBLE NUTRITIONNELLE: ${target.calories||'non renseignée'} kcal/j; protéines=${target.protein_g||'non renseigné'} g; glucides=${target.carbs_g||'non renseigné'} g; lipides=${target.fat_g||'non renseigné'} g.
+FOYER: ${people} personne(s). DURÉE: ${days} jours.
+BUDGET MAXIMUM: ${budgetNumber.toFixed(2)} €.
+ENSEIGNE: ${store.chain}. ZONE: ${store.city||'non précisée'}.
+ALLERGIES/INTOLÉRANCES À EXCLURE: ${allAllergies.join(', ')||'aucune renseignée'}.
+ALIMENTS AIMÉS: ${likes||'non renseignés'}.
+ALIMENTS REFUSÉS: ${dislikes||'aucun renseigné'}.
+CONTENU DU FRIGO DÉCLARÉ: ${mode==='complete'?(fridgeText||'aucun aliment renseigné'):'frigo vide'}.
+
+Contraintes:
+- respecte impérativement allergies, régime, budget, durée, foyer et cible nutritionnelle;
+- en mode compléter, évite d'ajouter les aliments déjà présents en quantité suffisante;
+- privilégie des aliments simples et cohérents avec l'enseigne choisie;
+- n'invente JAMAIS un prix, une promotion, un stock ou une référence magasin;
+- le champ price doit être null si aucun vrai prix n'a été fourni par une source de prix externe;
+- pour les produits transformés, ajoute si nécessaire "Vérifier l'étiquette/allergènes".
+
+Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
+[{"name":"...","qty":"...","category":"Fruits & légumes|Protéines|Féculents|Produits frais|Épicerie|Petit-déjeuner|Autres","note":"","price":null}]`;
+
+      const resp=await fetch(`${FN}/generate-program`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},
+        body:JSON.stringify({prompt})
+      });
+      if(!resp.ok) throw new Error(`Génération impossible (${resp.status})`);
+
       const data=await resp.json();
-      const text=data?.content?.[0]?.text||data?.data?.content?.[0]?.text||data?.text||'';
-      const parsed=extractJSON(text);
-      const clean:GroceryItem[]=parsed.filter((x:any)=>x?.name&&x?.qty).slice(0,30).map((x:any,i:number)=>({id:`ai-${Date.now()}-${i}`,name:String(x.name),qty:String(x.qty),category:CATEGORIES.includes(x.category)?x.category:'Autres',note:x.note?String(x.note):'',checked:false}));
-      if(!clean.length)throw new Error('Liste vide');
+      const raw=data?.content?.[0]?.text||data?.data?.content?.[0]?.text||data?.text||'';
+      const cleaned=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
+      const a=cleaned.indexOf('['), b=cleaned.lastIndexOf(']');
+      if(a<0||b<=a) throw new Error('Réponse IA invalide');
+      const parsed=JSON.parse(cleaned.slice(a,b+1));
+
+      const clean:GroceryItem[]=parsed
+        .filter((x:any)=>x?.name&&x?.qty)
+        .slice(0,30)
+        .map((x:any,i:number)=>({
+          id:`ai-${Date.now()}-${i}`,
+          name:String(x.name),
+          qty:String(x.qty),
+          category:CATEGORIES.includes(x.category)?x.category:'Autres',
+          note:x.note?String(x.note):'',
+          price:typeof x.price==='number'?x.price:null,
+          checked:false
+        }));
+
+      if(!clean.length) throw new Error('Liste vide');
       setItems(clean);
     }catch(e:any){
-      setItems(safeFallback()); setError("L’IA n’a pas répondu : une liste de base a été créée.");
+      setError(e?.message||"Impossible de générer la liste.");
+      setItems([]);
     }finally{
-      timers.forEach(t=>clearTimeout(t)); setGenStage(4); window.setTimeout(()=>setStep('list'),550);
+      timers.forEach(clearTimeout);
+      setGenStage(5);
+      window.setTimeout(()=>setStep('list'),450);
     }
   };
 
+  const grouped=useMemo(()=>CATEGORIES.map(category=>({
+    category,items:items.filter(i=>i.category===category)
+  })).filter(g=>g.items.length),[items]);
+
+  const totalKnown=items.reduce((s,i)=>s+(typeof i.price==='number'?i.price:0),0);
+  const pricedCount=items.filter(i=>typeof i.price==='number').length;
   const progress=items.length?Math.round(items.filter(i=>i.checked).length/items.length*100):0;
-  const grouped=useMemo(()=>CATEGORIES.map(category=>({category,items:items.filter(i=>i.category===category)})).filter(g=>g.items.length),[items]);
-  const visualStep=step==='profile'?1:step==='store'?2:step==='prefs'?3:4;
 
   const back=()=>{
-    if(step==='profile')navigate(-1);
-    else if(step==='store')setStep('profile');
-    else if(step==='prefs')setStep('store');
-    else if(step==='list')setStep('prefs');
+    const order:Step[]=['mode','setup','store','prefs','review'];
+    const i=order.indexOf(step);
+    if(step==='mode') navigate(-1);
+    else if(i>0) setStep(order[i-1]);
+    else if(step==='list') setStep('review');
   };
 
-  return <div className="qg-root">
+  return <div className="qg">
     <style>{`
-      *{box-sizing:border-box} body{margin:0}
-      .qg-root{min-height:100vh;background:${BG};color:${DARK};padding-bottom:34px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-      .qg-head{position:sticky;top:0;z-index:30;background:rgba(247,248,242,.92);backdrop-filter:blur(18px);border-bottom:1px solid rgba(230,232,225,.75)}
-      .qg-headin{max-width:720px;margin:auto;padding:15px 18px 10px}
-      .qg-top{display:grid;grid-template-columns:48px 1fr 48px;align-items:center}
-      .qg-back,.qg-n{width:44px;height:44px;border:0;border-radius:15px;background:#fff;font-size:28px;display:grid;place-items:center}
-      .qg-n{background:${DARK};color:${ACCENT};font-size:21px;font-weight:950}
-      .qg-title{text-align:center;font-weight:950;font-size:19px;letter-spacing:-.03em}.qg-sub{text-align:center;color:#9a9d99;font-size:10px;margin-top:2px}
-      .steps{display:grid;grid-template-columns:repeat(4,1fr);margin-top:14px;position:relative}.steps:before{content:"";position:absolute;left:11%;right:11%;top:14px;height:1px;background:#d8dcd5}
-      .step{position:relative;text-align:center;z-index:1}.dot{width:29px;height:29px;border-radius:50%;margin:auto;background:#e5e7e3;display:grid;place-items:center;font-size:11px;font-weight:950}.step.on .dot{background:${ACCENT};color:#111}.step.done .dot{background:#45b52f;color:#fff}.sl{font-size:9px;margin-top:6px;color:#777;font-weight:700}.step.on .sl{color:#111;font-weight:950}
-      .qg-main{max-width:720px;margin:auto;padding:18px}.card{background:#fff;border:1px solid ${BORDER};border-radius:22px;padding:17px;margin-bottom:12px;box-shadow:0 8px 30px rgba(25,35,20,.025)}
-      .hero{min-height:300px;padding:28px 22px;display:flex;flex-direction:column;justify-content:space-between;background:radial-gradient(circle at 76% 48%,rgba(200,255,0,.25),transparent 27%),#fff}
-      .hero h1{font-size:32px;line-height:1.02;letter-spacing:-.055em;margin:0;max-width:430px}.lime{color:#9ed000}.hero p{color:${MUTED};font-size:13px;line-height:1.55;max-width:350px}
-      .mascot{font-size:86px;text-align:center;filter:drop-shadow(0 15px 18px rgba(0,0,0,.08));margin:8px 0}
-      .benefits{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.benefit{background:#fff;border:1px solid ${BORDER};border-radius:17px;padding:14px 8px;text-align:center;font-size:10px;color:#666}.benefit b{display:block;color:#111;font-size:12px;margin-top:5px}
-      .primary{width:100%;border:0;border-radius:17px;padding:17px;background:${ACCENT};color:#111;font-weight:950;font-size:14px;cursor:pointer;box-shadow:0 12px 26px rgba(181,230,0,.18)}
-      .sectionTitle{display:flex;gap:12px;align-items:flex-start;margin-bottom:15px}.ico{width:42px;height:42px;border-radius:14px;background:#efffd1;display:grid;place-items:center;font-size:21px;flex:0 0 42px}.sectionTitle h2{font-size:18px;margin:1px 0 3px;letter-spacing:-.03em}.sectionTitle p{margin:0;color:#8b8f8a;font-size:11px;line-height:1.4}
-      .stores{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.store{min-height:103px;border:1px solid ${BORDER};background:#fff;border-radius:16px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font-weight:800;font-size:10px;cursor:pointer}.store.active{border:2px solid ${ACCENT};background:#fbfff1}.brandLogo{min-height:42px;display:grid;place-items:center;font-size:14px;font-weight:950;letter-spacing:-.04em}
-.store:nth-child(1) .brandLogo{font-size:11px}.store:nth-child(2) .brandLogo{font-size:12px}.store:nth-child(3) .brandLogo{font-style:italic}.store:nth-child(5) .brandLogo{background:#ffd500;border:5px solid #0050aa;border-radius:50%;width:48px;height:48px}.store:nth-child(6) .brandLogo{background:#001e50;color:#fff!important;padding:8px;border-bottom:4px solid #f05a28}.store:nth-child(9) .brandLogo{border:5px solid #00a5c8;border-radius:50%;width:48px;height:48px;font-size:22px}.brandFallback{height:48px;display:grid;place-items:center;font-size:18px;font-weight:950}
-      .choiceGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.choice{border:1px solid ${BORDER};background:#fff;border-radius:15px;padding:13px 7px;font-weight:850;color:#555;cursor:pointer}.choice.active{background:${DARK};color:${ACCENT};border-color:${ACCENT}}
-      .two{display:grid;grid-template-columns:1.3fr 1fr;gap:9px}.counter{background:#f7f8f4;border-radius:16px;padding:12px}.counterLabel{font-size:10px;color:#777;font-weight:800;margin-bottom:9px}.counterRow{display:flex;align-items:center;justify-content:space-between}.counterRow b{font-size:22px}
-      .chips{display:flex;gap:7px;flex-wrap:wrap}.chip{border:1px solid ${BORDER};background:#fff;border-radius:999px;padding:10px 12px;font-size:11px;font-weight:800;color:#555}.chip.active{background:${DARK};color:${ACCENT};border-color:${DARK}}
-      .warning{background:#fff8e9;border:1px solid #f2d89d;color:#7b5b20;border-radius:15px;padding:12px;font-size:10.5px;line-height:1.5;margin-bottom:12px}
-      .gen{min-height:67vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.basket{width:190px;height:190px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,#eaff9e 0,#f3ffd5 55%,transparent 56%);font-size:28px;font-weight:950;letter-spacing:-.05em;animation:pulse 1.5s ease-in-out infinite}.gen h1{font-size:27px;margin:12px 0 5px}.gen p{font-size:12px;color:#777;line-height:1.5;max-width:330px}.genlist{width:100%;max-width:430px;margin-top:20px;text-align:left}.genrow{display:flex;align-items:center;gap:10px;padding:11px 2px;font-size:11px;color:#777}.status{width:24px;height:24px;border-radius:50%;border:2px solid #ddd;display:grid;place-items:center;font-size:11px;font-weight:950}.status.done{background:${ACCENT};border-color:${ACCENT};color:#111}.status.active{border-color:${ACCENT};animation:pulse .8s infinite}
-      .listHead{background:${DARK};color:#fff;border-radius:22px;padding:19px;margin-bottom:12px}.bar{height:7px;background:#333;border-radius:99px;overflow:hidden;margin-top:14px}.bar>div{height:100%;background:${ACCENT};transition:.25s}
-      .item{width:100%;border:0;border-top:1px solid ${BORDER};background:transparent;padding:13px 2px;display:flex;align-items:center;gap:11px;text-align:left}.check{width:24px;height:24px;border-radius:8px;border:1.5px solid #ccc;display:grid;place-items:center;flex:0 0 24px}.check.y{background:${ACCENT};border-color:${DARK}}
-      @keyframes pulse{50%{transform:scale(1.045)}} @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-      @media(max-width:430px){.qg-main{padding:14px}.hero h1{font-size:29px}.stores{gap:7px}.store{min-height:96px}.choice{font-size:11px}.qg-headin{padding-left:14px;padding-right:14px}}
+      *{box-sizing:border-box}body{margin:0}
+      .qg{min-height:100vh;background:${BG};color:${DARK};font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:32px}
+      .head{position:sticky;top:0;z-index:20;background:rgba(247,248,242,.94);backdrop-filter:blur(15px);border-bottom:1px solid ${BORDER}}
+      .headin,.main{max-width:720px;margin:auto}.headin{padding:14px 16px}.main{padding:16px}
+      .top{display:grid;grid-template-columns:44px 1fr 44px;align-items:center}.back,.nox{width:42px;height:42px;border-radius:14px;border:1px solid ${BORDER};background:#fff;font-size:23px}.nox{display:grid;place-items:center;background:${DARK};color:${ACCENT};font-size:14px;font-weight:950}
+      .title{text-align:center;font-weight:950;font-size:18px}.subtitle{text-align:center;color:${MUTED};font-size:10px;margin-top:2px}
+      .card{background:${SURFACE};border:1px solid ${BORDER};border-radius:20px;padding:17px;margin-bottom:12px}
+      h1{font-size:27px;line-height:1.08;letter-spacing:-.045em;margin:4px 0 8px}h2{font-size:17px;margin:0 0 5px}.muted{color:${MUTED};font-size:12px;line-height:1.5}
+      .modeGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.mode{border:1.5px solid ${BORDER};background:#fff;border-radius:19px;padding:20px 15px;text-align:left;min-height:150px}.mode.active{border-color:#9ed600;background:#f8ffe7}.modeIcon{width:42px;height:42px;border-radius:13px;background:#efffd1;display:grid;place-items:center;font-weight:950;margin-bottom:18px}
+      .mode b{display:block;font-size:15px;margin-bottom:6px}.mode span{font-size:11px;color:${MUTED};line-height:1.4}
+      .primary{width:100%;border:0;border-radius:16px;padding:17px;background:${ACCENT};font-weight:950;font-size:14px;margin-top:4px}.primary:disabled{background:#e2e5dc;color:#999}
+      .label{font-size:11px;font-weight:900;margin:0 0 8px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.choice{border:1px solid ${BORDER};background:#fff;border-radius:14px;padding:13px 8px;font-weight:850}.choice.active{background:${DARK};color:${ACCENT};border-color:${DARK}}
+      .counter{display:flex;align-items:center;justify-content:space-between;background:#f7f8f4;border-radius:15px;padding:10px}.counter button{width:40px;height:40px;border:1px solid ${BORDER};border-radius:12px;background:#fff;font-size:20px}.counter b{font-size:20px}
+      .profile{background:${DARK};color:#fff}.profile .muted{color:#aaa}.facts{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.fact{padding:8px 10px;border-radius:999px;background:#252825;color:#ddd;font-size:10px}.fact strong{color:${ACCENT}}
+      .stores{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.store{border:1px solid ${BORDER};background:#fff;border-radius:15px;padding:14px;text-align:left;font-weight:900}.store.active{border:2px solid ${ACCENT};background:#fbfff0}
+      .chips{display:flex;gap:7px;flex-wrap:wrap}.chip{border:1px solid ${BORDER};background:#fff;border-radius:999px;padding:9px 11px;font-size:11px;font-weight:800}.chip.active{background:${DARK};color:${ACCENT}}
+      .row{display:flex;justify-content:space-between;gap:15px;padding:10px 0;border-bottom:1px solid ${BORDER};font-size:12px}.row:last-child{border:0}.row span{color:${MUTED}}.row b{text-align:right}
+      .warning{background:#fff8e8;border:1px solid #efd69c;color:#74561f;border-radius:14px;padding:12px;font-size:11px;line-height:1.45;margin-bottom:12px}
+      .gen{min-height:65vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}.pulse{width:140px;height:140px;border-radius:50%;background:#edffb3;display:grid;place-items:center;font-size:25px;font-weight:950;animation:pulse 1.2s infinite}.genrows{width:100%;max-width:390px;margin-top:18px}.genrow{padding:9px;text-align:left;color:${MUTED};font-size:11px}.done{color:${DARK};font-weight:800}
+      .listhead{background:${DARK};color:#fff;border-radius:20px;padding:18px;margin-bottom:12px}.lime{color:${ACCENT}}.bar{height:6px;background:#333;border-radius:99px;overflow:hidden;margin-top:13px}.bar div{height:100%;background:${ACCENT}}
+      .item{width:100%;border:0;border-top:1px solid ${BORDER};background:transparent;padding:13px 0;display:flex;align-items:center;gap:10px;text-align:left}.check{width:24px;height:24px;border:1px solid #ccc;border-radius:8px;display:grid;place-items:center;flex:0 0 24px}.check.y{background:${ACCENT};border-color:${DARK}}
+      @keyframes pulse{50%{transform:scale(1.04)}} @media(max-width:430px){.main{padding:13px}.modeGrid{grid-template-columns:1fr}.mode{min-height:auto}.grid3{grid-template-columns:repeat(3,1fr)}}
     `}</style>
 
-    <header className="qg-head"><div className="qg-headin">
-      <div className="qg-top">
-        <button className="qg-back" onClick={back}>‹</button>
-        <div><div className="qg-title">Course rapide <span className="lime">✦</span></div><div className="qg-sub">NOXAI fait la liste avec toi</div></div>
-        <div className="qg-n">N</div>
-      </div>
-      {step!=='list' && <Progress current={visualStep}/>}
-    </div></header>
+    <header className="head"><div className="headin"><div className="top">
+      <button className="back" onClick={back}>‹</button>
+      <div><div className="title">Course rapide</div><div className="subtitle">Ta liste adaptée par NOXAI</div></div>
+      <div className="nox">NOX</div>
+    </div></div></header>
 
-    <main className="qg-main">
-      {step==='profile' && <>
-        <section className="card" style={{background:'linear-gradient(135deg,#fff,#f4ffd9)',borderColor:'#dcefa3'}}>
-          <div style={{fontSize:10,fontWeight:950,letterSpacing:'.12em',color:'#718800'}}>COURSES NOXAI</div>
-          <div style={{fontSize:28,fontWeight:950,letterSpacing:'-.045em',marginTop:5}}>Préparons ta semaine</div>
-          <div style={{fontSize:12,color:'#777',lineHeight:1.5,marginTop:5}}>NOX adapte la liste à ton objectif, ton foyer et ton budget.</div>
-        </section>
-        <Card><Title icon="◎" title="Ton objectif" sub="Il guide les quantités et l’équilibre de la liste."/>
-          <div className="choiceGrid" style={{gridTemplateColumns:'repeat(2,1fr)'}}>{(['Perte de poids','Maintien','Prise de masse','Manger équilibré'] as Goal[]).map(x=><button key={x} className={`choice ${prefs.goal===x?'active':''}`} onClick={()=>setPrefs(p=>({...p,goal:x}))}>{x}</button>)}</div>
-        </Card>
-        <Card><Title icon="□" title="Durée & foyer" sub="Choisis la durée et le nombre de personnes."/>
-          <div className="two"><div className="counter"><div className="counterLabel">Durée</div><div className="choiceGrid">{[3,5,7].map(d=><button key={d} className={`choice ${prefs.days===d?'active':''}`} onClick={()=>setPrefs(p=>({...p,days:d}))}>{d} j</button>)}</div></div><Counter label="Personnes" value={prefs.people} min={1} max={8} onChange={v=>setPrefs(p=>({...p,people:v}))}/></div>
-        </Card>
-        <Card><Title icon="€" title="Budget" sub="Le budget influence les choix, sans inventer de prix."/>
-          <div className="choiceGrid">{(['Éco','Équilibré','Confort'] as Budget[]).map(x=><button key={x} className={`choice ${prefs.budget===x?'active':''}`} onClick={()=>setPrefs(p=>({...p,budget:x}))}>{x}</button>)}</div>
-        </Card>
-        <Primary onClick={()=>setStep('store')}>CHOISIR MON MAGASIN →</Primary>
+    <main className="main">
+      {step==='mode' && <>
+        <div className="card">
+          <div style={{fontSize:10,fontWeight:950,color:'#779600',letterSpacing:'.12em'}}>COURSES NOXAI</div>
+          <h1>On part de quoi ?</h1>
+          <div className="muted">NOX connaît déjà ton objectif et tes besoins. Dis-lui simplement si tu pars de zéro ou si tu veux compléter ce que tu as.</div>
+          <div className="modeGrid">
+            <button className={`mode ${mode==='empty'?'active':''}`} onClick={()=>setMode('empty')}>
+              <div className="modeIcon">0</div><b>Frigo vide</b><span>Créer toutes les courses nécessaires pour les prochains jours.</span>
+            </button>
+            <button className={`mode ${mode==='complete'?'active':''}`} onClick={()=>setMode('complete')}>
+              <div className="modeIcon">+</div><b>Compléter mon frigo</b><span>Tenir compte de ce que tu as déjà et acheter seulement ce qui manque.</span>
+            </button>
+          </div>
+        </div>
+        <div className="card profile">
+          <h2>Profil NOX utilisé</h2>
+          <div className="muted">{loadingProfile?'Chargement de ton profil…':'Ces données viennent de ton inscription. Tu ne les renseignes pas une deuxième fois.'}</div>
+          {!loadingProfile && <div className="facts">
+            <div className="fact"><strong>Objectif</strong> · {goal}</div>
+            <div className="fact"><strong>Alimentation</strong> · {diet}</div>
+            {target.calories&&<div className="fact"><strong>{target.calories}</strong> kcal/j</div>}
+            {target.protein_g&&<div className="fact"><strong>{target.protein_g} g</strong> protéines</div>}
+          </div>}
+        </div>
+        <button className="primary" onClick={()=>setStep('setup')}>CONTINUER</button>
+      </>}
+
+      {step==='setup' && <>
+        <div className="card"><h1>Pour combien ?</h1><div className="muted">Ces informations servent réellement à calculer les quantités et à respecter ton budget.</div></div>
+        <div className="card"><div className="label">DURÉE</div><div className="grid3">{[3,5,7].map(d=><button key={d} className={`choice ${days===d?'active':''}`} onClick={()=>setDays(d)}>{d} jours</button>)}</div></div>
+        <div className="card"><div className="label">PERSONNES</div><div className="counter"><button onClick={()=>setPeople(Math.max(1,people-1))}>−</button><b>{people}</b><button onClick={()=>setPeople(Math.min(10,people+1))}>+</button></div></div>
+        <div className="card"><div className="label">BUDGET MAXIMUM</div><input style={inputStyle} inputMode="decimal" value={budget} onChange={e=>setBudget(e.target.value.replace(/[^\d,.]/g,''))} placeholder="Ex. 70"/><div className="muted" style={{marginTop:8}}>NOX essaiera de construire la liste dans cette enveloppe. Les prix ne seront jamais inventés.</div></div>
+        {mode==='complete'&&<div className="card"><div className="label">CE QUE TU AS DÉJÀ</div><textarea style={{...inputStyle,minHeight:105,resize:'vertical'}} value={fridgeText} onChange={e=>setFridgeText(e.target.value)} placeholder="Ex. 6 œufs, riz, 2 yaourts, tomates…"/><div className="muted" style={{marginTop:8}}>Tu pourras ensuite remplacer ce champ par les données automatiques de Frigo IA.</div></div>}
+        <button className="primary" disabled={!canContinueSetup} onClick={()=>setStep('store')}>CHOISIR LE MAGASIN</button>
       </>}
 
       {step==='store' && <>
-        <Title icon="▣" title="Où fais-tu tes courses ?" sub="Choisis ton magasin habituel pour des produits disponibles près de chez toi."/>
-        <div className="stores">
-          {STORES.map(s=><button key={s.name} className={`store ${store.chain===s.name?'active':''}`} onClick={()=>setStore(x=>({...x,chain:s.name}))}>
-            <div className="brandLogo" style={{color:s.brand}}>{s.name==='Carrefour'?'CARREFOUR':s.name==='E.Leclerc'?'E.LECLERC':s.name==='Intermarché'?'Intermarché':s.name==='Auchan'?'auchan':s.name==='Lidl'?'LIDL':s.name==='Aldi'?'ALDI':s.name==='Monoprix'?'MONOPRIX':s.name==='Franprix'?'franprix':'U'}</div>
-            <span>{s.name}</span>
-          </button>)}
-        </div>
-        <button className={`store ${store.chain==='Autre'?'active':''}`} onClick={()=>setStore(x=>({...x,chain:'Autre'}))} style={{width:'100%',minHeight:66,marginTop:9,flexDirection:'row',justifyContent:'flex-start',padding:'0 16px',fontSize:12}}>▣ <span style={{color:'#111'}}>Autre enseigne</span><span style={{marginLeft:'auto'}}>›</span></button>
-        <div className="card" style={{marginTop:12}}><div style={{fontWeight:900,fontSize:13,marginBottom:8}}>Ville ou zone</div><input value={store.city} onChange={e=>setStore(s=>({...s,city:e.target.value}))} placeholder="Paris 15e, Lyon, Lille…" style={inputStyle}/></div>
-        <Primary onClick={()=>setStep('prefs')}>Continuer　→</Primary>
+        <div className="card"><h1>Ton magasin</h1><div className="muted">Choisis l’enseigne et indique ta ville ou ta zone. Le magasin précis sera nécessaire pour des prix locaux fiables.</div></div>
+        <div className="stores">{STORES.map(s=><button key={s} className={`store ${store.chain===s?'active':''}`} onClick={()=>setStore(p=>({...p,chain:s}))}>{s}</button>)}</div>
+        <div className="card" style={{marginTop:12}}><div className="label">VILLE / ZONE</div><input style={inputStyle} value={store.city} onChange={e=>setStore(p=>({...p,city:e.target.value}))} placeholder="Ex. Toul, Nancy, Paris 15e…"/></div>
+        <button className="primary" onClick={()=>setStep('prefs')}>CONTINUER</button>
       </>}
 
       {step==='prefs' && <>
-        <Title icon="≡" title="Tes préférences" sub="Plus ta liste est précise, plus elle te correspond !"/>
-        <Card><Title icon="□" title="Combien de temps ?" sub="Choisis la durée et le nombre de personnes."/>
-          <div className="two">
-            <div className="counter"><div className="counterLabel">▣　Durée</div><div className="choiceGrid">{[3,5,7].map(d=><button key={d} className={`choice ${prefs.days===d?'active':''}`} onClick={()=>setPrefs(p=>({...p,days:d}))}>{d} jours</button>)}</div></div>
-            <Counter label="♙  Personnes" value={prefs.people} min={1} max={8} onChange={v=>setPrefs(p=>({...p,people:v}))}/>
-          </div>
-        </Card>
-        <Card><Title icon="€" title="Quel budget ?" sub="Le budget guide les choix de produits. Aucun prix inventé."/>
-          <div className="choiceGrid">{(['Éco','Équilibré','Confort'] as Budget[]).map((x,i)=><button key={x} className={`choice ${prefs.budget===x?'active':''}`} onClick={()=>setPrefs(p=>({...p,budget:x}))}>{x}</button>)}</div>
-        </Card>
-        <Card><Title icon="◇" title="Quel type d’alimentation ?" sub="Choisis le cadre alimentaire principal."/>
-          <div className="choiceGrid">{DIETS.map((x,i)=><button key={x} className={`choice ${prefs.diet===x?'active':''}`} onClick={()=>setPrefs(p=>({...p,diet:x}))}>{x}</button>)}</div>
-        </Card>
-        <Card><Title icon="◈" title="Allergies & intolérances" sub="NOX exclut automatiquement les aliments incompatibles."/>
-          <div className="warning">⚠ Pour un produit emballé, vérifie toujours l’étiquette et les mentions « traces de ». La liste ne remplace pas les informations allergènes du fabricant.</div>
-          <div className="chips">{ALLERGIES.map(x=><button key={x} className={`chip ${prefs.allergies.includes(x)?'active':''}`} onClick={()=>toggleAllergy(x)}>{prefs.allergies.includes(x)?'✓ ':''}{x}</button>)}</div>
-        </Card>
-        <Card><Title icon="○" title="Tes goûts" sub="Facultatif — aide NOX à personnaliser davantage."/><input value={likesText} onChange={e=>setLikesText(e.target.value)} placeholder="J’aime : poulet, banane, riz…" style={inputStyle}/><input value={dislikesText} onChange={e=>setDislikesText(e.target.value)} placeholder="Je n’aime pas : champignons, avocat…" style={{...inputStyle,marginTop:8}}/></Card>
-        <Primary onClick={generate}>Continuer　→</Primary>
+        <div className="card"><h1>Sécurité & goûts</h1><div className="muted">Tout ce que tu renseignes ici apparaît dans le récapitulatif avant génération.</div></div>
+        <div className="card"><div className="label">ALLERGIES / INTOLÉRANCES</div><div className="chips">{ALLERGIES.map(a=><button key={a} className={`chip ${allergies.includes(a)?'active':''}`} onClick={()=>toggleAllergy(a)}>{allergies.includes(a)?'✓ ':''}{a}</button>)}</div><input style={{...inputStyle,marginTop:12}} value={otherAllergy} onChange={e=>setOtherAllergy(e.target.value)} placeholder="Autre : céleri, sulfites…"/></div>
+        <div className="warning">Pour les produits emballés, l’étiquette du fabricant reste la référence pour les allergènes et les traces éventuelles.</div>
+        <div className="card"><div className="label">ALIMENTS QUE TU AIMES</div><input style={inputStyle} value={likes} onChange={e=>setLikes(e.target.value)} placeholder="Poulet, riz, banane…"/></div>
+        <div className="card"><div className="label">ALIMENTS QUE TU NE VEUX PAS</div><input style={inputStyle} value={dislikes} onChange={e=>setDislikes(e.target.value)} placeholder="Champignons, avocat…"/></div>
+        <button className="primary" onClick={()=>setStep('review')}>VOIR LE RÉCAPITULATIF</button>
       </>}
 
-      {step==='generating' && <div className="gen">
-        <div className="basket">NOX</div><h1>NOX prépare ta liste...</h1>
-        <p>On sélectionne les meilleurs produits en fonction de ton profil, de ton budget et de tes préférences.</p>
-        <div className="genlist">{['Analyse de tes préférences','Sélection des produits adaptés','Optimisation de la liste','Finalisation…'].map((x,i)=><div className="genrow" key={x}><span className={`status ${genStage>i?'done':genStage===i?'active':''}`}>{genStage>i?'✓':''}</span>{x}</div>)}</div>
-        <div className="card" style={{width:'100%',maxWidth:430,marginTop:14,textAlign:'left',fontSize:11}}>✦ <b>Astuce</b><div style={{color:'#888',marginTop:3}}>Plus tu es précis dans tes préférences, plus ta liste sera personnalisée !</div></div>
-      </div>}
+      {step==='review' && <>
+        <div className="card"><h1>Tout est pris en compte</h1><div className="muted">Vérifie ce que NOX va utiliser avant de générer tes courses.</div></div>
+        <div className="card">
+          <Row l="Mode" v={mode==='empty'?'Frigo vide':'Compléter mon frigo'}/>
+          <Row l="Objectif NOX" v={goal}/><Row l="Alimentation" v={diet}/>
+          <Row l="Durée" v={`${days} jours`}/><Row l="Foyer" v={`${people} personne${people>1?'s':''}`}/>
+          <Row l="Budget maximum" v={`${budgetNumber.toFixed(2)} €`}/><Row l="Magasin" v={`${store.chain}${store.city?` · ${store.city}`:''}`}/>
+          <Row l="Allergies" v={allAllergies.join(', ')||'Aucune renseignée'}/>
+          <Row l="Aimés" v={likes||'Non renseigné'}/><Row l="Refusés" v={dislikes||'Aucun'}/>
+          {mode==='complete'&&<Row l="Déjà dans le frigo" v={fridgeText||'Non renseigné'}/>}
+        </div>
+        <button className="primary" onClick={generate}>GÉNÉRER MES COURSES</button>
+      </>}
 
-      {step==='list' && <>
-        <section className="listHead"><div style={{display:'flex',justifyContent:'space-between'}}><div><div style={{color:ACCENT,fontSize:10,fontWeight:950}}>LISTE NOXAI</div><div style={{fontSize:24,fontWeight:950,marginTop:4}}>{prefs.days} jours · {prefs.people} pers.</div><div style={{fontSize:11,color:'#aaa',marginTop:5}}>{store.chain}{store.city?` · ${store.city}`:''} · {prefs.budget}</div></div><b style={{color:ACCENT,fontSize:25}}>{progress}%</b></div><div className="bar"><div style={{width:`${progress}%`}}/></div></section>
-        {error&&<div className="warning">{error}</div>}
-        {prefs.allergies.length>0&&<div className="warning"><b>⚠ Allergies prises en compte :</b> {prefs.allergies.join(' · ')}. Vérifie l’étiquette des produits emballés.</div>}
-        {grouped.map((g,gi)=><section className="card" key={g.category} style={{padding:'4px 15px',animation:`rise .35s ease ${gi*.05}s both`}}><div style={{padding:'14px 2px 9px',fontSize:14,fontWeight:950}}>{g.category}</div>{g.items.map((item,idx)=><button className="item" key={item.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===item.id?{...x,checked:!x.checked}:x))} style={{borderTop:idx?`1px solid ${BORDER}`:'none'}}><span className={`check ${item.checked?'y':''}`}>{item.checked?'✓':''}</span><span style={{flex:1}}><b style={{fontSize:12,textDecoration:item.checked?'line-through':'none',opacity:item.checked?.55:1}}>{item.name}</b>{item.note&&<small style={{display:'block',color:'#9a7540',marginTop:3}}>{item.note}</small>}</span><b style={{fontSize:11,color:'#777'}}>{item.qty}</b></button>)}</section>)}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:9}}><button className="choice" onClick={()=>setStep('prefs')}>Modifier</button><button className="choice active" onClick={generate}>↻ Régénérer</button></div>
+      {step==='generating'&&<div className="gen"><div className="pulse">NOX</div><h1>Construction de ta liste</h1><div className="muted">Profil, contraintes, quantités et budget sont analysés ensemble.</div><div className="genrows">{['Profil NOX chargé','Allergies et préférences vérifiées','Quantités calculées','Budget pris en compte','Liste finalisée'].map((x,i)=><div key={x} className={`genrow ${genStage>i?'done':''}`}>{genStage>i?'✓':'○'}　{x}</div>)}</div></div>}
+
+      {step==='list'&&<>
+        <div className="listhead"><div className="lime" style={{fontSize:10,fontWeight:950}}>LISTE NOXAI</div><h1 style={{marginBottom:4}}>{days} jours · {people} pers.</h1><div style={{fontSize:11,color:'#aaa'}}>{store.chain}{store.city?` · ${store.city}`:''} · budget {budgetNumber.toFixed(2)} €</div><div className="bar"><div style={{width:`${progress}%`}}/></div></div>
+        {error&&<div className="warning"><b>La liste n’a pas pu être générée.</b><br/>{error}</div>}
+        {!error&&pricedCount===0&&<div className="warning"><b>Prix magasin :</b> aucune source de prix réelle n’est encore connectée. NOX n’affiche donc aucun faux prix.</div>}
+        {pricedCount>0&&<div className="card"><Row l="Prix connus" v={`${totalKnown.toFixed(2)} €`}/><Row l="Budget" v={`${budgetNumber.toFixed(2)} €`}/><Row l="Produits avec prix fiable" v={`${pricedCount} / ${items.length}`}/></div>}
+        {allAllergies.length>0&&<div className="warning"><b>Allergies prises en compte :</b> {allAllergies.join(' · ')}</div>}
+        {grouped.map(g=><div className="card" key={g.category} style={{padding:'4px 15px'}}><h2 style={{padding:'13px 0 8px'}}>{g.category}</h2>{g.items.map((it,i)=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))} style={{borderTop:i?`1px solid ${BORDER}`:'none'}}><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span><span style={{flex:1}}><b style={{fontSize:12,textDecoration:it.checked?'line-through':'none'}}>{it.name}</b>{it.note&&<small style={{display:'block',color:'#8c7446',marginTop:3}}>{it.note}</small>}</span><span style={{textAlign:'right'}}><b style={{display:'block',fontSize:11}}>{it.qty}</b><small style={{color:MUTED}}>{typeof it.price==='number'?`${it.price.toFixed(2)} €`:'Prix indisponible'}</small></span></button>)}</div>)}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}><button className="choice" onClick={()=>setStep('review')}>Modifier</button><button className="choice active" onClick={generate}>Régénérer</button></div>
       </>}
     </main>
   </div>;
 }
 
-function Progress({current}:{current:number}){const labels=['Profil','Magasin','Préférences','Génération'];return <div className="steps">{labels.map((l,i)=>{const n=i+1;return <div key={l} className={`step ${n===current?'on':''} ${n<current?'done':''}`}><div className="dot">{n<current?'✓':n}</div><div className="sl">{l}</div></div>})}</div>}
-function Title({icon,title,sub}:{icon:string;title:string;sub:string}){return <div className="sectionTitle"><div className="ico">{icon}</div><div><h2>{title}</h2><p>{sub}</p></div></div>}
-function Card({children}:{children:React.ReactNode}){return <section className="card">{children}</section>}
-function Counter({label,value,min,max,onChange}:{label:string;value:number;min:number;max:number;onChange:(v:number)=>void}){return <div className="counter"><div className="counterLabel">{label}</div><div className="counterRow"><button style={roundBtn} onClick={()=>onChange(Math.max(min,value-1))}>−</button><b>{value}</b><button style={roundBtn} onClick={()=>onChange(Math.min(max,value+1))}>+</button></div></div>}
-function Primary({onClick,children}:{onClick:()=>void;children:React.ReactNode}){return <button className="primary" onClick={onClick}>{children}</button>}
+function Row({l,v}:{l:string;v:string}){return <div className="row"><span>{l}</span><b>{v}</b></div>}
