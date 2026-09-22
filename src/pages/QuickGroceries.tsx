@@ -59,51 +59,42 @@ const norm=(v:string)=>v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]
 
 /* Photos contrôlées : jamais de recherche aléatoire par nom.
    Si un aliment précis n'est pas dans la table, on affiche une photo cohérente avec sa catégorie. */
-const IMG={
-  fruit:'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=180&h=180&q=85',
-  veg:'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=180&h=180&q=85',
-  protein:'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=180&h=180&q=85',
-  starch:'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=180&h=180&q=85',
-  dairy:'https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=180&h=180&q=85',
-  pantry:'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=180&h=180&q=85',
-  breakfast:'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=180&h=180&q=85'
-};
-const FOOD_PHOTO:{keys:string[];url:string}[]=[
-  {keys:['banane'],url:'https://images.unsplash.com/photo-1603833665858-e61d17a86224?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['pomme de terre'],url:'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['pomme'],url:'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['brocoli'],url:'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['tomate','sauce tomate'],url:'https://images.unsplash.com/photo-1546470427-e26264be0b0d?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['carotte'],url:'https://images.unsplash.com/photo-1447175008436-054170c2e979?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['oignon','ail'],url:'https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['haricot vert'],url:'https://images.unsplash.com/photo-1567375698348-5d9d5ae99de0?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['salade','laitue'],url:'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['oeuf'],url:'https://images.unsplash.com/photo-1506976785307-8732e854ad03?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['poulet'],url:'https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['saumon'],url:'https://images.unsplash.com/photo-1599084993091-1cb5c0721cc6?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['thon'],url:'https://images.unsplash.com/photo-1582454235987-1e597bafcf58?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['riz'],url:'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['pate'],url:'https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['pain'],url:'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['lait'],url:'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['yaourt'],url:'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['fromage blanc','fromage'],url:'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['huile olive','huile d olive'],url:'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['miel'],url:'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['avoine','flocon'],url:'https://images.unsplash.com/photo-1517673132405-a56a62b18caf?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['lentille'],url:'https://images.unsplash.com/photo-1515543904379-3d757afe72e4?auto=format&fit=crop&w=180&h=180&q=85'},
-  {keys:['pois chiche'],url:'https://images.unsplash.com/photo-1515543904379-3d757afe72e4?auto=format&fit=crop&w=180&h=180&q=85'}
+const FOOD_IMAGE_QUERY:{keys:string[];query:string}[]=[
+  {keys:['pomme de terre'],query:'potato'},
+  {keys:['banane'],query:'banana'},
+  {keys:['pomme'],query:'apple fruit'},
+  {keys:['brocoli'],query:'broccoli'},
+  {keys:['sauce tomate'],query:'tomato sauce'},
+  {keys:['tomate'],query:'tomato'},
+  {keys:['carotte'],query:'carrot'},
+  {keys:['oignon'],query:'onion'},
+  {keys:['ail'],query:'garlic'},
+  {keys:['haricot vert'],query:'green beans'},
+  {keys:['salade','laitue'],query:'lettuce'},
+  {keys:['oeuf'],query:'eggs'},
+  {keys:['poulet'],query:'chicken breast'},
+  {keys:['saumon'],query:'salmon fillet'},
+  {keys:['thon'],query:'canned tuna'},
+  {keys:['riz'],query:'rice'},
+  {keys:['pate'],query:'pasta'},
+  {keys:['pain'],query:'bread'},
+  {keys:['lait'],query:'milk'},
+  {keys:['yaourt'],query:'yogurt'},
+  {keys:['fromage blanc'],query:'fromage blanc'},
+  {keys:['fromage'],query:'cheese'},
+  {keys:['huile olive','huile d olive'],query:'olive oil'},
+  {keys:['miel'],query:'honey'},
+  {keys:['avoine','flocon'],query:'oats'},
+  {keys:['lentille'],query:'lentils'},
+  {keys:['pois chiche'],query:'chickpeas'}
 ];
-function foodPhoto(name:string,category:string){
+
+function foodPhoto(name:string,_category:string){
   const n=norm(name);
-  const hit=FOOD_PHOTO.find(x=>x.keys.some(k=>n.includes(k)));
-  if(hit)return hit.url;
-  if(category==='Fruits & légumes')return IMG.veg;
-  if(category==='Protéines')return IMG.protein;
-  if(category==='Féculents')return IMG.starch;
-  if(category==='Produits frais')return IMG.dairy;
-  if(category==='Petit-déjeuner')return IMG.breakfast;
-  return IMG.pantry;
+  const hit=FOOD_IMAGE_QUERY.find(x=>x.keys.some(k=>n.includes(k)));
+  if(!hit)return '';
+  // Image demandée pour l'aliment exact, jamais une image générique de catégorie.
+  return `https://loremflickr.com/180/180/${encodeURIComponent(hit.query)}?lock=${encodeURIComponent(hit.query)}`;
 }
 
 function firstNumber(qty:string){
@@ -140,7 +131,7 @@ function estimatePrice(name:string,qty:string){
 async function enrich(items:GroceryItem[],chain:string,city:string){
   return items.map(it=>({
     ...it,
-    imageUrl:it.imageUrl||foodPhoto(it.name,it.category),
+    imageUrl:it.imageUrl || foodPhoto(it.name,it.category),
     price:typeof it.price==='number'?it.price:estimatePrice(it.name,it.qty),
     priceSource:typeof it.price==='number'?(it.priceSource||`Prix vérifié · ${chain}`):'Estimation NOXAI'
   }));
@@ -365,7 +356,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       .success,.warning{border-radius:17px;padding:14px;margin-bottom:16px;font-size:11px}.success{background:#EEFFE5;border:1px solid #D3EFC4}.warning{background:#FFF8E8;border:1px solid #EED49B;color:#765820}
       .budgetAlert{background:#FFF3F1;border:1px solid #F0C3BC;border-radius:20px;padding:16px;margin-bottom:16px}.budgetAlertTop{display:flex;gap:11px;align-items:flex-start}.budgetX{width:28px;height:28px;flex:0 0 28px;border-radius:50%;background:#D94B3D;color:#fff;display:grid;place-items:center;font-weight:950}.budgetAlert b{font-size:12px}.budgetAlert p{font-size:10px;line-height:1.5;color:#765B56;margin:5px 0 0}.budgetActions{display:grid;gap:7px;margin-top:13px}.budgetActions button{min-height:43px;border-radius:13px;border:1px solid #E2C8C3;background:#fff;color:#0E100F;font-size:10px;font-weight:900}.budgetActions button:first-child{background:#0E100F;color:#c8ff00;border-color:#0E100F}
       .listTitle{font-size:27px;font-weight:950}.listMeta{color:#7E837E;font-size:10px;margin:4px 0 14px}.catTabs{display:flex;gap:7px;overflow:auto;scrollbar-width:none;margin-bottom:15px}.catTabs button{white-space:nowrap;border:1px solid #E1E4DD;background:#fff;border-radius:999px;padding:9px 12px;font-size:9px}.catTabs button.on{background:#0E100F;color:#fff}
-      .group{margin:15px 0}.groupHead{display:flex;align-items:center;margin-bottom:8px}.groupHead b{font-size:14px}.groupHead span{margin-left:auto;color:#8B908B;font-size:9px}.items{background:#fff;border:1px solid #E7E9E3;border-radius:17px;overflow:hidden}.item{width:100%;display:grid;grid-template-columns:48px 1fr auto 22px;gap:9px;align-items:center;text-align:left;border:0;border-bottom:1px solid #ECEEE8;background:#fff;padding:12px}.item:last-child{border-bottom:0}.foodImg,.foodFallback{width:46px;height:46px;border-radius:12px;background:#F4F5F1;object-fit:contain}.foodFallback{display:grid;place-items:center;font-size:8px;font-weight:950;color:#9A9F99}.item em{display:block;color:#789315;font-size:8px;font-style:normal;font-weight:800;margin-top:4px}.item b{font-size:11px}.item small{display:block;color:#8B908B;font-size:9px;margin-top:2px}.price{font-size:9px;font-weight:900;color:#888}.check{width:20px;height:20px;border:1.5px solid #AEB3AE;border-radius:6px;display:grid;place-items:center}.check.y{background:#c8ff00;border-color:#0E100F}
+      .group{margin:15px 0}.groupHead{display:flex;align-items:center;margin-bottom:8px}.groupHead b{font-size:14px}.groupHead span{margin-left:auto;color:#8B908B;font-size:9px}.items{background:#fff;border:1px solid #E7E9E3;border-radius:17px;overflow:hidden}.item{width:100%;display:grid;grid-template-columns:48px 1fr auto 22px;gap:9px;align-items:center;text-align:left;border:0;border-bottom:1px solid #ECEEE8;background:#fff;padding:12px}.item:last-child{border-bottom:0}.foodImg,.foodFallback{width:46px;height:46px;border-radius:12px;background:#F4F5F1;object-fit:contain}.foodFallback{display:grid;place-items:center;font-size:8px;font-weight:950;color:#9A9F99}.item em{display:block;color:#789315;font-size:8px;font-style:normal;font-weight:800;margin-top:4px}.item b{font-size:11px}.item small{display:block;color:#8B908B;font-size:9px;margin-top:2px}.price{font-size:9px;font-weight:900}.check{width:20px;height:20px;border:1.5px solid #AEB3AE;border-radius:6px;display:grid;place-items:center}.check.y{background:#c8ff00;border-color:#0E100F}
     `}</style>
 
     <header className="head"><div className="headin"><div className="top">
@@ -434,11 +425,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
 
       {step==='list'&&<>
         {error?<div className="warning"><b>La liste n’a pas pu être générée.</b><br/>{error}</div>:budgetNotice?<div className="budgetAlert"><div className="budgetAlertTop"><span className="budgetX">×</span><div><b>Budget très serré</b><p>{budgetNotice}</p></div></div><div className="budgetActions"><button onClick={()=>setBudget(String(Math.ceil(totalKnown)))}>UTILISER LE BUDGET NÉCESSAIRE · {Math.ceil(totalKnown)} €</button>{days>3&&<button onClick={()=>{setDays(days===7?5:3);setStep('review');}}>RÉDUIRE LA DURÉE · {days===7?5:3} JOURS</button>}<button onClick={()=>setStep('budget')}>MODIFIER MON BUDGET</button></div></div>:<div className="success"><b>✓ Liste générée</b><br/>{days} jours · {people} personne{people>1?'s':''} · {store.chain}</div>}
-        <div style={{background:'#FFF8E8',border:'1px solid #F0D98A',borderRadius:14,padding:'12px 14px',marginBottom:12,fontSize:11,color:'#7A5C1A',lineHeight:1.55}}>
-          <div style={{fontWeight:900,marginBottom:3}}>Prix estimés par NOX — pas les prix de {store.chain}</div>
-          <div>NOX n'a pas accès aux catalogues des enseignes. Les montants affichés (≈) sont des moyennes France 2024. Le prix réel en magasin peut varier.</div>
-        </div>
-        <div className="listTitle">Ma liste de courses</div><div className="listMeta">{items.length} produits · budget indicatif NOX ≈ {totalKnown.toFixed(2)} € (estimations moyennes)</div>
+        <div className="listTitle">Ma liste de courses</div><div className="listMeta">{items.length} produits · total estimé ≈ {totalKnown.toFixed(2)} € · budget {budgetNumber.toFixed(2)} €</div>
         <div className="catTabs"><button className={activeCategory==='Tous'?'on':''} onClick={()=>setActiveCategory('Tous')}>Tous ({items.length})</button>{grouped.map(g=><button key={g.category} className={activeCategory===g.category?'on':''} onClick={()=>setActiveCategory(g.category)}>{g.category} ({g.items.length})</button>)}</div>
         {grouped.filter(g=>activeCategory==='Tous'||g.category===activeCategory).map(g=><div className="group" key={g.category}><div className="groupHead"><b>{g.category}</b><span>{g.items.length} produits</span></div><div className="items">{g.items.map(it=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))}>{it.imageUrl?<img className="foodImg" src={it.imageUrl} alt={it.name} loading="lazy" onError={e=>{e.currentTarget.style.display="none"; const n=e.currentTarget.nextElementSibling as HTMLElement|null; if(n)n.style.display="grid"}}/>:null}<span className="foodFallback" style={{display:it.imageUrl?"none":"grid"}}>NOX</span><span><b style={{textDecoration:it.checked?'line-through':'none'}}>{it.name}</b><small>{it.qty}{it.brand?` · ${it.brand}`:''}{it.note?` · ${it.note}`:''}</small>{it.priceSource&&<em>{it.priceSource==='Estimation NOXAI'?'Prix estimé · NOXAI':`Prix vérifié · ${it.priceSource}${it.priceDate?` · ${it.priceDate}`:''}`}</em>}</span><span className="price">{typeof it.price==='number'?`${it.priceSource==='Estimation NOXAI'?'≈ ':''}${it.price.toFixed(2)} €`:'—'}</span><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span></button>)}</div></div>)}
         <div className="footer"><div className="footerIn"><button className="secondary" onClick={()=>setStep('review')}>‹</button><button className="primary" onClick={()=>navigate('/fuel')}>{progress===100?'TERMINÉ ✓':`${progress}% COCHÉ`}</button></div></div>
