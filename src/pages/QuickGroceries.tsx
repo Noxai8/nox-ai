@@ -10,7 +10,6 @@ const SURFACE = '#FFFFFF';
 const BORDER = '#E6E8E1';
 const DARK = '#0E100F';
 const MUTED = '#777D78';
-const FN = 'https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1';
 
 type Mode = 'empty' | 'complete';
 type Step = 'mode' | 'setup' | 'store' | 'prefs' | 'review' | 'generating' | 'list';
@@ -21,7 +20,23 @@ type GroceryItem = { id:string; name:string; qty:string; category:string; note?:
 
 const ALLERGIES = ['Arachides','Fruits à coque','Lait','Œufs','Gluten','Soja','Poisson','Crustacés','Sésame','Moutarde'];
 const CATEGORIES = ['Fruits & légumes','Protéines','Féculents','Produits frais','Épicerie','Petit-déjeuner','Autres'];
-const STORES = ['Carrefour','E.Leclerc','Intermarché','Auchan','Lidl','Aldi','Monoprix','Franprix','Système U','Autre'];
+const STORES = [
+  {name:'Carrefour', mark:'◆', brand:'#0050AA'},
+  {name:'E.Leclerc', mark:'L', brand:'#1476D4'},
+  {name:'Intermarché', mark:'IM', brand:'#E30613'},
+  {name:'Auchan', mark:'A', brand:'#E30613'},
+  {name:'Lidl', mark:'L', brand:'#0050AA'},
+  {name:'Aldi', mark:'A', brand:'#0050AA'},
+  {name:'Super U', mark:'U', brand:'#E30613'},
+  {name:'Monoprix', mark:'M', brand:'#E30613'},
+  {name:'Franprix', mark:'F', brand:'#F05A28'},
+  {name:'Netto', mark:'N', brand:'#E30613'},
+  {name:'Carrefour Market', mark:'◆', brand:'#0050AA'},
+  {name:'Match', mark:'M', brand:'#218B3A'},
+  {name:'Grand Frais', mark:'GF', brand:'#D4A900'},
+  {name:'Casino', mark:'C', brand:'#D71920'},
+  {name:'Autre', mark:'+', brand:'#111111'},
+];
 
 const GOAL_LABELS:Record<string,string> = {
   perdre_gras:'Perdre du gras', prendre_muscle:'Prendre du muscle',
@@ -53,6 +68,7 @@ export default function QuickGroceries(){
   const [days,setDays] = useState(7);
   const [budget,setBudget] = useState('');
   const [store,setStore] = useState<Store>({chain:'Carrefour',city:''});
+  const [storeSearch,setStoreSearch] = useState('');
   const [allergies,setAllergies] = useState<string[]>([]);
   const [otherAllergy,setOtherAllergy] = useState('');
   const [likes,setLikes] = useState('');
@@ -108,6 +124,10 @@ export default function QuickGroceries(){
   const budgetNumber = Number(String(budget).replace(',','.'));
   const canContinueSetup = people>0 && days>0 && Number.isFinite(budgetNumber) && budgetNumber>0;
 
+  const filteredStores = STORES.filter(s =>
+    s.name.toLowerCase().includes(storeSearch.trim().toLowerCase())
+  );
+
   const toggleAllergy=(a:string)=>setAllergies(p=>p.includes(a)?p.filter(x=>x!==a):[...p,a]);
 
   const generate=async()=>{
@@ -115,8 +135,6 @@ export default function QuickGroceries(){
     const timers=[400,900,1450,2000].map((ms,i)=>window.setTimeout(()=>setGenStage(i+1),ms));
 
     try{
-      const {data:{session}}=await supabase.auth.getSession();
-
       const prompt=`Tu construis une liste de courses NOXAI.
 MODE: ${mode==='empty'?'FRIGO VIDE : créer toutes les courses nécessaires':'COMPLÉTER LE FRIGO : ne proposer que ce qui manque'}.
 PROFIL DÉJÀ ENREGISTRÉ: objectif=${goal}; alimentation=${diet}.
@@ -140,14 +158,16 @@ Contraintes:
 Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
 [{"name":"...","qty":"...","category":"Fruits & légumes|Protéines|Féculents|Produits frais|Épicerie|Petit-déjeuner|Autres","note":"","price":null}]`;
 
-      const resp=await fetch(`${FN}/generate-groceries`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},
-        body:JSON.stringify({prompt})
+      const { data, error: invokeError } = await supabase.functions.invoke('generate-groceries', {
+        body: { prompt }
       });
-      if(!resp.ok) throw new Error(`Génération impossible (${resp.status})`);
 
-      const data=await resp.json();
+      if (invokeError) {
+        console.error('generate-groceries invoke error:', invokeError);
+        throw new Error(invokeError.message || 'Génération impossible');
+      }
+
+      if (!data) throw new Error('Aucune réponse de generate-groceries');
       const raw=data?.content?.[0]?.text||data?.data?.content?.[0]?.text||data?.text||'';
       const cleaned=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
       const a=cleaned.indexOf('['), b=cleaned.lastIndexOf(']');
@@ -218,7 +238,11 @@ Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
       .gen{min-height:65vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}.pulse{width:140px;height:140px;border-radius:50%;background:#edffb3;display:grid;place-items:center;font-size:25px;font-weight:950;animation:pulse 1.2s infinite}.genrows{width:100%;max-width:390px;margin-top:18px}.genrow{padding:9px;text-align:left;color:${MUTED};font-size:11px}.done{color:${DARK};font-weight:800}
       .listhead{background:${DARK};color:#fff;border-radius:20px;padding:18px;margin-bottom:12px}.lime{color:${ACCENT}}.bar{height:6px;background:#333;border-radius:99px;overflow:hidden;margin-top:13px}.bar div{height:100%;background:${ACCENT}}
       .item{width:100%;border:0;border-top:1px solid ${BORDER};background:transparent;padding:13px 0;display:flex;align-items:center;gap:10px;text-align:left}.check{width:24px;height:24px;border:1px solid #ccc;border-radius:8px;display:grid;place-items:center;flex:0 0 24px}.check.y{background:${ACCENT};border-color:${DARK}}
-      @keyframes pulse{50%{transform:scale(1.04)}} @media(max-width:430px){.main{padding:13px}.modeGrid{grid-template-columns:1fr}.mode{min-height:auto}.grid3{grid-template-columns:repeat(3,1fr)}}
+      .storeHero{background:${SURFACE};border:1px solid ${BORDER};border-radius:24px;padding:20px;margin-bottom:12px}.eyebrow{font-size:10px;font-weight:950;letter-spacing:.14em;color:#779600;margin-bottom:7px}
+      .storeSearch{height:52px;background:#fff;border:1px solid ${BORDER};border-radius:17px;display:flex;align-items:center;gap:10px;padding:0 15px;margin-bottom:9px;box-shadow:0 5px 20px rgba(14,16,15,.035)}.storeSearch span{font-size:24px;color:${MUTED}}.storeSearch input{border:0;outline:0;background:transparent;width:100%;font-size:14px;color:${DARK}}
+      .storeCount{font-size:11px;color:${MUTED};margin:10px 3px 9px}.storeGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.storeTile{position:relative;min-height:112px;border:1px solid ${BORDER};border-radius:18px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:12px 7px;color:${DARK};box-shadow:0 4px 18px rgba(14,16,15,.025)}.storeTile.active{border:2px solid #8fc900;box-shadow:0 0 0 3px rgba(200,255,0,.12)}.storeTile b{font-size:11px;line-height:1.15}.brandMark{height:42px;min-width:42px;padding:0 8px;border-radius:13px;background:#f7f7f4;display:grid;place-items:center;font-size:20px;font-weight:950}.selectedTick{position:absolute;right:7px;top:7px;width:23px;height:23px;border-radius:50%;background:#62b72d;color:#fff;display:grid;place-items:center;font-size:13px;font-weight:950}
+      .priceInfo{margin-top:12px;background:#efffe8;border:1px solid #d5efc8;border-radius:19px;padding:14px;display:flex;gap:11px;align-items:flex-start}.priceInfoIcon{width:31px;height:31px;flex:0 0 31px;border-radius:50%;background:#38a84c;color:#fff;display:grid;place-items:center;font-weight:950}.priceInfo b{font-size:12px;display:block;margin:1px 0 4px}.priceInfo small{font-size:10px;line-height:1.4;color:#667064;display:block}
+      @keyframes pulse{50%{transform:scale(1.04)}} @media(max-width:430px){.main{padding:13px}.modeGrid{grid-template-columns:1fr}.mode{min-height:auto}.grid3{grid-template-columns:repeat(3,1fr)}.storeGrid{grid-template-columns:repeat(3,1fr)}.storeTile{min-height:102px;padding:9px 5px}.storeTile b{font-size:10px}}
     `}</style>
 
     <header className="head"><div className="headin"><div className="top">
@@ -265,9 +289,41 @@ Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
       </>}
 
       {step==='store' && <>
-        <div className="card"><h1>Ton magasin</h1><div className="muted">Choisis l’enseigne et indique ta ville ou ta zone. Le magasin précis sera nécessaire pour des prix locaux fiables.</div></div>
-        <div className="stores">{STORES.map(s=><button key={s} className={`store ${store.chain===s?'active':''}`} onClick={()=>setStore(p=>({...p,chain:s}))}>{s}</button>)}</div>
-        <div className="card" style={{marginTop:12}}><div className="label">VILLE / ZONE</div><input style={inputStyle} value={store.city} onChange={e=>setStore(p=>({...p,city:e.target.value}))} placeholder="Ex. Toul, Nancy, Paris 15e…"/></div>
+        <div className="storeHero">
+          <div className="eyebrow">MAGASIN</div>
+          <h1>Choisis ton enseigne</h1>
+          <div className="muted">Sélectionne l’enseigne où tu comptes faire tes courses. Tu peux ensuite préciser la ville ou la zone.</div>
+        </div>
+
+        <div className="storeSearch">
+          <span>⌕</span>
+          <input value={storeSearch} onChange={e=>setStoreSearch(e.target.value)} placeholder="Rechercher une enseigne…" />
+        </div>
+
+        <div className="storeCount">{filteredStores.length} enseigne{filteredStores.length>1?'s':''} disponible{filteredStores.length>1?'s':''}</div>
+
+        <div className="storeGrid">
+          {filteredStores.map(s=><button
+            key={s.name}
+            className={`storeTile ${store.chain===s.name?'active':''}`}
+            onClick={()=>setStore(p=>({...p,chain:s.name}))}
+          >
+            {store.chain===s.name&&<span className="selectedTick">✓</span>}
+            <span className="brandMark" style={{color:s.brand}}>{s.mark}</span>
+            <b>{s.name}</b>
+          </button>)}
+        </div>
+
+        <div className="priceInfo">
+          <span className="priceInfoIcon">✓</span>
+          <div><b>Prix réels quand une source magasin est disponible</b><small>NOXAI n’invente jamais un prix ou un stock. Sans source fiable, le prix reste indisponible.</small></div>
+        </div>
+
+        <div className="card" style={{marginTop:12}}>
+          <div className="label">VILLE / ZONE</div>
+          <input style={inputStyle} value={store.city} onChange={e=>setStore(p=>({...p,city:e.target.value}))} placeholder="Ex. Toul, Nancy, Paris 15e…"/>
+          <div className="muted" style={{marginTop:8}}>Enseigne choisie : <b style={{color:DARK}}>{store.chain}</b></div>
+        </div>
         <button className="primary" onClick={()=>setStep('prefs')}>CONTINUER</button>
       </>}
 
