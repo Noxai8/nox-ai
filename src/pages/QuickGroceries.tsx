@@ -301,6 +301,25 @@ Refais toute la liste avec des substitutions moins chères et/ou des quantités 
       window.setTimeout(()=>setStep('list'),450);
     }
   };
+  const totalKnown = useMemo(
+    () => items.reduce((sum, item) => sum + (typeof item.price === 'number' ? item.price : 0), 0),
+    [items]
+  );
+
+  const grouped = useMemo(
+    () => CATEGORIES
+      .map(category => ({
+        category,
+        items: items.filter(item => item.category === category)
+      }))
+      .filter(group => group.items.length > 0),
+    [items]
+  );
+
+  const progress = items.length
+    ? Math.round((items.filter(item => item.checked).length / items.length) * 100)
+    : 0;
+
   const back=()=>{
     const previous:Partial<Record<Step,Step>> = {
       setup:'mode', budget:'setup', store:'budget', prefs:'store', review:'prefs', list:'review'
