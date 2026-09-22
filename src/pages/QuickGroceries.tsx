@@ -12,32 +12,13 @@ const DARK = '#0E100F';
 const MUTED = '#777D78';
 
 type Mode = 'empty' | 'complete';
-type Step = 'mode' | 'setup' | 'budget' | 'store' | 'prefs' | 'review' | 'generating' | 'list';
-type Store = { chain:string; city:string };
+type Step = 'mode' | 'setup' | 'budget' | 'prefs' | 'review' | 'generating' | 'list';
 type Profile = { goal_type?:string; diet_preferences?:string[] };
 type Target = { calories?:number; protein_g?:number; carbs_g?:number; fat_g?:number };
-type GroceryItem = { id:string; name:string; qty:string; category:string; note?:string; checked?:boolean; price?:number|null; priceSource?:string; imageUrl?:string; barcode?:string; brand?:string; priceDate?:string };
+type GroceryItem = { id:string; name:string; qty:string; category:string; note?:string; checked?:boolean; price?:number|null };
 
 const ALLERGIES = ['Arachides','Fruits à coque','Lait','Œufs','Gluten','Soja','Poisson','Crustacés','Sésame','Moutarde'];
 const CATEGORIES = ['Fruits & légumes','Protéines','Féculents','Produits frais','Épicerie','Petit-déjeuner','Autres'];
-const STORES = [
-  {name:'Carrefour', mark:'◆', brand:'#0050AA'},
-  {name:'E.Leclerc', mark:'L', brand:'#1476D4'},
-  {name:'Intermarché', mark:'IM', brand:'#E30613'},
-  {name:'Auchan', mark:'A', brand:'#E30613'},
-  {name:'Lidl', mark:'L', brand:'#0050AA'},
-  {name:'Aldi', mark:'A', brand:'#0050AA'},
-  {name:'Super U', mark:'U', brand:'#E30613'},
-  {name:'Monoprix', mark:'M', brand:'#E30613'},
-  {name:'Franprix', mark:'F', brand:'#F05A28'},
-  {name:'Netto', mark:'N', brand:'#E30613'},
-  {name:'Carrefour Market', mark:'◆', brand:'#0050AA'},
-  {name:'Match', mark:'M', brand:'#218B3A'},
-  {name:'Grand Frais', mark:'GF', brand:'#D4A900'},
-  {name:'Casino', mark:'C', brand:'#D71920'},
-  {name:'Autre', mark:'+', brand:'#111111'},
-];
-
 const GOAL_LABELS:Record<string,string> = {
   perdre_gras:'Perdre du gras', prendre_muscle:'Prendre du muscle',
   recomposition:'Recomposition', force:'Force', performance:'Performance', maintien:'Maintien'
@@ -56,48 +37,6 @@ const inputStyle:React.CSSProperties = {
 
 
 const norm=(v:string)=>v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
-
-/* Image exacte du catalogue si disponible.
-   Sinon, illustration stable de la page Wikipédia de l'aliment.
-   Aucun LoremFlickr / Unsplash / recherche aléatoire. */
-const FOOD_WIKI_PAGES:{keys:string[];page:string}[]=[
- {keys:['pomme de terre'],page:'Pomme_de_terre'},{keys:['patate douce'],page:'Patate_douce'},
- {keys:['banane'],page:'Banane'},{keys:['pomme'],page:'Pomme'},{keys:['poire'],page:'Poire'},
- {keys:['orange'],page:'Orange_(fruit)'},{keys:['citron'],page:'Citron'},{keys:['kiwi'],page:'Kiwi'},
- {keys:['fraise'],page:'Fraise'},{keys:['avocat'],page:'Avocat_(fruit)'},{keys:['brocoli'],page:'Brocoli'},
- {keys:['courgette'],page:'Courgette'},{keys:['aubergine'],page:'Aubergine'},{keys:['poivron'],page:'Poivron'},
- {keys:['tomate'],page:'Tomate'},{keys:['carotte'],page:'Carotte'},{keys:['oignon'],page:'Oignon'},
- {keys:['ail'],page:'Ail_cultivé'},{keys:['haricot vert'],page:'Haricot_vert'},{keys:['salade','laitue'],page:'Laitue'},
- {keys:['epinard'],page:'Épinard'},{keys:['champignon'],page:'Champignon_de_Paris'},
- {keys:['oeuf'],page:'Œuf_(aliment)'},{keys:['poulet'],page:'Poulet'},{keys:['dinde'],page:'Dinde'},
- {keys:['boeuf','steak'],page:'Viande_bovine'},{keys:['saumon'],page:'Saumon'},{keys:['thon'],page:'Thon'},
- {keys:['cabillaud'],page:'Morue'},{keys:['riz'],page:'Riz'},{keys:['pate'],page:'Pâtes_alimentaires'},
- {keys:['semoule'],page:'Semoule'},{keys:['quinoa'],page:'Quinoa'},{keys:['pain'],page:'Pain'},
- {keys:['lait'],page:'Lait'},{keys:['yaourt'],page:'Yaourt'},{keys:['fromage blanc'],page:'Fromage_blanc'},
- {keys:['fromage'],page:'Fromage'},{keys:['huile olive','huile d olive'],page:"Huile_d'olive"},
- {keys:['miel'],page:'Miel'},{keys:['sauce tomate'],page:'Sauce_tomate'},
- {keys:['avoine','flocon'],page:'Avoine_cultivée'},{keys:['lentille'],page:'Lentille_cultivée'},
- {keys:['pois chiche'],page:'Pois_chiche'},{keys:['haricot rouge'],page:'Haricot'},
- {keys:['amande'],page:'Amande'},{keys:['noix'],page:'Noix'},{keys:['beurre'],page:'Beurre'},
- {keys:['cafe'],page:'Café'},{keys:['chocolat'],page:'Chocolat'}
-];
-const foodImageCache=new Map<string,string>();
-
-async function foodPhoto(name:string){
- const n=norm(name);
- const hit=FOOD_WIKI_PAGES.find(x=>x.keys.some(k=>n.includes(k)));
- if(!hit)return '';
- if(foodImageCache.has(hit.page))return foodImageCache.get(hit.page)!;
- try{
-   const r=await fetch(`https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(hit.page)}`);
-   if(!r.ok)return '';
-   const d=await r.json();
-   const url=String(d?.thumbnail?.source||d?.originalimage?.source||'');
-   if(url)foodImageCache.set(hit.page,url);
-   return url;
- }catch{return '';}
-}
-
 
 function firstNumber(qty:string){
   const m=String(qty).replace(',','.').match(/\d+(?:\.\d+)?/);
@@ -130,13 +69,11 @@ function estimatePrice(name:string,qty:string){
   else if(r.pack)v=num*r.pack;
   return Math.max(.69,Math.round(v*100)/100);
 }
-async function enrich(items:GroceryItem[],chain:string,city:string){
-  return Promise.all(items.map(async it=>({
+function enrich(items:GroceryItem[]){
+  return items.map(it=>({
     ...it,
-    imageUrl:it.imageUrl || await foodPhoto(it.name) || undefined,
-    price:typeof it.price==='number'?it.price:estimatePrice(it.name,it.qty),
-    priceSource:typeof it.price==='number'?(it.priceSource||`Prix vérifié · ${chain}`):'Estimation NOXAI'
-  })));
+    price:estimatePrice(it.name,it.qty)
+  }));
 }
 export default function QuickGroceries(){
   const navigate = useNavigate();
@@ -151,9 +88,6 @@ export default function QuickGroceries(){
   const [people,setPeople] = useState(1);
   const [days,setDays] = useState(7);
   const [budget,setBudget] = useState('');
-  const [store,setStore] = useState<Store>({chain:'Carrefour',city:''});
-  const [postalCode,setPostalCode] = useState('');
-  const [storeSearch,setStoreSearch] = useState('');
   const [allergies,setAllergies] = useState<string[]>([]);
   const [otherAllergy,setOtherAllergy] = useState('');
   const [likes,setLikes] = useState('');
@@ -185,7 +119,6 @@ export default function QuickGroceries(){
       if(saved.people) setPeople(saved.people);
       if(saved.days) setDays(saved.days);
       if(saved.budget) setBudget(saved.budget);
-      if(saved.store) setStore(saved.store);
       if(saved.allergies) setAllergies(saved.allergies);
       if(saved.otherAllergy) setOtherAllergy(saved.otherAllergy);
       if(saved.likes) setLikes(saved.likes);
@@ -196,10 +129,10 @@ export default function QuickGroceries(){
   useEffect(()=>{
     try{
       localStorage.setItem('noxai_quick_groceries_v4',JSON.stringify({
-        people,days,budget,store,allergies,otherAllergy,likes,dislikes
+        people,days,budget,allergies,otherAllergy,likes,dislikes
       }));
     }catch{}
-  },[people,days,budget,store,allergies,otherAllergy,likes,dislikes]);
+  },[people,days,budget,allergies,otherAllergy,likes,dislikes]);
 
   const allAllergies = useMemo(()=>{
     const extra=otherAllergy.split(',').map(x=>x.trim()).filter(Boolean);
@@ -210,10 +143,6 @@ export default function QuickGroceries(){
   const goal = GOAL_LABELS[profile.goal_type||''] || profile.goal_type || 'Profil NOX';
   const budgetNumber = Number(String(budget).replace(',','.'));
   const canContinueSetup = people>0 && days>0 && Number.isFinite(budgetNumber) && budgetNumber>0;
-
-  const filteredStores = STORES.filter(s =>
-    s.name.toLowerCase().includes(storeSearch.trim().toLowerCase())
-  );
 
   const toggleAllergy=(a:string)=>setAllergies(p=>p.includes(a)?p.filter(x=>x!==a):[...p,a]);
 
@@ -227,7 +156,6 @@ PROFIL DÉJÀ ENREGISTRÉ: objectif=${goal}; alimentation=${diet}.
 CIBLE NUTRITIONNELLE: ${target.calories||'non renseignée'} kcal/j; protéines=${target.protein_g||'non renseigné'} g; glucides=${target.carbs_g||'non renseigné'} g; lipides=${target.fat_g||'non renseigné'} g.
 FOYER: ${people} personne(s). DURÉE: ${days} jours.
 BUDGET MAXIMUM STRICT: ${budgetNumber.toFixed(2)} €.
-ENSEIGNE: ${store.chain}. ZONE: ${store.city||'non précisée'}. CODE POSTAL: ${postalCode||'non précisé'}.
 ALLERGIES/INTOLÉRANCES À EXCLURE: ${allAllergies.join(', ')||'aucune renseignée'}.
 ALIMENTS AIMÉS: ${likes||'non renseignés'}.
 ALIMENTS REFUSÉS: ${dislikes||'aucun renseigné'}.
@@ -238,12 +166,12 @@ Contraintes:
 - LE TOTAL DOIT RESTER SOUS LE BUDGET MAXIMUM. Privilégie marques distributeur, aliments simples, saisonniers et économiques;
 - adapte surtout les quantités et remplace les aliments chers par des équivalents nutritionnels moins chers;
 - en mode compléter, évite les aliments déjà présents en quantité suffisante;
-- n'invente jamais un prix magasin, une promotion, un stock ou une référence magasin;
+- les prix affichés sont uniquement des estimations NOXAI servant à respecter le budget, jamais des prix magasin;
 - pour les produits transformés, ajoute si nécessaire "Vérifier l'étiquette/allergènes".
 Repères de prix pour optimiser le budget: bananes 2€/kg, pommes 2.8€/kg, légumes 1.8-3.2€/kg, poulet 9.5€/kg, œufs 0.28€/unité, thon 1.7€/boîte, riz 2.2€/kg, pâtes 1.6€/kg, lait 1.25€/L, yaourt 0.45€/pot, pain 2€/paquet, huile d'olive 10€/L.
 
-Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
-[{"name":"...","qty":"...","category":"Fruits & légumes|Protéines|Féculents|Produits frais|Épicerie|Petit-déjeuner|Autres","note":"","price":null}]`;
+Retourne UNIQUEMENT un tableau JSON. Le nombre de produits doit s'adapter au budget :
+[{"name":"...","qty":"...","category":"Fruits & légumes|Protéines|Féculents|Produits frais|Épicerie|Petit-déjeuner|Autres","note":""}]`;
 
       const parseList=(raw:string):GroceryItem[]=>{
         const cleaned=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
@@ -254,12 +182,7 @@ Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
           id:`ai-${Date.now()}-${i}`,name:String(x.name),qty:String(x.qty),
           category:CATEGORIES.includes(x.category)?x.category:'Autres',
           note:x.note?String(x.note):'',
-          price:typeof x.price==='number'?x.price:null,
-          priceSource:x.priceSource?String(x.priceSource):undefined,
-          imageUrl:x.imageUrl?String(x.imageUrl):undefined,
-          barcode:x.barcode?String(x.barcode):undefined,
-          brand:x.brand?String(x.brand):undefined,
-          priceDate:x.priceDate?String(x.priceDate):undefined,
+          price:null,
           checked:false
         }));
       };
@@ -276,13 +199,13 @@ Priorité absolue aux aliments économiques compatibles avec le profil: féculen
 Supprime les produits non essentiels, remplace les aliments chers par des équivalents nutritionnels moins coûteux et réduis les quantités sans prétendre couvrir les besoins si ce n'est pas possible.
 Tu peux retourner moins de 14 produits si le budget l'exige.
 Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
-        const {data,error:invokeError}=await supabase.functions.invoke('generate-groceries',{body:{prompt:basePrompt+correction,store:store.chain,city:store.city,postalCode}});
+        const {data,error:invokeError}=await supabase.functions.invoke('generate-groceries',{body:{prompt:basePrompt+correction}});
         if(invokeError)throw new Error(invokeError.message||'Génération impossible');
         if(!data)throw new Error('Aucune réponse de generate-groceries');
         const raw=data?.content?.[0]?.text||data?.data?.content?.[0]?.text||data?.text||'';
         const clean=parseList(raw);
         if(!clean.length)throw new Error('Liste vide');
-        finalItems=await enrich(clean,store.chain,store.city);
+        finalItems=enrich(clean);
         previousTotal=finalItems.reduce((sum,it)=>sum+(it.price||0),0);
         if(previousTotal<=budgetNumber)break;
       }
@@ -319,7 +242,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
 
   const back=()=>{
     const previous:Partial<Record<Step,Step>> = {
-      setup:'mode', budget:'setup', store:'budget', prefs:'store', review:'prefs', list:'review'
+      setup:'mode', budget:'setup', prefs:'budget', review:'prefs', list:'review'
     };
     if(step==='mode') navigate(-1);
     else if(previous[step]) setStep(previous[step]!);
@@ -358,7 +281,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       .success,.warning{border-radius:17px;padding:14px;margin-bottom:16px;font-size:11px}.success{background:#EEFFE5;border:1px solid #D3EFC4}.warning{background:#FFF8E8;border:1px solid #EED49B;color:#765820}
       .budgetAlert{background:#FFF3F1;border:1px solid #F0C3BC;border-radius:20px;padding:16px;margin-bottom:16px}.budgetAlertTop{display:flex;gap:11px;align-items:flex-start}.budgetX{width:28px;height:28px;flex:0 0 28px;border-radius:50%;background:#D94B3D;color:#fff;display:grid;place-items:center;font-weight:950}.budgetAlert b{font-size:12px}.budgetAlert p{font-size:10px;line-height:1.5;color:#765B56;margin:5px 0 0}.budgetActions{display:grid;gap:7px;margin-top:13px}.budgetActions button{min-height:43px;border-radius:13px;border:1px solid #E2C8C3;background:#fff;color:#0E100F;font-size:10px;font-weight:900}.budgetActions button:first-child{background:#0E100F;color:#c8ff00;border-color:#0E100F}
       .listTitle{font-size:27px;font-weight:950}.listMeta{color:#7E837E;font-size:10px;margin:4px 0 14px}.catTabs{display:flex;gap:7px;overflow:auto;scrollbar-width:none;margin-bottom:15px}.catTabs button{white-space:nowrap;border:1px solid #E1E4DD;background:#fff;border-radius:999px;padding:9px 12px;font-size:9px}.catTabs button.on{background:#0E100F;color:#fff}
-      .group{margin:15px 0}.groupHead{display:flex;align-items:center;margin-bottom:8px}.groupHead b{font-size:14px}.groupHead span{margin-left:auto;color:#8B908B;font-size:9px}.items{background:#fff;border:1px solid #E7E9E3;border-radius:17px;overflow:hidden}.item{width:100%;display:grid;grid-template-columns:48px 1fr auto 22px;gap:9px;align-items:center;text-align:left;border:0;border-bottom:1px solid #ECEEE8;background:#fff;padding:12px}.item:last-child{border-bottom:0}.foodImg{width:46px;height:46px;border-radius:12px;background:#F4F5F1;object-fit:contain;display:block}.foodImgEmpty{width:46px;height:46px;border-radius:12px;background:#F4F5F1}.item em{display:block;color:#789315;font-size:8px;font-style:normal;font-weight:800;margin-top:4px}.item b{font-size:11px}.item small{display:block;color:#8B908B;font-size:9px;margin-top:2px}.price{font-size:9px;font-weight:900}.check{width:20px;height:20px;border:1.5px solid #AEB3AE;border-radius:6px;display:grid;place-items:center}.check.y{background:#c8ff00;border-color:#0E100F}
+      .group{margin:15px 0}.groupHead{display:flex;align-items:center;margin-bottom:8px}.groupHead b{font-size:14px}.groupHead span{margin-left:auto;color:#8B908B;font-size:9px}.items{background:#fff;border:1px solid #E7E9E3;border-radius:17px;overflow:hidden}.item{width:100%;display:grid;grid-template-columns:1fr auto 22px;gap:9px;align-items:center;text-align:left;border:0;border-bottom:1px solid #ECEEE8;background:#fff;padding:12px}.item:last-child{border-bottom:0}.foodImg{width:46px;height:46px;border-radius:12px;background:#F4F5F1;object-fit:contain;display:block}.foodImgEmpty{width:46px;height:46px;border-radius:12px;background:#F4F5F1}.item em{display:block;color:#789315;font-size:8px;font-style:normal;font-weight:800;margin-top:4px}.item b{font-size:11px}.item small{display:block;color:#8B908B;font-size:9px;margin-top:2px}.price{font-size:9px;font-weight:900}.check{width:20px;height:20px;border:1.5px solid #AEB3AE;border-radius:6px;display:grid;place-items:center}.check.y{background:#c8ff00;border-color:#0E100F}
     `}</style>
 
     <header className="head"><div className="headin"><div className="top">
@@ -369,8 +292,8 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
 
     <main className="main">
       {!['generating','list'].includes(step)&&<>
-        <div className="progressTop"><span>COURSES NOXAI</span><span>{({mode:1,setup:2,budget:3,store:4,prefs:5,review:6} as any)[step]} / 6</span></div>
-        <div className="progressTrack"><div className="progressFill" style={{width:`${((({mode:1,setup:2,budget:3,store:4,prefs:5,review:6} as any)[step]||1)/6)*100}%`}}/></div>
+        <div className="progressTop"><span>COURSES NOXAI</span><span>{({mode:1,setup:2,budget:3,prefs:4,review:5} as any)[step]} / 5</span></div>
+        <div className="progressTrack"><div className="progressFill" style={{width:`${((({mode:1,setup:2,budget:3,prefs:4,review:5} as any)[step]||1)/5)*100}%`}}/></div>
       </>}
 
       {step==='mode'&&<>
@@ -395,20 +318,12 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       {step==='budget'&&<>
         <div className="eyebrow">ÉTAPE 3</div><h1>Ton budget maximum</h1><p className="lead">Indique l’enveloppe à ne pas dépasser. NOX cherchera la liste la plus cohérente avec ce montant.</p>
         <div className="card"><div className="label">BUDGET POUR {days} JOURS</div><div className="money"><input type="text" inputMode="decimal" autoComplete="off" value={budget} onChange={e=>setBudget(e.currentTarget.value.replace(/[^0-9,.]/g,''))} onInput={e=>setBudget((e.currentTarget as HTMLInputElement).value.replace(/[^0-9,.]/g,''))} placeholder="50"/><span>€</span></div><div className="budgetHints">{[20,40,60,80].map(v=><button type="button" key={v} className={budgetNumber===v?'on':''} onClick={()=>setBudget(String(v))}>{v} €</button>)}</div></div>
-        <p className="lead" style={{fontSize:11}}>Les prix ne seront jamais inventés. Lorsqu’aucune source magasin fiable n’est disponible, NOX affiche « prix indisponible ».</p>
-        <Footer next={()=>setStep('store')} label="CONTINUER" disabled={!canContinueSetup}/>
-      </>}
-
-      {step==='store'&&<>
-        <div className="eyebrow">ÉTAPE 4</div><h1>Où fais-tu tes courses ?</h1><p className="lead">Choisis ton enseigne. La ville permet de mieux cibler les données magasin lorsqu’elles sont disponibles.</p>
-        <div className="search"><span>⌕</span><input value={storeSearch} onChange={e=>setStoreSearch(e.target.value)} placeholder="Rechercher une enseigne…"/></div>
-        <div className="storeGrid">{filteredStores.map(s=><button key={s.name} className={`storeTile ${store.chain===s.name?'on':''}`} onClick={()=>setStore(p=>({...p,chain:s.name}))}>{store.chain===s.name&&<i className="tick">✓</i>}<span className="brand" style={{color:s.brand}}>{s.mark}</span><b>{s.name}</b></button>)}</div>
-        <div className="card" style={{marginTop:12}}><div className="label">VILLE / ZONE</div><input className="input" value={store.city} onChange={e=>setStore(p=>({...p,city:e.target.value}))} placeholder="Ex. Paris 15e, Nancy…"/></div><div className="card" style={{marginTop:12}}><div className="label">CODE POSTAL</div><input className="input" inputMode="numeric" maxLength={5} value={postalCode} onChange={e=>setPostalCode(e.target.value.replace(/\D/g,'').slice(0,5))} placeholder="Ex. 92800"/></div>
-        <Footer next={()=>setStep('prefs')} label="CONTINUER"/>
+        <p className="lead" style={{fontSize:11}}>Les prix affichés sont des estimations NOXAI utilisées pour construire une liste cohérente sans dépasser ton budget.</p>
+        <Footer next={()=>setStep('prefs')} label="CONTINUER" disabled={!canContinueSetup}/>
       </>}
 
       {step==='prefs'&&<>
-        <div className="eyebrow">ÉTAPE 5</div><h1>Tes préférences</h1><p className="lead">On exclut ce qui ne te convient pas et on privilégie les aliments que tu apprécies.</p>
+        <div className="eyebrow">ÉTAPE 4</div><h1>Tes préférences</h1><p className="lead">On exclut ce qui ne te convient pas et on privilégie les aliments que tu apprécies.</p>
         <div className="card"><div className="label">ALLERGIES ET INTOLÉRANCES</div><div className="chips">{ALLERGIES.map(a=><button key={a} className={`chip ${allergies.includes(a)?'on':''}`} onClick={()=>toggleAllergy(a)}>{allergies.includes(a)?'✓ ':''}{a}</button>)}</div><input className="input" style={{marginTop:12}} value={otherAllergy} onChange={e=>setOtherAllergy(e.target.value)} placeholder="Autre allergie…"/></div>
         <div className="card"><div className="label">ALIMENTS AIMÉS</div><input className="input" value={likes} onChange={e=>setLikes(e.target.value)} placeholder="Poulet, riz, tomates…"/></div>
         <div className="card"><div className="label">ALIMENTS REFUSÉS</div><input className="input" value={dislikes} onChange={e=>setDislikes(e.target.value)} placeholder="Poisson…"/></div>
@@ -416,9 +331,9 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       </>}
 
       {step==='review'&&<>
-        <div className="eyebrow">ÉTAPE 6</div><h1>Tout est prêt</h1><p className="lead">Vérifie les informations utilisées par NOX avant de générer ta liste.</p>
+        <div className="eyebrow">ÉTAPE 5</div><h1>Tout est prêt</h1><p className="lead">Vérifie les informations utilisées par NOX avant de générer ta liste.</p>
         <div className="review">
-          <Row l="Mode" v={mode==='empty'?'Frigo vide':'Compléter mon frigo'}/><Row l="Durée" v={`${days} jours`}/><Row l="Personnes" v={String(people)}/><Row l="Budget maximum" v={`${budgetNumber.toFixed(2)} €`}/><Row l="Magasin" v={`${store.chain}${store.city?` · ${store.city}`:''}${postalCode?` · ${postalCode}`:''}`}/><Row l="Objectif NOX" v={goal}/><Row l="Régime" v={diet}/><Row l="Allergies" v={allAllergies.join(', ')||'Aucune'}/>
+          <Row l="Mode" v={mode==='empty'?'Frigo vide':'Compléter mon frigo'}/><Row l="Durée" v={`${days} jours`}/><Row l="Personnes" v={String(people)}/><Row l="Budget maximum" v={`${budgetNumber.toFixed(2)} €`}/><Row l="Objectif NOX" v={goal}/><Row l="Régime" v={diet}/><Row l="Allergies" v={allAllergies.join(', ')||'Aucune'}/>
         </div>
         <Footer next={generate} label="✦  GÉNÉRER MA LISTE"/>
       </>}
@@ -426,10 +341,10 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       {step==='generating'&&<div className="gen"><div className="genIcon">✦</div><h1>NOX prépare ta liste…</h1><p className="lead" style={{textAlign:'center'}}>Analyse de ton profil, de ton budget et de tes préférences.</p><div className="genRows">{['Analyse du profil NOX','Calcul des quantités','Vérification des contraintes','Optimisation du budget','Finalisation'].map((x,i)=><div key={x} className={`genRow ${genStage>i?'done':''}`}>{genStage>i?'✓':'○'} &nbsp; {x}</div>)}</div><div className="genBar"><div style={{width:`${Math.min(100,genStage*20)}%`}}/></div></div>}
 
       {step==='list'&&<>
-        {error?<div className="warning"><b>La liste n’a pas pu être générée.</b><br/>{error}</div>:budgetNotice?<div className="budgetAlert"><div className="budgetAlertTop"><span className="budgetX">×</span><div><b>Budget très serré</b><p>{budgetNotice}</p></div></div><div className="budgetActions"><button onClick={()=>setBudget(String(Math.ceil(totalKnown)))}>UTILISER LE BUDGET NÉCESSAIRE · {Math.ceil(totalKnown)} €</button>{days>3&&<button onClick={()=>{setDays(days===7?5:3);setStep('review');}}>RÉDUIRE LA DURÉE · {days===7?5:3} JOURS</button>}<button onClick={()=>setStep('budget')}>MODIFIER MON BUDGET</button></div></div>:<div className="success"><b>✓ Liste générée</b><br/>{days} jours · {people} personne{people>1?'s':''} · {store.chain}</div>}
+        {error?<div className="warning"><b>La liste n’a pas pu être générée.</b><br/>{error}</div>:budgetNotice?<div className="budgetAlert"><div className="budgetAlertTop"><span className="budgetX">×</span><div><b>Budget très serré</b><p>{budgetNotice}</p></div></div><div className="budgetActions"><button onClick={()=>setBudget(String(Math.ceil(totalKnown)))}>UTILISER LE BUDGET NÉCESSAIRE · {Math.ceil(totalKnown)} €</button>{days>3&&<button onClick={()=>{setDays(days===7?5:3);setStep('review');}}>RÉDUIRE LA DURÉE · {days===7?5:3} JOURS</button>}<button onClick={()=>setStep('budget')}>MODIFIER MON BUDGET</button></div></div>:<div className="success"><b>✓ Liste générée</b><br/>{days} jours · {people} personne{people>1?'s':''}</div>}
         <div className="listTitle">Ma liste de courses</div><div className="listMeta">{items.length} produits · total estimé ≈ {totalKnown.toFixed(2)} € · budget {budgetNumber.toFixed(2)} €</div>
         <div className="catTabs"><button className={activeCategory==='Tous'?'on':''} onClick={()=>setActiveCategory('Tous')}>Tous ({items.length})</button>{grouped.map(g=><button key={g.category} className={activeCategory===g.category?'on':''} onClick={()=>setActiveCategory(g.category)}>{g.category} ({g.items.length})</button>)}</div>
-        {grouped.filter(g=>activeCategory==='Tous'||g.category===activeCategory).map(g=><div className="group" key={g.category}><div className="groupHead"><b>{g.category}</b><span>{g.items.length} produits</span></div><div className="items">{g.items.map(it=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))}>{it.imageUrl?<img className="foodImg" src={it.imageUrl} alt={it.name} loading="lazy" onError={async e=>{const img=e.currentTarget;const fallback=await foodPhoto(it.name);if(fallback&&img.src!==fallback)img.src=fallback;else img.style.visibility='hidden'}}/>:<span className="foodImgEmpty" aria-hidden="true"/>}<span><b style={{textDecoration:it.checked?'line-through':'none'}}>{it.name}</b><small>{it.qty}{it.brand?` · ${it.brand}`:''}{it.note?` · ${it.note}`:''}</small>{it.priceSource&&<em>{it.priceSource==='Estimation NOXAI'?'Prix estimé · NOXAI':`Prix vérifié · ${it.priceSource}${it.priceDate?` · ${it.priceDate}`:''}`}</em>}</span><span className="price">{typeof it.price==='number'?`${it.priceSource==='Estimation NOXAI'?'≈ ':''}${it.price.toFixed(2)} €`:'—'}</span><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span></button>)}</div></div>)}
+        {grouped.filter(g=>activeCategory==='Tous'||g.category===activeCategory).map(g=><div className="group" key={g.category}><div className="groupHead"><b>{g.category}</b><span>{g.items.length} produits</span></div><div className="items">{g.items.map(it=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))}><span><b style={{textDecoration:it.checked?'line-through':'none'}}>{it.name}</b><small>{it.qty}{it.note?` · ${it.note}`:''}</small></span><span className="price">{typeof it.price==='number'?`≈ ${it.price.toFixed(2)} €`:'—'}</span><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span></button>)}</div></div>)}
         <div className="footer"><div className="footerIn"><button className="secondary" onClick={()=>setStep('review')}>‹</button><button className="primary" onClick={()=>navigate('/fuel')}>{progress===100?'TERMINÉ ✓':`${progress}% COCHÉ`}</button></div></div>
       </>}
     </main>
