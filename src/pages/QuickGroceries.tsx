@@ -57,113 +57,57 @@ const inputStyle:React.CSSProperties = {
 
 const norm=(v:string)=>v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
 
-const importantWords=(v:string)=>norm(v).split(' ').filter(w=>w.length>2&&!['frais','fraiche','frais','complet','completes','bio'].includes(w));
-
-async function findProduct(name:string){
-  try{
-    const wanted=importantWords(name);
-    const u=`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(name)}&search_simple=1&action=process&json=1&page_size=20&fields=code,product_name,generic_name,brands,image_url,image_front_small_url`;
-    const r=await fetch(u); if(!r.ok)return null;
-    const d=await r.json(), ps=Array.isArray(d?.products)?d.products:[];
-    const ranked=ps.filter((p:any)=>p?.code).map((p:any)=>{
-      const label=norm(`${p.product_name||''} ${p.generic_name||''}`);
-      const matched=wanted.filter(w=>label.includes(w)).length;
-      const coverage=wanted.length?matched/wanted.length:0;
-      return {p,coverage};
-    }).filter((x:any)=>x.coverage>=0.8).sort((a:any,b:any)=>b.coverage-a.coverage);
-    const p=ranked[0]?.p; if(!p)return null;
-    return {
-      barcode:String(p.code),
-      imageUrl:String(p.image_front_small_url||p.image_url||''),
-      brand:String(p.brands||'')
-    };
-  }catch{return null}
-}
-
-const sameChain=(chain:string, location:any)=>{
-  const wanted=norm(chain.replace('Carrefour Market','Carrefour').replace('E.Leclerc','Leclerc'));
-  const hay=norm(`${location?.osm_brand||''} ${location?.osm_name||''} ${location?.osm_display_name||''}`);
-  if(wanted==='carrefour') return hay.includes('carrefour');
-  if(wanted==='leclerc') return hay.includes('leclerc');
-  if(wanted==='super u') return hay.includes('super u')||hay.includes('hyper u')||hay.includes('u express');
-  return hay.includes(wanted);
+const FOOD_IMAGES:Record<string,string> = {
+  'banane':'https://images.unsplash.com/photo-1603833665858-e61d17a86224?auto=format&fit=crop&w=180&q=80',
+  'bananes':'https://images.unsplash.com/photo-1603833665858-e61d17a86224?auto=format&fit=crop&w=180&q=80',
+  'pomme':'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=180&q=80',
+  'pommes':'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=180&q=80',
+  'tomate':'https://images.unsplash.com/photo-1546470427-e26264be0b0d?auto=format&fit=crop&w=180&q=80',
+  'tomates':'https://images.unsplash.com/photo-1546470427-e26264be0b0d?auto=format&fit=crop&w=180&q=80',
+  'carotte':'https://images.unsplash.com/photo-1447175008436-054170c2e979?auto=format&fit=crop&w=180&q=80',
+  'carottes':'https://images.unsplash.com/photo-1447175008436-054170c2e979?auto=format&fit=crop&w=180&q=80',
+  'brocoli':'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?auto=format&fit=crop&w=180&q=80',
+  'brocolis':'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?auto=format&fit=crop&w=180&q=80',
+  'oignon':'https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=180&q=80',
+  'oignons':'https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=180&q=80',
+  'pomme de terre':'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=180&q=80',
+  'pommes de terre':'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=180&q=80',
+  'oeuf':'https://images.unsplash.com/photo-1506976785307-8732e854ad03?auto=format&fit=crop&w=180&q=80',
+  'oeufs':'https://images.unsplash.com/photo-1506976785307-8732e854ad03?auto=format&fit=crop&w=180&q=80',
+  'œuf':'https://images.unsplash.com/photo-1506976785307-8732e854ad03?auto=format&fit=crop&w=180&q=80',
+  'œufs':'https://images.unsplash.com/photo-1506976785307-8732e854ad03?auto=format&fit=crop&w=180&q=80',
+  'saumon':'https://images.unsplash.com/photo-1599084993091-1cb5c0721cc6?auto=format&fit=crop&w=180&q=80',
+  'riz':'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=180&q=80',
+  'riz basmati':'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=180&q=80',
+  'pates':'https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=180&q=80',
+  'pâtes':'https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=180&q=80',
+  'pain':'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=180&q=80',
+  'poulet':'https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=180&q=80',
+  'blanc de poulet':'https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=180&q=80',
+  'thon':'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=180&q=80'
 };
 
-async function findPrice(barcode:string,chain:string,city:string){
-  try{
-    const r=await fetch(`https://prices.openfoodfacts.org/api/v1/prices?product_code=${encodeURIComponent(barcode)}&size=100&order_by=-date`);
-    if(!r.ok)return null;
-    const d=await r.json();
-    const rows=Array.isArray(d?.items)?d.items:[];
-    const valid=rows.filter((x:any)=>typeof x?.price==='number'&&String(x?.currency||'EUR')==='EUR'&&sameChain(chain,x?.location||{}));
-    if(!valid.length)return null;
-
-    // La ville est prioritaire, mais on ne jette plus tous les prix de l'enseigne
-    // si Open Prices n'a pas encore de relevé dans cette ville.
-    const cityN=norm(city);
-    const local=cityN?valid.filter((x:any)=>{
-      const l=x?.location||{};
-      return norm(`${l.osm_address_city||''} ${l.osm_display_name||''}`).includes(cityN);
-    }):[];
-    const hit=(local.length?local:valid)[0];
-
-    return {
-      price:Number(hit.price),
-      priceSource:local.length?'Open Prices · magasin local':'Open Prices · enseigne',
-      priceDate:String(hit.date||'')
-    };
-  }catch{return null}
-}
-
-async function findPriceByName(name:string,chain:string,city:string){
-  try{
-    // Secours: cherche dans les prix récents de l'enseigne quand le code-barres
-    // choisi par Open Food Facts n'a aucun relevé de prix.
-    const r=await fetch(`https://prices.openfoodfacts.org/api/v1/prices?size=100&order_by=-date`);
-    if(!r.ok)return null;
-    const d=await r.json(), rows=Array.isArray(d?.items)?d.items:[];
-    const wanted=importantWords(name);
-    const candidates=rows.filter((x:any)=>{
-      if(typeof x?.price!=='number'||String(x?.currency||'EUR')!=='EUR'||!sameChain(chain,x?.location||{})) return false;
-      const label=norm(`${x?.product_name||''} ${x?.product?.product_name||''}`);
-      const matched=wanted.filter(w=>label.includes(w)).length;
-      return wanted.length>0 && matched/wanted.length>=0.8;
-    });
-    if(!candidates.length)return null;
-    const cityN=norm(city);
-    const local=cityN?candidates.filter((x:any)=>norm(`${x?.location?.osm_address_city||''} ${x?.location?.osm_display_name||''}`).includes(cityN)):[];
-    const hit=(local.length?local:candidates)[0];
-    return {
-      price:Number(hit.price),
-      priceSource:local.length?'Open Prices · magasin local':'Open Prices · enseigne',
-      priceDate:String(hit.date||''),
-      barcode:String(hit.product_code||hit?.product?.code||''),
-      imageUrl:String(hit?.product?.image_url||''),
-      brand:String(hit?.product?.brands||'')
-    };
-  }catch{return null}
+function genericFoodImage(name:string){
+  const n=norm(name);
+  const keys=Object.keys(FOOD_IMAGES).sort((a,b)=>b.length-a.length);
+  const key=keys.find(k=>n.includes(norm(k)));
+  return key?FOOD_IMAGES[key]:'';
 }
 
 async function enrich(items:GroceryItem[],chain:string,city:string){
-  const out:GroceryItem[]=[];
-  for(let i=0;i<items.length;i+=4){
-    const batch=await Promise.all(items.slice(i,i+4).map(async it=>{
-      const p=await findProduct(it.name);
-      let pr=p?.barcode?await findPrice(p.barcode,chain,city):null;
-      if(!pr) pr=await findPriceByName(it.name,chain,city);
-      return {
-        ...it,
-        barcode:pr?.barcode||p?.barcode,
-        imageUrl:p?.imageUrl||pr?.imageUrl||'',
-        brand:p?.brand||pr?.brand||'',
-        price:pr?.price??null,
-        priceSource:pr?.priceSource,
-        priceDate:pr?.priceDate
-      };
-    }));
-    out.push(...batch);
-  }
-  return out;
+  // Sécurité lancement : aucune correspondance floue produit/prix.
+  // Une image est décorative et générique; elle n'implique aucune marque/référence.
+  // Un prix reste indisponible tant qu'une vraie source magasin ne fournit pas
+  // une référence exacte vérifiable.
+  return items.map(it=>({
+    ...it,
+    imageUrl:genericFoodImage(it.name),
+    barcode:undefined,
+    brand:undefined,
+    price:null,
+    priceSource:undefined,
+    priceDate:undefined
+  }));
 }
 
 export default function QuickGroceries(){
@@ -429,7 +373,7 @@ Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
 
       {step==='list'&&<>
         {!error?<div className="success"><b>✓ Liste générée</b><br/>{days} jours · {people} personne{people>1?'s':''} · {store.chain}</div>:<div className="warning"><b>La liste n’a pas pu être générée.</b><br/>{error}</div>}
-        <div className="listTitle">Ma liste de courses</div><div className="listMeta">{items.length} produits · {pricedCount?`${pricedCount} prix réels trouvés chez ${store.chain}`:'aucun prix réel trouvé pour ce magasin'}</div>
+        <div className="listTitle">Ma liste de courses</div><div className="listMeta">{items.length} produits · {pricedCount?`${pricedCount} prix vérifiés chez ${store.chain}`:'prix magasin indisponibles'}</div>
         <div className="catTabs"><button className={activeCategory==='Tous'?'on':''} onClick={()=>setActiveCategory('Tous')}>Tous ({items.length})</button>{grouped.map(g=><button key={g.category} className={activeCategory===g.category?'on':''} onClick={()=>setActiveCategory(g.category)}>{g.category} ({g.items.length})</button>)}</div>
         {grouped.filter(g=>activeCategory==='Tous'||g.category===activeCategory).map(g=><div className="group" key={g.category}><div className="groupHead"><b>{g.category}</b><span>{g.items.length} produits</span></div><div className="items">{g.items.map(it=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))}>{it.imageUrl?<img className="foodImg" src={it.imageUrl} alt="" loading="lazy"/>:<span className="foodFallback">NOX</span>}<span><b style={{textDecoration:it.checked?'line-through':'none'}}>{it.name}</b><small>{it.qty}{it.brand?` · ${it.brand}`:''}{it.note?` · ${it.note}`:''}</small>{it.priceSource&&<em>Prix relevé · {it.priceSource}{it.priceDate?` · ${it.priceDate}`:''}</em>}</span><span className="price">{typeof it.price==='number'?`${it.price.toFixed(2)} €`:'—'}</span><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span></button>)}</div></div>)}
         <div className="footer"><div className="footerIn"><button className="secondary" onClick={()=>setStep('review')}>‹</button><button className="primary" onClick={()=>navigate('/fuel')}>{progress===100?'TERMINÉ ✓':`${progress}% COCHÉ`}</button></div></div>
