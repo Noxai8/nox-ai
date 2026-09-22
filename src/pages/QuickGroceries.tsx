@@ -57,37 +57,111 @@ const inputStyle:React.CSSProperties = {
 
 const norm=(v:string)=>v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
 
+const importantWords=(v:string)=>norm(v).split(' ').filter(w=>w.length>2&&!['frais','fraiche','frais','complet','completes','bio'].includes(w));
+
 async function findProduct(name:string){
   try{
-    const u=`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(name)}&search_simple=1&action=process&json=1&page_size=5&fields=code,product_name,brands,image_url,image_front_small_url`;
+    const wanted=importantWords(name);
+    const u=`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(name)}&search_simple=1&action=process&json=1&page_size=20&fields=code,product_name,generic_name,brands,image_url,image_front_small_url`;
     const r=await fetch(u); if(!r.ok)return null;
     const d=await r.json(), ps=Array.isArray(d?.products)?d.products:[];
-    const wanted=norm(name);
-    const ranked=ps.filter((p:any)=>p?.code&&(p?.image_front_small_url||p?.image_url)).map((p:any)=>({p,s:norm(String(p.product_name||'')).includes(wanted)?2:1})).sort((a:any,b:any)=>b.s-a.s);
+    const ranked=ps.filter((p:any)=>p?.code).map((p:any)=>{
+      const label=norm(`${p.product_name||''} ${p.generic_name||''}`);
+      const matched=wanted.filter(w=>label.includes(w)).length;
+      const coverage=wanted.length?matched/wanted.length:0;
+      return {p,coverage};
+    }).filter((x:any)=>x.coverage>=0.8).sort((a:any,b:any)=>b.coverage-a.coverage);
     const p=ranked[0]?.p; if(!p)return null;
-    return {barcode:String(p.code),imageUrl:String(p.image_front_small_url||p.image_url),brand:String(p.brands||'')};
+    return {
+      barcode:String(p.code),
+      imageUrl:String(p.image_front_small_url||p.image_url||''),
+      brand:String(p.brands||'')
+    };
   }catch{return null}
 }
+
+const sameChain=(chain:string, location:any)=>{
+  const wanted=norm(chain.replace('Carrefour Market','Carrefour').replace('E.Leclerc','Leclerc'));
+  const hay=norm(`${location?.osm_brand||''} ${location?.osm_name||''} ${location?.osm_display_name||''}`);
+  if(wanted==='carrefour') return hay.includes('carrefour');
+  if(wanted==='leclerc') return hay.includes('leclerc');
+  if(wanted==='super u') return hay.includes('super u')||hay.includes('hyper u')||hay.includes('u express');
+  return hay.includes(wanted);
+};
+
 async function findPrice(barcode:string,chain:string,city:string){
   try{
-    const r=await fetch(`https://prices.openfoodfacts.org/api/v1/prices?product_code=${encodeURIComponent(barcode)}&size=50&order_by=-date`);
-    if(!r.ok)return null; const d=await r.json(), rows=Array.isArray(d?.items)?d.items:[];
-    const cn=norm(chain.replace('Carrefour Market','Carrefour')), cityn=norm(city);
-    const hit=rows.find((x:any)=>{
-      const l=x?.location||{}, b=norm(String(l.osm_brand||l.osm_name||l.osm_display_name||'')), p=norm(String(l.osm_address_city||l.osm_display_name||''));
-      return (b.includes(cn)||cn.includes(b))&&(!cityn||p.includes(cityn)||cityn.includes(p))&&typeof x?.price==='number'&&String(x?.currency||'EUR')==='EUR';
-    });
-    return hit?{price:Number(hit.price),priceSource:'Open Prices',priceDate:String(hit.date||'')}:null;
+    const r=await fetch(`https://prices.openfoodfacts.org/api/v1/prices?product_code=${encodeURIComponent(barcode)}&size=100&order_by=-date`);
+    if(!r.ok)return null;
+    const d=await r.json();
+    const rows=Array.isArray(d?.items)?d.items:[];
+    const valid=rows.filter((x:any)=>typeof x?.price==='number'&&String(x?.currency||'EUR')==='EUR'&&sameChain(chain,x?.location||{}));
+    if(!valid.length)return null;
+
+    // La ville est prioritaire, mais on ne jette plus tous les prix de l'enseigne
+    // si Open Prices n'a pas encore de relevé dans cette ville.
+    const cityN=norm(city);
+    const local=cityN?valid.filter((x:any)=>{
+      const l=x?.location||{};
+      return norm(`${l.osm_address_city||''} ${l.osm_display_name||''}`).includes(cityN);
+    }):[];
+    const hit=(local.length?local:valid)[0];
+
+    return {
+      price:Number(hit.price),
+      priceSource:local.length?'Open Prices · magasin local':'Open Prices · enseigne',
+      priceDate:String(hit.date||'')
+    };
   }catch{return null}
 }
+
+async function findPriceByName(name:string,chain:string,city:string){
+  try{
+    // Secours: cherche dans les prix récents de l'enseigne quand le code-barres
+    // choisi par Open Food Facts n'a aucun relevé de prix.
+    const r=await fetch(`https://prices.openfoodfacts.org/api/v1/prices?size=100&order_by=-date`);
+    if(!r.ok)return null;
+    const d=await r.json(), rows=Array.isArray(d?.items)?d.items:[];
+    const wanted=importantWords(name);
+    const candidates=rows.filter((x:any)=>{
+      if(typeof x?.price!=='number'||String(x?.currency||'EUR')!=='EUR'||!sameChain(chain,x?.location||{})) return false;
+      const label=norm(`${x?.product_name||''} ${x?.product?.product_name||''}`);
+      const matched=wanted.filter(w=>label.includes(w)).length;
+      return wanted.length>0 && matched/wanted.length>=0.8;
+    });
+    if(!candidates.length)return null;
+    const cityN=norm(city);
+    const local=cityN?candidates.filter((x:any)=>norm(`${x?.location?.osm_address_city||''} ${x?.location?.osm_display_name||''}`).includes(cityN)):[];
+    const hit=(local.length?local:candidates)[0];
+    return {
+      price:Number(hit.price),
+      priceSource:local.length?'Open Prices · magasin local':'Open Prices · enseigne',
+      priceDate:String(hit.date||''),
+      barcode:String(hit.product_code||hit?.product?.code||''),
+      imageUrl:String(hit?.product?.image_url||''),
+      brand:String(hit?.product?.brands||'')
+    };
+  }catch{return null}
+}
+
 async function enrich(items:GroceryItem[],chain:string,city:string){
   const out:GroceryItem[]=[];
   for(let i=0;i<items.length;i+=4){
     const batch=await Promise.all(items.slice(i,i+4).map(async it=>{
-      const p=await findProduct(it.name); if(!p)return it;
-      const pr=await findPrice(p.barcode,chain,city);
-      return {...it,...p,price:pr?.price??null,priceSource:pr?.priceSource,priceDate:pr?.priceDate};
-    })); out.push(...batch);
+      const p=await findProduct(it.name);
+      let pr=p?.barcode?await findPrice(p.barcode,chain,city):null;
+      if(!pr) pr=await findPriceByName(it.name,chain,city);
+      return {
+        ...it,
+        barcode:pr?.barcode||p?.barcode,
+        imageUrl:p?.imageUrl||pr?.imageUrl||'',
+        brand:p?.brand||pr?.brand||'',
+        price:pr?.price??null,
+        priceSource:pr?.priceSource,
+        priceDate:pr?.priceDate
+      };
+    }));
+    out.push(...batch);
   }
   return out;
 }
