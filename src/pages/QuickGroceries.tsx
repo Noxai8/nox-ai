@@ -16,7 +16,7 @@ type Step = 'mode' | 'setup' | 'budget' | 'store' | 'prefs' | 'review' | 'genera
 type Store = { chain:string; city:string };
 type Profile = { goal_type?:string; diet_preferences?:string[] };
 type Target = { calories?:number; protein_g?:number; carbs_g?:number; fat_g?:number };
-type GroceryItem = { id:string; name:string; qty:string; category:string; note?:string; checked?:boolean; price?:number|null; priceSource?:string };
+type GroceryItem = { id:string; name:string; qty:string; category:string; note?:string; checked?:boolean; price?:number|null; priceSource?:string; imageUrl?:string; barcode?:string; brand?:string; priceDate?:string };
 
 const ALLERGIES = ['Arachides','Fruits à coque','Lait','Œufs','Gluten','Soja','Poisson','Crustacés','Sésame','Moutarde'];
 const CATEGORIES = ['Fruits & légumes','Protéines','Féculents','Produits frais','Épicerie','Petit-déjeuner','Autres'];
@@ -53,6 +53,44 @@ const inputStyle:React.CSSProperties = {
   border:`1px solid ${BORDER}`, borderRadius:16, background:'#FAFBF7',
   color:DARK, fontSize:15, outline:'none'
 };
+
+
+const norm=(v:string)=>v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+
+async function findProduct(name:string){
+  try{
+    const u=`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(name)}&search_simple=1&action=process&json=1&page_size=5&fields=code,product_name,brands,image_url,image_front_small_url`;
+    const r=await fetch(u); if(!r.ok)return null;
+    const d=await r.json(), ps=Array.isArray(d?.products)?d.products:[];
+    const wanted=norm(name);
+    const ranked=ps.filter((p:any)=>p?.code&&(p?.image_front_small_url||p?.image_url)).map((p:any)=>({p,s:norm(String(p.product_name||'')).includes(wanted)?2:1})).sort((a:any,b:any)=>b.s-a.s);
+    const p=ranked[0]?.p; if(!p)return null;
+    return {barcode:String(p.code),imageUrl:String(p.image_front_small_url||p.image_url),brand:String(p.brands||'')};
+  }catch{return null}
+}
+async function findPrice(barcode:string,chain:string,city:string){
+  try{
+    const r=await fetch(`https://prices.openfoodfacts.org/api/v1/prices?product_code=${encodeURIComponent(barcode)}&size=50&order_by=-date`);
+    if(!r.ok)return null; const d=await r.json(), rows=Array.isArray(d?.items)?d.items:[];
+    const cn=norm(chain.replace('Carrefour Market','Carrefour')), cityn=norm(city);
+    const hit=rows.find((x:any)=>{
+      const l=x?.location||{}, b=norm(String(l.osm_brand||l.osm_name||l.osm_display_name||'')), p=norm(String(l.osm_address_city||l.osm_display_name||''));
+      return (b.includes(cn)||cn.includes(b))&&(!cityn||p.includes(cityn)||cityn.includes(p))&&typeof x?.price==='number'&&String(x?.currency||'EUR')==='EUR';
+    });
+    return hit?{price:Number(hit.price),priceSource:'Open Prices',priceDate:String(hit.date||'')}:null;
+  }catch{return null}
+}
+async function enrich(items:GroceryItem[],chain:string,city:string){
+  const out:GroceryItem[]=[];
+  for(let i=0;i<items.length;i+=4){
+    const batch=await Promise.all(items.slice(i,i+4).map(async it=>{
+      const p=await findProduct(it.name); if(!p)return it;
+      const pr=await findPrice(p.barcode,chain,city);
+      return {...it,...p,price:pr?.price??null,priceSource:pr?.priceSource,priceDate:pr?.priceDate};
+    })); out.push(...batch);
+  }
+  return out;
+}
 
 export default function QuickGroceries(){
   const navigate = useNavigate();
@@ -189,7 +227,7 @@ Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
         }));
 
       if(!clean.length) throw new Error('Liste vide');
-      setItems(clean);
+      setItems(await enrich(clean,store.chain,store.city));
     }catch(e:any){
       setError(e?.message||"Impossible de générer la liste.");
       setItems([]);
@@ -237,7 +275,7 @@ Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
       .dayGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.day{border:1px solid #E1E4DD;background:#fff;border-radius:15px;padding:15px 8px;font-weight:900}.day.on{background:#0E100F;color:#c8ff00;border-color:#0E100F}
       .people{height:70px;background:#F7F8F4;border-radius:17px;display:grid;grid-template-columns:52px 1fr 52px;align-items:center;text-align:center}.round{width:42px;height:42px;margin:auto;border:1px solid #E1E4DD;border-radius:13px;background:#fff;font-size:22px}.people strong{font-size:25px}
       .money{position:relative}.money input,.input{width:100%;border:1px solid #E1E4DD;background:#fff;border-radius:18px;padding:17px;outline:0;font-size:16px}.money input{padding-right:50px;font-size:27px;font-weight:900}.money span{position:absolute;right:19px;top:18px;font-size:24px;font-weight:900}
-      .budgetHints{display:flex;gap:7px;margin-top:10px}.budgetHints button{border:1px solid #E1E4DD;background:#fff;border-radius:999px;padding:8px 13px;font-size:10px;font-weight:850}
+      .budgetHints{display:flex;gap:7px;margin-top:10px}.budgetHints button{border:1px solid #E1E4DD;background:#fff;border-radius:999px;padding:8px 13px;font-size:10px;font-weight:850}.budgetHints button.on{background:#0E100F;color:#c8ff00;border-color:#0E100F}
       .search{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #E1E4DD;border-radius:15px;padding:0 13px;height:47px;margin-bottom:13px}.search input{width:100%;border:0;outline:0;background:transparent}
       .storeGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.storeTile{height:105px;border:1px solid #E1E4DD;background:#fff;border-radius:17px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;position:relative}.storeTile.on{border:2px solid #A7D72E;background:#FBFFF1}.brand{width:43px;height:43px;border-radius:12px;background:#F5F6F2;display:grid;place-items:center;font-size:18px;font-weight:950}.storeTile b{font-size:9px}
       .chips{display:flex;gap:7px;flex-wrap:wrap}.chip{border:1px solid #E1E4DD;background:#fff;border-radius:999px;padding:9px 11px;font-size:10px;font-weight:800}.chip.on{background:#0E100F;color:#c8ff00;border-color:#0E100F}
@@ -248,7 +286,7 @@ Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
       .gen{min-height:67vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}.genIcon{width:112px;height:112px;border-radius:50%;background:#E9FFC4;display:grid;place-items:center;font-size:44px;margin-bottom:22px}.gen h1{font-size:25px}.genRows{width:100%;margin-top:18px;text-align:left}.genRow{padding:9px 0;color:#8B908B;font-size:11px}.genRow.done{color:#0E100F;font-weight:800}.genBar{width:100%;height:7px;background:#E2E5DE;border-radius:99px;overflow:hidden;margin-top:16px}.genBar div{height:100%;background:#A7D72E}
       .success,.warning{border-radius:17px;padding:14px;margin-bottom:16px;font-size:11px}.success{background:#EEFFE5;border:1px solid #D3EFC4}.warning{background:#FFF8E8;border:1px solid #EED49B;color:#765820}
       .listTitle{font-size:27px;font-weight:950}.listMeta{color:#7E837E;font-size:10px;margin:4px 0 14px}.catTabs{display:flex;gap:7px;overflow:auto;scrollbar-width:none;margin-bottom:15px}.catTabs button{white-space:nowrap;border:1px solid #E1E4DD;background:#fff;border-radius:999px;padding:9px 12px;font-size:9px}.catTabs button.on{background:#0E100F;color:#fff}
-      .group{margin:15px 0}.groupHead{display:flex;align-items:center;margin-bottom:8px}.groupHead b{font-size:14px}.groupHead span{margin-left:auto;color:#8B908B;font-size:9px}.items{background:#fff;border:1px solid #E7E9E3;border-radius:17px;overflow:hidden}.item{width:100%;display:grid;grid-template-columns:1fr auto 22px;gap:9px;align-items:center;text-align:left;border:0;border-bottom:1px solid #ECEEE8;background:#fff;padding:12px}.item:last-child{border-bottom:0}.item b{font-size:11px}.item small{display:block;color:#8B908B;font-size:9px;margin-top:2px}.price{font-size:9px;font-weight:900}.check{width:20px;height:20px;border:1.5px solid #AEB3AE;border-radius:6px;display:grid;place-items:center}.check.y{background:#c8ff00;border-color:#0E100F}
+      .group{margin:15px 0}.groupHead{display:flex;align-items:center;margin-bottom:8px}.groupHead b{font-size:14px}.groupHead span{margin-left:auto;color:#8B908B;font-size:9px}.items{background:#fff;border:1px solid #E7E9E3;border-radius:17px;overflow:hidden}.item{width:100%;display:grid;grid-template-columns:48px 1fr auto 22px;gap:9px;align-items:center;text-align:left;border:0;border-bottom:1px solid #ECEEE8;background:#fff;padding:12px}.item:last-child{border-bottom:0}.foodImg,.foodFallback{width:46px;height:46px;border-radius:12px;background:#F4F5F1;object-fit:contain}.foodFallback{display:grid;place-items:center;font-size:8px;font-weight:950;color:#9A9F99}.item em{display:block;color:#789315;font-size:8px;font-style:normal;font-weight:800;margin-top:4px}.item b{font-size:11px}.item small{display:block;color:#8B908B;font-size:9px;margin-top:2px}.price{font-size:9px;font-weight:900}.check{width:20px;height:20px;border:1.5px solid #AEB3AE;border-radius:6px;display:grid;place-items:center}.check.y{background:#c8ff00;border-color:#0E100F}
     `}</style>
 
     <header className="head"><div className="headin"><div className="top">
@@ -284,7 +322,7 @@ Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
 
       {step==='budget'&&<>
         <div className="eyebrow">ÉTAPE 3</div><h1>Ton budget maximum</h1><p className="lead">Indique l’enveloppe à ne pas dépasser. NOX cherchera la liste la plus cohérente avec ce montant.</p>
-        <div className="card"><div className="label">BUDGET POUR {days} JOURS</div><div className="money"><input inputMode="decimal" value={budget} onChange={e=>setBudget(e.target.value.replace(/[^\d,.]/g,''))} placeholder="50"/><span>€</span></div><div className="budgetHints">{[20,40,60,80].map(v=><button key={v} onClick={()=>setBudget(String(v))}>{v} €</button>)}</div></div>
+        <div className="card"><div className="label">BUDGET POUR {days} JOURS</div><div className="money"><input type="text" inputMode="decimal" autoComplete="off" value={budget} onChange={e=>setBudget(e.currentTarget.value.replace(/[^0-9,.]/g,''))} onInput={e=>setBudget((e.currentTarget as HTMLInputElement).value.replace(/[^0-9,.]/g,''))} placeholder="50"/><span>€</span></div><div className="budgetHints">{[20,40,60,80].map(v=><button type="button" key={v} className={budgetNumber===v?'on':''} onClick={()=>setBudget(String(v))}>{v} €</button>)}</div></div>
         <p className="lead" style={{fontSize:11}}>Les prix ne seront jamais inventés. Lorsqu’aucune source magasin fiable n’est disponible, NOX affiche « prix indisponible ».</p>
         <Footer next={()=>setStep('store')} label="CONTINUER" disabled={!canContinueSetup}/>
       </>}
@@ -317,9 +355,9 @@ Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
 
       {step==='list'&&<>
         {!error?<div className="success"><b>✓ Liste générée</b><br/>{days} jours · {people} personne{people>1?'s':''} · {store.chain}</div>:<div className="warning"><b>La liste n’a pas pu être générée.</b><br/>{error}</div>}
-        <div className="listTitle">Ma liste de courses</div><div className="listMeta">{items.length} produits · {pricedCount?`${pricedCount} prix disponibles`:'prix magasin indisponibles'}</div>
+        <div className="listTitle">Ma liste de courses</div><div className="listMeta">{items.length} produits · {pricedCount?`${pricedCount} prix réels trouvés chez ${store.chain}`:'aucun prix réel trouvé pour ce magasin'}</div>
         <div className="catTabs"><button className={activeCategory==='Tous'?'on':''} onClick={()=>setActiveCategory('Tous')}>Tous ({items.length})</button>{grouped.map(g=><button key={g.category} className={activeCategory===g.category?'on':''} onClick={()=>setActiveCategory(g.category)}>{g.category} ({g.items.length})</button>)}</div>
-        {grouped.filter(g=>activeCategory==='Tous'||g.category===activeCategory).map(g=><div className="group" key={g.category}><div className="groupHead"><b>{g.category}</b><span>{g.items.length} produits</span></div><div className="items">{g.items.map(it=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))}><span><b style={{textDecoration:it.checked?'line-through':'none'}}>{it.name}</b><small>{it.qty}{it.note?` · ${it.note}`:''}</small></span><span className="price">{typeof it.price==='number'?`${it.price.toFixed(2)} €`:'—'}</span><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span></button>)}</div></div>)}
+        {grouped.filter(g=>activeCategory==='Tous'||g.category===activeCategory).map(g=><div className="group" key={g.category}><div className="groupHead"><b>{g.category}</b><span>{g.items.length} produits</span></div><div className="items">{g.items.map(it=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))}>{it.imageUrl?<img className="foodImg" src={it.imageUrl} alt="" loading="lazy"/>:<span className="foodFallback">NOX</span>}<span><b style={{textDecoration:it.checked?'line-through':'none'}}>{it.name}</b><small>{it.qty}{it.brand?` · ${it.brand}`:''}{it.note?` · ${it.note}`:''}</small>{it.priceSource&&<em>Prix relevé · {it.priceSource}{it.priceDate?` · ${it.priceDate}`:''}</em>}</span><span className="price">{typeof it.price==='number'?`${it.price.toFixed(2)} €`:'—'}</span><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span></button>)}</div></div>)}
         <div className="footer"><div className="footerIn"><button className="secondary" onClick={()=>setStep('review')}>‹</button><button className="primary" onClick={()=>navigate('/fuel')}>{progress===100?'TERMINÉ ✓':`${progress}% COCHÉ`}</button></div></div>
       </>}
     </main>
