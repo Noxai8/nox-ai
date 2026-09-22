@@ -12,7 +12,7 @@ const DARK = '#0E100F';
 const MUTED = '#777D78';
 
 type Mode = 'empty' | 'complete';
-type Step = 'mode' | 'setup' | 'store' | 'prefs' | 'review' | 'generating' | 'list';
+type Step = 'mode' | 'setup' | 'budget' | 'store' | 'prefs' | 'review' | 'generating' | 'list';
 type Store = { chain:string; city:string };
 type Profile = { goal_type?:string; diet_preferences?:string[] };
 type Target = { calories?:number; protein_g?:number; carbs_g?:number; fat_g?:number };
@@ -209,38 +209,46 @@ Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
   const progress=items.length?Math.round(items.filter(i=>i.checked).length/items.length*100):0;
 
   const back=()=>{
-    if(step==='mode'||step==='setup'||step==='prefs') navigate(-1);
-    else if(step==='store'||step==='review') setStep('mode');
-    else if(step==='list') setStep('review');
+    const previous:Partial<Record<Step,Step>> = {
+      setup:'mode', budget:'setup', store:'budget', prefs:'store', review:'prefs', list:'review'
+    };
+    if(step==='mode') navigate(-1);
+    else if(previous[step]) setStep(previous[step]!);
   };
 
   return <div className="qg">
     <style>{`
-      *{box-sizing:border-box}body{margin:0;background:#f7f7f2}
+      *{box-sizing:border-box}body{margin:0;background:#F7F8F2}
       button,input,textarea{font:inherit}
-      .qg{min-height:100vh;background:#fafaf6;color:#0b0c0b;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:96px}
-      .head{position:sticky;top:0;z-index:30;background:rgba(250,250,246,.96);backdrop-filter:blur(18px);border-bottom:1px solid #ecece6}
-      .headin,.main{max-width:430px;margin:auto}.headin{padding:16px 18px 13px}.main{padding:18px}
-      .top{display:grid;grid-template-columns:44px 1fr 44px;align-items:center}.back,.nox{width:42px;height:42px;border-radius:13px;border:1px solid #e4e5df;background:#fff}.back{font-size:28px;line-height:1}.nox{display:grid;place-items:center;background:#0d0e0d;color:#c8ff00;font-size:13px;font-weight:950}
-      .title{text-align:center;font-size:17px;font-weight:900}.subtitle{text-align:center;color:#858984;font-size:10px;margin-top:2px}
-      h1{font-size:30px;line-height:1.03;letter-spacing:-.045em;margin:0}h2{margin:0;font-size:18px;letter-spacing:-.02em}.muted{color:#737873;font-size:12px;line-height:1.45}.label{font-size:10px;font-weight:900;letter-spacing:.02em;margin-bottom:7px}
-      .hero{display:flex;gap:14px;align-items:center;margin:8px 0 18px}.heroIcon{width:58px;height:58px;border-radius:17px;background:linear-gradient(145deg,#eaff9d,#dfff72);display:grid;place-items:center;font-size:29px;flex:0 0 58px}.hero h1{font-size:29px;margin-bottom:5px}
-      .seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid #e5e6e0;border-radius:18px;background:#fff;padding:3px;margin-bottom:18px}.seg button{border:0;border-radius:15px;background:transparent;padding:13px 10px;text-align:left}.seg button.active{background:#0d0e0d;color:#fff}.seg b{display:block;font-size:12px}.seg span{font-size:9px;color:#8a8e89}.seg .active span{color:#b8bbb7}
-      .formCard{background:#fff;border:1px solid #e5e6e0;border-radius:20px;overflow:hidden;margin-bottom:12px;box-shadow:0 4px 18px rgba(0,0,0,.018)}
-      .fieldRow{min-height:72px;display:grid;grid-template-columns:38px 1fr auto;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #ecece7}.fieldRow:last-child{border-bottom:0}.fieldIcon{width:34px;height:34px;border-radius:11px;background:#f4f5f1;display:grid;place-items:center;font-size:16px;font-weight:900}.fieldRow small{display:block;color:#858984;font-size:9px;margin-bottom:3px}.fieldRow b{font-size:12px}.arrow{font-size:20px}.inlineInput{width:100%;border:0;outline:0;background:transparent;color:#0b0c0b;font-weight:800;font-size:13px;padding:0}
-      .days{display:flex;gap:4px}.mini{border:1px solid #e3e4de;background:#fff;border-radius:10px;padding:7px 8px;font-size:10px;font-weight:850}.mini.on{background:#0d0e0d;color:#c8ff00;border-color:#0d0e0d}
-      .chips{display:flex;gap:6px;flex-wrap:wrap}.chip{border:1px solid #e2e4de;background:#f8f9f5;border-radius:999px;padding:7px 9px;font-size:9px;font-weight:750}.chip.active{background:#0d0e0d;color:#c8ff00;border-color:#0d0e0d}
-      .subCard{background:#fff;border:1px solid #e5e6e0;border-radius:20px;padding:15px;margin-bottom:12px}.input{width:100%;border:1px solid #e3e4de;background:#fafbf7;border-radius:14px;padding:13px;outline:0;font-size:12px}
-      .primary{width:100%;border:0;border-radius:16px;background:#0d0e0d;color:#c8ff00;padding:17px;font-size:13px;font-weight:950}.stickyCTA{position:sticky;bottom:12px;z-index:20;box-shadow:0 12px 28px rgba(0,0,0,.18)}
-      .storeTitle{text-align:center;font-size:17px;font-weight:900;margin:3px 0 16px}.search{height:45px;border:1px solid #e4e5df;background:#fff;border-radius:13px;display:flex;align-items:center;gap:8px;padding:0 12px;margin-bottom:13px}.search input{border:0;outline:0;width:100%;background:transparent;font-size:11px}.storeGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.storeTile{height:101px;position:relative;border:1px solid #e5e6e0;background:#fff;border-radius:15px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}.storeTile.active{border:1.5px solid #65c52d}.storeTile b{font-size:9px}.brandMark{width:45px;height:45px;border-radius:12px;background:#f7f7f4;display:grid;place-items:center;font-weight:950;font-size:18px}.selectedTick{position:absolute;right:6px;top:6px;width:21px;height:21px;border-radius:50%;background:#5abb37;color:#fff;display:grid;place-items:center;font-size:11px}.info{display:flex;gap:10px;background:#edffe6;border:1px solid #d5efca;border-radius:15px;padding:13px;margin:13px 0}.infoIcon{width:29px;height:29px;border-radius:50%;background:#39a94e;color:#fff;display:grid;place-items:center;flex:0 0 29px}.info b{font-size:10px;display:block}.info small{font-size:9px;color:#697068;line-height:1.35;display:block;margin-top:3px}
-      .reviewTop{background:#efffe7;border:1px solid #d6efca;border-radius:16px;padding:14px;margin-bottom:13px}.reviewTop b{font-size:12px}.reviewTop span{display:block;color:#697068;font-size:10px;margin-top:3px}.reviewRow{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #ecece7;font-size:11px}.reviewRow:last-child{border:0}.reviewRow span{color:#7d827d}.reviewRow b{text-align:right}
-      .gen{min-height:68vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:left}.bag{width:128px;height:128px;border-radius:50%;background:#e9ffc9;display:grid;place-items:center;font-size:52px;margin-bottom:24px}.gen h1{text-align:center;font-size:24px;margin-bottom:18px}.genrows{width:100%;max-width:330px}.genrow{font-size:12px;padding:8px 0;color:#777}.genrow.done{color:#222}.genbar{height:8px;background:#e7e8e3;border-radius:99px;overflow:hidden;margin-top:24px;width:100%;max-width:330px}.genbar div{height:100%;background:#62c52f;transition:.3s}.tip{max-width:330px;margin-top:28px;border:1px solid #e7e7e1;border-radius:16px;padding:14px;font-size:10px;color:#777}
-      .success{display:flex;gap:10px;align-items:center;background:#efffe7;border:1px solid #d4efc7;border-radius:15px;padding:12px;margin-bottom:17px}.successIcon{width:35px;height:35px;border-radius:50%;background:#31a94c;color:#fff;display:grid;place-items:center;font-weight:900}.success b{font-size:11px;display:block}.success small{font-size:9px;color:#697068}
-      .listTitle{font-size:25px;font-weight:950;letter-spacing:-.035em}.listMeta{font-size:11px;color:#737873;margin:4px 0 13px}.catTabs{display:flex;gap:7px;overflow:auto;padding-bottom:8px;margin-bottom:6px;scrollbar-width:none}.catTabs button{white-space:nowrap;border:1px solid #e3e4de;background:#fff;border-radius:999px;padding:9px 12px;font-size:9px}.catTabs button.on{background:#0d0e0d;color:#fff;border-color:#0d0e0d}
-      .group{margin:12px 0 18px}.groupHead{display:flex;align-items:center;gap:8px;margin-bottom:7px}.groupIcon{width:31px;height:31px;border-radius:11px;background:#a8f58e;display:grid;place-items:center}.groupHead b{font-size:14px}.groupHead span{margin-left:auto;color:#7d827d;font-size:9px}.items{background:#fff;border-radius:16px;overflow:hidden}.item{width:100%;border:0;border-bottom:1px solid #ecece7;background:#fff;padding:10px 12px;display:grid;grid-template-columns:1fr auto 22px;align-items:center;gap:8px;text-align:left}.item:last-child{border-bottom:0}.item b{font-size:11px}.item small{display:block;color:#838783;font-size:9px;margin-top:2px}.price{font-size:10px;font-weight:850}.check{width:20px;height:20px;border:1.5px solid #aeb3ae;border-radius:5px;display:grid;place-items:center;font-size:10px}.check.y{background:#c8ff00;border-color:#111}
-      .bottomTotal{position:sticky;bottom:10px;background:#101110;color:#fff;border-radius:17px;padding:12px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 12px 30px rgba(0,0,0,.2)}.bottomTotal b{font-size:14px}.bottomTotal small{display:block;color:#bbb;font-size:9px}.bottomTotal button{border:0;background:#c8ff00;border-radius:13px;padding:13px 15px;font-weight:900;font-size:10px}
-      .warning{background:#fff8e8;border:1px solid #efd69c;color:#74561f;border-radius:14px;padding:12px;font-size:10px;line-height:1.4;margin-bottom:12px}
-      @media(min-width:700px){.headin,.main{max-width:430px}}
+      .qg{min-height:100dvh;background:#F7F8F2;color:#0E100F;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+      .head{position:sticky;top:0;z-index:30;background:rgba(247,248,242,.96);backdrop-filter:blur(18px);border-bottom:1px solid #E6E8E1}
+      .headin,.main{max-width:430px;margin:auto}.headin{padding:15px 18px 12px}.main{padding:22px 20px 112px}
+      .top{display:grid;grid-template-columns:44px 1fr 44px;align-items:center}.back,.nox{width:42px;height:42px;border-radius:14px;border:1px solid #E2E5DE;background:#fff}
+      .back{font-size:27px}.nox{display:grid;place-items:center;background:#0E100F;color:#c8ff00;border-color:#0E100F;font-size:13px;font-weight:950}
+      .title{text-align:center;font-size:17px;font-weight:900}.subtitle{text-align:center;color:#8B908B;font-size:10px;margin-top:2px}
+      .progressTop{display:flex;justify-content:space-between;align-items:center;margin:4px 0 10px;color:#8B908B;font-size:10px;font-weight:800}
+      .progressTrack{height:5px;border-radius:99px;background:#E5E7E0;overflow:hidden;margin-bottom:28px}.progressFill{height:100%;background:#0E100F;border-radius:99px;transition:.25s}
+      .eyebrow{font-size:10px;font-weight:950;letter-spacing:.12em;color:#7B9D17;margin-bottom:8px}
+      h1{font-size:31px;line-height:1.03;letter-spacing:-.045em;margin:0 0 9px}.lead{font-size:13px;line-height:1.5;color:#777D78;margin:0 0 26px}
+      .choiceGrid{display:grid;gap:11px}.choice{width:100%;border:1px solid #E1E4DD;background:#fff;border-radius:22px;padding:19px;text-align:left;min-height:126px;position:relative}
+      .choice.on{border:2px solid #A7D72E;background:#F7FFE5}.choiceIcon{width:42px;height:42px;border-radius:13px;background:#F1F4EC;display:grid;place-items:center;font-size:19px;margin-bottom:17px}.choice.on .choiceIcon{background:#EAFEAD}
+      .choice b{display:block;font-size:18px;margin-bottom:6px}.choice span{font-size:11px;color:#7E837E;line-height:1.45}.tick{position:absolute;right:15px;top:15px;width:25px;height:25px;border-radius:50%;background:#0E100F;color:#c8ff00;display:grid;place-items:center;font-size:12px}
+      .card{background:#fff;border:1px solid #E1E4DD;border-radius:22px;padding:18px;margin-bottom:12px}.label{font-size:10px;font-weight:950;letter-spacing:.03em;margin-bottom:10px}
+      .dayGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.day{border:1px solid #E1E4DD;background:#fff;border-radius:15px;padding:15px 8px;font-weight:900}.day.on{background:#0E100F;color:#c8ff00;border-color:#0E100F}
+      .people{height:70px;background:#F7F8F4;border-radius:17px;display:grid;grid-template-columns:52px 1fr 52px;align-items:center;text-align:center}.round{width:42px;height:42px;margin:auto;border:1px solid #E1E4DD;border-radius:13px;background:#fff;font-size:22px}.people strong{font-size:25px}
+      .money{position:relative}.money input,.input{width:100%;border:1px solid #E1E4DD;background:#fff;border-radius:18px;padding:17px;outline:0;font-size:16px}.money input{padding-right:50px;font-size:27px;font-weight:900}.money span{position:absolute;right:19px;top:18px;font-size:24px;font-weight:900}
+      .budgetHints{display:flex;gap:7px;margin-top:10px}.budgetHints button{border:1px solid #E1E4DD;background:#fff;border-radius:999px;padding:8px 13px;font-size:10px;font-weight:850}
+      .search{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #E1E4DD;border-radius:15px;padding:0 13px;height:47px;margin-bottom:13px}.search input{width:100%;border:0;outline:0;background:transparent}
+      .storeGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.storeTile{height:105px;border:1px solid #E1E4DD;background:#fff;border-radius:17px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;position:relative}.storeTile.on{border:2px solid #A7D72E;background:#FBFFF1}.brand{width:43px;height:43px;border-radius:12px;background:#F5F6F2;display:grid;place-items:center;font-size:18px;font-weight:950}.storeTile b{font-size:9px}
+      .chips{display:flex;gap:7px;flex-wrap:wrap}.chip{border:1px solid #E1E4DD;background:#fff;border-radius:999px;padding:9px 11px;font-size:10px;font-weight:800}.chip.on{background:#0E100F;color:#c8ff00;border-color:#0E100F}
+      textarea.input{min-height:86px;resize:vertical}.profileBox{background:#101210;color:#fff;border-radius:20px;padding:17px;margin-bottom:13px}.profileBox small{color:#9DA19D}.profileBox b{color:#c8ff00}
+      .review{background:#fff;border:1px solid #E1E4DD;border-radius:21px;padding:5px 17px}.reviewRow{display:flex;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid #ECEEE8;font-size:11px}.reviewRow:last-child{border:0}.reviewRow span{color:#818681}.reviewRow b{text-align:right}
+      .footer{position:fixed;left:0;right:0;bottom:0;z-index:25;padding:12px 20px max(12px,env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(247,248,242,0),#F7F8F2 26%)}
+      .footerIn{max-width:390px;margin:auto;display:flex;gap:9px}.primary,.secondary{height:55px;border-radius:17px;font-weight:950;font-size:12px}.primary{border:0;background:#0E100F;color:#c8ff00;flex:1}.primary:disabled{opacity:.35}.secondary{width:55px;border:1px solid #E1E4DD;background:#fff}
+      .gen{min-height:67vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}.genIcon{width:112px;height:112px;border-radius:50%;background:#E9FFC4;display:grid;place-items:center;font-size:44px;margin-bottom:22px}.gen h1{font-size:25px}.genRows{width:100%;margin-top:18px;text-align:left}.genRow{padding:9px 0;color:#8B908B;font-size:11px}.genRow.done{color:#0E100F;font-weight:800}.genBar{width:100%;height:7px;background:#E2E5DE;border-radius:99px;overflow:hidden;margin-top:16px}.genBar div{height:100%;background:#A7D72E}
+      .success,.warning{border-radius:17px;padding:14px;margin-bottom:16px;font-size:11px}.success{background:#EEFFE5;border:1px solid #D3EFC4}.warning{background:#FFF8E8;border:1px solid #EED49B;color:#765820}
+      .listTitle{font-size:27px;font-weight:950}.listMeta{color:#7E837E;font-size:10px;margin:4px 0 14px}.catTabs{display:flex;gap:7px;overflow:auto;scrollbar-width:none;margin-bottom:15px}.catTabs button{white-space:nowrap;border:1px solid #E1E4DD;background:#fff;border-radius:999px;padding:9px 12px;font-size:9px}.catTabs button.on{background:#0E100F;color:#fff}
+      .group{margin:15px 0}.groupHead{display:flex;align-items:center;margin-bottom:8px}.groupHead b{font-size:14px}.groupHead span{margin-left:auto;color:#8B908B;font-size:9px}.items{background:#fff;border:1px solid #E7E9E3;border-radius:17px;overflow:hidden}.item{width:100%;display:grid;grid-template-columns:1fr auto 22px;gap:9px;align-items:center;text-align:left;border:0;border-bottom:1px solid #ECEEE8;background:#fff;padding:12px}.item:last-child{border-bottom:0}.item b{font-size:11px}.item small{display:block;color:#8B908B;font-size:9px;margin-top:2px}.price{font-size:9px;font-weight:900}.check{width:20px;height:20px;border:1.5px solid #AEB3AE;border-radius:6px;display:grid;place-items:center}.check.y{background:#c8ff00;border-color:#0E100F}
     `}</style>
 
     <header className="head"><div className="headin"><div className="top">
@@ -250,77 +258,75 @@ Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
     </div></div></header>
 
     <main className="main">
-      {(step==='mode'||step==='setup'||step==='prefs')&&<>
-        <div className="hero">
-          <div className="heroIcon">🛒</div>
-          <div><h1>Course rapide</h1><div className="muted">Une liste de courses personnalisée,<br/>adaptée à ton programme et à ton budget.</div></div>
+      {!['generating','list'].includes(step)&&<>
+        <div className="progressTop"><span>COURSES NOXAI</span><span>{({mode:1,setup:2,budget:3,store:4,prefs:5,review:6} as any)[step]} / 6</span></div>
+        <div className="progressTrack"><div className="progressFill" style={{width:`${((({mode:1,setup:2,budget:3,store:4,prefs:5,review:6} as any)[step]||1)/6)*100}%`}}/></div>
+      </>}
+
+      {step==='mode'&&<>
+        <div className="eyebrow">ÉTAPE 1</div><h1>On part de quoi ?</h1>
+        <p className="lead">Dis à NOX si tu pars de zéro ou si tu veux simplement compléter ce que tu as déjà.</p>
+        <div className="choiceGrid">
+          <button className={`choice ${mode==='empty'?'on':''}`} onClick={()=>setMode('empty')}><span className="choiceIcon">○</span>{mode==='empty'&&<i className="tick">✓</i>}<b>Frigo vide</b><span>Créer toutes les courses nécessaires pour les prochains jours.</span></button>
+          <button className={`choice ${mode==='complete'?'on':''}`} onClick={()=>setMode('complete')}><span className="choiceIcon">＋</span>{mode==='complete'&&<i className="tick">✓</i>}<b>Compléter mon frigo</b><span>Tenir compte de ce que tu as déjà et acheter uniquement ce qui manque.</span></button>
         </div>
+        {mode==='complete'&&<div className="card" style={{marginTop:12}}><div className="label">CE QUE TU AS DÉJÀ</div><textarea className="input" value={fridgeText} onChange={e=>setFridgeText(e.target.value)} placeholder="Ex. 6 œufs, riz, tomates, yaourts…"/></div>}
+        <div className="profileBox" style={{marginTop:13}}><small>Profil NOX utilisé automatiquement</small><div style={{marginTop:7}}><b>{goal}</b> · {diet}</div></div>
+        <Footer next={()=>setStep('setup')} label="CONTINUER"/>
+      </>}
 
-        <div className="seg">
-          <button className={mode==='empty'?'active':''} onClick={()=>setMode('empty')}><b>🛒 &nbsp; Frigo vide</b><span>Liste complète</span></button>
-          <button className={mode==='complete'?'active':''} onClick={()=>setMode('complete')}><b>▣ &nbsp; Compléter le frigo</b><span>Seulement le nécessaire</span></button>
-        </div>
+      {step==='setup'&&<>
+        <div className="eyebrow">ÉTAPE 2</div><h1>Pour combien ?</h1><p className="lead">NOX ajuste les quantités selon la durée et le nombre de personnes.</p>
+        <div className="card"><div className="label">DURÉE</div><div className="dayGrid">{[3,5,7].map(d=><button key={d} className={`day ${days===d?'on':''}`} onClick={()=>setDays(d)}>{d} jours</button>)}</div></div>
+        <div className="card"><div className="label">PERSONNES</div><div className="people"><button className="round" onClick={()=>setPeople(Math.max(1,people-1))}>−</button><strong>{people}</strong><button className="round" onClick={()=>setPeople(Math.min(10,people+1))}>+</button></div></div>
+        <Footer next={()=>setStep('budget')} label="CONTINUER"/>
+      </>}
 
-        <div className="formCard">
-          <div className="fieldRow" onClick={()=>setStep('store')}><span className="fieldIcon">▥</span><div><small>Magasin</small><b>{store.chain}</b></div><span className="arrow">›</span></div>
-          <div className="fieldRow"><span className="fieldIcon">€</span><div><small>Budget maximum</small><input className="inlineInput" inputMode="decimal" value={budget} onChange={e=>setBudget(e.target.value.replace(/[^\d,.]/g,''))} placeholder="20"/></div><b>€</b></div>
-          <div className="fieldRow"><span className="fieldIcon">□</span><div><small>Nombre de jours</small><b>{days} jours</b></div><div className="days">{[3,5,7].map(d=><button key={d} className={`mini ${days===d?'on':''}`} onClick={()=>setDays(d)}>{d}</button>)}</div></div>
-          <div className="fieldRow"><span className="fieldIcon">♙</span><div><small>Nombre de personnes</small><b>{people} personne{people>1?'s':''}</b></div><div className="days"><button className="mini" onClick={()=>setPeople(Math.max(1,people-1))}>−</button><button className="mini" onClick={()=>setPeople(Math.min(10,people+1))}>+</button></div></div>
-          <div className="fieldRow"><span className="fieldIcon">♜</span><div><small>Objectif nutritionnel</small><b>{goal}</b></div><span className="arrow">›</span></div>
-          <div className="fieldRow"><span className="fieldIcon">◇</span><div><small>Régime alimentaire</small><b>{diet}</b></div><span className="arrow">›</span></div>
-        </div>
-
-        {mode==='complete'&&<div className="subCard"><div className="label">CE QUE TU AS DÉJÀ</div><textarea className="input" style={{minHeight:70,resize:'vertical'}} value={fridgeText} onChange={e=>setFridgeText(e.target.value)} placeholder="6 œufs, riz, tomates…"/></div>}
-
-        <div className="subCard">
-          <div className="label">ALLERGIES ET INTOLÉRANCES</div>
-          <div className="chips">{ALLERGIES.map(a=><button key={a} className={`chip ${allergies.includes(a)?'active':''}`} onClick={()=>toggleAllergy(a)}>{allergies.includes(a)?'✓ ':''}{a}</button>)}</div>
-          <input className="input" style={{marginTop:9}} value={otherAllergy} onChange={e=>setOtherAllergy(e.target.value)} placeholder="Autre allergie…"/>
-        </div>
-
-        <div className="formCard">
-          <div className="fieldRow"><span className="fieldIcon">♡</span><div><small>Aliments aimés</small><input className="inlineInput" value={likes} onChange={e=>setLikes(e.target.value)} placeholder="Poulet, riz, tomates…"/></div><span className="arrow">›</span></div>
-          <div className="fieldRow"><span className="fieldIcon">⊘</span><div><small>Aliments refusés</small><input className="inlineInput" value={dislikes} onChange={e=>setDislikes(e.target.value)} placeholder="Poisson…"/></div><span className="arrow">›</span></div>
-        </div>
-
-        <button className="primary stickyCTA" disabled={!canContinueSetup} onClick={()=>setStep('review')}>✦ &nbsp; GÉNÉRER MA LISTE DE COURSES</button>
+      {step==='budget'&&<>
+        <div className="eyebrow">ÉTAPE 3</div><h1>Ton budget maximum</h1><p className="lead">Indique l’enveloppe à ne pas dépasser. NOX cherchera la liste la plus cohérente avec ce montant.</p>
+        <div className="card"><div className="label">BUDGET POUR {days} JOURS</div><div className="money"><input inputMode="decimal" value={budget} onChange={e=>setBudget(e.target.value.replace(/[^\d,.]/g,''))} placeholder="50"/><span>€</span></div><div className="budgetHints">{[20,40,60,80].map(v=><button key={v} onClick={()=>setBudget(String(v))}>{v} €</button>)}</div></div>
+        <p className="lead" style={{fontSize:11}}>Les prix ne seront jamais inventés. Lorsqu’aucune source magasin fiable n’est disponible, NOX affiche « prix indisponible ».</p>
+        <Footer next={()=>setStep('store')} label="CONTINUER" disabled={!canContinueSetup}/>
       </>}
 
       {step==='store'&&<>
-        <div className="storeTitle">Choisir un magasin</div>
+        <div className="eyebrow">ÉTAPE 4</div><h1>Où fais-tu tes courses ?</h1><p className="lead">Choisis ton enseigne. La ville permet de mieux cibler les données magasin lorsqu’elles sont disponibles.</p>
         <div className="search"><span>⌕</span><input value={storeSearch} onChange={e=>setStoreSearch(e.target.value)} placeholder="Rechercher une enseigne…"/></div>
-        <div className="storeGrid">{filteredStores.map(s=><button key={s.name} className={`storeTile ${store.chain===s.name?'active':''}`} onClick={()=>setStore(p=>({...p,chain:s.name}))}>{store.chain===s.name&&<span className="selectedTick">✓</span>}<span className="brandMark" style={{color:s.brand}}>{s.mark}</span><b>{s.name}</b></button>)}</div>
-        <div className="info"><span className="infoIcon">✓</span><div><b>Prix réels et produits de ton magasin</b><small>NOXAI affiche uniquement les prix reliés à une source réelle. Sinon le prix reste indisponible.</small></div></div>
-        <div className="subCard"><div className="label">VILLE / ZONE</div><input className="input" value={store.city} onChange={e=>setStore(p=>({...p,city:e.target.value}))} placeholder="Paris 15e, Toul, Nancy…"/></div>
-        <button className="primary" onClick={()=>setStep('mode')}>CONTINUER</button>
+        <div className="storeGrid">{filteredStores.map(s=><button key={s.name} className={`storeTile ${store.chain===s.name?'on':''}`} onClick={()=>setStore(p=>({...p,chain:s.name}))}>{store.chain===s.name&&<i className="tick">✓</i>}<span className="brand" style={{color:s.brand}}>{s.mark}</span><b>{s.name}</b></button>)}</div>
+        <div className="card" style={{marginTop:12}}><div className="label">VILLE / ZONE</div><input className="input" value={store.city} onChange={e=>setStore(p=>({...p,city:e.target.value}))} placeholder="Ex. Paris 15e, Nancy…"/></div>
+        <Footer next={()=>setStep('prefs')} label="CONTINUER"/>
+      </>}
+
+      {step==='prefs'&&<>
+        <div className="eyebrow">ÉTAPE 5</div><h1>Tes préférences</h1><p className="lead">On exclut ce qui ne te convient pas et on privilégie les aliments que tu apprécies.</p>
+        <div className="card"><div className="label">ALLERGIES ET INTOLÉRANCES</div><div className="chips">{ALLERGIES.map(a=><button key={a} className={`chip ${allergies.includes(a)?'on':''}`} onClick={()=>toggleAllergy(a)}>{allergies.includes(a)?'✓ ':''}{a}</button>)}</div><input className="input" style={{marginTop:12}} value={otherAllergy} onChange={e=>setOtherAllergy(e.target.value)} placeholder="Autre allergie…"/></div>
+        <div className="card"><div className="label">ALIMENTS AIMÉS</div><input className="input" value={likes} onChange={e=>setLikes(e.target.value)} placeholder="Poulet, riz, tomates…"/></div>
+        <div className="card"><div className="label">ALIMENTS REFUSÉS</div><input className="input" value={dislikes} onChange={e=>setDislikes(e.target.value)} placeholder="Poisson…"/></div>
+        <Footer next={()=>setStep('review')} label="VOIR LE RÉCAPITULATIF"/>
       </>}
 
       {step==='review'&&<>
-        <div className="reviewTop"><b>✓ &nbsp; Prêt à générer</b><span>{days} jours · {people} personne{people>1?'s':''} · {store.chain} · {budgetNumber.toFixed(2)} €</span></div>
-        <h1 style={{fontSize:25,marginBottom:12}}>Vérifie ta liste</h1>
-        <div className="subCard">
-          <Row l="Mode" v={mode==='empty'?'Frigo vide':'Compléter le frigo'}/><Row l="Magasin" v={`${store.chain}${store.city?` · ${store.city}`:''}`}/><Row l="Budget" v={`${budgetNumber.toFixed(2)} €`}/><Row l="Durée" v={`${days} jours`}/><Row l="Personnes" v={`${people}`}/><Row l="Objectif" v={goal}/><Row l="Régime" v={diet}/><Row l="Allergies" v={allAllergies.join(', ')||'Aucune'}/>
+        <div className="eyebrow">ÉTAPE 6</div><h1>Tout est prêt</h1><p className="lead">Vérifie les informations utilisées par NOX avant de générer ta liste.</p>
+        <div className="review">
+          <Row l="Mode" v={mode==='empty'?'Frigo vide':'Compléter mon frigo'}/><Row l="Durée" v={`${days} jours`}/><Row l="Personnes" v={String(people)}/><Row l="Budget maximum" v={`${budgetNumber.toFixed(2)} €`}/><Row l="Magasin" v={`${store.chain}${store.city?` · ${store.city}`:''}`}/><Row l="Objectif NOX" v={goal}/><Row l="Régime" v={diet}/><Row l="Allergies" v={allAllergies.join(', ')||'Aucune'}/>
         </div>
-        <button className="primary" onClick={generate}>✦ &nbsp; GÉNÉRER MA LISTE</button>
+        <Footer next={generate} label="✦  GÉNÉRER MA LISTE"/>
       </>}
 
-      {step==='generating'&&<div className="gen">
-        <div className="bag">♧</div><h1>On prépare ta liste de courses…</h1>
-        <div className="genrows">{['Analyse de ton programme','Sélection des produits adaptés','Vérification des contraintes','Optimisation selon ton budget','Finalisation de la liste…'].map((x,i)=><div key={x} className={`genrow ${genStage>i?'done':''}`}>{genStage>i?'✓':'○'} &nbsp; {x}</div>)}</div>
-        <div className="genbar"><div style={{width:`${Math.min(100,genStage*20)}%`}}/></div>
-        <div className="tip">💡 &nbsp; <b>Bon à savoir</b><br/>NOXAI privilégie des produits simples et cohérents avec ton profil. Aucun prix n’est inventé.</div>
-      </div>}
+      {step==='generating'&&<div className="gen"><div className="genIcon">✦</div><h1>NOX prépare ta liste…</h1><p className="lead" style={{textAlign:'center'}}>Analyse de ton profil, de ton budget et de tes préférences.</p><div className="genRows">{['Analyse du profil NOX','Calcul des quantités','Vérification des contraintes','Optimisation du budget','Finalisation'].map((x,i)=><div key={x} className={`genRow ${genStage>i?'done':''}`}>{genStage>i?'✓':'○'} &nbsp; {x}</div>)}</div><div className="genBar"><div style={{width:`${Math.min(100,genStage*20)}%`}}/></div></div>}
 
       {step==='list'&&<>
-        {!error&&<div className="success"><span className="successIcon">✓</span><div><b>Liste générée avec succès !</b><small>{days} jours · {people} personne{people>1?'s':''} · {store.chain} · budget {budgetNumber.toFixed(2)} €</small></div></div>}
-        {error&&<div className="warning"><b>La liste n’a pas pu être générée.</b><br/>{error}</div>}
+        {!error?<div className="success"><b>✓ Liste générée</b><br/>{days} jours · {people} personne{people>1?'s':''} · {store.chain}</div>:<div className="warning"><b>La liste n’a pas pu être générée.</b><br/>{error}</div>}
         <div className="listTitle">Ma liste de courses</div><div className="listMeta">{items.length} produits · {pricedCount?`${pricedCount} prix disponibles`:'prix magasin indisponibles'}</div>
         <div className="catTabs"><button className={activeCategory==='Tous'?'on':''} onClick={()=>setActiveCategory('Tous')}>Tous ({items.length})</button>{grouped.map(g=><button key={g.category} className={activeCategory===g.category?'on':''} onClick={()=>setActiveCategory(g.category)}>{g.category} ({g.items.length})</button>)}</div>
-        {grouped.filter(g=>activeCategory==='Tous'||g.category===activeCategory).map(g=><div className="group" key={g.category}><div className="groupHead"><span className="groupIcon">♧</span><b>{g.category}</b><span>{g.items.length} produits</span></div><div className="items">{g.items.map(it=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))}><span><b style={{textDecoration:it.checked?'line-through':'none'}}>{it.name}</b><small>{it.qty}{it.note?` · ${it.note}`:''}</small></span><span className="price">{typeof it.price==='number'?`${it.price.toFixed(2)} €`:'—'}</span><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span></button>)}</div></div>)}
-        {!error&&<div className="bottomTotal"><div><b>{items.length} produits</b><small>{pricedCount?`Total connu ${totalKnown.toFixed(2)} €`:'Budget max '+budgetNumber.toFixed(2)+' €'}</small></div><button onClick={()=>setStep('review')}>Modifier</button></div>}
+        {grouped.filter(g=>activeCategory==='Tous'||g.category===activeCategory).map(g=><div className="group" key={g.category}><div className="groupHead"><b>{g.category}</b><span>{g.items.length} produits</span></div><div className="items">{g.items.map(it=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))}><span><b style={{textDecoration:it.checked?'line-through':'none'}}>{it.name}</b><small>{it.qty}{it.note?` · ${it.note}`:''}</small></span><span className="price">{typeof it.price==='number'?`${it.price.toFixed(2)} €`:'—'}</span><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span></button>)}</div></div>)}
+        <div className="footer"><div className="footerIn"><button className="secondary" onClick={()=>setStep('review')}>‹</button><button className="primary" onClick={()=>navigate('/fuel')}>{progress===100?'TERMINÉ ✓':`${progress}% COCHÉ`}</button></div></div>
       </>}
     </main>
   </div>;
 }
 
 function Row({l,v}:{l:string;v:string}){return <div className="reviewRow"><span>{l}</span><b>{v}</b></div>}
+function Footer({next,label,disabled=false}:{next:()=>void;label:string;disabled?:boolean}){
+  return <div className="footer"><div className="footerIn"><button className="primary" disabled={disabled} onClick={next}>{label}</button></div></div>;
+}
