@@ -57,72 +57,94 @@ const inputStyle:React.CSSProperties = {
 
 const norm=(v:string)=>v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
 
-const FOOD_PHOTO:Record<string,string>={
-  'banane':'https://images.unsplash.com/photo-1603833665858-e61d17a86224?auto=format&fit=crop&w=160&h=160&q=85',
-  'pomme':'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=160&h=160&q=85',
-  'brocoli':'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?auto=format&fit=crop&w=160&h=160&q=85',
-  'tomate':'https://images.unsplash.com/photo-1546470427-e26264be0b0d?auto=format&fit=crop&w=160&h=160&q=85',
-  'carotte':'https://images.unsplash.com/photo-1447175008436-054170c2e979?auto=format&fit=crop&w=160&h=160&q=85',
-  'pomme de terre':'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=160&h=160&q=85',
-  'oeuf':'https://images.unsplash.com/photo-1506976785307-8732e854ad03?auto=format&fit=crop&w=160&h=160&q=85',
-  'poulet':'https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=160&h=160&q=85',
-  'saumon':'https://images.unsplash.com/photo-1599084993091-1cb5c0721cc6?auto=format&fit=crop&w=160&h=160&q=85',
-  'riz':'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=160&h=160&q=85',
-  'pates':'https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=160&h=160&q=85',
-  'pain':'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=160&h=160&q=85',
-  'lait':'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=160&h=160&q=85',
-  'yaourt':'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=160&h=160&q=85'
+/* Photos contrôlées : jamais de recherche aléatoire par nom.
+   Si un aliment précis n'est pas dans la table, on affiche une photo cohérente avec sa catégorie. */
+const IMG={
+  fruit:'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=180&h=180&q=85',
+  veg:'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=180&h=180&q=85',
+  protein:'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=180&h=180&q=85',
+  starch:'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=180&h=180&q=85',
+  dairy:'https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=180&h=180&q=85',
+  pantry:'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=180&h=180&q=85',
+  breakfast:'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=180&h=180&q=85'
 };
-const PHOTO_KEYS=Object.keys(FOOD_PHOTO).sort((a,b)=>b.length-a.length);
-function foodPhoto(name:string){
-  const n=norm(name);
-  const k=PHOTO_KEYS.find(k=>n.includes(k));
-  // Fallback is intentionally a neutral food photo service query, never used for price matching.
-  return k?FOOD_PHOTO[k]:`https://loremflickr.com/160/160/${encodeURIComponent(n+',food')}?lock=${Math.abs([...n].reduce((a,ch)=>((a<<5)-a)+ch.charCodeAt(0),0))}`;
-}
-
-type EstimateRule={keys:string[]; base:number};
-const ESTIMATE_RULES:EstimateRule[]=[
-  {keys:['banane'],base:2.0},{keys:['pomme'],base:2.8},{keys:['brocoli'],base:2.4},
-  {keys:['haricot vert'],base:3.2},{keys:['tomate'],base:2.7},{keys:['carotte'],base:1.8},
-  {keys:['salade','laitue'],base:1.5},{keys:['pomme de terre'],base:2.2},{keys:['oignon'],base:1.8},
-  {keys:['oeuf'],base:3.2},{keys:['poulet'],base:9.5},{keys:['thon'],base:2.2},{keys:['saumon'],base:6.5},
-  {keys:['riz'],base:2.2},{keys:['pates'],base:1.6},{keys:['pain'],base:2.0},{keys:['lait'],base:1.25},
-  {keys:['yaourt'],base:2.2},{keys:['fromage'],base:3.5},{keys:['avoine','flocon'],base:2.0},
-  {keys:['huile'],base:5.0},{keys:['legumineuse','lentille','pois chiche'],base:2.0}
+const FOOD_PHOTO:{keys:string[];url:string}[]=[
+  {keys:['banane'],url:'https://images.unsplash.com/photo-1603833665858-e61d17a86224?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['pomme de terre'],url:'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['pomme'],url:'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['brocoli'],url:'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['tomate','sauce tomate'],url:'https://images.unsplash.com/photo-1546470427-e26264be0b0d?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['carotte'],url:'https://images.unsplash.com/photo-1447175008436-054170c2e979?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['oignon','ail'],url:'https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['haricot vert'],url:'https://images.unsplash.com/photo-1567375698348-5d9d5ae99de0?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['salade','laitue'],url:'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['oeuf'],url:'https://images.unsplash.com/photo-1506976785307-8732e854ad03?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['poulet'],url:'https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['saumon'],url:'https://images.unsplash.com/photo-1599084993091-1cb5c0721cc6?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['thon'],url:'https://images.unsplash.com/photo-1582454235987-1e597bafcf58?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['riz'],url:'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['pate'],url:'https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['pain'],url:'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['lait'],url:'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['yaourt'],url:'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['fromage blanc','fromage'],url:'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['huile olive','huile d olive'],url:'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['miel'],url:'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['avoine','flocon'],url:'https://images.unsplash.com/photo-1517673132405-a56a62b18caf?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['lentille'],url:'https://images.unsplash.com/photo-1515543904379-3d757afe72e4?auto=format&fit=crop&w=180&h=180&q=85'},
+  {keys:['pois chiche'],url:'https://images.unsplash.com/photo-1515543904379-3d757afe72e4?auto=format&fit=crop&w=180&h=180&q=85'}
 ];
-
-function qtyFactor(qty:string){
-  const q=norm(qty).replace(',','.');
-  const num=parseFloat((q.match(/\d+(?:\.\d+)?/)||['1'])[0]);
-  if(/\bkg\b/.test(q)) return Math.max(.35,num);
-  if(/\bg\b/.test(q)) return Math.max(.25,num/1000);
-  if(/\bl\b/.test(q)) return Math.max(.5,num);
-  if(/\bml\b/.test(q)) return Math.max(.25,num/1000);
-  if(/x\s*\d+/.test(q)||/\boeuf/.test(q)) return Math.max(.5,num/6);
-  return 1;
-}
-function estimatePrice(name:string,qty:string){
+function foodPhoto(name:string,category:string){
   const n=norm(name);
-  const rule=ESTIMATE_RULES.find(r=>r.keys.some(k=>n.includes(k)));
-  const base=rule?.base??2.5;
-  return Math.max(.69,Math.round(base*qtyFactor(qty)*100)/100);
+  const hit=FOOD_PHOTO.find(x=>x.keys.some(k=>n.includes(k)));
+  if(hit)return hit.url;
+  if(category==='Fruits & légumes')return IMG.veg;
+  if(category==='Protéines')return IMG.protein;
+  if(category==='Féculents')return IMG.starch;
+  if(category==='Produits frais')return IMG.dairy;
+  if(category==='Petit-déjeuner')return IMG.breakfast;
+  return IMG.pantry;
 }
 
+function firstNumber(qty:string){
+  const m=String(qty).replace(',','.').match(/\d+(?:\.\d+)?/);
+  return m?Number(m[0]):1;
+}
+type PriceRule={keys:string[];kg?:number;litre?:number;unit?:number;pack?:number};
+const PRICE_RULES:PriceRule[]=[
+ {keys:['banane'],kg:2.0},{keys:['pomme de terre'],kg:2.2},{keys:['pomme'],kg:2.8},{keys:['brocoli'],kg:2.4},
+ {keys:['haricot vert'],kg:3.2},{keys:['tomate'],kg:2.7},{keys:['carotte'],kg:1.8},{keys:['oignon'],kg:1.8},
+ {keys:['salade','laitue'],unit:1.5},{keys:['oeuf'],unit:.28},{keys:['poulet'],kg:9.5},{keys:['thon'],pack:1.7},
+ {keys:['saumon'],kg:18},{keys:['riz'],kg:2.2},{keys:['pate'],kg:1.6},{keys:['pain'],pack:2.0},
+ {keys:['lait'],litre:1.25},{keys:['yaourt'],unit:.45},{keys:['fromage blanc'],kg:3.5},{keys:['fromage'],kg:10},
+ {keys:['huile'],litre:10},{keys:['miel'],kg:12},{keys:['sauce tomate'],pack:1.8},{keys:['avoine','flocon'],kg:3},
+ {keys:['lentille','pois chiche'],kg:3}
+];
+function estimatePrice(name:string,qty:string){
+  const n=norm(name), q=norm(qty), num=firstNumber(qty);
+  const r=PRICE_RULES.find(x=>x.keys.some(k=>n.includes(k)));
+  if(!r)return Math.max(.79,Math.round(2.5*100)/100);
+  let v=2.5;
+  if((q.includes(' kg')||q.endsWith('kg'))&&r.kg)v=num*r.kg;
+  else if((q.includes(' g')||q.endsWith('g'))&&r.kg)v=(num/1000)*r.kg;
+  else if((q.includes('litre')||q.includes(' litre')||q.endsWith(' l'))&&r.litre)v=num*r.litre;
+  else if(q.includes('ml')&&r.litre)v=(num/1000)*r.litre;
+  else if((q.includes('unite')||q.includes('oeuf')||q.includes('pot'))&&r.unit)v=num*r.unit;
+  else if((q.includes('boite')||q.includes('paquet')||q.includes('sachet')||q.includes('bocal'))&&r.pack)v=num*r.pack;
+  else if(r.kg)v=num*r.kg;
+  else if(r.litre)v=num*r.litre;
+  else if(r.unit)v=num*r.unit;
+  else if(r.pack)v=num*r.pack;
+  return Math.max(.69,Math.round(v*100)/100);
+}
 async function enrich(items:GroceryItem[],chain:string,city:string){
-  // Launch behavior: every line gets a coherent food image and a visible estimate.
-  // Estimates are NEVER labelled as store prices. Verified retailer prices can replace them later.
   return items.map(it=>({
     ...it,
-    imageUrl:foodPhoto(it.name),
-    barcode:undefined,
-    brand:undefined,
-    price:estimatePrice(it.name,it.qty),
-    priceSource:'Estimation NOXAI',
-    priceDate:undefined
+    imageUrl:it.imageUrl||foodPhoto(it.name,it.category),
+    price:typeof it.price==='number'?it.price:estimatePrice(it.name,it.qty),
+    priceSource:typeof it.price==='number'?(it.priceSource||`Prix vérifié · ${chain}`):'Estimation NOXAI'
   }));
 }
-
 export default function QuickGroceries(){
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -137,6 +159,7 @@ export default function QuickGroceries(){
   const [days,setDays] = useState(7);
   const [budget,setBudget] = useState('');
   const [store,setStore] = useState<Store>({chain:'Carrefour',city:''});
+  const [postalCode,setPostalCode] = useState('');
   const [storeSearch,setStoreSearch] = useState('');
   const [allergies,setAllergies] = useState<string[]>([]);
   const [otherAllergy,setOtherAllergy] = useState('');
@@ -203,80 +226,81 @@ export default function QuickGroceries(){
   const generate=async()=>{
     setStep('generating'); setGenStage(0); setError('');
     const timers=[400,900,1450,2000].map((ms,i)=>window.setTimeout(()=>setGenStage(i+1),ms));
-
     try{
-      const prompt=`Tu construis une liste de courses NOXAI.
+      const basePrompt=`Tu construis une liste de courses NOXAI.
 MODE: ${mode==='empty'?'FRIGO VIDE : créer toutes les courses nécessaires':'COMPLÉTER LE FRIGO : ne proposer que ce qui manque'}.
 PROFIL DÉJÀ ENREGISTRÉ: objectif=${goal}; alimentation=${diet}.
 CIBLE NUTRITIONNELLE: ${target.calories||'non renseignée'} kcal/j; protéines=${target.protein_g||'non renseigné'} g; glucides=${target.carbs_g||'non renseigné'} g; lipides=${target.fat_g||'non renseigné'} g.
 FOYER: ${people} personne(s). DURÉE: ${days} jours.
-BUDGET MAXIMUM: ${budgetNumber.toFixed(2)} €.
-ENSEIGNE: ${store.chain}. ZONE: ${store.city||'non précisée'}.
+BUDGET MAXIMUM STRICT: ${budgetNumber.toFixed(2)} €.
+ENSEIGNE: ${store.chain}. ZONE: ${store.city||'non précisée'}. CODE POSTAL: ${postalCode||'non précisé'}.
 ALLERGIES/INTOLÉRANCES À EXCLURE: ${allAllergies.join(', ')||'aucune renseignée'}.
 ALIMENTS AIMÉS: ${likes||'non renseignés'}.
 ALIMENTS REFUSÉS: ${dislikes||'aucun renseigné'}.
 CONTENU DU FRIGO DÉCLARÉ: ${mode==='complete'?(fridgeText||'aucun aliment renseigné'):'frigo vide'}.
 
 Contraintes:
-- respecte impérativement allergies, régime, budget, durée, foyer et cible nutritionnelle;
-- en mode compléter, évite d'ajouter les aliments déjà présents en quantité suffisante;
-- privilégie des aliments simples et cohérents avec l'enseigne choisie;
-- n'invente JAMAIS un prix, une promotion, un stock ou une référence magasin;
-- le champ price doit être null si aucun vrai prix n'a été fourni par une source de prix externe;
+- respecte impérativement allergies, régime, durée, foyer et cible nutritionnelle;
+- LE TOTAL DOIT RESTER SOUS LE BUDGET MAXIMUM. Privilégie marques distributeur, aliments simples, saisonniers et économiques;
+- adapte surtout les quantités et remplace les aliments chers par des équivalents nutritionnels moins chers;
+- en mode compléter, évite les aliments déjà présents en quantité suffisante;
+- n'invente jamais un prix magasin, une promotion, un stock ou une référence magasin;
 - pour les produits transformés, ajoute si nécessaire "Vérifier l'étiquette/allergènes".
+Repères de prix pour optimiser le budget: bananes 2€/kg, pommes 2.8€/kg, légumes 1.8-3.2€/kg, poulet 9.5€/kg, œufs 0.28€/unité, thon 1.7€/boîte, riz 2.2€/kg, pâtes 1.6€/kg, lait 1.25€/L, yaourt 0.45€/pot, pain 2€/paquet, huile d'olive 10€/L.
 
 Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
 [{"name":"...","qty":"...","category":"Fruits & légumes|Protéines|Féculents|Produits frais|Épicerie|Petit-déjeuner|Autres","note":"","price":null}]`;
 
-      const { data, error: invokeError } = await supabase.functions.invoke('generate-groceries', {
-        body: { prompt }
-      });
-
-      if (invokeError) {
-        console.error('generate-groceries invoke error:', invokeError);
-        throw new Error(invokeError.message || 'Génération impossible');
-      }
-
-      if (!data) throw new Error('Aucune réponse de generate-groceries');
-      const raw=data?.content?.[0]?.text||data?.data?.content?.[0]?.text||data?.text||'';
-      const cleaned=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
-      const a=cleaned.indexOf('['), b=cleaned.lastIndexOf(']');
-      if(a<0||b<=a) throw new Error('Réponse IA invalide');
-      const parsed=JSON.parse(cleaned.slice(a,b+1));
-
-      const clean:GroceryItem[]=parsed
-        .filter((x:any)=>x?.name&&x?.qty)
-        .slice(0,30)
-        .map((x:any,i:number)=>({
-          id:`ai-${Date.now()}-${i}`,
-          name:String(x.name),
-          qty:String(x.qty),
+      const parseList=(raw:string):GroceryItem[]=>{
+        const cleaned=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
+        const a=cleaned.indexOf('['), b=cleaned.lastIndexOf(']');
+        if(a<0||b<=a)throw new Error('Réponse IA invalide');
+        const parsed=JSON.parse(cleaned.slice(a,b+1));
+        return parsed.filter((x:any)=>x?.name&&x?.qty).slice(0,30).map((x:any,i:number)=>({
+          id:`ai-${Date.now()}-${i}`,name:String(x.name),qty:String(x.qty),
           category:CATEGORIES.includes(x.category)?x.category:'Autres',
           note:x.note?String(x.note):'',
           price:typeof x.price==='number'?x.price:null,
+          priceSource:x.priceSource?String(x.priceSource):undefined,
+          imageUrl:x.imageUrl?String(x.imageUrl):undefined,
+          barcode:x.barcode?String(x.barcode):undefined,
+          brand:x.brand?String(x.brand):undefined,
+          priceDate:x.priceDate?String(x.priceDate):undefined,
           checked:false
         }));
+      };
 
-      if(!clean.length) throw new Error('Liste vide');
-      setItems(await enrich(clean,store.chain,store.city));
+      let finalItems:GroceryItem[]=[];
+      let previousTotal=0;
+      for(let attempt=0;attempt<3;attempt++){
+        const correction=attempt===0?'':`
+
+CORRECTION BUDGET OBLIGATOIRE:
+La tentative précédente coûtait environ ${previousTotal.toFixed(2)} €, donc dépassait le maximum de ${budgetNumber.toFixed(2)} €.
+Refais toute la liste avec des substitutions moins chères et/ou des quantités raisonnables afin de rester SOUS ${budgetNumber.toFixed(2)} €, sans supprimer les groupes nutritionnels essentiels.`;
+        const {data,error:invokeError}=await supabase.functions.invoke('generate-groceries',{body:{prompt:basePrompt+correction,store:store.chain,city:store.city,postalCode}});
+        if(invokeError)throw new Error(invokeError.message||'Génération impossible');
+        if(!data)throw new Error('Aucune réponse de generate-groceries');
+        const raw=data?.content?.[0]?.text||data?.data?.content?.[0]?.text||data?.text||'';
+        const clean=parseList(raw);
+        if(!clean.length)throw new Error('Liste vide');
+        finalItems=await enrich(clean,store.chain,store.city);
+        previousTotal=finalItems.reduce((sum,it)=>sum+(it.price||0),0);
+        if(previousTotal<=budgetNumber)break;
+      }
+
+      if(previousTotal>budgetNumber){
+        throw new Error(`Budget trop serré pour cette sélection : estimation ${previousTotal.toFixed(2)} € pour un maximum de ${budgetNumber.toFixed(2)} €. Augmente légèrement le budget ou réduis la durée.`);
+      }
+      setItems(finalItems);
     }catch(e:any){
       setError(e?.message||"Impossible de générer la liste.");
       setItems([]);
     }finally{
-      timers.forEach(clearTimeout);
-      setGenStage(5);
+      timers.forEach(clearTimeout); setGenStage(5);
       window.setTimeout(()=>setStep('list'),450);
     }
   };
-
-  const grouped=useMemo(()=>CATEGORIES.map(category=>({
-    category,items:items.filter(i=>i.category===category)
-  })).filter(g=>g.items.length),[items]);
-
-  const totalKnown=items.reduce((s,i)=>s+(typeof i.price==='number'?i.price:0),0);
-  const pricedCount=items.filter(i=>typeof i.price==='number'&&i.priceSource!=='Estimation NOXAI').length;
-  const progress=items.length?Math.round(items.filter(i=>i.checked).length/items.length*100):0;
-
   const back=()=>{
     const previous:Partial<Record<Step,Step>> = {
       setup:'mode', budget:'setup', store:'budget', prefs:'store', review:'prefs', list:'review'
@@ -362,7 +386,7 @@ Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
         <div className="eyebrow">ÉTAPE 4</div><h1>Où fais-tu tes courses ?</h1><p className="lead">Choisis ton enseigne. La ville permet de mieux cibler les données magasin lorsqu’elles sont disponibles.</p>
         <div className="search"><span>⌕</span><input value={storeSearch} onChange={e=>setStoreSearch(e.target.value)} placeholder="Rechercher une enseigne…"/></div>
         <div className="storeGrid">{filteredStores.map(s=><button key={s.name} className={`storeTile ${store.chain===s.name?'on':''}`} onClick={()=>setStore(p=>({...p,chain:s.name}))}>{store.chain===s.name&&<i className="tick">✓</i>}<span className="brand" style={{color:s.brand}}>{s.mark}</span><b>{s.name}</b></button>)}</div>
-        <div className="card" style={{marginTop:12}}><div className="label">VILLE / ZONE</div><input className="input" value={store.city} onChange={e=>setStore(p=>({...p,city:e.target.value}))} placeholder="Ex. Paris 15e, Nancy…"/></div>
+        <div className="card" style={{marginTop:12}}><div className="label">VILLE / ZONE</div><input className="input" value={store.city} onChange={e=>setStore(p=>({...p,city:e.target.value}))} placeholder="Ex. Paris 15e, Nancy…"/></div><div className="card" style={{marginTop:12}}><div className="label">CODE POSTAL</div><input className="input" inputMode="numeric" maxLength={5} value={postalCode} onChange={e=>setPostalCode(e.target.value.replace(/\D/g,'').slice(0,5))} placeholder="Ex. 92800"/></div>
         <Footer next={()=>setStep('prefs')} label="CONTINUER"/>
       </>}
 
@@ -377,7 +401,7 @@ Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
       {step==='review'&&<>
         <div className="eyebrow">ÉTAPE 6</div><h1>Tout est prêt</h1><p className="lead">Vérifie les informations utilisées par NOX avant de générer ta liste.</p>
         <div className="review">
-          <Row l="Mode" v={mode==='empty'?'Frigo vide':'Compléter mon frigo'}/><Row l="Durée" v={`${days} jours`}/><Row l="Personnes" v={String(people)}/><Row l="Budget maximum" v={`${budgetNumber.toFixed(2)} €`}/><Row l="Magasin" v={`${store.chain}${store.city?` · ${store.city}`:''}`}/><Row l="Objectif NOX" v={goal}/><Row l="Régime" v={diet}/><Row l="Allergies" v={allAllergies.join(', ')||'Aucune'}/>
+          <Row l="Mode" v={mode==='empty'?'Frigo vide':'Compléter mon frigo'}/><Row l="Durée" v={`${days} jours`}/><Row l="Personnes" v={String(people)}/><Row l="Budget maximum" v={`${budgetNumber.toFixed(2)} €`}/><Row l="Magasin" v={`${store.chain}${store.city?` · ${store.city}`:''}${postalCode?` · ${postalCode}`:''}`}/><Row l="Objectif NOX" v={goal}/><Row l="Régime" v={diet}/><Row l="Allergies" v={allAllergies.join(', ')||'Aucune'}/>
         </div>
         <Footer next={generate} label="✦  GÉNÉRER MA LISTE"/>
       </>}
@@ -386,7 +410,7 @@ Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
 
       {step==='list'&&<>
         {!error?<div className="success"><b>✓ Liste générée</b><br/>{days} jours · {people} personne{people>1?'s':''} · {store.chain}</div>:<div className="warning"><b>La liste n’a pas pu être générée.</b><br/>{error}</div>}
-        <div className="listTitle">Ma liste de courses</div><div className="listMeta">{items.length} produits · estimation totale ≈ {totalKnown.toFixed(2)} €</div>
+        <div className="listTitle">Ma liste de courses</div><div className="listMeta">{items.length} produits · total estimé ≈ {totalKnown.toFixed(2)} € · budget {budgetNumber.toFixed(2)} €</div>
         <div className="catTabs"><button className={activeCategory==='Tous'?'on':''} onClick={()=>setActiveCategory('Tous')}>Tous ({items.length})</button>{grouped.map(g=><button key={g.category} className={activeCategory===g.category?'on':''} onClick={()=>setActiveCategory(g.category)}>{g.category} ({g.items.length})</button>)}</div>
         {grouped.filter(g=>activeCategory==='Tous'||g.category===activeCategory).map(g=><div className="group" key={g.category}><div className="groupHead"><b>{g.category}</b><span>{g.items.length} produits</span></div><div className="items">{g.items.map(it=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))}>{it.imageUrl?<img className="foodImg" src={it.imageUrl} alt={it.name} loading="lazy" onError={e=>{e.currentTarget.style.display="none"; const n=e.currentTarget.nextElementSibling as HTMLElement|null; if(n)n.style.display="grid"}}/>:null}<span className="foodFallback" style={{display:it.imageUrl?"none":"grid"}}>NOX</span><span><b style={{textDecoration:it.checked?'line-through':'none'}}>{it.name}</b><small>{it.qty}{it.brand?` · ${it.brand}`:''}{it.note?` · ${it.note}`:''}</small>{it.priceSource&&<em>{it.priceSource==='Estimation NOXAI'?'Prix estimé · NOXAI':`Prix vérifié · ${it.priceSource}${it.priceDate?` · ${it.priceDate}`:''}`}</em>}</span><span className="price">{typeof it.price==='number'?`${it.priceSource==='Estimation NOXAI'?'≈ ':''}${it.price.toFixed(2)} €`:'—'}</span><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span></button>)}</div></div>)}
         <div className="footer"><div className="footerIn"><button className="secondary" onClick={()=>setStep('review')}>‹</button><button className="primary" onClick={()=>navigate('/fuel')}>{progress===100?'TERMINÉ ✓':`${progress}% COCHÉ`}</button></div></div>
