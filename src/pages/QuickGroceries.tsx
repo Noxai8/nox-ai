@@ -168,6 +168,7 @@ export default function QuickGroceries(){
   const [fridgeText,setFridgeText] = useState('');
   const [items,setItems] = useState<GroceryItem[]>([]);
   const [error,setError] = useState('');
+  const [budgetNotice,setBudgetNotice] = useState('');
   const [genStage,setGenStage] = useState(0);
   const [activeCategory,setActiveCategory] = useState('Tous');
 
@@ -224,7 +225,7 @@ export default function QuickGroceries(){
   const toggleAllergy=(a:string)=>setAllergies(p=>p.includes(a)?p.filter(x=>x!==a):[...p,a]);
 
   const generate=async()=>{
-    setStep('generating'); setGenStage(0); setError('');
+    setStep('generating'); setGenStage(0); setError(''); setBudgetNotice('');
     const timers=[400,900,1450,2000].map((ms,i)=>window.setTimeout(()=>setGenStage(i+1),ms));
     try{
       const basePrompt=`Tu construis une liste de courses NOXAI.
@@ -275,9 +276,13 @@ Retourne UNIQUEMENT un tableau JSON de 14 à 30 objets:
       for(let attempt=0;attempt<3;attempt++){
         const correction=attempt===0?'':`
 
-CORRECTION BUDGET OBLIGATOIRE:
+CORRECTION BUDGET OBLIGATOIRE — MODE ÉCONOMIQUE:
 La tentative précédente coûtait environ ${previousTotal.toFixed(2)} €, donc dépassait le maximum de ${budgetNumber.toFixed(2)} €.
-Refais toute la liste avec des substitutions moins chères et/ou des quantités raisonnables afin de rester SOUS ${budgetNumber.toFixed(2)} €, sans supprimer les groupes nutritionnels essentiels.`;
+Refais toute la liste en visant réellement ${Math.max(1,budgetNumber*0.92).toFixed(2)} € maximum pour garder une marge.
+Priorité absolue aux aliments économiques compatibles avec le profil: féculents simples, légumineuses, œufs si autorisés, légumes/fruits économiques, conserves ou surgelés simples.
+Supprime les produits non essentiels, remplace les aliments chers par des équivalents nutritionnels moins coûteux et réduis les quantités sans prétendre couvrir les besoins si ce n'est pas possible.
+Tu peux retourner moins de 14 produits si le budget l'exige.
+Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
         const {data,error:invokeError}=await supabase.functions.invoke('generate-groceries',{body:{prompt:basePrompt+correction,store:store.chain,city:store.city,postalCode}});
         if(invokeError)throw new Error(invokeError.message||'Génération impossible');
         if(!data)throw new Error('Aucune réponse de generate-groceries');
@@ -290,12 +295,11 @@ Refais toute la liste avec des substitutions moins chères et/ou des quantités 
       }
 
       if(previousTotal>budgetNumber){
-        throw new Error(`Budget trop serré pour cette sélection : estimation ${previousTotal.toFixed(2)} € pour un maximum de ${budgetNumber.toFixed(2)} €. Augmente légèrement le budget ou réduis la durée.`);
+        setBudgetNotice(`Budget très serré : NOX n'a pas trouvé une sélection complète sous ${budgetNumber.toFixed(2)} €. La meilleure sélection trouvée est estimée à ${previousTotal.toFixed(2)} €. Tu peux garder cette liste, réduire la durée ou augmenter le budget.`);
       }
       setItems(finalItems);
     }catch(e:any){
       setError(e?.message||"Impossible de générer la liste.");
-      setItems([]);
     }finally{
       timers.forEach(clearTimeout); setGenStage(5);
       window.setTimeout(()=>setStep('list'),450);
@@ -359,6 +363,7 @@ Refais toute la liste avec des substitutions moins chères et/ou des quantités 
       .footerIn{max-width:390px;margin:auto;display:flex;gap:9px}.primary,.secondary{height:55px;border-radius:17px;font-weight:950;font-size:12px}.primary{border:0;background:#0E100F;color:#c8ff00;flex:1}.primary:disabled{opacity:.35}.secondary{width:55px;border:1px solid #E1E4DD;background:#fff}
       .gen{min-height:67vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}.genIcon{width:112px;height:112px;border-radius:50%;background:#E9FFC4;display:grid;place-items:center;font-size:44px;margin-bottom:22px}.gen h1{font-size:25px}.genRows{width:100%;margin-top:18px;text-align:left}.genRow{padding:9px 0;color:#8B908B;font-size:11px}.genRow.done{color:#0E100F;font-weight:800}.genBar{width:100%;height:7px;background:#E2E5DE;border-radius:99px;overflow:hidden;margin-top:16px}.genBar div{height:100%;background:#A7D72E}
       .success,.warning{border-radius:17px;padding:14px;margin-bottom:16px;font-size:11px}.success{background:#EEFFE5;border:1px solid #D3EFC4}.warning{background:#FFF8E8;border:1px solid #EED49B;color:#765820}
+      .budgetAlert{background:#FFF3F1;border:1px solid #F0C3BC;border-radius:20px;padding:16px;margin-bottom:16px}.budgetAlertTop{display:flex;gap:11px;align-items:flex-start}.budgetX{width:28px;height:28px;flex:0 0 28px;border-radius:50%;background:#D94B3D;color:#fff;display:grid;place-items:center;font-weight:950}.budgetAlert b{font-size:12px}.budgetAlert p{font-size:10px;line-height:1.5;color:#765B56;margin:5px 0 0}.budgetActions{display:grid;gap:7px;margin-top:13px}.budgetActions button{min-height:43px;border-radius:13px;border:1px solid #E2C8C3;background:#fff;color:#0E100F;font-size:10px;font-weight:900}.budgetActions button:first-child{background:#0E100F;color:#c8ff00;border-color:#0E100F}
       .listTitle{font-size:27px;font-weight:950}.listMeta{color:#7E837E;font-size:10px;margin:4px 0 14px}.catTabs{display:flex;gap:7px;overflow:auto;scrollbar-width:none;margin-bottom:15px}.catTabs button{white-space:nowrap;border:1px solid #E1E4DD;background:#fff;border-radius:999px;padding:9px 12px;font-size:9px}.catTabs button.on{background:#0E100F;color:#fff}
       .group{margin:15px 0}.groupHead{display:flex;align-items:center;margin-bottom:8px}.groupHead b{font-size:14px}.groupHead span{margin-left:auto;color:#8B908B;font-size:9px}.items{background:#fff;border:1px solid #E7E9E3;border-radius:17px;overflow:hidden}.item{width:100%;display:grid;grid-template-columns:48px 1fr auto 22px;gap:9px;align-items:center;text-align:left;border:0;border-bottom:1px solid #ECEEE8;background:#fff;padding:12px}.item:last-child{border-bottom:0}.foodImg,.foodFallback{width:46px;height:46px;border-radius:12px;background:#F4F5F1;object-fit:contain}.foodFallback{display:grid;place-items:center;font-size:8px;font-weight:950;color:#9A9F99}.item em{display:block;color:#789315;font-size:8px;font-style:normal;font-weight:800;margin-top:4px}.item b{font-size:11px}.item small{display:block;color:#8B908B;font-size:9px;margin-top:2px}.price{font-size:9px;font-weight:900}.check{width:20px;height:20px;border:1.5px solid #AEB3AE;border-radius:6px;display:grid;place-items:center}.check.y{background:#c8ff00;border-color:#0E100F}
     `}</style>
@@ -428,7 +433,7 @@ Refais toute la liste avec des substitutions moins chères et/ou des quantités 
       {step==='generating'&&<div className="gen"><div className="genIcon">✦</div><h1>NOX prépare ta liste…</h1><p className="lead" style={{textAlign:'center'}}>Analyse de ton profil, de ton budget et de tes préférences.</p><div className="genRows">{['Analyse du profil NOX','Calcul des quantités','Vérification des contraintes','Optimisation du budget','Finalisation'].map((x,i)=><div key={x} className={`genRow ${genStage>i?'done':''}`}>{genStage>i?'✓':'○'} &nbsp; {x}</div>)}</div><div className="genBar"><div style={{width:`${Math.min(100,genStage*20)}%`}}/></div></div>}
 
       {step==='list'&&<>
-        {!error?<div className="success"><b>✓ Liste générée</b><br/>{days} jours · {people} personne{people>1?'s':''} · {store.chain}</div>:<div className="warning"><b>La liste n’a pas pu être générée.</b><br/>{error}</div>}
+        {error?<div className="warning"><b>La liste n’a pas pu être générée.</b><br/>{error}</div>:budgetNotice?<div className="budgetAlert"><div className="budgetAlertTop"><span className="budgetX">×</span><div><b>Budget très serré</b><p>{budgetNotice}</p></div></div><div className="budgetActions"><button onClick={()=>setBudget(String(Math.ceil(totalKnown)))}>UTILISER LE BUDGET NÉCESSAIRE · {Math.ceil(totalKnown)} €</button>{days>3&&<button onClick={()=>{setDays(days===7?5:3);setStep('review');}}>RÉDUIRE LA DURÉE · {days===7?5:3} JOURS</button>}<button onClick={()=>setStep('budget')}>MODIFIER MON BUDGET</button></div></div>:<div className="success"><b>✓ Liste générée</b><br/>{days} jours · {people} personne{people>1?'s':''} · {store.chain}</div>}
         <div className="listTitle">Ma liste de courses</div><div className="listMeta">{items.length} produits · total estimé ≈ {totalKnown.toFixed(2)} € · budget {budgetNumber.toFixed(2)} €</div>
         <div className="catTabs"><button className={activeCategory==='Tous'?'on':''} onClick={()=>setActiveCategory('Tous')}>Tous ({items.length})</button>{grouped.map(g=><button key={g.category} className={activeCategory===g.category?'on':''} onClick={()=>setActiveCategory(g.category)}>{g.category} ({g.items.length})</button>)}</div>
         {grouped.filter(g=>activeCategory==='Tous'||g.category===activeCategory).map(g=><div className="group" key={g.category}><div className="groupHead"><b>{g.category}</b><span>{g.items.length} produits</span></div><div className="items">{g.items.map(it=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))}>{it.imageUrl?<img className="foodImg" src={it.imageUrl} alt={it.name} loading="lazy" onError={e=>{e.currentTarget.style.display="none"; const n=e.currentTarget.nextElementSibling as HTMLElement|null; if(n)n.style.display="grid"}}/>:null}<span className="foodFallback" style={{display:it.imageUrl?"none":"grid"}}>NOX</span><span><b style={{textDecoration:it.checked?'line-through':'none'}}>{it.name}</b><small>{it.qty}{it.brand?` · ${it.brand}`:''}{it.note?` · ${it.note}`:''}</small>{it.priceSource&&<em>{it.priceSource==='Estimation NOXAI'?'Prix estimé · NOXAI':`Prix vérifié · ${it.priceSource}${it.priceDate?` · ${it.priceDate}`:''}`}</em>}</span><span className="price">{typeof it.price==='number'?`${it.priceSource==='Estimation NOXAI'?'≈ ':''}${it.price.toFixed(2)} €`:'—'}</span><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span></button>)}</div></div>)}
