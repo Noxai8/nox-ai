@@ -20,6 +20,7 @@ type Recipe = {
   id:string; title:string; description:string; minutes:number; difficulty:string;
   calories:number; protein:number; carbs:number; fat:number;
   ingredients:{name:string; qty:string}[]; steps:string[];
+  tip?:string; variation?:string;
 };
 
 const ALLERGIES = ['Arachides','Fruits à coque','Lait','Œufs','Gluten','Soja','Poisson','Crustacés','Sésame','Moutarde'];
@@ -180,13 +181,17 @@ Règles:
 Format:
 [{"title":"...","description":"...","minutes":20,"difficulty":"Facile","calories":650,"protein":42,"carbs":68,"fat":18,"ingredients":[{"name":"Poulet","qty":"120 g"}],"steps":["...","..."]}]`;
 
-      const {data,error:invokeError}=await supabase.functions.invoke('generate-groceries',{body:{prompt}});
+      const {data,error:invokeError}=await supabase.functions.invoke('generate-recipes',{body:{prompt}});
       if(invokeError)throw new Error(invokeError.message||'Génération des recettes impossible');
-      const raw=data?.content?.[0]?.text||data?.data?.content?.[0]?.text||data?.text||'';
-      const cleaned=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
-      const a=cleaned.indexOf('['),b=cleaned.lastIndexOf(']');
-      if(a<0||b<=a)throw new Error('Réponse recettes invalide');
-      const parsed=JSON.parse(cleaned.slice(a,b+1));
+      const direct=Array.isArray(data)?data:(Array.isArray(data?.recipes)?data.recipes:null);
+      let parsed:any[]=direct||[];
+      if(!parsed.length){
+        const raw=data?.content?.[0]?.text||data?.data?.content?.[0]?.text||data?.text||data?.result||'';
+        const cleaned=String(raw).replace(/```json/gi,'').replace(/```/g,'').trim();
+        const a=cleaned.indexOf('['),b=cleaned.lastIndexOf(']');
+        if(a<0||b<=a)throw new Error('Réponse recettes invalide');
+        parsed=JSON.parse(cleaned.slice(a,b+1));
+      }
       const next:Recipe[]=parsed.slice(0,5).map((r:any,i:number)=>({
         id:`recipe-${Date.now()}-${i}`,
         title:String(r.title||`Recette ${i+1}`),
@@ -198,7 +203,9 @@ Format:
         carbs:Number(r.carbs)||0,
         fat:Number(r.fat)||0,
         ingredients:Array.isArray(r.ingredients)?r.ingredients.map((x:any)=>({name:String(x.name||''),qty:String(x.qty||'')})).filter((x:any)=>x.name):[],
-        steps:Array.isArray(r.steps)?r.steps.map((x:any)=>String(x)).filter(Boolean):[]
+        steps:Array.isArray(r.steps)?r.steps.map((x:any)=>String(x)).filter(Boolean):[],
+        tip:r.tip?String(r.tip):'Prépare les ingrédients avant de commencer pour cuisiner plus vite.',
+        variation:r.variation?String(r.variation):'Adapte les quantités selon ta faim et ton objectif.'
       }));
       if(!next.length)throw new Error('Aucune recette générée');
       setRecipes(next);
@@ -346,8 +353,8 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
 
       .budgetHero{background:#EAF7E5;border:1px solid #D5EAD0;border-radius:20px;padding:16px;margin-bottom:17px}.budgetHeroTop{display:flex;justify-content:space-between;align-items:end}.budgetHero strong{font-size:28px}.budgetHero small{font-size:9px;color:#687268}.budgetLine{height:7px;background:#D7E3D4;border-radius:99px;margin-top:11px;overflow:hidden}.budgetLine div{height:100%;background:#64B846;border-radius:99px}
       .actions{display:grid;gap:9px;margin:18px 0}.actionMain,.actionAlt{min-height:53px;border-radius:16px;font-weight:950;font-size:11px}.actionMain{border:0;background:#0E100F;color:#c8ff00}.actionAlt{border:1px solid #DDE1DA;background:#fff;color:#0E100F}
-      .recipeGrid{display:grid;gap:13px}.recipeCard{border:1px solid #E2E5DE;background:#fff;border-radius:22px;overflow:hidden;text-align:left;padding:0}.recipeVisual{height:126px;background:linear-gradient(135deg,#162117,#304A27);position:relative;display:flex;align-items:center;justify-content:center;color:#c8ff00}.recipeVisual:before{content:'NOX';font-size:38px;font-weight:950;letter-spacing:-.08em;opacity:.9}.recipeVisual:after{content:'RECETTE';position:absolute;bottom:12px;right:14px;font-size:8px;letter-spacing:.16em;color:#fff;opacity:.75}.recipeBody{padding:14px}.recipeBody b{font-size:15px}.recipeBody p{font-size:10px;color:#777D78;line-height:1.45;margin:6px 0 10px}.recipeMeta{display:flex;gap:6px;flex-wrap:wrap}.recipeMeta span,.macro{background:#F3F5F0;border-radius:9px;padding:7px 9px;font-size:8px;font-weight:850}
-      .recipeHero{height:190px;border-radius:24px;background:linear-gradient(135deg,#152016,#37542C);display:grid;place-items:center;color:#c8ff00;font-size:48px;font-weight:950;letter-spacing:-.08em;margin-bottom:18px}.macroGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:14px 0}.macro{text-align:center}.macro b{display:block;font-size:11px}.macro small{font-size:7px;color:#858B85}.sectionTitle{font-size:14px;font-weight:950;margin:20px 0 9px}.ingredientRow{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #ECEEE8;font-size:10px}.steps{display:grid;gap:10px}.stepRow{display:grid;grid-template-columns:27px 1fr;gap:10px;align-items:start;font-size:10px;line-height:1.5}.stepNum{width:27px;height:27px;border-radius:50%;background:#DFFFB2;display:grid;place-items:center;font-weight:950}
+      .recipeGrid{display:grid;gap:14px}.recipeCard{border:1px solid #E1E4DD;background:#fff;border-radius:22px;overflow:hidden;text-align:left;padding:0;box-shadow:0 8px 28px rgba(14,16,15,.035)}.recipeVisual{height:155px;background:radial-gradient(circle at 30% 30%,#55734A 0,#263824 36%,#111712 100%);position:relative;overflow:hidden}.recipeVisual:before{content:'✦';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:52px;color:#c8ff00}.recipeVisual:after{content:'APERÇU DU PLAT';position:absolute;bottom:12px;left:14px;color:#fff;font-size:8px;font-weight:900;letter-spacing:.12em;background:rgba(0,0,0,.38);padding:7px 9px;border-radius:999px}.recipeBody{padding:15px}.recipeBody b{font-size:16px}.recipeBody p{font-size:10px;color:#777D78;line-height:1.45;margin:6px 0 11px}.recipeMeta{display:flex;gap:6px;flex-wrap:wrap}.recipeMeta span{background:#F3F5F0;border-radius:9px;padding:7px 9px;font-size:8px;font-weight:850}
+      .recipeDetail{margin:-6px 0 0}.dishPhoto{height:270px;border-radius:24px;background:radial-gradient(circle at 35% 28%,#5E7D50 0,#314A2B 35%,#151C16 72%);position:relative;overflow:hidden;box-shadow:0 14px 38px rgba(14,16,15,.10);display:grid;place-items:center}.dishPhoto:before{content:'✦';font-size:76px;font-weight:950;color:#c8ff00}.dishPhoto:after{content:'VISUEL RECETTE';position:absolute;left:18px;bottom:18px;color:#fff;font-size:9px;font-weight:900;letter-spacing:.12em;background:rgba(0,0,0,.45);padding:8px 11px;border-radius:999px}.dishBadges{position:absolute;left:14px;right:14px;bottom:14px;display:flex;gap:7px;z-index:2}.dishBadges span{background:rgba(20,20,20,.72);color:#fff;padding:8px 10px;border-radius:10px;font-size:8px;font-weight:850;backdrop-filter:blur(8px)}.recipeTag{display:inline-flex;background:#DFF4D9;color:#26752A;border-radius:999px;padding:7px 11px;font-size:9px;font-weight:950;margin:18px 0 9px}.recipeTitle{font-size:34px;line-height:1;letter-spacing:-.05em;margin:0 0 8px}.recipeDesc{font-size:14px;color:#707670;line-height:1.45;margin:0 0 17px}.macroGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:14px 0}.macro{background:#fff;border:1px solid #E3E6DF;border-radius:15px;padding:12px 5px;text-align:center}.macro b{display:block;font-size:13px}.macro small{font-size:7px;color:#858B85}.recipePanel{background:#fff;border:1px solid #E3E6DF;border-radius:20px;padding:17px;margin-top:12px}.sectionTitle{font-size:15px;font-weight:950;margin:0 0 10px}.ingredientRow{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #ECEEE8;font-size:10px}.ingredientRow:last-child{border-bottom:0}.ingredientName{display:flex;align-items:center;gap:9px}.ingredientDot{width:25px;height:25px;border-radius:8px;background:#F0F5EB;display:grid;place-items:center;font-size:11px}.steps{display:grid;gap:12px}.stepRow{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;font-size:10px;line-height:1.55}.stepNum{width:28px;height:28px;border-radius:50%;background:#D9F7D5;color:#1E6827;display:grid;place-items:center;font-weight:950}.tipBox{border-radius:18px;padding:15px;margin-top:11px;font-size:10px;line-height:1.5}.tipBox.green{background:#F0FAEF}.tipBox.warm{background:#FBF7EF}.tipBox b{display:block;font-size:11px;margin-bottom:4px}.recipeActions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:16px}.recipeActions button{min-height:54px;border-radius:16px;font-size:10px;font-weight:950}.recipeActions .black{border:0;background:#0E100F;color:#c8ff00}.recipeActions .white{border:1px solid #DDE1DA;background:#fff;color:#0E100F}
       .shopTop{margin-bottom:20px}.shopProgress{display:flex;justify-content:space-between;font-size:10px;font-weight:850;margin-bottom:8px}.doneScreen{min-height:72vh;display:flex;flex-direction:column;justify-content:center;text-align:center}.doneCheck{width:100px;height:100px;border-radius:50%;background:#DFFFAD;display:grid;place-items:center;margin:0 auto 22px;font-size:43px;font-weight:950}.doneScreen h1{font-size:30px}.doneScreen .actions{margin-top:24px}
     `}</style>
 
@@ -428,13 +435,39 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       </>}
 
       {step==='recipe'&&selectedRecipe&&<>
-        <div className="recipeHero">NOX</div>
-        <div className="eyebrow">RECETTE NOX</div><h1>{selectedRecipe.title}</h1><p className="lead">{selectedRecipe.description}</p>
-        <div className="recipeMeta"><span>{selectedRecipe.minutes} min</span><span>{selectedRecipe.difficulty}</span><span>{people} portion{people>1?'s':''}</span></div>
-        <div className="macroGrid"><div className="macro"><b>{selectedRecipe.calories}</b><small>KCAL</small></div><div className="macro"><b>{selectedRecipe.protein} g</b><small>PROT.</small></div><div className="macro"><b>{selectedRecipe.carbs} g</b><small>GLUC.</small></div><div className="macro"><b>{selectedRecipe.fat} g</b><small>LIP.</small></div></div>
-        <div className="sectionTitle">Ingrédients</div><div className="card">{selectedRecipe.ingredients.map((x,i)=><div className="ingredientRow" key={`${x.name}-${i}`}><b>{x.name}</b><span>{x.qty}</span></div>)}</div>
-        <div className="sectionTitle">Préparation</div><div className="steps">{selectedRecipe.steps.map((x,i)=><div className="stepRow" key={i}><span className="stepNum">{i+1}</span><span>{x}</span></div>)}</div>
-        <div className="actions"><button className="actionMain" onClick={()=>setStep('shopping')}>COMMENCER MES COURSES →</button><button className="actionAlt" onClick={()=>setStep('recipes')}>VOIR LES AUTRES RECETTES</button></div>
+        <div className="recipeDetail">
+          <div className="dishPhoto">
+            <div className="dishBadges"><span>◷ {selectedRecipe.minutes} min</span><span>{selectedRecipe.difficulty}</span><span>{people} portion{people>1?'s':''}</span></div>
+          </div>
+          <span className="recipeTag">Plat NOXAI</span>
+          <h1 className="recipeTitle">{selectedRecipe.title}</h1>
+          <p className="recipeDesc">{selectedRecipe.description}</p>
+
+          <div className="macroGrid">
+            <div className="macro"><b>{selectedRecipe.calories}</b><small>KCAL</small></div>
+            <div className="macro"><b>{selectedRecipe.protein} g</b><small>PROTÉINES</small></div>
+            <div className="macro"><b>{selectedRecipe.carbs} g</b><small>GLUCIDES</small></div>
+            <div className="macro"><b>{selectedRecipe.fat} g</b><small>LIPIDES</small></div>
+          </div>
+
+          <div className="recipePanel">
+            <div className="sectionTitle">Ingrédients ({people} portion{people>1?'s':''})</div>
+            {selectedRecipe.ingredients.map((x,i)=><div className="ingredientRow" key={`${x.name}-${i}`}><span className="ingredientName"><span className="ingredientDot">•</span><b>{x.name}</b></span><span>{x.qty}</span></div>)}
+          </div>
+
+          <div className="recipePanel">
+            <div className="sectionTitle">Étapes de préparation</div>
+            <div className="steps">{selectedRecipe.steps.map((x,i)=><div className="stepRow" key={i}><span className="stepNum">{i+1}</span><span>{x}</span></div>)}</div>
+          </div>
+
+          <div className="tipBox green"><b>Astuce NOXAI</b>{selectedRecipe.tip}</div>
+          <div className="tipBox warm"><b>Variante</b>{selectedRecipe.variation}</div>
+
+          <div className="recipeActions">
+            <button className="black" onClick={()=>setStep('shopping')}>COMMENCER MES COURSES →</button>
+            <button className="white" onClick={()=>setStep('recipes')}>VOIR LES AUTRES RECETTES</button>
+          </div>
+        </div>
       </>}
 
       {step==='shopping'&&<>
