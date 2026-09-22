@@ -12,10 +12,15 @@ const DARK = '#0E100F';
 const MUTED = '#777D78';
 
 type Mode = 'empty' | 'complete';
-type Step = 'mode' | 'setup' | 'budget' | 'prefs' | 'review' | 'generating' | 'list';
+type Step = 'mode' | 'setup' | 'budget' | 'prefs' | 'review' | 'generating' | 'list' | 'recipes' | 'recipe' | 'shopping' | 'done';
 type Profile = { goal_type?:string; diet_preferences?:string[] };
 type Target = { calories?:number; protein_g?:number; carbs_g?:number; fat_g?:number };
 type GroceryItem = { id:string; name:string; qty:string; category:string; note?:string; checked?:boolean; price?:number|null };
+type Recipe = {
+  id:string; title:string; description:string; minutes:number; difficulty:string;
+  calories:number; protein:number; carbs:number; fat:number;
+  ingredients:{name:string; qty:string}[]; steps:string[];
+};
 
 const ALLERGIES = ['Arachides','Fruits à coque','Lait','Œufs','Gluten','Soja','Poisson','Crustacés','Sésame','Moutarde'];
 const CATEGORIES = ['Fruits & légumes','Protéines','Féculents','Produits frais','Épicerie','Petit-déjeuner','Autres'];
@@ -98,6 +103,10 @@ export default function QuickGroceries(){
   const [budgetNotice,setBudgetNotice] = useState('');
   const [genStage,setGenStage] = useState(0);
   const [activeCategory,setActiveCategory] = useState('Tous');
+  const [recipes,setRecipes] = useState<Recipe[]>([]);
+  const [selectedRecipe,setSelectedRecipe] = useState<Recipe|null>(null);
+  const [recipesLoading,setRecipesLoading] = useState(false);
+  const [recipesError,setRecipesError] = useState('');
 
   useEffect(()=>{
     if(!user) return;
@@ -145,6 +154,58 @@ export default function QuickGroceries(){
   const canContinueSetup = people>0 && days>0 && Number.isFinite(budgetNumber) && budgetNumber>0;
 
   const toggleAllergy=(a:string)=>setAllergies(p=>p.includes(a)?p.filter(x=>x!==a):[...p,a]);
+
+  const generateRecipes=async(list:GroceryItem[]=items)=>{
+    if(!list.length)return;
+    setRecipesLoading(true); setRecipesError('');
+    try{
+      const groceryText=list.map(x=>`${x.name} (${x.qty})`).join(', ');
+      const prompt=`Tu es le chef nutrition NOXAI.
+Crée 5 recettes simples, gourmandes et réalistes en utilisant EN PRIORITÉ cette liste de courses:
+${groceryText}
+
+Profil: objectif=${goal}; alimentation=${diet}; ${people} personne(s).
+Allergies/intolérances à exclure absolument: ${allAllergies.join(', ')||'aucune'}.
+Aliments refusés: ${dislikes||'aucun'}.
+Cible quotidienne indicative: ${target.calories||'non renseignée'} kcal, ${target.protein_g||'non renseigné'} g protéines.
+
+Règles:
+- utilise surtout les ingrédients déjà achetés;
+- n'ajoute que sel, poivre, eau et épices basiques si nécessaire;
+- recettes faciles, 10 à 35 minutes;
+- macros et calories sont des estimations;
+- aucune image, aucune URL;
+- retourne UNIQUEMENT un tableau JSON valide.
+
+Format:
+[{"title":"...","description":"...","minutes":20,"difficulty":"Facile","calories":650,"protein":42,"carbs":68,"fat":18,"ingredients":[{"name":"Poulet","qty":"120 g"}],"steps":["...","..."]}]`;
+
+      const {data,error:invokeError}=await supabase.functions.invoke('generate-groceries',{body:{prompt}});
+      if(invokeError)throw new Error(invokeError.message||'Génération des recettes impossible');
+      const raw=data?.content?.[0]?.text||data?.data?.content?.[0]?.text||data?.text||'';
+      const cleaned=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
+      const a=cleaned.indexOf('['),b=cleaned.lastIndexOf(']');
+      if(a<0||b<=a)throw new Error('Réponse recettes invalide');
+      const parsed=JSON.parse(cleaned.slice(a,b+1));
+      const next:Recipe[]=parsed.slice(0,5).map((r:any,i:number)=>({
+        id:`recipe-${Date.now()}-${i}`,
+        title:String(r.title||`Recette ${i+1}`),
+        description:String(r.description||'Une recette simple avec tes courses.'),
+        minutes:Number(r.minutes)||20,
+        difficulty:String(r.difficulty||'Facile'),
+        calories:Number(r.calories)||0,
+        protein:Number(r.protein)||0,
+        carbs:Number(r.carbs)||0,
+        fat:Number(r.fat)||0,
+        ingredients:Array.isArray(r.ingredients)?r.ingredients.map((x:any)=>({name:String(x.name||''),qty:String(x.qty||'')})).filter((x:any)=>x.name):[],
+        steps:Array.isArray(r.steps)?r.steps.map((x:any)=>String(x)).filter(Boolean):[]
+      }));
+      if(!next.length)throw new Error('Aucune recette générée');
+      setRecipes(next);
+    }catch(e:any){
+      setRecipesError(e?.message||'Impossible de générer les recettes.');
+    }finally{setRecipesLoading(false);}
+  };
 
   const generate=async()=>{
     setStep('generating'); setGenStage(0); setError(''); setBudgetNotice('');
@@ -242,7 +303,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
 
   const back=()=>{
     const previous:Partial<Record<Step,Step>> = {
-      setup:'mode', budget:'setup', prefs:'budget', review:'prefs', list:'review'
+      setup:'mode', budget:'setup', prefs:'budget', review:'prefs', list:'review', recipes:'list', recipe:'recipes', shopping:'list', done:'shopping'
     };
     if(step==='mode') navigate(-1);
     else if(previous[step]) setStep(previous[step]!);
@@ -282,6 +343,12 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       .budgetAlert{background:#FFF3F1;border:1px solid #F0C3BC;border-radius:20px;padding:16px;margin-bottom:16px}.budgetAlertTop{display:flex;gap:11px;align-items:flex-start}.budgetX{width:28px;height:28px;flex:0 0 28px;border-radius:50%;background:#D94B3D;color:#fff;display:grid;place-items:center;font-weight:950}.budgetAlert b{font-size:12px}.budgetAlert p{font-size:10px;line-height:1.5;color:#765B56;margin:5px 0 0}.budgetActions{display:grid;gap:7px;margin-top:13px}.budgetActions button{min-height:43px;border-radius:13px;border:1px solid #E2C8C3;background:#fff;color:#0E100F;font-size:10px;font-weight:900}.budgetActions button:first-child{background:#0E100F;color:#c8ff00;border-color:#0E100F}
       .listTitle{font-size:27px;font-weight:950}.listMeta{color:#7E837E;font-size:10px;margin:4px 0 14px}.catTabs{display:flex;gap:7px;overflow:auto;scrollbar-width:none;margin-bottom:15px}.catTabs button{white-space:nowrap;border:1px solid #E1E4DD;background:#fff;border-radius:999px;padding:9px 12px;font-size:9px}.catTabs button.on{background:#0E100F;color:#fff}
       .group{margin:15px 0}.groupHead{display:flex;align-items:center;margin-bottom:8px}.groupHead b{font-size:14px}.groupHead span{margin-left:auto;color:#8B908B;font-size:9px}.items{background:#fff;border:1px solid #E7E9E3;border-radius:17px;overflow:hidden}.item{width:100%;display:grid;grid-template-columns:1fr auto 22px;gap:9px;align-items:center;text-align:left;border:0;border-bottom:1px solid #ECEEE8;background:#fff;padding:12px}.item:last-child{border-bottom:0}.foodImg{width:46px;height:46px;border-radius:12px;background:#F4F5F1;object-fit:contain;display:block}.foodImgEmpty{width:46px;height:46px;border-radius:12px;background:#F4F5F1}.item em{display:block;color:#789315;font-size:8px;font-style:normal;font-weight:800;margin-top:4px}.item b{font-size:11px}.item small{display:block;color:#8B908B;font-size:9px;margin-top:2px}.price{font-size:9px;font-weight:900}.check{width:20px;height:20px;border:1.5px solid #AEB3AE;border-radius:6px;display:grid;place-items:center}.check.y{background:#c8ff00;border-color:#0E100F}
+
+      .budgetHero{background:#EAF7E5;border:1px solid #D5EAD0;border-radius:20px;padding:16px;margin-bottom:17px}.budgetHeroTop{display:flex;justify-content:space-between;align-items:end}.budgetHero strong{font-size:28px}.budgetHero small{font-size:9px;color:#687268}.budgetLine{height:7px;background:#D7E3D4;border-radius:99px;margin-top:11px;overflow:hidden}.budgetLine div{height:100%;background:#64B846;border-radius:99px}
+      .actions{display:grid;gap:9px;margin:18px 0}.actionMain,.actionAlt{min-height:53px;border-radius:16px;font-weight:950;font-size:11px}.actionMain{border:0;background:#0E100F;color:#c8ff00}.actionAlt{border:1px solid #DDE1DA;background:#fff;color:#0E100F}
+      .recipeGrid{display:grid;gap:13px}.recipeCard{border:1px solid #E2E5DE;background:#fff;border-radius:22px;overflow:hidden;text-align:left;padding:0}.recipeVisual{height:126px;background:linear-gradient(135deg,#162117,#304A27);position:relative;display:flex;align-items:center;justify-content:center;color:#c8ff00}.recipeVisual:before{content:'NOX';font-size:38px;font-weight:950;letter-spacing:-.08em;opacity:.9}.recipeVisual:after{content:'RECETTE';position:absolute;bottom:12px;right:14px;font-size:8px;letter-spacing:.16em;color:#fff;opacity:.75}.recipeBody{padding:14px}.recipeBody b{font-size:15px}.recipeBody p{font-size:10px;color:#777D78;line-height:1.45;margin:6px 0 10px}.recipeMeta{display:flex;gap:6px;flex-wrap:wrap}.recipeMeta span,.macro{background:#F3F5F0;border-radius:9px;padding:7px 9px;font-size:8px;font-weight:850}
+      .recipeHero{height:190px;border-radius:24px;background:linear-gradient(135deg,#152016,#37542C);display:grid;place-items:center;color:#c8ff00;font-size:48px;font-weight:950;letter-spacing:-.08em;margin-bottom:18px}.macroGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:14px 0}.macro{text-align:center}.macro b{display:block;font-size:11px}.macro small{font-size:7px;color:#858B85}.sectionTitle{font-size:14px;font-weight:950;margin:20px 0 9px}.ingredientRow{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #ECEEE8;font-size:10px}.steps{display:grid;gap:10px}.stepRow{display:grid;grid-template-columns:27px 1fr;gap:10px;align-items:start;font-size:10px;line-height:1.5}.stepNum{width:27px;height:27px;border-radius:50%;background:#DFFFB2;display:grid;place-items:center;font-weight:950}
+      .shopTop{margin-bottom:20px}.shopProgress{display:flex;justify-content:space-between;font-size:10px;font-weight:850;margin-bottom:8px}.doneScreen{min-height:72vh;display:flex;flex-direction:column;justify-content:center;text-align:center}.doneCheck{width:100px;height:100px;border-radius:50%;background:#DFFFAD;display:grid;place-items:center;margin:0 auto 22px;font-size:43px;font-weight:950}.doneScreen h1{font-size:30px}.doneScreen .actions{margin-top:24px}
     `}</style>
 
     <header className="head"><div className="headin"><div className="top">
@@ -291,7 +358,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
     </div></div></header>
 
     <main className="main">
-      {!['generating','list'].includes(step)&&<>
+      {!['generating','list','recipes','recipe','shopping','done'].includes(step)&&<>
         <div className="progressTop"><span>COURSES NOXAI</span><span>{({mode:1,setup:2,budget:3,prefs:4,review:5} as any)[step]} / 5</span></div>
         <div className="progressTrack"><div className="progressFill" style={{width:`${((({mode:1,setup:2,budget:3,prefs:4,review:5} as any)[step]||1)/5)*100}%`}}/></div>
       </>}
@@ -338,15 +405,46 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
         <Footer next={generate} label="✦  GÉNÉRER MA LISTE"/>
       </>}
 
-      {step==='generating'&&<div className="gen"><div className="genIcon">✦</div><h1>NOX prépare ta liste…</h1><p className="lead" style={{textAlign:'center'}}>Analyse de ton profil, de ton budget et de tes préférences.</p><div className="genRows">{['Analyse du profil NOX','Calcul des quantités','Vérification des contraintes','Optimisation du budget','Finalisation'].map((x,i)=><div key={x} className={`genRow ${genStage>i?'done':''}`}>{genStage>i?'✓':'○'} &nbsp; {x}</div>)}</div><div className="genBar"><div style={{width:`${Math.min(100,genStage*20)}%`}}/></div></div>}
+      {step==='generating'&&<div className="gen"><div className="genIcon">✦</div><h1>NOX prépare ta liste…</h1><p className="lead" style={{textAlign:'center'}}>Analyse de ton profil, de ton budget et de tes préférences.</p><div className="genRows">{['Analyse du profil NOX','Calcul des quantités','Vérification des contraintes','Optimisation du budget','Création de la liste'].map((x,i)=><div key={x} className={`genRow ${genStage>i?'done':''}`}>{genStage>i?'✓':'○'} &nbsp; {x}</div>)}</div><div className="genBar"><div style={{width:`${Math.min(100,genStage*20)}%`}}/></div></div>}
 
       {step==='list'&&<>
         {error?<div className="warning"><b>La liste n’a pas pu être générée.</b><br/>{error}</div>:budgetNotice?<div className="budgetAlert"><div className="budgetAlertTop"><span className="budgetX">×</span><div><b>Budget très serré</b><p>{budgetNotice}</p></div></div><div className="budgetActions"><button onClick={()=>setBudget(String(Math.ceil(totalKnown)))}>UTILISER LE BUDGET NÉCESSAIRE · {Math.ceil(totalKnown)} €</button>{days>3&&<button onClick={()=>{setDays(days===7?5:3);setStep('review');}}>RÉDUIRE LA DURÉE · {days===7?5:3} JOURS</button>}<button onClick={()=>setStep('budget')}>MODIFIER MON BUDGET</button></div></div>:<div className="success"><b>✓ Liste générée</b><br/>{days} jours · {people} personne{people>1?'s':''}</div>}
-        <div className="listTitle">Ma liste de courses</div><div className="listMeta">{items.length} produits · total estimé ≈ {totalKnown.toFixed(2)} € · budget {budgetNumber.toFixed(2)} €</div>
+        <div className="listTitle">Ma liste de courses</div><div className="listMeta">{items.length} produits · total estimé ≈ {totalKnown.toFixed(2)} € · budget {budgetNumber.toFixed(2)} €</div><div className="budgetHero"><div className="budgetHeroTop"><div><small>TOTAL ESTIMÉ</small><br/><strong>≈ {totalKnown.toFixed(2)} €</strong></div><small>Budget · {budgetNumber.toFixed(2)} €</small></div><div className="budgetLine"><div style={{width:`${Math.min(100,(totalKnown/Math.max(1,budgetNumber))*100)}%`}}/></div></div>
         <div className="catTabs"><button className={activeCategory==='Tous'?'on':''} onClick={()=>setActiveCategory('Tous')}>Tous ({items.length})</button>{grouped.map(g=><button key={g.category} className={activeCategory===g.category?'on':''} onClick={()=>setActiveCategory(g.category)}>{g.category} ({g.items.length})</button>)}</div>
         {grouped.filter(g=>activeCategory==='Tous'||g.category===activeCategory).map(g=><div className="group" key={g.category}><div className="groupHead"><b>{g.category}</b><span>{g.items.length} produits</span></div><div className="items">{g.items.map(it=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))}><span><b style={{textDecoration:it.checked?'line-through':'none'}}>{it.name}</b><small>{it.qty}{it.note?` · ${it.note}`:''}</small></span><span className="price">{typeof it.price==='number'?`≈ ${it.price.toFixed(2)} €`:'—'}</span><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span></button>)}</div></div>)}
-        <div className="footer"><div className="footerIn"><button className="secondary" onClick={()=>setStep('review')}>‹</button><button className="primary" onClick={()=>navigate('/fuel')}>{progress===100?'TERMINÉ ✓':`${progress}% COCHÉ`}</button></div></div>
+        {!error&&items.length>0&&<div className="actions">
+          <button className="actionMain" onClick={async()=>{setStep('recipes');if(!recipes.length)await generateRecipes(items);}}>VOIR MES RECETTES →</button>
+          <button className="actionAlt" onClick={()=>setStep('shopping')}>COMMENCER MES COURSES</button>
+        </div>}
       </>}
+
+      {step==='recipes'&&<>
+        <div className="eyebrow">AVEC TES COURSES</div><h1>5 idées à cuisiner</h1>
+        <p className="lead">Des recettes créées à partir de ta liste, de ton profil et de tes préférences.</p>
+        {recipesLoading&&<div className="gen" style={{minHeight:'45vh'}}><div className="genIcon">✦</div><h1>NOX imagine tes recettes…</h1><p className="lead">On transforme tes courses en repas simples et adaptés.</p></div>}
+        {recipesError&&<div className="warning">{recipesError}<div className="actions"><button className="actionMain" onClick={()=>generateRecipes(items)}>RÉESSAYER</button></div></div>}
+        {!recipesLoading&&<div className="recipeGrid">{recipes.map(r=><button key={r.id} className="recipeCard" onClick={()=>{setSelectedRecipe(r);setStep('recipe')}}><div className="recipeVisual"/><div className="recipeBody"><b>{r.title}</b><p>{r.description}</p><div className="recipeMeta"><span>{r.minutes} min</span><span>{r.difficulty}</span><span>≈ {r.calories} kcal</span><span>{r.protein} g prot.</span></div></div></button>)}</div>}
+        <div className="actions"><button className="actionAlt" onClick={()=>setStep('shopping')}>PASSER EN MODE COURSES</button></div>
+      </>}
+
+      {step==='recipe'&&selectedRecipe&&<>
+        <div className="recipeHero">NOX</div>
+        <div className="eyebrow">RECETTE NOX</div><h1>{selectedRecipe.title}</h1><p className="lead">{selectedRecipe.description}</p>
+        <div className="recipeMeta"><span>{selectedRecipe.minutes} min</span><span>{selectedRecipe.difficulty}</span><span>{people} portion{people>1?'s':''}</span></div>
+        <div className="macroGrid"><div className="macro"><b>{selectedRecipe.calories}</b><small>KCAL</small></div><div className="macro"><b>{selectedRecipe.protein} g</b><small>PROT.</small></div><div className="macro"><b>{selectedRecipe.carbs} g</b><small>GLUC.</small></div><div className="macro"><b>{selectedRecipe.fat} g</b><small>LIP.</small></div></div>
+        <div className="sectionTitle">Ingrédients</div><div className="card">{selectedRecipe.ingredients.map((x,i)=><div className="ingredientRow" key={`${x.name}-${i}`}><b>{x.name}</b><span>{x.qty}</span></div>)}</div>
+        <div className="sectionTitle">Préparation</div><div className="steps">{selectedRecipe.steps.map((x,i)=><div className="stepRow" key={i}><span className="stepNum">{i+1}</span><span>{x}</span></div>)}</div>
+        <div className="actions"><button className="actionMain" onClick={()=>setStep('shopping')}>COMMENCER MES COURSES →</button><button className="actionAlt" onClick={()=>setStep('recipes')}>VOIR LES AUTRES RECETTES</button></div>
+      </>}
+
+      {step==='shopping'&&<>
+        <div className="shopTop"><div className="eyebrow">MODE COURSES</div><h1>Mes courses</h1><div className="shopProgress"><span>{items.filter(x=>x.checked).length} / {items.length} produits</span><span>{progress}%</span></div><div className="budgetLine"><div style={{width:`${progress}%`}}/></div></div>
+        {grouped.map(g=><div className="group" key={g.category}><div className="groupHead"><b>{g.category}</b><span>{g.items.length} produits</span></div><div className="items">{g.items.map(it=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))}><span><b style={{textDecoration:it.checked?'line-through':'none'}}>{it.name}</b><small>{it.qty}</small></span><span className="price">≈ {(it.price||0).toFixed(2)} €</span><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span></button>)}</div></div>)}
+        <div className="footer"><div className="footerIn"><button className="secondary" onClick={()=>setStep('list')}>‹</button><button className="primary" disabled={progress<100} onClick={()=>setStep('done')}>{progress<100?`${progress}% COCHÉ`:'TERMINER MES COURSES →'}</button></div></div>
+      </>}
+
+      {step==='done'&&<div className="doneScreen"><div className="doneCheck">✓</div><h1>Courses terminées !</h1><p className="lead" style={{textAlign:'center'}}>{items.length} produits · ≈ {totalKnown.toFixed(2)} €<br/>Ton frigo est prêt pour environ {days} jours.</p><div className="actions"><button className="actionMain" onClick={()=>setStep('recipes')}>VOIR MES RECETTES</button><button className="actionAlt" onClick={()=>{setItems(xs=>xs.map(x=>({...x,checked:false})));setStep('shopping')}}>REFAIRE CETTE LISTE</button><button className="actionAlt" onClick={()=>navigate('/fuel')}>RETOUR À NUTRITION</button></div></div>}
+
     </main>
   </div>;
 }
