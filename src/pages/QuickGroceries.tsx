@@ -57,6 +57,48 @@ const inputStyle:React.CSSProperties = {
 
 const norm=(v:string)=>v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
 
+/* Image exacte du catalogue si disponible.
+   Sinon, illustration stable de la page Wikipédia de l'aliment.
+   Aucun LoremFlickr / Unsplash / recherche aléatoire. */
+const FOOD_WIKI_PAGES:{keys:string[];page:string}[]=[
+ {keys:['pomme de terre'],page:'Pomme_de_terre'},{keys:['patate douce'],page:'Patate_douce'},
+ {keys:['banane'],page:'Banane'},{keys:['pomme'],page:'Pomme'},{keys:['poire'],page:'Poire'},
+ {keys:['orange'],page:'Orange_(fruit)'},{keys:['citron'],page:'Citron'},{keys:['kiwi'],page:'Kiwi'},
+ {keys:['fraise'],page:'Fraise'},{keys:['avocat'],page:'Avocat_(fruit)'},{keys:['brocoli'],page:'Brocoli'},
+ {keys:['courgette'],page:'Courgette'},{keys:['aubergine'],page:'Aubergine'},{keys:['poivron'],page:'Poivron'},
+ {keys:['tomate'],page:'Tomate'},{keys:['carotte'],page:'Carotte'},{keys:['oignon'],page:'Oignon'},
+ {keys:['ail'],page:'Ail_cultivé'},{keys:['haricot vert'],page:'Haricot_vert'},{keys:['salade','laitue'],page:'Laitue'},
+ {keys:['epinard'],page:'Épinard'},{keys:['champignon'],page:'Champignon_de_Paris'},
+ {keys:['oeuf'],page:'Œuf_(aliment)'},{keys:['poulet'],page:'Poulet'},{keys:['dinde'],page:'Dinde'},
+ {keys:['boeuf','steak'],page:'Viande_bovine'},{keys:['saumon'],page:'Saumon'},{keys:['thon'],page:'Thon'},
+ {keys:['cabillaud'],page:'Morue'},{keys:['riz'],page:'Riz'},{keys:['pate'],page:'Pâtes_alimentaires'},
+ {keys:['semoule'],page:'Semoule'},{keys:['quinoa'],page:'Quinoa'},{keys:['pain'],page:'Pain'},
+ {keys:['lait'],page:'Lait'},{keys:['yaourt'],page:'Yaourt'},{keys:['fromage blanc'],page:'Fromage_blanc'},
+ {keys:['fromage'],page:'Fromage'},{keys:['huile olive','huile d olive'],page:"Huile_d'olive"},
+ {keys:['miel'],page:'Miel'},{keys:['sauce tomate'],page:'Sauce_tomate'},
+ {keys:['avoine','flocon'],page:'Avoine_cultivée'},{keys:['lentille'],page:'Lentille_cultivée'},
+ {keys:['pois chiche'],page:'Pois_chiche'},{keys:['haricot rouge'],page:'Haricot'},
+ {keys:['amande'],page:'Amande'},{keys:['noix'],page:'Noix'},{keys:['beurre'],page:'Beurre'},
+ {keys:['cafe'],page:'Café'},{keys:['chocolat'],page:'Chocolat'}
+];
+const foodImageCache=new Map<string,string>();
+
+async function foodPhoto(name:string){
+ const n=norm(name);
+ const hit=FOOD_WIKI_PAGES.find(x=>x.keys.some(k=>n.includes(k)));
+ if(!hit)return '';
+ if(foodImageCache.has(hit.page))return foodImageCache.get(hit.page)!;
+ try{
+   const r=await fetch(`https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(hit.page)}`);
+   if(!r.ok)return '';
+   const d=await r.json();
+   const url=String(d?.thumbnail?.source||d?.originalimage?.source||'');
+   if(url)foodImageCache.set(hit.page,url);
+   return url;
+ }catch{return '';}
+}
+
+
 function firstNumber(qty:string){
   const m=String(qty).replace(',','.').match(/\d+(?:\.\d+)?/);
   return m?Number(m[0]):1;
@@ -89,14 +131,12 @@ function estimatePrice(name:string,qty:string){
   return Math.max(.69,Math.round(v*100)/100);
 }
 async function enrich(items:GroceryItem[],chain:string,city:string){
-  return items.map(it=>({
+  return Promise.all(items.map(async it=>({
     ...it,
-    // Uniquement la photo exacte renvoyée par le backend/catalogue.
-    // Aucun LoremFlickr, aucune recherche aléatoire, aucune image générique.
-    imageUrl:it.imageUrl || undefined,
+    imageUrl:it.imageUrl || await foodPhoto(it.name) || undefined,
     price:typeof it.price==='number'?it.price:estimatePrice(it.name,it.qty),
     priceSource:typeof it.price==='number'?(it.priceSource||`Prix vérifié · ${chain}`):'Estimation NOXAI'
-  }));
+  })));
 }
 export default function QuickGroceries(){
   const navigate = useNavigate();
@@ -389,7 +429,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
         {error?<div className="warning"><b>La liste n’a pas pu être générée.</b><br/>{error}</div>:budgetNotice?<div className="budgetAlert"><div className="budgetAlertTop"><span className="budgetX">×</span><div><b>Budget très serré</b><p>{budgetNotice}</p></div></div><div className="budgetActions"><button onClick={()=>setBudget(String(Math.ceil(totalKnown)))}>UTILISER LE BUDGET NÉCESSAIRE · {Math.ceil(totalKnown)} €</button>{days>3&&<button onClick={()=>{setDays(days===7?5:3);setStep('review');}}>RÉDUIRE LA DURÉE · {days===7?5:3} JOURS</button>}<button onClick={()=>setStep('budget')}>MODIFIER MON BUDGET</button></div></div>:<div className="success"><b>✓ Liste générée</b><br/>{days} jours · {people} personne{people>1?'s':''} · {store.chain}</div>}
         <div className="listTitle">Ma liste de courses</div><div className="listMeta">{items.length} produits · total estimé ≈ {totalKnown.toFixed(2)} € · budget {budgetNumber.toFixed(2)} €</div>
         <div className="catTabs"><button className={activeCategory==='Tous'?'on':''} onClick={()=>setActiveCategory('Tous')}>Tous ({items.length})</button>{grouped.map(g=><button key={g.category} className={activeCategory===g.category?'on':''} onClick={()=>setActiveCategory(g.category)}>{g.category} ({g.items.length})</button>)}</div>
-        {grouped.filter(g=>activeCategory==='Tous'||g.category===activeCategory).map(g=><div className="group" key={g.category}><div className="groupHead"><b>{g.category}</b><span>{g.items.length} produits</span></div><div className="items">{g.items.map(it=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))}>{it.imageUrl?<img className="foodImg" src={it.imageUrl} alt={it.name} loading="lazy" onError={e=>{e.currentTarget.style.visibility="hidden"}}/>:<span className="foodImgEmpty" aria-hidden="true"/>}<span><b style={{textDecoration:it.checked?'line-through':'none'}}>{it.name}</b><small>{it.qty}{it.brand?` · ${it.brand}`:''}{it.note?` · ${it.note}`:''}</small>{it.priceSource&&<em>{it.priceSource==='Estimation NOXAI'?'Prix estimé · NOXAI':`Prix vérifié · ${it.priceSource}${it.priceDate?` · ${it.priceDate}`:''}`}</em>}</span><span className="price">{typeof it.price==='number'?`${it.priceSource==='Estimation NOXAI'?'≈ ':''}${it.price.toFixed(2)} €`:'—'}</span><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span></button>)}</div></div>)}
+        {grouped.filter(g=>activeCategory==='Tous'||g.category===activeCategory).map(g=><div className="group" key={g.category}><div className="groupHead"><b>{g.category}</b><span>{g.items.length} produits</span></div><div className="items">{g.items.map(it=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))}>{it.imageUrl?<img className="foodImg" src={it.imageUrl} alt={it.name} loading="lazy" onError={async e=>{const img=e.currentTarget;const fallback=await foodPhoto(it.name);if(fallback&&img.src!==fallback)img.src=fallback;else img.style.visibility='hidden'}}/>:<span className="foodImgEmpty" aria-hidden="true"/>}<span><b style={{textDecoration:it.checked?'line-through':'none'}}>{it.name}</b><small>{it.qty}{it.brand?` · ${it.brand}`:''}{it.note?` · ${it.note}`:''}</small>{it.priceSource&&<em>{it.priceSource==='Estimation NOXAI'?'Prix estimé · NOXAI':`Prix vérifié · ${it.priceSource}${it.priceDate?` · ${it.priceDate}`:''}`}</em>}</span><span className="price">{typeof it.price==='number'?`${it.priceSource==='Estimation NOXAI'?'≈ ':''}${it.price.toFixed(2)} €`:'—'}</span><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span></button>)}</div></div>)}
         <div className="footer"><div className="footerIn"><button className="secondary" onClick={()=>setStep('review')}>‹</button><button className="primary" onClick={()=>navigate('/fuel')}>{progress===100?'TERMINÉ ✓':`${progress}% COCHÉ`}</button></div></div>
       </>}
     </main>
