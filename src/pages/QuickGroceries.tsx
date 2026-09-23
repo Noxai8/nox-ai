@@ -507,6 +507,80 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
         .modeIntro h1{font-size:34px}
       }
 
+
+      /* ÉCRAN 1 — MOBILE FINAL */
+      .modeProgress{margin:4px 0 38px}
+      .modeProgressTop{margin-bottom:10px}
+      .modeProgressTop b{font-size:12px;font-weight:900;letter-spacing:.06em;color:#75A915}
+      .modeProgressTop span{font-size:11px;color:#858A85}
+      .modeTrack{height:6px;background:transparent;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;overflow:visible}
+      .modeTrack:before,.modeTrack:after{content:'';display:block;background:#E4E7E1;border-radius:99px}
+      .modeTrack span{width:auto;height:6px;background:#91D10E;border-radius:99px}
+      .modeTrack{background:linear-gradient(90deg,transparent 0)}
+      .modeTrack span{grid-column:1}
+      .modeTrack:before{grid-column:2/4;grid-row:1}
+      .modeTrack:after{grid-column:4/6;grid-row:1}
+
+      .modeIntro{text-align:center;margin:0 0 31px}
+      .modeIntro h1{font-size:39px;line-height:1.02;letter-spacing:-.055em;margin:0 0 12px;font-weight:800}
+      .modeIntro p{max-width:355px;margin:0 auto;color:#747A75;font-size:15px;line-height:1.48}
+
+      .modeChoices{display:grid;gap:15px}
+      .modeCard{
+        width:100%;min-height:194px;border:1px solid #DEE2DB;background:#fff;border-radius:26px;
+        padding:17px 18px;display:grid;grid-template-columns:145px minmax(0,1fr);gap:18px;
+        align-items:center;text-align:left;position:relative;overflow:hidden
+      }
+      .modeCard.on{border:2px solid #82C600;background:linear-gradient(112deg,#FBFFE8 0%,#F8FFE7 100%)}
+      .modeVisual{height:156px;border-radius:21px;background:#F4F6F1;display:grid;place-items:center;position:relative;overflow:hidden}
+      .modeVisual.emptyFridge:before{
+        content:'';width:73px;height:112px;border:2px solid #B8BDB8;border-radius:8px;
+        background:linear-gradient(90deg,#FCFDFB 0 72%,#E8EBE7 72%);box-shadow:0 10px 20px rgba(12,15,12,.10)
+      }
+      .modeVisual.emptyFridge:after{
+        content:'';position:absolute;width:50px;height:1px;background:#C8CDC8;
+        box-shadow:0 -25px 0 #C8CDC8,0 25px 0 #C8CDC8
+      }
+      .modeVisual.stocked{background:linear-gradient(145deg,#F1F5EC,#FAFBF8)}
+      .modeFood{font-size:44px;letter-spacing:-11px;transform:translateX(-6px)}
+
+      .modeCopy{padding:3px 26px 2px 0;min-width:0}
+      .modeCopy strong{display:block;font-size:21px;line-height:1.1;letter-spacing:-.035em;margin-bottom:7px;font-weight:900}
+      .modeCopy .modeSub{display:block;font-size:16px;line-height:1.2;color:#222724;margin-bottom:10px}
+      .modeCopy p{margin:0;color:#767C77;font-size:11px;line-height:1.48}
+      .modeBenefit{
+        display:inline-flex;align-items:center;gap:6px;margin-top:13px;background:#F3F4F1;border-radius:999px;
+        padding:8px 11px;font-size:9px;line-height:1.2;color:#555B56;max-width:100%
+      }
+      .modeCard.on .modeBenefit{background:#E9FBB7;color:#354711}
+      .modeSelect{
+        position:absolute;right:16px;top:16px;width:34px;height:34px;border-radius:50%;
+        border:2px solid #B9BEB9;background:#fff;display:grid;place-items:center;font-size:15px
+      }
+      .modeCard.on .modeSelect{background:#0D0F0E;border-color:#0D0F0E;color:#C8FF00}
+
+      .fridgeEntry{margin-top:14px;background:#fff;border:1px solid #E0E3DD;border-radius:22px;padding:16px}
+      .profileHint{display:flex;align-items:center;justify-content:center;gap:10px;margin:25px 0 7px;color:#292E2A;font-size:12px}
+      .profileHintIcon{width:31px;height:31px;border:1px solid #DCE0DA;border-radius:50%;display:grid;place-items:center;font-size:14px;flex:0 0 auto}
+      .profileHint b{font-weight:900}
+      .modeFooter .primary{height:62px;border-radius:19px;font-size:13px}
+
+      @media(max-width:520px){
+        .modeCard{grid-template-columns:132px minmax(0,1fr);gap:15px;min-height:184px;padding:15px}
+        .modeVisual{height:146px}
+        .modeCopy strong{font-size:19px}
+        .modeCopy .modeSub{font-size:15px}
+        .modeIntro h1{font-size:37px}
+      }
+      @media(max-width:420px){
+        .modeCard{grid-template-columns:118px minmax(0,1fr);gap:13px}
+        .modeVisual{height:138px}
+        .modeCopy{padding-right:20px}
+        .modeCopy strong{font-size:18px}
+        .modeCopy .modeSub{font-size:14px}
+        .modeBenefit{font-size:8px;padding:7px 9px}
+      }
+
     `}</style>
 
     <header className="head"><div className="headin"><div className="top">
