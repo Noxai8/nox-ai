@@ -865,6 +865,40 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       }
       @media(max-width:560px){.premiumRecipeGrid{grid-template-columns:1fr}.bookBenefits{grid-template-columns:1fr 1fr}.premiumRecipePhoto,.premiumSkeletonPhoto{height:220px}.premiumTabs{flex-wrap:nowrap;overflow-x:auto;width:100%;padding-bottom:3px}.premiumTabs button{white-space:nowrap}.generationCopy{grid-template-columns:1fr auto}}
 
+
+      /* PREMIUM GENERATING — UI ONLY */
+      .step-generating .headin,.step-generating .main{max-width:1180px!important}
+      .step-generating .main{padding:34px 28px 90px}
+      .premiumGenerating{max-width:980px;margin:0 auto;text-align:center}
+      .genBadge{display:inline-flex;align-items:center;background:#F0FADB;color:#60920B;border-radius:999px;padding:10px 17px;font-size:10px;font-weight:950;letter-spacing:.025em;margin:2px 0 20px}
+      .premiumGenerating>h1{font-size:42px;line-height:1;letter-spacing:-.045em;margin:0 0 10px;color:#0E100F}
+      .genLead{max-width:650px;margin:0 auto 28px;color:#777D78;font-size:14px;line-height:1.5}
+      .genPremiumCard{background:#fff;border:1px solid #E3E6E0;border-radius:19px;padding:25px 30px 20px;text-align:left;box-shadow:0 12px 35px rgba(14,16,15,.045)}
+      .genPremiumRows{position:relative}
+      .genPremiumRows:before{content:"";position:absolute;left:18px;top:22px;bottom:22px;width:2px;background:#E7EAE4}
+      .genPremiumRow{position:relative;display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:16px;align-items:center;min-height:69px}
+      .genState{position:relative;z-index:1;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#F4F5F2;border:2px solid #9CA29D;color:#777D78;font-size:18px;font-weight:950}
+      .genPremiumRow.done .genState{background:#9DDF19;border-color:#9DDF19;color:#fff}
+      .genPremiumRow.active .genState{background:#F3FBDC;border-color:#CBEF82;color:#151A15;animation:genPulse 1.2s ease-in-out infinite}
+      .genRowCopy{display:flex;flex-direction:column;gap:4px}.genRowCopy b{font-size:14px;color:#111411}.genRowCopy span{font-size:11px;color:#818782}
+      .genRowStatus{font-size:10px;font-weight:800;color:#919692}.genPremiumRow.done .genRowStatus,.genPremiumRow.active .genRowStatus{color:#6B9E13}
+      .genPremiumProgress{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;margin-top:15px}
+      .genProgressTrack{height:11px;background:#E7EAE5;border-radius:999px;overflow:hidden}.genProgressTrack i{display:block;height:100%;background:#9DDF19;border-radius:999px;transition:width .45s ease}
+      .genPremiumProgress>b{font-size:11px;color:#69706A;white-space:nowrap}
+      .genSummary{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px;text-align:left}
+      .genSummary>div{background:#fff;border:1px solid #E3E6E0;border-radius:15px;padding:15px 17px;display:flex;align-items:center;gap:13px}
+      .genSummaryIcon{width:39px;height:39px;flex:0 0 39px;border-radius:11px;background:#EFFAD9;display:grid;place-items:center;font-size:17px;font-weight:950}
+      .genSummary p{margin:0;display:flex;flex-direction:column;gap:3px}.genSummary b{font-size:13px}.genSummary small{font-size:9px;color:#818782}
+      .genTip{margin-top:16px;background:#F1F9E2;border-radius:15px;padding:15px 20px;display:flex;align-items:center;gap:13px;text-align:left}
+      .genTip>span{width:34px;height:34px;border-radius:50%;background:#A4E41F;display:grid;place-items:center;font-size:15px}
+      .genTip>div{display:flex;flex-direction:column;gap:3px}.genTip b{font-size:11px}.genTip small{font-size:9px;color:#727972}
+      @keyframes genPulse{50%{transform:scale(.9);opacity:.65}}
+      @media(max-width:700px){
+        .step-generating .main{padding:25px 16px 80px}.premiumGenerating>h1{font-size:32px}.genLead{font-size:12px;margin-bottom:20px}
+        .genPremiumCard{padding:18px 16px}.genPremiumRow{grid-template-columns:34px 1fr;gap:12px;min-height:67px}.genState{width:34px;height:34px}.genPremiumRows:before{left:16px}.genRowStatus{display:none}
+        .genSummary{grid-template-columns:1fr;gap:9px}.genSummary>div{padding:12px 14px}.genTip{padding:13px 15px}
+      }
+
     `}</style>
 
     <header className="head"><div className="headin"><div className="top">
@@ -1012,7 +1046,43 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
         <Footer next={generate} label="GÉNÉRER MA LISTE →"/>
       </>}
 
-      {step==='generating'&&<div className="gen"><div className="genIcon">✦</div><h1>NOX prépare ta liste…</h1><p className="lead" style={{textAlign:'center'}}>Analyse de ton profil, de ton budget et de tes préférences.</p><div className="genRows">{['Analyse du profil NOX','Calcul des quantités','Vérification des contraintes','Optimisation du budget','Création de la liste'].map((x,i)=><div key={x} className={`genRow ${genStage>i?'done':''}`}>{genStage>i?'✓':'○'} &nbsp; {x}</div>)}</div><div className="genBar"><div style={{width:`${Math.min(100,genStage*20)}%`}}/></div></div>}
+      {step==='generating'&&<div className="premiumGenerating">
+        <div className="genBadge">✦ &nbsp; NOX ANALYSE TES DONNÉES</div>
+        <h1>NOX prépare ta liste…</h1>
+        <p className="genLead">Analyse de ton profil, de ton budget et de tes préférences pour créer une liste de courses personnalisée.</p>
+
+        <div className="genPremiumCard">
+          <div className="genPremiumRows">
+            {[
+              ['Analyse du profil NOX','Objectifs, préférences, allergies…'],
+              ['Calcul des quantités','Adaptées à tes besoins'],
+              ['Vérification des contraintes','Budget, préférences et disponibilités'],
+              ['Optimisation du budget','Meilleures alternatives et équilibres'],
+              ['Création de la liste','Derniers ajustements…']
+            ].map(([title,sub],i)=>{
+              const done=genStage>i;
+              const active=genStage===i;
+              return <div className={`genPremiumRow ${done?'done':''} ${active?'active':''}`} key={title}>
+                <div className="genState">{done?'✓':active?'◌':'○'}</div>
+                <div className="genRowCopy"><b>{title}</b><span>{sub}</span></div>
+                <div className="genRowStatus">{done?'Terminé':active?'En cours…':'En attente'}</div>
+              </div>
+            })}
+          </div>
+          <div className="genPremiumProgress">
+            <div className="genProgressTrack"><i style={{width:`${Math.min(100,genStage*20)}%`}}/></div>
+            <b>{Math.min(5,genStage)} / 5 étapes</b>
+          </div>
+        </div>
+
+        <div className="genSummary">
+          <div><span className="genSummaryIcon">♙</span><p><b>{people} personne{people>1?'s':''}</b><small>Repas adaptés à ton profil</small></p></div>
+          <div><span className="genSummaryIcon">▣</span><p><b>{days} jours</b><small>Menus variés et équilibrés</small></p></div>
+          <div><span className="genSummaryIcon">€</span><p><b>~ {budgetNumber.toLocaleString('fr-FR')} €</b><small>Budget optimisé</small></p></div>
+        </div>
+
+        <div className="genTip"><span>✦</span><div><b>NOX optimise ta liste</b><small>Quantités, préférences et budget sont pris en compte automatiquement.</small></div></div>
+      </div>}
 
       {step==='list'&&<>
         {error?<div className="warning"><b>La liste n’a pas pu être générée.</b><br/>{error}</div>:budgetNotice?<div className="budgetAlert"><div className="budgetAlertTop"><span className="budgetX">×</span><div><b>Budget très serré</b><p>{budgetNotice}</p></div></div><div className="budgetActions"><button onClick={()=>setBudget(String(Math.ceil(totalKnown)))}>UTILISER LE BUDGET NÉCESSAIRE · {Math.ceil(totalKnown)} €</button>{days>3&&<button onClick={()=>{setDays(days===7?5:3);setStep('review');}}>RÉDUIRE LA DURÉE · {days===7?5:3} JOURS</button>}<button onClick={()=>setStep('budget')}>MODIFIER MON BUDGET</button></div></div>:<div className="success"><b>✓ Liste générée</b><br/>{days} jours · {people} personne{people>1?'s':''}</div>}
