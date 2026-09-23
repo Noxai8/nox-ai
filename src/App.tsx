@@ -41,6 +41,7 @@ const Pantry = lazy(() => import('./pages/Pantry'));
 const SleepTracker = lazy(() => import('./pages/SleepTracker'));
 const CoachDashboard = lazy(() => import('./pages/CoachDashboard'));
 const Reschedule = lazy(() => import('./pages/Reschedule'));
+const Habits = lazy(() => import('./pages/Habits'));
 
 /* =========================================================
    LOADER NOX — WHITE PREMIUM
@@ -317,6 +318,16 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <FastingTracker />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* HABITS */}
+        <Route
+          path="/habits"
+          element={
+            <ProtectedRoute>
+              <Habits />
             </ProtectedRoute>
           }
         />
