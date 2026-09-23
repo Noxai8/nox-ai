@@ -290,7 +290,7 @@ Format exact:
       setActiveRecipeCategory('Petit-déjeuner');
       setRecipesLoading(false);
 
-      const IMAGE_CONCURRENCY=8;
+      const IMAGE_CONCURRENCY=3;
       let imageCursor=0;
       let imageFailures=0;
 
