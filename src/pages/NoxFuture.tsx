@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, Check, ChevronRight, ImagePlus, Lock, RotateCcw, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -78,7 +78,7 @@ export default function NoxFuture() {
     stopCamera();
   };
 
-  const importPhoto=(e:React.ChangeEvent<HTMLInputElement>)=>{
+  const importPhoto=(e:ChangeEvent<HTMLInputElement>)=>{
     const f=e.target.files?.[0]; if(!f)return;
     const reader=new FileReader();
     reader.onload=()=>setPhotos(p=>({...p,[angle]:String(reader.result)}));
@@ -226,14 +226,14 @@ function Top({step,back}:{step:Step;back:()=>void}){
   if(step==='generating'||step==='result'||step==='intro')return <div style={{height:20}}/>;
   return <header style={{maxWidth:560,margin:'0 auto',padding:'20px 20px 0'}}><button onClick={back} style={{width:42,height:42,borderRadius:14,border:`1px solid ${BORDER}`,background:WHITE,display:'grid',placeItems:'center'}}><ArrowLeft size={18}/></button></header>;
 }
-function Eyebrow({children}:{children:React.ReactNode}){return <div style={{fontSize:10,fontWeight:950,letterSpacing:'.13em',color:'#949A90',marginBottom:10}}>{children}</div>}
-function Title({children}:{children:React.ReactNode}){return <h1 style={{fontSize:'clamp(36px,10vw,48px)',lineHeight:.94,letterSpacing:'-.06em',margin:0,fontWeight:950}}>{children}</h1>}
-function Text({children}:{children:React.ReactNode}){return <p style={{color:MUTED,fontSize:14,lineHeight:1.65,margin:'16px 0 0'}}>{children}</p>}
-function Info({icon,title,children}:{icon:React.ReactNode;title:string;children:React.ReactNode}){return <div style={{display:'flex',gap:13,background:WHITE,border:`1px solid ${BORDER}`,borderRadius:18,padding:16}}><div style={{width:36,height:36,borderRadius:12,background:'#F0FFD0',display:'grid',placeItems:'center',flexShrink:0}}>{icon}</div><div><b style={{fontSize:13}}>{title}</b><div style={{fontSize:12,color:MUTED,lineHeight:1.5,marginTop:3}}>{children}</div></div></div>}
+function Eyebrow({children}:{children:ReactNode}){return <div style={{fontSize:10,fontWeight:950,letterSpacing:'.13em',color:'#949A90',marginBottom:10}}>{children}</div>}
+function Title({children}:{children:ReactNode}){return <h1 style={{fontSize:'clamp(36px,10vw,48px)',lineHeight:.94,letterSpacing:'-.06em',margin:0,fontWeight:950}}>{children}</h1>}
+function Text({children}:{children:ReactNode}){return <p style={{color:MUTED,fontSize:14,lineHeight:1.65,margin:'16px 0 0'}}>{children}</p>}
+function Info({icon,title,children}:{icon:ReactNode;title:string;children:ReactNode}){return <div style={{display:'flex',gap:13,background:WHITE,border:`1px solid ${BORDER}`,borderRadius:18,padding:16}}><div style={{width:36,height:36,borderRadius:12,background:'#F0FFD0',display:'grid',placeItems:'center',flexShrink:0}}>{icon}</div><div><b style={{fontSize:13}}>{title}</b><div style={{fontSize:12,color:MUTED,lineHeight:1.5,marginTop:3}}>{children}</div></div></div>}
 function PhotoCard({label,src,onClick}:{label:string;src?:string;onClick:()=>void}){return <button onClick={onClick} style={{aspectRatio:'3/4',border:`1.5px ${src?'solid':'dashed'} ${src?BLACK:'#CED2C9'}`,borderRadius:20,overflow:'hidden',padding:0,background:WHITE,position:'relative'}}>{src?<img src={src} alt={label} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div style={{height:'100%',display:'grid',placeItems:'center'}}><div><Camera size={22}/><div style={{fontSize:9,fontWeight:900,marginTop:8}}>{label}</div></div></div>}</button>}
 function ResultImage({src,label,accent=false}:{src?:string;label:string;accent?:boolean}){return <div><div style={{aspectRatio:'3/4',borderRadius:22,overflow:'hidden',background:'#ECEEE8',border:`2px solid ${accent?ACCENT:'transparent'}`}}>{src?<img src={src} alt={label} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div style={{height:'100%',display:'grid',placeItems:'center',padding:14,textAlign:'center',fontSize:11,color:MUTED}}>Image indisponible</div>}</div><div style={{fontSize:9,fontWeight:950,letterSpacing:'.08em',textAlign:'center',marginTop:8,color:accent?'#779C00':MUTED}}>{label}</div></div>}
-const primary=(enabled:boolean):React.CSSProperties=>({width:'100%',minHeight:60,border:0,borderRadius:18,padding:'0 18px',background:enabled?ACCENT:'#E1E4DD',color:enabled?BLACK:'#9EA39B',fontWeight:950,fontSize:13,display:'flex',alignItems:'center',justifyContent:'space-between',cursor:enabled?'pointer':'not-allowed'});
-const secondary:React.CSSProperties={width:'100%',minHeight:52,border:`1px solid ${BORDER}`,borderRadius:16,padding:'0 16px',background:WHITE,color:BLACK,fontWeight:850,fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',gap:8};
-const chip:React.CSSProperties={border:`1px solid ${BORDER}`,borderRadius:999,background:WHITE,padding:'9px 12px',fontSize:11,fontWeight:750,color:'#555'};
-const notice:React.CSSProperties={padding:14,borderRadius:16,background:'#F0FFD0',border:'1px solid #DDF49B',fontSize:11,lineHeight:1.55,color:'#596600'};
-const closeBtn:React.CSSProperties={width:38,height:38,borderRadius:20,border:'1px solid #333',background:'#171717',color:'#fff',fontSize:22};
+const primary=(enabled:boolean):CSSProperties=>({width:'100%',minHeight:60,border:0,borderRadius:18,padding:'0 18px',background:enabled?ACCENT:'#E1E4DD',color:enabled?BLACK:'#9EA39B',fontWeight:950,fontSize:13,display:'flex',alignItems:'center',justifyContent:'space-between',cursor:enabled?'pointer':'not-allowed'});
+const secondary:CSSProperties={width:'100%',minHeight:52,border:`1px solid ${BORDER}`,borderRadius:16,padding:'0 16px',background:WHITE,color:BLACK,fontWeight:850,fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',gap:8};
+const chip:CSSProperties={border:`1px solid ${BORDER}`,borderRadius:999,background:WHITE,padding:'9px 12px',fontSize:11,fontWeight:750,color:'#555'};
+const notice:CSSProperties={padding:14,borderRadius:16,background:'#F0FFD0',border:'1px solid #DDF49B',fontSize:11,lineHeight:1.55,color:'#596600'};
+const closeBtn:CSSProperties={width:38,height:38,borderRadius:20,border:'1px solid #333',background:'#171717',color:'#fff',fontSize:22};
