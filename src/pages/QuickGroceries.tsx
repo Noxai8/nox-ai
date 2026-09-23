@@ -94,7 +94,7 @@ export default function QuickGroceries(){
 
   const [people,setPeople] = useState(1);
   const [days,setDays] = useState(7);
-  const [budget,setBudget] = useState('');
+  const [budget,setBudget] = useState('120');
   const [allergies,setAllergies] = useState<string[]>([]);
   const [otherAllergy,setOtherAllergy] = useState('');
   const [likes,setLikes] = useState('');
@@ -686,6 +686,124 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
         .qg.step-budget .headin,.qg.step-budget .main,
         .qg.step-prefs .headin,.qg.step-prefs .main,
         .qg.step-review .headin,.qg.step-review .main{max-width:480px!important}
+      }
+
+
+      /* ===== MAQUETTE APPROUVÉE — OVERRIDES FINAUX ===== */
+      .qg.step-mode,.qg.step-setup,.qg.step-budget,.qg.step-prefs,.qg.step-review{
+        background:#F5F6EE;
+      }
+      .qg.step-mode .head,.qg.step-setup .head,.qg.step-budget .head,.qg.step-prefs .head,.qg.step-review .head{
+        background:#F5F6EE;border-bottom:0;position:relative;backdrop-filter:none;
+      }
+      .qg.step-mode .headin,.qg.step-setup .headin,.qg.step-budget .headin,.qg.step-prefs .headin,.qg.step-review .headin,
+      .qg.step-mode .main,.qg.step-setup .main,.qg.step-budget .main,.qg.step-prefs .main,.qg.step-review .main{
+        width:min(100%,430px)!important;max-width:430px!important;margin:0 auto!important;
+      }
+      .qg.step-mode .headin,.qg.step-setup .headin,.qg.step-budget .headin,.qg.step-prefs .headin,.qg.step-review .headin{
+        padding:22px 22px 8px!important;
+      }
+      .qg.step-mode .main,.qg.step-setup .main,.qg.step-budget .main,.qg.step-prefs .main,.qg.step-review .main{
+        padding:18px 22px 122px!important;
+      }
+      .qg.step-mode .top,.qg.step-setup .top,.qg.step-budget .top,.qg.step-prefs .top,.qg.step-review .top{
+        grid-template-columns:42px 1fr 42px;
+      }
+      .qg.step-mode .back,.qg.step-setup .back,.qg.step-budget .back,.qg.step-prefs .back,.qg.step-review .back{
+        border:0;background:transparent;font-size:30px;
+      }
+      .qg.step-mode .nox,.qg.step-setup .nox,.qg.step-budget .nox,.qg.step-prefs .nox,.qg.step-review .nox{
+        width:42px;height:42px;border-radius:50%;font-size:11px;
+      }
+      .qg.step-mode .title,.qg.step-setup .title,.qg.step-budget .title,.qg.step-prefs .title,.qg.step-review .title{
+        font-size:16px;font-weight:900;
+      }
+      .qg.step-mode .subtitle,.qg.step-setup .subtitle,.qg.step-budget .subtitle,.qg.step-prefs .subtitle,.qg.step-review .subtitle{
+        display:none;
+      }
+
+      .wizardProgress{margin:10px 0 42px!important}
+      .wizardProgressLabel{font-size:11px!important;color:#77A916!important;font-weight:950!important;margin-bottom:11px!important}
+      .wizardSegments{gap:5px!important}
+      .wizardSegments span{height:5px!important;background:#E0E3DA!important}
+      .wizardSegments span.on{background:#88CB11!important}
+
+      .wizardIntro{text-align:center!important;margin-bottom:31px!important}
+      .wizardIntro h1{font-size:39px!important;line-height:1!important;letter-spacing:-.055em!important;font-weight:900!important;margin-bottom:11px!important}
+      .wizardIntro p{font-size:13px!important;line-height:1.5!important;color:#7A807A!important;max-width:320px!important;margin:0 auto!important}
+
+      .simpleChoices{gap:14px!important}
+      .simpleChoice{
+        min-height:112px!important;border-radius:22px!important;padding:20px!important;
+        border:1px solid #DDE1D8!important;background:#fff!important;
+        box-shadow:0 8px 26px rgba(20,24,18,.025)!important;
+      }
+      .simpleChoice.on{
+        border:2px solid #8ACB10!important;
+        background:linear-gradient(110deg,#FBFFE9 0%,#F4FFD8 100%)!important;
+      }
+      .choiceCopy strong{font-size:18px!important;font-weight:900!important}
+      .choiceCopy small{font-size:11px!important;color:#737A73!important;max-width:250px!important}
+      .choiceRadio{width:30px!important;height:30px!important}
+      .simpleChoice.on .choiceRadio,.durationChoices button.on .choiceRadio{
+        background:#0E100F!important;color:#C8FF00!important;border-color:#0E100F!important;
+      }
+
+      .wizardCard,.budgetMockCard,.recapCard{
+        border-radius:22px!important;border:1px solid #DEE2D9!important;
+        box-shadow:0 8px 28px rgba(20,24,18,.025)!important;
+      }
+      .wizardCard{padding:20px!important}
+      .durationChoices{gap:10px!important}
+      .durationChoices button{
+        min-height:58px!important;border-radius:16px!important;padding:0 16px!important;
+      }
+      .durationChoices button.on{background:#F5FFD9!important;border:2px solid #8ACB10!important}
+      .peopleCard{margin-top:14px!important;min-height:86px!important}
+      .peopleControl button{width:40px!important;height:40px!important;background:#fff!important}
+      .peopleControl b{font-size:20px!important}
+
+      .budgetMockCard{padding:34px 22px 22px!important}
+      .budgetBig{font-size:48px!important;margin-bottom:14px!important}
+      .budgetRange{height:7px!important;margin:30px 0 12px!important}
+      .budgetRange::-webkit-slider-thumb{
+        width:29px!important;height:29px!important;background:#0E100F!important;
+        border:6px solid #C8FF00!important;
+      }
+      .budgetScale{font-size:10px!important;color:#818781!important}
+      .budgetStatus{margin-top:25px!important;background:#F1F4EB!important;border-radius:16px!important;padding:15px!important}
+
+      .prefsCard{gap:22px!important}
+      .prefBlock{gap:10px!important}
+      .readonlyPref,.prefsCard .input{min-height:48px!important;border-radius:14px!important;background:#FBFCF8!important}
+      .cleanChips .chip{padding:9px 12px!important;border-radius:999px!important}
+      .cleanChips .chip.on{background:#E9FFAA!important;border-color:#88CB11!important;color:#1D2A00!important}
+
+      .recapCard{padding:4px 18px!important}
+      .recapCard .reviewRow{padding:16px 0!important;font-size:11px!important}
+      .readyCard{border-radius:18px!important;padding:18px!important;background:#EEFFC2!important}
+
+      .wizardProfile{font-size:10px!important;margin:25px 0 8px!important;color:#676D67!important}
+
+      .qg.step-mode .footer,.qg.step-setup .footer,.qg.step-budget .footer,.qg.step-prefs .footer,.qg.step-review .footer{
+        background:linear-gradient(180deg,rgba(245,246,238,0),#F5F6EE 28%)!important;
+      }
+      .qg.step-mode .footerIn,.qg.step-setup .footerIn,.qg.step-budget .footerIn,.qg.step-prefs .footerIn,.qg.step-review .footerIn{
+        max-width:386px!important;
+      }
+      .qg.step-mode .primary,.qg.step-setup .primary,.qg.step-budget .primary,.qg.step-prefs .primary,.qg.step-review .primary{
+        height:59px!important;border-radius:18px!important;background:#0E100F!important;color:#C8FF00!important;
+        font-size:12px!important;letter-spacing:.01em!important;
+      }
+
+      @media(min-width:700px){
+        .qg.step-mode,.qg.step-setup,.qg.step-budget,.qg.step-prefs,.qg.step-review{
+          padding:34px 0!important;
+        }
+        .qg.step-mode .head,.qg.step-setup .head,.qg.step-budget .head,.qg.step-prefs .head,.qg.step-review .head,
+        .qg.step-mode .main,.qg.step-setup .main,.qg.step-budget .main,.qg.step-prefs .main,.qg.step-review .main{
+          background:#F5F6EE!important;
+        }
       }
 
     `}</style>
