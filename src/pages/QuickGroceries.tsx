@@ -429,13 +429,42 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
     else if(previous[step]) setStep(previous[step]!);
   };
 
-  return <div className="qg">
+  return <div className={`qg step-${step}`}>
     <style>{`
       *{box-sizing:border-box}body{margin:0;background:#F7F8F2}
       button,input,textarea{font:inherit}
       .qg{min-height:100dvh;background:#F7F8F2;color:#0E100F;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
       .head{position:sticky;top:0;z-index:30;background:rgba(247,248,242,.96);backdrop-filter:blur(18px);border-bottom:1px solid #E6E8E1}
       .headin,.main{max-width:430px;margin:auto}.headin{padding:15px 18px 12px}.main{padding:22px 20px 112px}
+
+      /* ÉCRAN 1 DESKTOP — vraie largeur de la maquette */
+      @media(min-width:700px){
+        .step-mode .headin{max-width:760px;padding:17px 24px 14px}
+        .step-mode .main{max-width:760px;padding:30px 24px 130px}
+        .step-mode .modeProgress{margin:2px 0 46px}
+        .step-mode .modeIntro{margin-bottom:36px}
+        .step-mode .modeIntro h1{font-size:48px}
+        .step-mode .modeIntro p{max-width:500px;font-size:16px}
+        .step-mode .modeChoices{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+        .step-mode .modeCard{
+          min-height:310px;
+          padding:20px;
+          grid-template-columns:1fr;
+          grid-template-rows:150px auto;
+          gap:18px;
+          align-items:start
+        }
+        .step-mode .modeVisual{height:150px}
+        .step-mode .modeCopy{padding:0 34px 0 2px}
+        .step-mode .modeCopy strong{font-size:24px}
+        .step-mode .modeCopy .modeSub{font-size:16px}
+        .step-mode .modeCopy p{font-size:12px;max-width:270px}
+        .step-mode .modeBenefit{font-size:9px}
+        .step-mode .profileHint{margin:28px 0 10px}
+        .step-mode .fridgeEntry{max-width:100%;margin-top:18px}
+        .step-mode .footerIn{max-width:712px}
+        .step-mode .modeFooter .primary{height:62px}
+      }
       .top{display:grid;grid-template-columns:44px 1fr 44px;align-items:center}.back,.nox{width:42px;height:42px;border-radius:14px;border:1px solid #E2E5DE;background:#fff}
       .back{font-size:27px}.nox{display:grid;place-items:center;background:#0E100F;color:#c8ff00;border-color:#0E100F;font-size:13px;font-weight:950}
       .title{text-align:center;font-size:17px;font-weight:900}.subtitle{text-align:center;color:#8B908B;font-size:10px;margin-top:2px}
@@ -509,6 +538,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
 
 
       /* ÉCRAN 1 — MOBILE FINAL */
+      @media(max-width:699px){
       .modeProgress{margin:4px 0 38px}
       .modeProgressTop{margin-bottom:10px}
       .modeProgressTop b{font-size:12px;font-weight:900;letter-spacing:.06em;color:#75A915}
@@ -579,6 +609,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
         .modeCopy strong{font-size:18px}
         .modeCopy .modeSub{font-size:14px}
         .modeBenefit{font-size:8px;padding:7px 9px}
+      }
       }
 
     `}</style>
