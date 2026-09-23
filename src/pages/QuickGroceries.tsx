@@ -284,11 +284,15 @@ Format exact:
         throw new Error('NOXAI n’a pas reçu 5 idées dans chaque catégorie. Réessaie.');
       }
 
-      // Génère les images avec une concurrence limitée à 3 appels à la fois.
-      // Une recette n’est rendue visible qu’une fois son image prête.
-      const recipesWithImages:Recipe[]=new Array(next.length);
-      const IMAGE_CONCURRENCY=3;
+      // Les 15 recettes sont disponibles immédiatement côté état, puis les images
+      // partent en parallèle. Une carte n’apparaît que lorsque SON image est prête.
+      setRecipes(next);
+      setActiveRecipeCategory('Petit-déjeuner');
+      setRecipesLoading(false);
+
+      const IMAGE_CONCURRENCY=8;
       let imageCursor=0;
+      let imageFailures=0;
 
       const imageWorker=async()=>{
         while(true){
@@ -299,10 +303,13 @@ Format exact:
           const imageUrl=await generateRecipeImage(recipe);
 
           if(!imageUrl){
-            throw new Error(`Image impossible pour "${recipe.title}". Réessaie.`);
+            imageFailures++;
+            continue;
           }
 
-          recipesWithImages[index]={...recipe,imageUrl};
+          setRecipes(current=>current.map(r=>
+            r.id===recipe.id?{...r,imageUrl}:r
+          ));
         }
       };
 
@@ -313,8 +320,9 @@ Format exact:
         )
       );
 
-      setRecipes(recipesWithImages);
-      setActiveRecipeCategory('Petit-déjeuner');
+      if(imageFailures>0){
+        setRecipesError(`${imageFailures} photo${imageFailures>1?'s':''} n’a${imageFailures>1?'ont':''} pas pu être générée${imageFailures>1?'s':''}. Tu peux relancer le livret.`);
+      }
     }catch(e:any){
       setRecipes([]);
       setRecipesError(e?.message||'Impossible de générer le livret.');
@@ -497,6 +505,9 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       .actions{display:grid;gap:9px;margin:18px 0}.actionMain,.actionAlt{min-height:53px;border-radius:16px;font-weight:950;font-size:11px}.actionMain{border:0;background:#0E100F;color:#c8ff00}.actionAlt{border:1px solid #DDE1DA;background:#fff;color:#0E100F}
       .recipeBookTabs{display:flex;gap:7px;overflow-x:auto;margin:16px 0 18px;padding-bottom:3px}.recipeBookTabs button{white-space:nowrap;border:1px solid #DDE1DA;background:#fff;border-radius:999px;padding:10px 13px;font-size:9px;font-weight:900;color:#656B66}.recipeBookTabs button.on{background:#0E100F;color:#fff;border-color:#0E100F}.recipeGrid{display:grid;gap:14px}.recipeCard{border:1px solid #E1E4DD;background:#fff;border-radius:22px;overflow:hidden;text-align:left;padding:0;box-shadow:0 8px 28px rgba(14,16,15,.035)}.recipeVisual{height:155px;background:radial-gradient(circle at 30% 30%,#55734A 0,#263824 36%,#111712 100%);position:relative;overflow:hidden}.recipeVisual.empty:before{content:'✦';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:52px;color:#c8ff00}.recipeVisual.empty:after{content:'IMAGE EN PRÉPARATION';position:absolute;bottom:12px;left:14px;color:#fff;font-size:8px;font-weight:900;letter-spacing:.12em;background:rgba(0,0,0,.38);padding:7px 9px;border-radius:999px}.recipeVisual img{width:100%;height:100%;display:block;object-fit:cover}.recipeBody{padding:15px}.recipeBody b{font-size:16px}.recipeBody p{font-size:10px;color:#777D78;line-height:1.45;margin:6px 0 11px}.recipeMeta{display:flex;gap:6px;flex-wrap:wrap}.recipeMeta span{background:#F3F5F0;border-radius:9px;padding:7px 9px;font-size:8px;font-weight:850}
       .recipeDetail{margin:-6px 0 0}.dishPhoto{height:270px;border-radius:24px;background:radial-gradient(circle at 35% 28%,#5E7D50 0,#314A2B 35%,#151C16 72%);position:relative;overflow:hidden;box-shadow:0 14px 38px rgba(14,16,15,.10);display:grid;place-items:center}.dishPhoto.empty:before{content:'✦';font-size:76px;font-weight:950;color:#c8ff00}.dishPhoto.empty:after{content:'IMAGE EN PRÉPARATION';position:absolute;left:18px;top:18px;color:#fff;font-size:9px;font-weight:900;letter-spacing:.12em;background:rgba(0,0,0,.45);padding:8px 11px;border-radius:999px}.dishPhoto img{width:100%;height:100%;display:block;object-fit:cover}.dishBadges{position:absolute;left:14px;right:14px;bottom:14px;display:flex;gap:7px;z-index:2}.dishBadges span{background:rgba(20,20,20,.72);color:#fff;padding:8px 10px;border-radius:10px;font-size:8px;font-weight:850;backdrop-filter:blur(8px)}.recipeTag{display:inline-flex;background:#DFF4D9;color:#26752A;border-radius:999px;padding:7px 11px;font-size:9px;font-weight:950;margin:18px 0 9px}.recipeTitle{font-size:34px;line-height:1;letter-spacing:-.05em;margin:0 0 8px}.recipeDesc{font-size:14px;color:#707670;line-height:1.45;margin:0 0 17px}.macroGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:14px 0}.macro{background:#fff;border:1px solid #E3E6DF;border-radius:15px;padding:12px 5px;text-align:center}.macro b{display:block;font-size:13px}.macro small{font-size:7px;color:#858B85}.recipePanel{background:#fff;border:1px solid #E3E6DF;border-radius:20px;padding:17px;margin-top:12px}.sectionTitle{font-size:15px;font-weight:950;margin:0 0 10px}.ingredientRow{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #ECEEE8;font-size:10px}.ingredientRow:last-child{border-bottom:0}.ingredientName{display:flex;align-items:center;gap:9px}.ingredientDot{width:25px;height:25px;border-radius:8px;background:#F0F5EB;display:grid;place-items:center;font-size:11px}.steps{display:grid;gap:12px}.stepRow{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;font-size:10px;line-height:1.55}.stepNum{width:28px;height:28px;border-radius:50%;background:#D9F7D5;color:#1E6827;display:grid;place-items:center;font-weight:950}.tipBox{border-radius:18px;padding:15px;margin-top:11px;font-size:10px;line-height:1.5}.tipBox.green{background:#F0FAEF}.tipBox.warm{background:#FBF7EF}.tipBox b{display:block;font-size:11px;margin-bottom:4px}.recipeActions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:16px}.recipeActions button{min-height:54px;border-radius:16px;font-size:10px;font-weight:950}.recipeActions .black{border:0;background:#0E100F;color:#c8ff00}.recipeActions .white{border:1px solid #DDE1DA;background:#fff;color:#0E100F}
+      /* LIVRET — RAPIDE + PROGRESSIF */
+      .bookHero{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px}.bookHero h1{font-size:34px;margin-bottom:7px}.bookHero p{margin:0;color:#777D78;font-size:12px;line-height:1.45}.bookCount{flex:0 0 auto;width:82px;height:82px;border-radius:24px;background:#0E100F;color:#fff;display:grid;place-items:center;align-content:center}.bookCount strong{font-size:27px;line-height:1;color:#C8FF00}.bookCount span{font-size:8px;margin-top:5px;color:#C8CDC8}.bookLoading{display:flex;align-items:center;gap:13px;background:#fff;border:1px solid #E1E4DD;border-radius:20px;padding:17px;margin:18px 0}.bookSpark{width:45px;height:45px;border-radius:14px;background:#E9FFC4;display:grid;place-items:center;font-size:22px}.bookLoading div{display:grid;gap:3px}.bookLoading b{font-size:12px}.bookLoading small{font-size:9px;color:#7A807A}.bookProgress{background:#fff;border:1px solid #E1E4DD;border-radius:20px;padding:16px;margin:16px 0 18px}.bookProgressTop{display:flex;justify-content:space-between;align-items:center;font-size:11px}.bookProgressTop span{font-weight:950}.bookProgressBar{height:7px;background:#E8EBE4;border-radius:99px;overflow:hidden;margin:10px 0 7px}.bookProgressBar i{display:block;height:100%;background:#91D10E;border-radius:99px;transition:width .35s ease}.bookProgress small{font-size:9px;color:#7B817B}.recipeBookTabs button{display:flex;align-items:center;gap:6px}.recipeBookTabs button span{font-size:8px;opacity:.7}.recipeCategoryPill{position:absolute;left:12px;top:12px;background:rgba(14,16,15,.78);color:#fff;border-radius:999px;padding:7px 9px;font-size:8px;font-weight:900;backdrop-filter:blur(8px)}.recipeSkeleton{border:1px solid #E1E4DD;background:#fff;border-radius:22px;overflow:hidden}.skeletonPhoto{height:155px;background:linear-gradient(110deg,#EEF0EA 25%,#F7F8F4 42%,#EEF0EA 60%);background-size:240% 100%;animation:noxShimmer 1.2s linear infinite;display:grid;place-items:center}.skeletonPhoto span{width:42px;height:42px;border-radius:50%;background:#E5F8C0;display:grid;place-items:center}.skeletonBody{padding:15px;display:grid;gap:8px}.skeletonBody i{display:block;height:10px;border-radius:99px;background:#ECEFE9}.skeletonBody i:nth-child(1){width:72%}.skeletonBody i:nth-child(2){width:94%}.skeletonBody i:nth-child(3){width:55%}@keyframes noxShimmer{to{background-position:-140% 0}}
+      @media(min-width:760px){.qg.step-recipes .headin,.qg.step-recipes .main{max-width:900px}.qg.step-recipes .main{padding-left:28px;padding-right:28px}.qg.step-recipes .recipeGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.qg.step-recipes .recipeVisual,.qg.step-recipes .skeletonPhoto{height:210px}.qg.step-recipes .bookHero h1{font-size:46px}}
       .shopTop{margin-bottom:20px}.shopProgress{display:flex;justify-content:space-between;font-size:10px;font-weight:850;margin-bottom:8px}.doneScreen{min-height:72vh;display:flex;flex-direction:column;justify-content:center;text-align:center}.doneCheck{width:100px;height:100px;border-radius:50%;background:#DFFFAD;display:grid;place-items:center;margin:0 auto 22px;font-size:43px;font-weight:950}.doneScreen h1{font-size:30px}.doneScreen .actions{margin-top:24px}
 
       /* ÉCRAN 1 — MAQUETTE PREMIUM */
@@ -806,6 +817,54 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
         }
       }
 
+
+
+      /* PREMIUM LIVRET MOCKUP — FINAL */
+      .step-recipes .headin,.step-recipes .main{max-width:1480px!important}
+      .step-recipes .main{padding:24px 30px 90px}
+      .premiumBook{width:100%}
+      .bookJourney{display:flex;justify-content:center;align-items:center;gap:18px;color:#7C817D;font-size:12px;margin:0 0 28px}
+      .bookJourney strong{color:#0E100F;border-bottom:2px solid #8FD314;padding-bottom:7px}
+      .bookTop{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(330px,.8fr);gap:34px;align-items:start;margin-bottom:28px}
+      .bookIntro h1{font-size:40px;line-height:1.02;letter-spacing:-.045em;margin:0 0 8px}
+      .bookIntro>p{font-size:14px;color:#747A75;margin:0;max-width:760px}
+      .bookBenefits{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:28px}
+      .bookBenefits>span{display:grid;grid-template-columns:42px 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center}
+      .bookBenefits i{grid-row:1/3;width:42px;height:42px;border-radius:50%;background:#EFF9DA;display:grid;place-items:center;font-style:normal;font-size:19px}
+      .bookBenefits b{font-size:11px}.bookBenefits small{font-size:9px;color:#7C827D}
+      .bookGeneration{background:linear-gradient(110deg,#F3FFE2,#EDF8D8);border-radius:18px;padding:23px;display:grid;grid-template-columns:44px 1fr;gap:14px}
+      .generationSpark{font-size:28px}.generationCopy{display:grid;grid-template-columns:1fr auto;gap:7px 12px;align-items:center}
+      .generationCopy>b{font-size:13px}.generationCopy>span{grid-column:1/3;color:#747A75;font-size:10px;line-height:1.4}
+      .generationLine{height:10px;border-radius:99px;background:#DDE7C9;overflow:hidden}.generationLine i{display:block;height:100%;background:#A8E925;border-radius:99px;transition:.35s}
+      .generationCopy>strong{font-size:11px;white-space:nowrap}
+      .bookToolbar{display:flex;justify-content:space-between;align-items:center;margin:14px 0 18px}
+      .premiumTabs{display:flex;gap:9px;flex-wrap:wrap}.premiumTabs button{border:1px solid #DDE1DA;background:#fff;border-radius:999px;padding:10px 17px;font-size:10px;font-weight:850}.premiumTabs button.on{background:#0E100F;color:#fff;border-color:#0E100F}.premiumTabs span{opacity:.7}
+      .bookWorkspace{display:grid;grid-template-columns:1fr;gap:20px;align-items:start}.bookWorkspace.hasPanel{grid-template-columns:minmax(0,1fr) 420px}
+      .premiumRecipeGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+      .premiumRecipeCard,.premiumSkeleton{min-width:0;border:1px solid #DDE1DA;background:#fff;border-radius:15px;overflow:hidden;text-align:left;padding:0;box-shadow:0 4px 15px rgba(14,16,15,.035)}
+      .premiumRecipeCard{cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s}.premiumRecipeCard:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(14,16,15,.08)}.premiumRecipeCard.selected{border-color:#9BD91B}
+      .premiumRecipePhoto{height:190px;position:relative;overflow:hidden;background:#EFF1EC}.premiumRecipePhoto img{width:100%;height:100%;object-fit:cover;display:block}
+      .premiumPill{position:absolute;left:11px;top:11px;padding:6px 10px;border-radius:999px;font-size:8px;font-weight:950;background:#F4B8EA}.premiumPill.green{background:#B9F04B}
+      .recipeHeart{position:absolute;right:11px;top:9px;color:#fff;font-size:25px;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+      .premiumRecipeBody{padding:12px 13px 14px}.premiumRecipeBody h3{font-size:14px;margin:0 0 9px;letter-spacing:-.02em}.premiumRecipeBody p{font-size:9px;color:#777D78;line-height:1.45;margin:10px 0 0}
+      .premiumMeta{display:flex;gap:12px;flex-wrap:wrap;font-size:8px;font-weight:800;color:#3F4540}
+      .premiumSkeleton{background:#F0F1ED}.premiumSkeletonPhoto{height:190px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:7px;background:linear-gradient(110deg,#ECEDE9,#F7F7F4,#ECEDE9);background-size:200% 100%;animation:noxShimmer 1.5s infinite}.premiumSkeletonPhoto>span{font-size:25px}.premiumSkeletonPhoto b{background:#F8FAF2;border-radius:999px;padding:7px 11px;font-size:8px}.premiumSkeletonPhoto small{font-size:8px;color:#7B807B}.premiumSkeletonBody{padding:14px}.premiumSkeletonBody i{display:block;height:9px;border-radius:99px;background:#E2E4DF;margin-bottom:8px}.premiumSkeletonBody i:nth-child(2){width:70%}.premiumSkeletonBody i:nth-child(3){width:45%}
+      @keyframes noxShimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+      .recipeSidePanel{position:sticky;top:92px;background:#fff;border:1px solid #DDE1DA;border-radius:17px;overflow:hidden;box-shadow:0 12px 35px rgba(14,16,15,.06);max-height:calc(100vh - 112px);overflow-y:auto}
+      .sidePhoto{height:235px}.sidePhoto img{width:100%;height:100%;object-fit:cover;display:block}.sideContent{padding:17px}
+      .sideBadges{display:flex;gap:6px;flex-wrap:wrap}.sideBadges span{background:#F1F3EF;border-radius:999px;padding:6px 9px;font-size:8px;font-weight:850}.sideBadges .sideCategory{background:#B9F04B}
+      .sideContent h2{font-size:22px;letter-spacing:-.035em;margin:10px 0 4px}.sideContent>p{font-size:10px;line-height:1.45;color:#6E746F;margin:0 0 13px}
+      .sideMacros{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.sideMacros span{border:1px solid #E4E7E1;border-radius:11px;padding:9px 4px;text-align:center}.sideMacros b{display:block;font-size:11px}.sideMacros small{font-size:6px;color:#7D837E}
+      .sideContent h4{font-size:11px;margin:16px 0 7px}.sideIngredients>div{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #ECEEE9;font-size:9px}.sideIngredients>div b{white-space:nowrap}
+      .sideSteps{display:grid;gap:8px}.sideSteps>div{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;font-size:9px;line-height:1.45}.sideSteps>div>b{width:22px;height:22px;border-radius:50%;background:#A8E925;display:grid;place-items:center}
+      .sideTip{background:#F1FBDC;border-radius:12px;padding:12px;margin-top:14px;display:grid;gap:5px}.sideTip b{font-size:9px}.sideTip span{font-size:8px;line-height:1.45;color:#5E655F}
+      .bookBottomAction{max-width:420px;margin:28px auto 0}
+      @media(max-width:1180px){.bookWorkspace.hasPanel{grid-template-columns:minmax(0,1fr) 360px}.premiumRecipeGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      @media(max-width:899px){
+        .step-recipes .main{padding:20px 16px 95px}.bookJourney{display:none}.bookTop{grid-template-columns:1fr;gap:18px}.bookIntro h1{font-size:32px}.bookBenefits{grid-template-columns:repeat(2,1fr);gap:12px}.bookGeneration{padding:17px}.bookWorkspace.hasPanel{grid-template-columns:1fr}.recipeSidePanel{display:none}.premiumRecipeGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.premiumRecipePhoto,.premiumSkeletonPhoto{height:180px}
+      }
+      @media(max-width:560px){.premiumRecipeGrid{grid-template-columns:1fr}.bookBenefits{grid-template-columns:1fr 1fr}.premiumRecipePhoto,.premiumSkeletonPhoto{height:220px}.premiumTabs{flex-wrap:nowrap;overflow-x:auto;width:100%;padding-bottom:3px}.premiumTabs button{white-space:nowrap}.generationCopy{grid-template-columns:1fr auto}}
+
     `}</style>
 
     <header className="head"><div className="headin"><div className="top">
@@ -966,30 +1025,104 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
         </div>}
       </>}
 
-      {step==='recipes'&&<>
-        <div className="eyebrow">TON LIVRET NOXAI</div><h1>15 idées avec tes ingrédients</h1>
-        <p className="lead">5 petits-déjeuners, 5 plats et 5 desserts/collations adaptés à tes courses{mode==='complete'?' et à ton frigo':''}, ton objectif et ton profil.</p>
+      {step==='recipes'&&(()=>{
+        const readyCount=recipes.filter(r=>!!r.imageUrl).length;
+        const filtered=recipes.filter(r=>r.category===activeRecipeCategory);
+        const visible=filtered.filter(r=>!!r.imageUrl);
+        const panelRecipe=selectedRecipe?.imageUrl ? selectedRecipe : visible[0] || null;
+        const progressPct=Math.max(4,(readyCount/15)*100);
 
-        {recipesLoading&&<div className="gen" style={{minHeight:'45vh'}}><div className="genIcon">✦</div><h1>NOX prépare ton livret…</h1><p className="lead">Les recettes apparaîtront seulement quand leurs photos seront prêtes.</p></div>}
-        {recipesError&&<div className="warning">{recipesError}<div className="actions"><button className="actionMain" onClick={()=>generateRecipes(items)}>RÉESSAYER</button></div></div>}
+        const openRecipe=(r:Recipe)=>{
+          setSelectedRecipe(r);
+          if(window.innerWidth<900)setStep('recipe');
+        };
 
-        {!recipesLoading&&recipes.length>0&&<>
-          <div className="recipeBookTabs">
-            {(['Petit-déjeuner','Plat','Dessert & collation'] as const).map(category=>{
-              const count=recipes.filter(r=>r.category===category).length;
-              return <button key={category} className={activeRecipeCategory===category?'on':''} onClick={()=>setActiveRecipeCategory(category)}>{category} · {count}</button>
-            })}
+        return <div className="premiumBook">
+          <div className="bookJourney">
+            <span>1. Paramètres</span><b>›</b><span>2. Liste de courses</span><b>›</b><strong>3. Ton livret</strong>
           </div>
-          <div className="recipeGrid">
-            {recipes.filter(r=>r.category===activeRecipeCategory).map(r=><button key={r.id} className="recipeCard" onClick={()=>{setSelectedRecipe(r);setStep('recipe')}}>
-              <div className="recipeVisual">{r.imageUrl&&<img src={r.imageUrl} alt={r.title}/>}</div>
-              <div className="recipeBody"><b>{r.title}</b><p>{r.description}</p><div className="recipeMeta"><span>{r.minutes} min</span><span>{r.difficulty}</span><span>≈ {r.calories} kcal</span><span>{r.protein} g prot.</span></div></div>
-            </button>)}
-          </div>
-        </>}
-        <div className="actions"><button className="actionAlt" onClick={()=>setStep('shopping')}>PASSER EN MODE COURSES</button></div>
-      </>}
 
+          <div className="bookTop">
+            <div className="bookIntro">
+              <div className="eyebrow">TON LIVRET NOXAI</div>
+              <h1>15 recettes avec tes ingrédients</h1>
+              <p>Des idées simples, équilibrées et gourmandes, adaptées à tes courses, ton profil et tes objectifs.</p>
+              <div className="bookBenefits">
+                <span><i>♨</i><b>15 recettes</b><small>100% personnalisées</small></span>
+                <span><i>⌁</i><b>Équilibrées</b><small>et gourmandes</small></span>
+                <span><i>◷</i><b>Simples et rapides</b><small>au quotidien</small></span>
+                <span><i>♡</i><b>Zéro gaspillage</b><small>avec tes ingrédients</small></span>
+              </div>
+            </div>
+
+            <div className="bookGeneration">
+              <div className="generationSpark">✦</div>
+              <div className="generationCopy">
+                <b>{readyCount===15?'Ton livret est prêt':'Génération en cours...'}</b>
+                <span>{readyCount===15?'Tes 15 recettes et leurs photos sont disponibles.':'Les recettes et leurs photos apparaissent au fur et à mesure.'}</span>
+                <div className="generationLine"><i style={{width:`${progressPct}%`}}/></div>
+                <strong>{readyCount} / 15 prêtes</strong>
+              </div>
+            </div>
+          </div>
+
+          {recipesError&&<div className="warning">{recipesError}<div className="actions"><button className="actionMain" onClick={()=>generateRecipes(items)}>RELANCER LE LIVRET</button></div></div>}
+
+          <div className="bookToolbar">
+            <div className="premiumTabs">
+              {(['Petit-déjeuner','Plat','Dessert & collation'] as const).map(category=>{
+                const ready=recipes.filter(r=>r.category===category&&!!r.imageUrl).length;
+                const label=category==='Petit-déjeuner'?'Petit-déjeuner':category==='Plat'?'Plats':'Desserts & collations';
+                return <button key={category} className={activeRecipeCategory===category?'on':''} onClick={()=>setActiveRecipeCategory(category)}>{label} <span>({ready}/5)</span></button>
+              })}
+            </div>
+          </div>
+
+          <div className={`bookWorkspace ${panelRecipe?'hasPanel':''}`}>
+            <div className="premiumRecipeGrid">
+              {visible.map(r=><button key={r.id} className={`premiumRecipeCard ${panelRecipe?.id===r.id?'selected':''}`} onClick={()=>openRecipe(r)}>
+                <div className="premiumRecipePhoto">
+                  <img src={r.imageUrl} alt={r.title}/>
+                  <span className={`premiumPill ${r.category==='Plat'?'green':'pink'}`}>{r.category==='Dessert & collation'?'Dessert':r.category}</span>
+                  <span className="recipeHeart">♡</span>
+                </div>
+                <div className="premiumRecipeBody">
+                  <h3>{r.title}</h3>
+                  <div className="premiumMeta"><span>◷ {r.minutes} min</span><span>▥ {r.calories} kcal</span><span>♧ {r.protein} g</span></div>
+                  <p>{r.description}</p>
+                </div>
+              </button>)}
+
+              {Array.from({length:Math.max(0,5-visible.length)}).map((_,i)=><div className="premiumSkeleton" key={`premium-skeleton-${activeRecipeCategory}-${i}`}>
+                <div className="premiumSkeletonPhoto"><span>✦</span><b>Bientôt disponible</b><small>Photo en cours de génération</small></div>
+                <div className="premiumSkeletonBody"><i/><i/><i/></div>
+              </div>)}
+            </div>
+
+            {panelRecipe&&<aside className="recipeSidePanel">
+              <div className="sidePhoto"><img src={panelRecipe.imageUrl} alt={panelRecipe.title}/></div>
+              <div className="sideContent">
+                <div className="sideBadges"><span className="sideCategory">{panelRecipe.category}</span><span>✎ {panelRecipe.difficulty}</span><span>◷ {panelRecipe.minutes} min</span></div>
+                <h2>{panelRecipe.title}</h2>
+                <p>{panelRecipe.description}</p>
+                <div className="sideMacros">
+                  <span><b>{panelRecipe.calories}</b><small>kcal</small></span>
+                  <span><b>{panelRecipe.protein} g</b><small>protéines</small></span>
+                  <span><b>{panelRecipe.carbs} g</b><small>glucides</small></span>
+                  <span><b>{panelRecipe.fat} g</b><small>lipides</small></span>
+                </div>
+                <h4>Ingrédients ({people} personne{people>1?'s':''})</h4>
+                <div className="sideIngredients">{panelRecipe.ingredients.map((x,i)=><div key={`${x.name}-${i}`}><span>{x.name}</span><b>{x.qty}</b></div>)}</div>
+                <h4>Étapes</h4>
+                <div className="sideSteps">{panelRecipe.steps.map((x,i)=><div key={i}><b>{i+1}</b><span>{x}</span></div>)}</div>
+                <div className="sideTip"><b>💡 Conseil NOXAI</b><span>{panelRecipe.tip}</span></div>
+              </div>
+            </aside>}
+          </div>
+
+          <div className="actions bookBottomAction"><button className="actionAlt" onClick={()=>setStep('shopping')}>PASSER EN MODE COURSES</button></div>
+        </div>
+      })()}
       {step==='recipe'&&selectedRecipe&&<>
         <div className="recipeDetail">
           <div className={`dishPhoto ${selectedRecipe.imageUrl?'':'empty'}`}>
