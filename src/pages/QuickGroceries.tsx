@@ -284,13 +284,33 @@ Format exact:
         throw new Error('NOXAI n’a pas reçu 5 idées dans chaque catégorie. Réessaie.');
       }
 
-      // Les recettes ne deviennent visibles qu'une fois leur image prête.
-      const recipesWithImages=await Promise.all(
-        next.map(async recipe=>{
+      // Génère les images avec une concurrence limitée à 3 appels à la fois.
+      // Une recette n’est rendue visible qu’une fois son image prête.
+      const recipesWithImages:Recipe[]=new Array(next.length);
+      const IMAGE_CONCURRENCY=3;
+      let imageCursor=0;
+
+      const imageWorker=async()=>{
+        while(true){
+          const index=imageCursor++;
+          if(index>=next.length)return;
+
+          const recipe=next[index];
           const imageUrl=await generateRecipeImage(recipe);
-          if(!imageUrl)throw new Error(`Image impossible pour "${recipe.title}". Réessaie.`);
-          return {...recipe,imageUrl};
-        })
+
+          if(!imageUrl){
+            throw new Error(`Image impossible pour "${recipe.title}". Réessaie.`);
+          }
+
+          recipesWithImages[index]={...recipe,imageUrl};
+        }
+      };
+
+      await Promise.all(
+        Array.from(
+          {length:Math.min(IMAGE_CONCURRENCY,next.length)},
+          ()=>imageWorker()
+        )
       );
 
       setRecipes(recipesWithImages);
