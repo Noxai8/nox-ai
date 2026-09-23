@@ -9,8 +9,6 @@ const BG = '#F6F7F2';
 const SURFACE = '#FFFFFF';
 const BORDER = '#E8EAE2';
 
-type MainTab = 'timeline' | 'body' | 'training' | 'nutrition' | 'prs';
-
 export default function Progress() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -48,6 +46,14 @@ export default function Progress() {
 
   // PRs
   const [prs, setPrs] = useState<any[]>([]);
+  // Mensurations
+  const [measureLogs, setMeasureLogs] = useState<any[]>([]);
+  // Exercice sélectionné pour la courbe
+  const [selectedExercise, setSelectedExercise] = useState<string>('');
+  const [exerciseHistory, setExerciseHistory] = useState<any[]>([]);
+  // Ghost Mode
+  const [ghostMode, setGhostMode] = useState(false);
+  const [ghostSession, setGhostSession] = useState<any>(null);
 
   // Rapport
   const [reportLoading, setReportLoading] = useState(false);
@@ -145,6 +151,39 @@ export default function Progress() {
     setNutritionWeeks(nutWeeks);
 
     setWorkouts(wkts || []);
+
+    // Mensurations depuis body_logs
+    setMeasureLogs((body || []).filter((b: any) =>
+      b.chest_cm || b.waist_cm || b.hips_cm || b.arms_cm || b.thighs_cm
+    ));
+  };
+
+  // Charger l'historique d'un exercice pour la courbe
+  const loadExerciseHistory = async (exerciseName: string) => {
+    if (!exerciseName || !user) return;
+    const { data } = await supabase
+      .from('personal_records')
+      .select('weight, reps, created_at')
+      .eq('user_id', user.id)
+      .eq('exercise_name', exerciseName)
+      .order('created_at');
+    setExerciseHistory(data || []);
+  };
+
+  // Ghost Mode — charger la session d'il y a 4 semaines
+  const loadGhostSession = async (exerciseName: string) => {
+    if (!exerciseName || !user) return;
+    const fourWeeksAgo = new Date(Date.now() - 28 * 86400000).toISOString();
+    const { data } = await supabase
+      .from('personal_records')
+      .select('weight, reps, created_at')
+      .eq('user_id', user.id)
+      .eq('exercise_name', exerciseName)
+      .lte('created_at', fourWeeksAgo)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setGhostSession(data);
   };
 
   const closePhotoAdd = () => {
@@ -293,10 +332,13 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
   const weightDelta = startWeight && currentWeight ? (currentWeight - startWeight).toFixed(1) : null;
   const weekWorkouts = workouts.filter(w => new Date(w.created_at) > new Date(Date.now() - 7 * 86400000)).length;
 
+  type MainTab = 'timeline' | 'body' | 'training' | 'nutrition' | 'prs' | 'exercices';
+
   const TABS: [MainTab, string][] = [
     ['timeline', 'Timeline'],
     ['body', 'Corps'],
     ['training', 'Training'],
+    ['exercices', 'Exercices'],
     ['nutrition', 'Nutrition'],
     ['prs', 'Records'],
   ];
@@ -503,6 +545,50 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
                 </div>
               )}
             </div>
+
+            {/* ── MENSURATIONS ── */}
+            {measureLogs.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 11, color: '#8B8F86', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>MENSURATIONS</div>
+                {(() => {
+                  const latest = measureLogs[measureLogs.length - 1];
+                  const first = measureLogs[0];
+                  const metrics = [
+                    { key: 'chest_cm', label: 'Poitrine' },
+                    { key: 'waist_cm', label: 'Taille' },
+                    { key: 'hips_cm', label: 'Hanches' },
+                    { key: 'arms_cm', label: 'Bras' },
+                    { key: 'thighs_cm', label: 'Cuisses' },
+                  ];
+                  return (
+                    <div style={{ background: '#fff', border: '1px solid #E8EAE2', borderRadius: 20, overflow: 'hidden' }}>
+                      {metrics.filter(m => latest[m.key]).map((m, i) => {
+                        const val = latest[m.key];
+                        const initVal = first[m.key];
+                        const delta = initVal ? (val - initVal).toFixed(1) : null;
+                        const isPositive = delta && parseFloat(delta) > 0;
+                        return (
+                          <div key={m.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: i < metrics.length - 1 ? '1px solid #E8EAE2' : 'none' }}>
+                            <div style={{ fontSize: 14, color: '#090909', fontWeight: 600 }}>{m.label}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              {delta && (
+                                <span style={{ fontSize: 11, color: isPositive ? '#ff6666' : '#44cc88', fontWeight: 700 }}>
+                                  {isPositive ? '+' : ''}{delta} cm
+                                </span>
+                              )}
+                              <span style={{ fontSize: 16, fontWeight: 900, color: '#090909' }}>{val} <span style={{ fontSize: 11, color: '#8B8F86' }}>cm</span></span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+                <button onClick={() => navigate('/body')} style={{ width: '100%', marginTop: 10, padding: '12px', background: '#F8F9F5', border: '1px solid #E8EAE2', borderRadius: 14, color: '#090909', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                  Mettre a jour les mensurations
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -546,6 +632,151 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
               style={{ width: '100%', padding: 14, background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 18, color: '#090909', fontWeight: 700, cursor: 'pointer', fontSize: 13, touchAction: 'manipulation' }}>
               📅 Voir le calendrier complet
             </button>
+          </div>
+        )}
+
+        {/* ── EXERCICES + GHOST MODE ── */}
+        {tab === 'exercices' && (
+          <div>
+            {/* Sélecteur exercice */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 11, color: '#8B8F86', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>CHOISIR UN EXERCICE</div>
+              <select
+                value={selectedExercise}
+                onChange={e => {
+                  setSelectedExercise(e.target.value);
+                  loadExerciseHistory(e.target.value);
+                  loadGhostSession(e.target.value);
+                }}
+                style={{ width: '100%', padding: '14px 16px', background: '#fff', border: '1px solid #E8EAE2', borderRadius: 14, color: '#090909', fontSize: 15, fontWeight: 700, outline: 'none' }}
+              >
+                <option value="">Sélectionner...</option>
+                {[...new Set(prs.map((p: any) => p.exercise_name))].sort().map((name: any) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+            </div>
+
+            {selectedExercise && exerciseHistory.length > 0 && (
+              <>
+                {/* Courbe de progression */}
+                <div style={{ background: '#fff', border: '1px solid #E8EAE2', borderRadius: 20, padding: 16, marginBottom: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#090909', marginBottom: 4 }}>{selectedExercise}</div>
+                  <div style={{ fontSize: 11, color: '#8B8F86', marginBottom: 12 }}>Progression du poids max</div>
+                  <svg width="100%" height="100" viewBox={`0 0 ${Math.max(exerciseHistory.length * 40, 280)} 100`} preserveAspectRatio="none">
+                    {(() => {
+                      const weights = exerciseHistory.map(e => e.weight).filter(Boolean);
+                      const minW = Math.min(...weights);
+                      const maxW = Math.max(...weights);
+                      const range = maxW - minW || 1;
+                      return exerciseHistory.map((e, i) => {
+                        const x = i * 40 + 20;
+                        const y = 85 - ((e.weight - minW) / range) * 70;
+                        return (
+                          <g key={i}>
+                            {i > 0 && (
+                              <line
+                                x1={(i-1)*40+20} y1={85 - ((exerciseHistory[i-1].weight - minW) / range) * 70}
+                                x2={x} y2={y}
+                                stroke={ACCENT} strokeWidth="2.5" />
+                            )}
+                            <circle cx={x} cy={y} r="5" fill={ACCENT} />
+                            <text x={x} y={y - 10} textAnchor="middle" fontSize="9" fill="#8B8F86">{e.weight}kg</text>
+                          </g>
+                        );
+                      });
+                    })()}
+                  </svg>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                    <span style={{ fontSize: 10, color: '#8B8F86' }}>{new Date(exerciseHistory[0].created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: ACCENT }}>
+                      +{(exerciseHistory[exerciseHistory.length-1].weight - exerciseHistory[0].weight).toFixed(1)}kg
+                    </span>
+                    <span style={{ fontSize: 10, color: '#8B8F86' }}>Aujourd'hui</span>
+                  </div>
+                </div>
+
+                {/* GHOST MODE */}
+                <div style={{ background: ghostMode ? '#090909' : '#F8F9F5', border: '1px solid ' + (ghostMode ? ACCENT + '44' : '#E8EAE2'), borderRadius: 20, padding: 18, marginBottom: 14, transition: 'all .2s' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: ghostMode ? 14 : 0 }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 900, color: ghostMode ? '#fff' : '#090909' }}>GHOST MODE</div>
+                      <div style={{ fontSize: 11, color: '#8B8F86', marginTop: 2 }}>Bats ta version d'il y a 4 semaines</div>
+                    </div>
+                    <button onClick={() => setGhostMode(g => !g)}
+                      style={{ padding: '8px 16px', background: ghostMode ? ACCENT : '#090909', border: 'none', borderRadius: 20, color: ghostMode ? '#000' : '#fff', fontWeight: 800, fontSize: 12, cursor: 'pointer', touchAction: 'manipulation' }}>
+                      {ghostMode ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+
+                  {ghostMode && ghostSession && (
+                    <div>
+                      <div style={{ fontSize: 11, color: '#8B8F86', marginBottom: 10 }}>
+                        Séance du {new Date(ghostSession.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        <div style={{ background: '#1a1a1a', borderRadius: 14, padding: '14px 16px', textAlign: 'center' }}>
+                          <div style={{ fontSize: 10, color: '#8B8F86', marginBottom: 4 }}>TON FANTOME</div>
+                          <div style={{ fontSize: 28, fontWeight: 950, color: '#555' }}>{ghostSession.weight}kg</div>
+                          <div style={{ fontSize: 11, color: '#555' }}>× {ghostSession.reps} reps</div>
+                        </div>
+                        <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 14, padding: '14px 16px', textAlign: 'center' }}>
+                          <div style={{ fontSize: 10, color: ACCENT, marginBottom: 4 }}>TOI AUJOURD'HUI</div>
+                          <div style={{ fontSize: 28, fontWeight: 950, color: '#fff' }}>
+                            {exerciseHistory[exerciseHistory.length - 1]?.weight}kg
+                          </div>
+                          <div style={{ fontSize: 11, color: '#8B8F86' }}>× {exerciseHistory[exerciseHistory.length - 1]?.reps} reps</div>
+                        </div>
+                      </div>
+                      {(() => {
+                        const current = exerciseHistory[exerciseHistory.length - 1]?.weight || 0;
+                        const ghost = ghostSession.weight || 0;
+                        const diff = (current - ghost).toFixed(1);
+                        const won = current > ghost;
+                        return (
+                          <div style={{ marginTop: 12, padding: '10px 14px', background: won ? ACCENT + '22' : '#ff444422', borderRadius: 12, textAlign: 'center' }}>
+                            <div style={{ fontSize: 14, fontWeight: 900, color: won ? ACCENT : '#ff6666' }}>
+                              {won ? `+${diff}kg — Tu bats ton fantome !` : diff === '0.0' ? 'Egalite — Depasse-toi !' : `${diff}kg — Ton fantome te devance`}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                  {ghostMode && !ghostSession && (
+                    <div style={{ marginTop: 12, fontSize: 12, color: '#8B8F86', textAlign: 'center' }}>
+                      Pas de donnees il y a 4 semaines pour cet exercice.
+                    </div>
+                  )}
+                </div>
+
+                {/* Historique détaillé */}
+                <div style={{ fontSize: 11, color: '#8B8F86', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>HISTORIQUE</div>
+                <div style={{ background: '#fff', border: '1px solid #E8EAE2', borderRadius: 20, overflow: 'hidden' }}>
+                  {[...exerciseHistory].reverse().slice(0, 10).map((e: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px', borderBottom: i < exerciseHistory.length - 1 ? '1px solid #E8EAE2' : 'none' }}>
+                      <div style={{ fontSize: 12, color: '#8B8F86' }}>
+                        {new Date(e.created_at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      </div>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: i === 0 ? ACCENT : '#090909' }}>
+                        {e.weight}kg <span style={{ fontSize: 11, color: '#8B8F86', fontWeight: 400 }}>× {e.reps}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {selectedExercise && exerciseHistory.length === 0 && (
+              <div style={{ textAlign: 'center', color: '#8B8F86', padding: '30px 0', fontSize: 13 }}>
+                Pas encore de records pour cet exercice.
+              </div>
+            )}
+            {!selectedExercise && (
+              <div style={{ textAlign: 'center', color: '#8B8F86', padding: '30px 0', fontSize: 13 }}>
+                Choisis un exercice pour voir sa progression.
+              </div>
+            )}
           </div>
         )}
 
