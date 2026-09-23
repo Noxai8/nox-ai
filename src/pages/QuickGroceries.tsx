@@ -310,6 +310,10 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
         setBudgetNotice(`Budget très serré : NOX n'a pas trouvé une sélection complète sous ${budgetNumber.toFixed(2)} €. La meilleure sélection trouvée est estimée à ${previousTotal.toFixed(2)} €. Tu peux garder cette liste, réduire la durée ou augmenter le budget.`);
       }
       setItems(finalItems);
+
+      // Dès que la liste de courses existe, on prépare les recettes en arrière-plan.
+      // generateRecipes lance ensuite immédiatement l'image de chaque recette créée.
+      void generateRecipes(finalItems);
     }catch(e:any){
       setError(e?.message||"Impossible de générer la liste.");
     }finally{
@@ -448,7 +452,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
         <div className="catTabs"><button className={activeCategory==='Tous'?'on':''} onClick={()=>setActiveCategory('Tous')}>Tous ({items.length})</button>{grouped.map(g=><button key={g.category} className={activeCategory===g.category?'on':''} onClick={()=>setActiveCategory(g.category)}>{g.category} ({g.items.length})</button>)}</div>
         {grouped.filter(g=>activeCategory==='Tous'||g.category===activeCategory).map(g=><div className="group" key={g.category}><div className="groupHead"><b>{g.category}</b><span>{g.items.length} produits</span></div><div className="items">{g.items.map(it=><button className="item" key={it.id} onClick={()=>setItems(xs=>xs.map(x=>x.id===it.id?{...x,checked:!x.checked}:x))}><span><b style={{textDecoration:it.checked?'line-through':'none'}}>{it.name}</b><small>{it.qty}{it.note?` · ${it.note}`:''}</small></span><span className="price">{typeof it.price==='number'?`≈ ${it.price.toFixed(2)} €`:'—'}</span><span className={`check ${it.checked?'y':''}`}>{it.checked?'✓':''}</span></button>)}</div></div>)}
         {!error&&items.length>0&&<div className="actions">
-          <button className="actionMain" onClick={async()=>{setStep('recipes');if(!recipes.length)await generateRecipes(items);}}>VOIR MES RECETTES →</button>
+          <button className="actionMain" onClick={async()=>{setStep('recipes');if(!recipes.length&&!recipesLoading)await generateRecipes(items);}}>VOIR MES RECETTES →</button>
           <button className="actionAlt" onClick={()=>setStep('shopping')}>COMMENCER MES COURSES</button>
         </div>}
       </>}
