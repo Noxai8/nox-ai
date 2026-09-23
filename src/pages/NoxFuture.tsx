@@ -33,6 +33,9 @@ export default function NoxFuture() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream|null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState<0 | 5 | 10>(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -49,9 +52,17 @@ export default function NoxFuture() {
     });
   },[user]);
 
-  useEffect(() => () => streamRef.current?.getTracks().forEach(t=>t.stop()),[]);
+  useEffect(() => () => {
+    streamRef.current?.getTracks().forEach(t=>t.stop());
+    if (countdownIntervalRef.current !== null) window.clearInterval(countdownIntervalRef.current);
+  },[]);
 
   const stopCamera=()=>{
+    if(countdownIntervalRef.current!==null){
+      window.clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current=null;
+    }
+    setCountdown(null);
     streamRef.current?.getTracks().forEach(t=>t.stop());
     streamRef.current=null;
     setCameraOpen(false);
@@ -76,6 +87,28 @@ export default function NoxFuture() {
     c.getContext('2d')?.drawImage(v,0,0,c.width,c.height);
     setPhotos(p=>({...p,[angle]:c.toDataURL('image/jpeg',.86)}));
     stopCamera();
+  };
+
+  const triggerCapture=()=>{
+    if(countdown!==null) return;
+    if(timerSeconds===0){
+      capture();
+      return;
+    }
+
+    let remaining=timerSeconds;
+    setCountdown(remaining);
+    countdownIntervalRef.current=window.setInterval(()=>{
+      remaining-=1;
+      if(remaining<=0){
+        if(countdownIntervalRef.current!==null) window.clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current=null;
+        setCountdown(null);
+        capture();
+      }else{
+        setCountdown(remaining);
+      }
+    },1000);
   };
 
   const importPhoto=(e:ChangeEvent<HTMLInputElement>)=>{
@@ -144,8 +177,19 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.`;
       <div style={{flex:1,margin:'0 14px',borderRadius:24,overflow:'hidden',position:'relative'}}>
         <video ref={videoRef} muted playsInline style={{width:'100%',height:'100%',objectFit:'cover',transform:'scaleX(-1)'}}/>
         <div style={{position:'absolute',inset:'7% 17%',border:'1px solid rgba(255,255,255,.4)',borderRadius:80}}/>
+        {countdown!==null&&<div style={{position:'absolute',inset:0,display:'grid',placeItems:'center',background:'rgba(0,0,0,.22)',color:'#fff',fontSize:'clamp(90px,30vw,160px)',fontWeight:950,textShadow:'0 4px 30px rgba(0,0,0,.35)'}}>{countdown}</div>}
       </div>
-      <div style={{padding:18}}><button onClick={capture} style={primary(true)}>PRENDRE LA PHOTO <Camera size={18}/></button></div>
+      <div style={{padding:18}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:12}}>
+          {([0,5,10] as const).map(seconds=><button key={seconds} onClick={()=>setTimerSeconds(seconds)} disabled={countdown!==null}
+            style={{minHeight:42,borderRadius:13,border:`1px solid ${timerSeconds===seconds?ACCENT:'#333'}`,background:timerSeconds===seconds?ACCENT:'#171717',color:timerSeconds===seconds?BLACK:'#fff',fontSize:11,fontWeight:900}}>
+            {seconds===0?'DIRECT':`${seconds} SEC`}
+          </button>)}
+        </div>
+        <button onClick={triggerCapture} disabled={countdown!==null} style={primary(countdown===null)}>
+          {countdown!==null?`PHOTO DANS ${countdown}...`:'PRENDRE LA PHOTO'} <Camera size={18}/>
+        </button>
+      </div>
     </div>}
 
     <Top step={step} back={()=>setStep(step==='photo'?'consent':step==='goal'?'photo':'intro')}/>
