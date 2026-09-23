@@ -178,24 +178,46 @@ export default function QuickGroceries(){
     try{
       const groceryText=list.map(x=>`${x.name} (${x.qty})`).join(', ');
       const prompt=`Tu es le chef nutrition NOXAI.
-Crée 5 recettes simples, gourmandes et réalistes en utilisant EN PRIORITÉ cette liste de courses:
+Crée EXACTEMENT 5 recettes simples, gourmandes, équilibrées et réalistes en utilisant EN PRIORITÉ cette liste de courses:
 ${groceryText}
 
-Profil: objectif=${goal}; alimentation=${diet}; ${people} personne(s).
-Allergies/intolérances à exclure absolument: ${allAllergies.join(', ')||'aucune'}.
-Aliments refusés: ${dislikes||'aucun'}.
-Cible quotidienne indicative: ${target.calories||'non renseignée'} kcal, ${target.protein_g||'non renseigné'} g protéines.
+PROFIL UTILISATEUR
+- Objectif: ${goal}
+- Alimentation: ${diet}
+- Nombre de personnes: ${people}
+- Allergies/intolérances à exclure ABSOLUMENT: ${allAllergies.join(', ')||'aucune'}
+- Aliments refusés: ${dislikes||'aucun'}
+- Cible quotidienne: ${target.calories||'non renseignée'} kcal
+- Protéines quotidiennes: ${target.protein_g||'non renseigné'} g
+- Glucides quotidiens: ${target.carbs_g||'non renseigné'} g
+- Lipides quotidiens: ${target.fat_g||'non renseigné'} g
 
-Règles:
+OBJECTIF NUTRITIONNEL
+Chaque recette représente UN REPAS PRINCIPAL PAR PERSONNE.
+Les calories et macros retournées doivent toujours être PAR PORTION, jamais pour toute la recette.
+Adapte réellement les recettes à l'objectif indiqué:
+- perte de poids / sèche: privilégier protéines, légumes, satiété, fibres et densité calorique maîtrisée;
+- maintien / équilibre: repas complets et équilibrés en protéines, glucides, légumes/fibres et bonnes sources de lipides;
+- prise de masse / muscle: portions plus énergétiques, suffisamment de protéines et de glucides, sans transformer le repas en malbouffe.
+Quand les cibles quotidiennes sont disponibles, construis chaque repas principal de façon cohérente avec celles-ci. Ne cherche PAS à mettre toute la cible quotidienne dans un seul repas.
+Évite les calories inutiles et les quantités incohérentes avec l'objectif.
+Privilégie des aliments peu transformés et une vraie source de protéines, des légumes/fruits ou fibres, et une source de glucides adaptée lorsque pertinent.
+Ne présente jamais une recette comme "saine" uniquement parce qu'elle est faible en calories: elle doit aussi être nutritionnellement cohérente et rassasiante.
+
+RÈGLES DE CUISINE
 - utilise surtout les ingrédients déjà achetés;
 - n'ajoute que sel, poivre, eau et épices basiques si nécessaire;
-- recettes faciles, 10 à 35 minutes;
-- macros et calories sont des estimations;
+- respecte strictement alimentation, allergies et refus;
+- recettes faciles, réalistes et faisables en 10 à 35 minutes;
+- varie les 5 recettes autant que possible;
+- les quantités d'ingrédients doivent correspondre à ${people} personne(s);
+- calories, protéines, glucides et lipides doivent être des estimations réalistes PAR PORTION;
+- vérifie mentalement la cohérence entre les quantités indiquées et les macros annoncées;
 - aucune image, aucune URL;
-- retourne UNIQUEMENT un tableau JSON valide.
+- retourne UNIQUEMENT un tableau JSON valide, sans markdown ni commentaire.
 
-Format:
-[{"title":"...","description":"...","minutes":20,"difficulty":"Facile","calories":650,"protein":42,"carbs":68,"fat":18,"ingredients":[{"name":"Poulet","qty":"120 g"}],"steps":["...","..."]}]`;
+Format exact:
+[{"title":"...","description":"...","minutes":20,"difficulty":"Facile","calories":650,"protein":42,"carbs":68,"fat":18,"ingredients":[{"name":"Poulet","qty":"240 g"}],"steps":["...","..."],"tip":"...","variation":"..."}]`;
 
       const {data,error:invokeError}=await supabase.functions.invoke('generate-recipes',{body:{prompt}});
       if(invokeError)throw new Error(invokeError.message||'Génération des recettes impossible');
