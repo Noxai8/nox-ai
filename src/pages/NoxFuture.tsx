@@ -62,7 +62,7 @@ export default function NoxFuture() {
           setAllProjections(data);
           setOriginalProjection(data[0]); // La toute première
           setLatestProjection(data[data.length - 1]); // La plus récente
-          setProjectionText(data[data.length - 1]?.result_text || '');
+          // Le schéma actuel ne stocke pas la projection JSON/base64 dans la table.
         }
       });
   }, [user]);
@@ -254,32 +254,49 @@ Réponds UNIQUEMENT en JSON valide :
         parsed = { titre: 'TON NOX FUTURE', tagline: 'Ta transformation commence maintenant.', message_coach: text };
       }
 
+      // IMPORTANT : garder l'image générée uniquement dans l'état de la page.
+      // Une image base64 peut être très volumineuse : on ne la stocke pas dans result_text.
       if (projectedImage) parsed.projected_image = projectedImage;
       parsed.avertissement = parsed.avertissement || 'Projection IA illustrative et non garantie. Le résultat réel peut être différent.';
 
       const resultText = JSON.stringify(parsed);
       setProjectionText(resultText);
 
-      // Save to DB
-      const { data: savedGeneration, error: saveError } = await supabase.from('future_you_generations').insert({
-        user_id: user!.id,
-        result_text: resultText,
-        goal_description: goalDesc,
-        created_at: new Date().toISOString(),
-      }).select('*').single();
+      // Version légère destinée à la base de données : texte uniquement.
+      const parsedForDatabase = { ...parsed };
+      delete parsedForDatabase.projected_image;
+      const databaseResultText = JSON.stringify(parsedForDatabase);
 
-      if (saveError) throw saveError;
+      // L'enregistrement de l'historique ne doit jamais empêcher l'utilisateur
+      // de voir une projection visuelle qui a déjà été générée avec succès.
+      const { data: savedGeneration, error: saveError } = await supabase
+        .from('future_you_generations')
+        .insert({
+          user_id: user!.id,
+          source_photo_url: null,
+          generated_image_url: null,
+          projection_months: 3,
+          prompt: goalDesc,
+          status: 'completed',
+        })
+        .select('*')
+        .single();
 
-      if (savedGeneration) {
+      if (saveError) {
+        console.error('NOX Future save error:', saveError);
+      } else if (savedGeneration) {
         const next = [...allProjections, savedGeneration];
         setAllProjections(next);
         setOriginalProjection(originalProjection || savedGeneration);
         setLatestProjection(savedGeneration);
+        setFutureCredits(prev => ({ ...prev, used: prev.used + 1, canGenerate: prev.max >= 999 || prev.used + 1 < prev.max }));
       }
-      setFutureCredits(prev => ({ ...prev, used: prev.used + 1, canGenerate: prev.max >= 999 || prev.used + 1 < prev.max }));
+
+      // La génération est réussie dès que le backend a répondu.
       setStep('result');
     } catch (err: any) {
-      setError('Erreur lors de la génération. Réessaie.');
+      console.error('NOX Future generation error:', err);
+      setError(err?.message ? `Erreur lors de la génération : ${err.message}` : 'Erreur lors de la génération. Réessaie.');
       setStep('goal_desc');
     }
   };
@@ -376,7 +393,7 @@ Réponds UNIQUEMENT en JSON valide :
                   <div style={{ fontSize: 11, color: '#555' }}>{new Date(latestProjection.created_at).toLocaleDateString('fr-FR')}</div>
                 </div>
                 <div style={{ fontSize: 13, color: '#ccc' }}>
-                  {(() => { try { return JSON.parse(latestProjection.result_text).tagline; } catch { return 'Ta projection est prête'; } })()}
+                  {(() => { try { return latestProjection.result_text ? JSON.parse(latestProjection.result_text).tagline : 'Ta projection est prête'; } catch { return 'Ta projection est prête'; } })()}
                 </div>
                 <button onClick={() => setStep('result')} style={{ marginTop: 12, background: ACCENT, color: '#000', border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 800, fontSize: 13, cursor: 'pointer', width: '100%' }}>
                   VOIR MA PROJECTION →
@@ -450,7 +467,7 @@ Réponds UNIQUEMENT en JSON valide :
                 { label: 'PROJECTION ACTUELLE', data: latestProjection, color: ACCENT },
               ].map(({ label, data, color }) => {
                 let parsed: any = {};
-                try { parsed = JSON.parse(data.result_text); } catch {}
+                try { parsed = data.result_text ? JSON.parse(data.result_text) : {}; } catch {}
                 return (
                   <div key={label} style={{ background: SURFACE, border: '1px solid ' + color + '44', borderRadius: 14, padding: 14 }}>
                     <div style={{ fontSize: 10, color, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>{label}</div>
