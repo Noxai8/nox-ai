@@ -123,27 +123,27 @@ export function BottomNav({ active }: { active: NavActive | string }) {
   const navItems = [
     {
       id: 'home',
-      label: "Aujourd'hui",
+      label: "Accueil",
       icon: HomeIcon,
       path: '/home',
     },
     {
       id: 'fuel',
-      label: 'Nutrition',
+      label: 'Mon plan',
       icon: Apple,
       path: '/fuel',
     },
     {
       id: 'activity',
-      label: 'Activité',
+      label: 'Suivi',
       icon: Activity,
-      path: '/program',
+      path: '/progress',
     },
     {
       id: 'progress',
-      label: 'Progrès',
-      icon: BarChart3,
-      path: '/progress',
+      label: 'Moi futur',
+      icon: Sparkles,
+      path: '/future',
     },
   ];
 
@@ -600,36 +600,9 @@ export default function Home() {
 
   const [profile, setProfile] = useState<any>(null);
   const [program, setProgram] = useState<any>(null);
-  const [todayEntries, setTodayEntries] = useState<any[]>([]);
   const [targets, setTargets] = useState<any>(null);
+  const [future, setFuture] = useState<any>(null);
   const [workoutCount, setWorkoutCount] = useState(0);
-  const [prs, setPrs] = useState(0);
-  const [bodyLog, setBodyLog] = useState<any>(null);
-
-  const [brief, setBrief] = useState<string | null>(null);
-  const [loadingBrief, setLoadingBrief] = useState(false);
-
-  const [greeting, setGreeting] = useState('Bonjour');
-  const [timeSlot, setTimeSlot] =
-    useState<'morning' | 'afternoon' | 'evening' | 'night'>('morning');
-
-  useEffect(() => {
-    const hour = new Date().getHours();
-
-    if (hour < 12) {
-      setGreeting('Bonjour');
-      setTimeSlot('morning');
-    } else if (hour < 17) {
-      setGreeting('Bon après-midi');
-      setTimeSlot('afternoon');
-    } else if (hour < 21) {
-      setGreeting('Bonsoir');
-      setTimeSlot('evening');
-    } else {
-      setGreeting('Bonne nuit');
-      setTimeSlot('night');
-    }
-  }, []);
 
   useEffect(() => {
     if (user) loadAll();
@@ -637,233 +610,48 @@ export default function Home() {
 
   const loadAll = async () => {
     if (!user) return;
+    const weekStart = new Date(Date.now() - 7 * 86400000).toISOString();
 
-    const now = new Date();
-
-    const localDate =
-      `${now.getFullYear()}-` +
-      `${String(now.getMonth() + 1).padStart(2, '0')}-` +
-      `${String(now.getDate()).padStart(2, '0')}`;
-
-    const startOfDay = new Date(
-      `${localDate}T00:00:00`,
-    ).toISOString();
-
-    const endOfDay = new Date(
-      `${localDate}T23:59:59`,
-    ).toISOString();
-
-    const weekStart = new Date(
-      Date.now() - 7 * 86400000,
-    ).toISOString();
-
-    const [
-      { data: prof },
-      { data: prog },
-      { data: entries },
-      { data: tgts },
-      { data: workouts },
-      { data: prData },
-      { data: body },
-    ] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle(),
-
-      supabase
-        .from('workout_programs')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .maybeSingle(),
-
-      supabase
-        .from('food_entries')
-        .select('calories, protein, carbs, fat, food_name')
-        .eq('user_id', user.id)
-        .gte('created_at', startOfDay)
-        .lte('created_at', endOfDay),
-
-      supabase
-        .from('nutrition_targets')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle(),
-
-      supabase
-        .from('workouts')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('status', 'completed')
-        .gte('created_at', weekStart),
-
-      supabase
-        .from('personal_records')
-        .select('id')
-        .eq('user_id', user.id)
-        .gte('created_at', weekStart),
-
-      supabase
-        .from('body_logs')
-        .select('weight, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1),
-    ]);
+    const [{ data: prof }, { data: prog }, { data: tgts }, { data: futureData }, { data: workouts }] =
+      await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+        supabase.from('workout_programs').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
+        supabase.from('nutrition_targets').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase
+          .from('future_you_generations')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('workouts')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .gte('created_at', weekStart),
+      ]);
 
     setProfile(prof);
     setProgram(prog);
-    setTodayEntries(entries || []);
     setTargets(tgts);
+    setFuture(futureData);
     setWorkoutCount(workouts?.length || 0);
-    setPrs(prData?.length || 0);
-    setBodyLog(body?.[0] || null);
   };
-
-  /* Nutrition */
-
-  const todayKcal = todayEntries.reduce(
-    (sum, entry) => sum + Number(entry.calories || 0),
-    0,
-  );
-
-  const todayProtein = todayEntries.reduce(
-    (sum, entry) => sum + Number(entry.protein || 0),
-    0,
-  );
-
-  const todayCarbs = todayEntries.reduce(
-    (sum, entry) => sum + Number(entry.carbs || 0),
-    0,
-  );
-
-  const todayFat = todayEntries.reduce(
-    (sum, entry) => sum + Number(entry.fat || 0),
-    0,
-  );
-
-  const targetKcal = Number(targets?.calories || 2200);
-  const targetProtein = Number(targets?.protein || 160);
-  const targetCarbs = Number(targets?.carbs || 220);
-  const targetFat = Number(targets?.fat || 70);
-
-  const kcalLeft = Math.max(
-    0,
-    Math.round(targetKcal - todayKcal),
-  );
-
-  const kcalPct = clamp(
-    (todayKcal / Math.max(targetKcal, 1)) * 100,
-  );
-
-  /* Score */
-
-  const noxScore = Math.min(
-    100,
-    Math.round(
-      Math.min(workoutCount / 3, 1) * 40 +
-        Math.min(kcalPct / 100, 1) * 30 +
-        (profile?.streak_days > 0
-          ? Math.min(profile.streak_days / 7, 1) * 30
-          : 0),
-    ),
-  );
-
-  /* Training */
 
   const sessions = program?.program_json?.sessions || [];
-
-  const todayIndex = new Date().getDay();
-
-  const dayNames = [
-    'Dimanche',
-    'Lundi',
-    'Mardi',
-    'Mercredi',
-    'Jeudi',
-    'Vendredi',
-    'Samedi',
-  ];
-
+  const dayNames = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  const todayName = dayNames[new Date().getDay()];
   const todaySession =
     sessions.find((session: any) =>
-      session.day
-        ?.toLowerCase()
-        .includes(
-          dayNames[todayIndex]
-            .toLowerCase()
-            .slice(0, 3),
-        ),
+      String(session?.day || '').toLowerCase().includes(todayName.toLowerCase().slice(0, 3)),
     ) || sessions[0];
 
-  /* Brief */
-
-  const generateBrief = async () => {
-    setLoadingBrief(true);
-
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      const token = session?.access_token;
-
-      if (!token) {
-        setLoadingBrief(false);
-        return;
-      }
-
-      const evening =
-        timeSlot === 'evening' ||
-        timeSlot === 'night';
-
-      const prompt = evening
-        ? `Tu es NOX. Génère un Evening Recap personnalisé en 2-3 phrases maximum.
-Calories : ${todayKcal}/${targetKcal}.
-Protéines : ${Math.round(todayProtein)}/${targetProtein}g.
-Séances cette semaine : ${workoutCount}.
-Streak : ${profile?.streak_days || 0} jours.
-Objectif : ${profile?.goal_type || 'transformation'}.
-Réponse directe et utile. Pas de markdown.`
-        : `Tu es NOX. Génère un Morning Brief personnalisé en 2-3 phrases maximum.
-Prénom : ${profile?.display_name?.split(' ')[0] || 'Athlète'}.
-Objectif : ${profile?.goal_type || 'transformation'}.
-Séance du jour : ${todaySession?.name || 'Repos'}.
-Streak : ${profile?.streak_days || 0} jours.
-Réponse directe et motivante. Pas de markdown.`;
-
-      const response = await fetch(
-        'https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/generate-program',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ prompt }),
-        },
-      );
-
-      const data = await response.json();
-
-      const text =
-        data?.content?.[0]?.text ||
-        data?.data?.content?.[0]?.text ||
-        '';
-
-      if (text) setBrief(text.slice(0, 240));
-    } catch (error) {
-      console.error('NOX brief:', error);
-    } finally {
-      setLoadingBrief(false);
-    }
-  };
-
-  const name =
-    profile?.display_name?.split(' ')[0] ||
+  const firstName =
     profile?.first_name ||
+    profile?.display_name?.split(' ')[0] ||
+    user?.user_metadata?.first_name ||
     '';
 
   const dateLabel = new Intl.DateTimeFormat('fr-FR', {
@@ -872,799 +660,187 @@ Réponse directe et motivante. Pas de markdown.`;
     month: 'long',
   }).format(new Date());
 
-  const weight = bodyLog?.weight
-    ? `${Number(bodyLog.weight).toFixed(1)} kg`
-    : '—';
+  const calories = Number(targets?.calories || 0);
+  const protein = Number(targets?.protein || 0);
+  const streak = Number(profile?.streak_days || 0);
 
-  const circumference = 2 * Math.PI * 50;
-  const dashOffset =
-    circumference -
-    (circumference * kcalPct) / 100;
+  const createdAt = profile?.created_at ? new Date(profile.created_at).getTime() : Date.now();
+  const journeyDay = Math.max(1, Math.floor((Date.now() - createdAt) / 86400000) + 1);
+  const journeyWeek = Math.max(1, Math.min(12, Math.ceil(journeyDay / 7)));
+  const journeyPct = clamp(Math.round((journeyDay / 84) * 100), 1, 100);
+
+  const card = {
+    background: '#fff',
+    border: `1px solid ${BORDER}`,
+    borderRadius: 24,
+    boxShadow: '0 8px 30px rgba(20,20,20,.045)',
+  };
+
+  const pillar = (
+    title: string,
+    sub: string,
+    Icon: any,
+    path: string,
+    tint: string,
+  ) => (
+    <button onClick={() => navigate(path)} style={{
+      ...card, minHeight: 124, padding: 16, textAlign: 'left', cursor: 'pointer',
+      display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+    }}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <div style={{width:40,height:40,borderRadius:14,background:tint,display:'grid',placeItems:'center'}}>
+          <Icon size={20} strokeWidth={2.4}/>
+        </div>
+        <ChevronRight size={17} color="#B8BBB3"/>
+      </div>
+      <div>
+        <div style={{fontSize:13,fontWeight:950}}>{title}</div>
+        <div style={{fontSize:10,color:'#999D95',marginTop:4,lineHeight:1.35}}>{sub}</div>
+      </div>
+    </button>
+  );
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: BG,
-        color: BLACK,
-        paddingBottom: 105,
-      }}
-    >
-      <main
-        style={{
-          width: '100%',
-          maxWidth: 560,
-          margin: '0 auto',
-        }}
-      >
-        {/* HEADER */}
-
-        <header
-          style={{
-            padding: '24px 20px 18px',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 16,
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 28,
-                    lineHeight: 1,
-                    fontWeight: 1000,
-                    letterSpacing: '-.07em',
-                  }}
-                >
-                  NOX
-                </div>
-
-                <div
-                  style={{
-                    width: 9,
-                    height: 9,
-                    borderRadius: '50%',
-                    background: ACCENT,
-                  }}
-                />
-              </div>
-
-              <div
-                style={{
-                  color: '#A0A39B',
-                  fontSize: 10,
-                  fontWeight: 750,
-                  marginTop: 7,
-                  textTransform: 'capitalize',
-                }}
-              >
-                {dateLabel}
-              </div>
+    <div style={{minHeight:'100vh',background:BG,color:BLACK,paddingBottom:110}}>
+      <main style={{width:'100%',maxWidth:560,margin:'0 auto'}}>
+        <header style={{
+          padding:'24px 20px 22px',
+          background:'linear-gradient(145deg,#fff 48%,#FFF4E6 100%)',
+          borderBottomLeftRadius:30,borderBottomRightRadius:30,
+        }}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <div style={{fontSize:30,fontWeight:1000,letterSpacing:'-.07em'}}>NOX</div>
+              <div style={{width:9,height:9,borderRadius:'50%',background:ACCENT}}/>
             </div>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 9,
-              }}
-            >
-              <div
-                style={{
-                  height: 42,
-                  padding: '0 13px',
-                  borderRadius: 14,
-                  background: '#fff',
-                  border: `1px solid ${BORDER}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                <Flame
-                  size={17}
-                  fill={ACCENT}
-                  color={BLACK}
-                />
-
-                <strong style={{ fontSize: 13 }}>
-                  {profile?.streak_days || 0}
-                </strong>
+            <div style={{display:'flex',gap:9}}>
+              <div style={{height:42,padding:'0 13px',borderRadius:14,background:'#fff',border:`1px solid ${BORDER}`,display:'flex',alignItems:'center',gap:6}}>
+                <Flame size={17} fill={ACCENT}/><strong>{streak}</strong>
               </div>
-
-              <button
-                onClick={() => navigate('/profile')}
-                style={{
-                  width: 42,
-                  height: 42,
-                  border: 0,
-                  borderRadius: 14,
-                  background: BLACK,
-                  color: '#fff',
-                  display: 'grid',
-                  placeItems: 'center',
-                  cursor: 'pointer',
-                }}
-              >
-                <CircleUserRound size={21} />
+              <button onClick={()=>navigate('/profile')} style={{width:42,height:42,border:0,borderRadius:14,background:BLACK,color:'#fff',display:'grid',placeItems:'center'}}>
+                <CircleUserRound size={21}/>
               </button>
             </div>
           </div>
 
-          <div style={{ marginTop: 28 }}>
-            <div
-              style={{
-                fontSize: 13,
-                color: MUTED,
-                fontWeight: 700,
-              }}
-            >
-              {greeting}{name ? `, ${name}` : ''}
-            </div>
-
-            <h1
-              style={{
-                fontSize: 33,
-                lineHeight: 1.02,
-                margin: '4px 0 0',
-                fontWeight: 950,
-                letterSpacing: '-.055em',
-              }}
-            >
-              Ton progrès,
-              <br />
-              aujourd'hui.
-            </h1>
+          <div style={{marginTop:30,fontSize:14,color:MUTED,fontWeight:700}}>
+            Bonjour{firstName ? ` ${firstName}` : ''} 👋
           </div>
+          <h1 style={{fontSize:35,lineHeight:1.02,margin:'5px 0 7px',fontWeight:1000,letterSpacing:'-.055em'}}>
+            Jour {journeyDay} de ta transformation.
+          </h1>
+          <div style={{fontSize:12,color:'#8E928A'}}>Discipline aujourd’hui. Une meilleure version de toi demain.</div>
         </header>
 
-        <section style={{ padding: '0 20px' }}>
-
-          {/* CALORIES HERO */}
-
-          <button
-            onClick={() => navigate('/fuel')}
-            style={{
-              width: '100%',
-              border: 0,
-              background: BLACK,
-              borderRadius: 28,
-              padding: 20,
-              color: '#fff',
-              textAlign: 'left',
-              cursor: 'pointer',
-              boxShadow: '0 16px 35px rgba(0,0,0,.12)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 850,
-                    letterSpacing: '.1em',
-                    color: '#777',
-                  }}
-                >
-                  ÉNERGIE DU JOUR
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 17,
-                    fontWeight: 900,
-                    marginTop: 4,
-                  }}
-                >
-                  Calories
-                </div>
+        <section style={{padding:'18px 20px 0'}}>
+          <div style={{...card,padding:20,background:'linear-gradient(145deg,#FFFFFF 60%,#FFF2DE 100%)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div style={{display:'flex',alignItems:'center',gap:9,fontSize:11,fontWeight:950}}>
+                <span style={{width:32,height:32,borderRadius:12,background:'#EDFFD0',display:'grid',placeItems:'center'}}><Sparkles size={17}/></span>
+                NOX TODAY
               </div>
-
-              <div
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 12,
-                  background: '#171717',
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
-                <ChevronRight
-                  size={17}
-                  color="#777"
-                />
-              </div>
+              <div style={{fontSize:10,fontWeight:800,textTransform:'capitalize'}}>{dateLabel}</div>
             </div>
+            <h2 style={{fontSize:29,lineHeight:1,letterSpacing:'-.05em',margin:'18px 0 8px',fontWeight:1000}}>Construire l’élan.</h2>
+            <p style={{fontSize:12,lineHeight:1.55,color:'#6F736B',margin:'0 0 18px'}}>
+              NOX organise ta journée autour d’actions simples et utiles pour avancer vers la version de toi que tu as choisie.
+            </p>
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 20,
-                marginTop: 18,
-              }}
-            >
-              <div
-                style={{
-                  width: 122,
-                  height: 122,
-                  position: 'relative',
-                  flexShrink: 0,
-                }}
-              >
-                <svg
-                  width="122"
-                  height="122"
-                  viewBox="0 0 122 122"
-                  style={{
-                    transform: 'rotate(-90deg)',
-                  }}
-                >
-                  <circle
-                    cx="61"
-                    cy="61"
-                    r="50"
-                    fill="none"
-                    stroke="#242424"
-                    strokeWidth="10"
-                  />
-
-                  <circle
-                    cx="61"
-                    cy="61"
-                    r="50"
-                    fill="none"
-                    stroke={ACCENT}
-                    strokeWidth="10"
-                    strokeLinecap="round"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={dashOffset}
-                    style={{
-                      transition:
-                        'stroke-dashoffset .5s ease',
-                    }}
-                  />
-                </svg>
-
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'grid',
-                    placeItems: 'center',
-                    textAlign: 'center',
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 27,
-                        lineHeight: 1,
-                        fontWeight: 950,
-                        letterSpacing: '-.05em',
-                      }}
-                    >
-                      {kcalLeft}
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: 8.5,
-                        fontWeight: 800,
-                        color: '#777',
-                        marginTop: 6,
-                      }}
-                    >
-                      RESTANTES
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ flex: 1 }}>
-                <div
-                  style={{
-                    fontSize: 31,
-                    fontWeight: 950,
-                    lineHeight: 1,
-                    letterSpacing: '-.055em',
-                  }}
-                >
-                  {Math.round(todayKcal)}
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: '#777',
-                    marginTop: 5,
-                  }}
-                >
-                  sur {targetKcal} kcal
-                </div>
-
-                <div
-                  style={{
-                    marginTop: 15,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    borderRadius: 999,
-                    padding: '7px 10px',
-                    background: ACCENT,
-                    color: BLACK,
-                    fontSize: 9.5,
-                    fontWeight: 900,
-                  }}
-                >
-                  <Zap
-                    size={13}
-                    fill={BLACK}
-                  />
-                  {Math.round(kcalPct)}% de l'objectif
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                height: 1,
-                background: '#202020',
-                margin: '21px 0 16px',
-              }}
-            />
-
-            <div
-              style={{
-                display: 'flex',
-                gap: 16,
-              }}
-            >
-              <Macro
-                label="Protéines"
-                value={todayProtein}
-                target={targetProtein}
-              />
-
-              <Macro
-                label="Glucides"
-                value={todayCarbs}
-                target={targetCarbs}
-              />
-
-              <Macro
-                label="Lipides"
-                value={todayFat}
-                target={targetFat}
-              />
-            </div>
-          </button>
-
-          {/* SECTION TITLE */}
-
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              margin: '25px 2px 12px',
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: 19,
-                  fontWeight: 950,
-                  letterSpacing: '-.035em',
-                }}
-              >
-                Aujourd'hui
-              </div>
-
-              <div
-                style={{
-                  fontSize: 10,
-                  color: '#A0A39B',
-                  marginTop: 3,
-                }}
-              >
-                Ton activité en un coup d'œil
-              </div>
-            </div>
-
-            <button
-              onClick={() => navigate('/settings')}
-              style={{
-                width: 37,
-                height: 37,
-                borderRadius: 12,
-                border: `1px solid ${BORDER}`,
-                background: '#fff',
-                display: 'grid',
-                placeItems: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <Settings size={17} />
-            </button>
-          </div>
-
-          {/* DAILY CARDS */}
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns:
-                'repeat(2, minmax(0,1fr))',
-              gap: 10,
-            }}
-          >
-            <MetricCard
-              icon={Footprints}
-              label="Pas"
-              value="—"
-              sub="Connecte une source d'activité"
-              onClick={() => navigate('/progress')}
-            />
-
-            <MetricCard
-              icon={Droplets}
-              label="Eau"
-              value="—"
-              sub="Objectif quotidien"
-              onClick={() => navigate('/fuel?add=water')}
-            />
-
-            <MetricCard
-              icon={Dumbbell}
-              label="Entraînement"
-              value={`${workoutCount}`}
-              sub="séances ces 7 derniers jours"
-              dark
-              onClick={() => navigate('/program')}
-            />
-
-            <MetricCard
-              icon={Moon}
-              label="Sommeil"
-              value="—"
-              sub="Données à connecter"
-              onClick={() => navigate('/sleep')}
-            />
-
-            <MetricCard
-              icon={Scale}
-              label="Poids"
-              value={weight}
-              sub="Dernière mesure"
-              onClick={() => navigate('/body')}
-            />
-
-            <MetricCard
-              icon={Sparkles}
-              label="Daily Score"
-              value={`${noxScore}`}
-              sub={`Streak ${profile?.streak_days || 0} j · ${prs} PR`}
-              onClick={() => navigate('/progress')}
-            />
-          </div>
-
-          {/* TRAINING */}
-
-          <div
-            style={{
-              marginTop: 26,
-              marginBottom: 12,
-              fontSize: 19,
-              fontWeight: 950,
-              letterSpacing: '-.035em',
-            }}
-          >
-            Entraînement
-          </div>
-
-          <button
-            onClick={() => navigate('/program')}
-            style={{
-              width: '100%',
-              border: 0,
-              borderRadius: 25,
-              background: '#fff',
-              padding: 18,
-              textAlign: 'left',
-              cursor: 'pointer',
-              boxShadow:
-                '0 5px 24px rgba(20,20,20,.045)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-              }}
-            >
-              <div
-                style={{
-                  width: 54,
-                  height: 54,
-                  borderRadius: 18,
-                  background: ACCENT,
-                  display: 'grid',
-                  placeItems: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <Dumbbell
-                  size={24}
-                  strokeWidth={2.5}
-                />
-              </div>
-
-              <div
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 9.5,
-                    color: '#92968D',
-                    fontWeight: 850,
-                  }}
-                >
-                  {todaySession
-                    ? 'SÉANCE DU JOUR'
-                    : 'RÉCUPÉRATION'}
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 17,
-                    fontWeight: 950,
-                    letterSpacing: '-.025em',
-                    marginTop: 3,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {todaySession?.name ||
-                    'Jour de repos'}
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 10.5,
-                    color: '#9A9D96',
-                    marginTop: 4,
-                  }}
-                >
-                  {todaySession
-                    ? `${todaySession.exercises?.length || 0} exercices · Prêt à commencer`
-                    : 'Récupère et prépare la prochaine séance'}
-                </div>
-              </div>
-
-              <ChevronRight
-                size={20}
-                color="#B9BCB4"
-              />
-            </div>
-          </button>
-
-          {/* NOX INTELLIGENCE */}
-
-          <div
-            style={{
-              marginTop: 12,
-            }}
-          >
-            <button
-              onClick={
-                brief
-                  ? () => setBrief(null)
-                  : generateBrief
-              }
-              disabled={loadingBrief}
-              style={{
-                width: '100%',
-                border: 0,
-                borderRadius: 25,
-                background: ACCENT,
-                padding: 18,
-                color: BLACK,
-                textAlign: 'left',
-                cursor: 'pointer',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 13,
-                }}
-              >
-                <div
-                  style={{
-                    width: 45,
-                    height: 45,
-                    borderRadius: 15,
-                    background: BLACK,
-                    color: ACCENT,
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Sparkles size={21} />
-                </div>
-
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      fontSize: 9,
-                      fontWeight: 950,
-                      letterSpacing: '.08em',
-                    }}
-                  >
-                    NOX INTELLIGENCE
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 950,
-                      marginTop: 3,
-                    }}
-                  >
-                    {loadingBrief
-                      ? 'Analyse en cours…'
-                      : brief
-                        ? 'Ton résumé du jour'
-                        : timeSlot === 'evening' ||
-                            timeSlot === 'night'
-                          ? 'Voir mon Evening Recap'
-                          : 'Voir mon Morning Brief'}
-                  </div>
-                </div>
-
-                <ChevronRight size={19} />
-              </div>
-
-              {brief && (
-                <div
-                  style={{
-                    borderTop:
-                      '1px solid rgba(0,0,0,.12)',
-                    marginTop: 15,
-                    paddingTop: 14,
-                    fontSize: 12,
-                    fontWeight: 650,
-                    lineHeight: 1.55,
-                  }}
-                >
-                  {brief}
-                </div>
-              )}
-            </button>
-          </div>
-
-          {/* WEEK */}
-
-          <div
-            style={{
-              margin: '26px 2px 12px',
-              fontSize: 19,
-              fontWeight: 950,
-              letterSpacing: '-.035em',
-            }}
-          >
-            Cette semaine
-          </div>
-
-          <div
-            style={{
-              background: '#fff',
-              border: `1px solid ${BORDER}`,
-              borderRadius: 25,
-              padding: 18,
-              marginBottom: 22,
-            }}
-          >
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3,1fr)',
-              }}
-            >
+            <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:9}}>
               {[
-                [
-                  workoutCount,
-                  'Séances',
-                ],
-                [
-                  prs,
-                  'Records',
-                ],
-                [
-                  `${profile?.streak_days || 0}j`,
-                  'Streak',
-                ],
-              ].map(([value, label], index) => (
-                <div
-                  key={String(label)}
-                  style={{
-                    textAlign: 'center',
-                    borderRight:
-                      index < 2
-                        ? `1px solid ${BORDER}`
-                        : 'none',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 24,
-                      fontWeight: 950,
-                      letterSpacing: '-.04em',
-                    }}
-                  >
-                    {value}
-                  </div>
-
-                  <div
-                    style={{
-                      color: '#9A9D96',
-                      fontSize: 9.5,
-                      fontWeight: 800,
-                      marginTop: 4,
-                    }}
-                  >
-                    {label}
-                  </div>
-                </div>
+                [Dumbbell,'Bouger ton corps',todaySession ? `${todaySession.name} · ${todaySession.exercises?.length || 0} exercices` : 'Récupération active','/program'],
+                [Apple,'Manger mieux',calories ? `${calories} kcal · ${protein} g protéines` : 'Ton plan nutritionnel','/fuel'],
+                [Sparkles,'Habitude clé','Une action simple aujourd’hui','/habits'],
+                [Moon,'Récupération','Prépare une bonne nuit','/sleep'],
+              ].map(([Icon,title,sub,path]:any)=>(
+                <button key={title} onClick={()=>navigate(path)} style={{border:0,borderRadius:18,background:'rgba(255,255,255,.82)',padding:13,textAlign:'left',cursor:'pointer'}}>
+                  <Icon size={18}/>
+                  <div style={{fontSize:11,fontWeight:950,marginTop:10}}>{title}</div>
+                  <div style={{fontSize:9.5,color:'#979B93',marginTop:3,lineHeight:1.35}}>{sub}</div>
+                </button>
               ))}
             </div>
 
-            <button
-              onClick={() =>
-                navigate('/weekly-review')
-              }
-              style={{
-                width: '100%',
-                marginTop: 17,
-                border: 0,
-                borderRadius: 15,
-                padding: 13,
-                background: '#F3F4EF',
-                color: BLACK,
-                fontSize: 11,
-                fontWeight: 900,
-                cursor: 'pointer',
-              }}
-            >
-              Voir mon bilan hebdomadaire →
+            <button onClick={()=>navigate('/program')} style={{width:'100%',border:0,borderRadius:17,background:ACCENT,color:BLACK,padding:'15px 16px',fontSize:12,fontWeight:950,marginTop:14,cursor:'pointer'}}>
+              Voir mon plan du jour →
             </button>
+          </div>
+
+          <button onClick={()=>navigate('/future')} style={{
+            ...card,width:'100%',marginTop:14,padding:20,textAlign:'left',cursor:'pointer',
+            background:'linear-gradient(135deg,#fff 52%,#EEF1E8 100%)',
+          }}>
+            <div style={{display:'flex',justifyContent:'space-between',gap:16}}>
+              <div>
+                <div style={{fontSize:22,fontWeight:1000,letterSpacing:'-.045em'}}>Mon NOX Future</div>
+                <div style={{fontSize:11,color:'#969A92',marginTop:4}}>Visualise où tu vas. Garde le cap.</div>
+              </div>
+              <ChevronRight size={20}/>
+            </div>
+            <div style={{height:7,borderRadius:999,background:'#E8EAE3',overflow:'hidden',marginTop:20}}>
+              <div style={{height:'100%',width:`${journeyPct}%`,background:ACCENT,borderRadius:999}}/>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:9.5,color:'#858981',marginTop:7}}>
+              <span>Semaine {journeyWeek} sur 12</span><span>{journeyPct}% du parcours</span>
+            </div>
+            <div style={{marginTop:17,padding:'14px 15px',borderRadius:17,background:'rgba(246,247,242,.9)',fontSize:12,fontStyle:'italic',lineHeight:1.5}}>
+              « Une direction claire. Des actions cohérentes. Un parcours qui s’adapte à toi. »
+            </div>
+            {!future && <div style={{fontSize:9.5,color:'#A0A39B',marginTop:10}}>Ta projection NOX Future reste accessible ici.</div>}
+          </button>
+
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'end',margin:'25px 2px 12px'}}>
+            <div>
+              <div style={{fontSize:21,fontWeight:1000,letterSpacing:'-.04em'}}>Mes piliers aujourd’hui</div>
+              <div style={{fontSize:10,color:'#9A9D96',marginTop:3}}>Ton équilibre, pas seulement ton entraînement.</div>
+            </div>
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10}}>
+            {pillar('Entraînement', todaySession?.name || 'Mouvement du jour', Dumbbell, '/program', '#EEFFD2')}
+            {pillar('Nutrition', calories ? `Repères : ${calories} kcal` : 'Plan alimentaire', Apple, '/fuel', '#FFF0EC')}
+            {pillar('Habitudes', 'Focus du jour', Sparkles, '/habits', '#EDF7FF')}
+            {pillar('Récupération', 'Sommeil & énergie', Moon, '/sleep', '#F1EDFF')}
+          </div>
+
+          <div style={{...card,marginTop:14,padding:18}}>
+            <div style={{display:'flex',gap:13,alignItems:'flex-start'}}>
+              <div style={{width:45,height:45,borderRadius:15,background:ACCENT,display:'grid',placeItems:'center',flexShrink:0}}>
+                <Sparkles size={21}/>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,fontWeight:1000}}>NOX Intelligence</div>
+                <div style={{fontSize:10.5,lineHeight:1.55,color:'#858981',marginTop:5}}>
+                  Ton plan relie ton objectif, ton entraînement, ta nutrition et ton rythme de vie. À mesure que tu avances, NOX pourra ajuster le parcours avec tes nouvelles données.
+                </div>
+              </div>
+            </div>
+            <button onClick={()=>navigate('/ai-coach')} style={{width:'100%',marginTop:14,border:0,borderRadius:14,padding:12,background:'#F3F4EF',fontSize:10.5,fontWeight:900,cursor:'pointer'}}>
+              Parler à NOX →
+            </button>
+          </div>
+
+          <div style={{margin:'26px 2px 12px'}}>
+            <div style={{fontSize:21,fontWeight:1000,letterSpacing:'-.04em'}}>Ce qui t’attend</div>
+            <div style={{fontSize:10,color:'#9A9D96',marginTop:3}}>Des étapes, pas des promesses.</div>
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10,marginBottom:24}}>
+            {[
+              ['Semaine 1','Créer l’habitude'],
+              ['Semaine 4','Observer et ajuster'],
+              ['Semaine 8','Mesurer ton évolution'],
+              ['Semaine 12','Comparer ton parcours'],
+            ].map(([week,label],i)=>(
+              <div key={week} style={{...card,padding:16,minHeight:100,background:i===0?'linear-gradient(145deg,#F5FFD9,#fff)':'#fff'}}>
+                <div style={{fontSize:9.5,fontWeight:900,color:i===0?'#557900':'#9A9D96'}}>{week}</div>
+                <div style={{fontSize:14,fontWeight:950,marginTop:18,lineHeight:1.2}}>{label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{fontSize:9,color:'#A1A49D',textAlign:'center',paddingBottom:8}}>
+            NOX accompagne ton parcours. Les résultats réels varient selon ta régularité, ton contexte et ton évolution.
           </div>
         </section>
       </main>
