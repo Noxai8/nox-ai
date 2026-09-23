@@ -626,6 +626,68 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       .budgetMeterHint b{font-size:12px}
       .budgetMeterHint span{font-size:10px;color:#747A75;line-height:1.45}
 
+
+      /* WIZARD 1→5 — FINAL SIMPLE MOCKUP */
+      .wizardProgress{margin:7px 0 34px}
+      .wizardProgressLabel{font-size:11px;color:#79B600;letter-spacing:.02em;margin-bottom:10px}
+      .wizardSegments{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+      .wizardSegments span{height:6px;border-radius:99px;background:#E2E5DF}
+      .wizardSegments span.on{background:#86CF00}
+      .wizardIntro{margin-bottom:26px}
+      .wizardIntro h1{margin:0 0 8px;font-size:34px;line-height:1.02;letter-spacing:-.05em;font-weight:950}
+      .wizardIntro p{margin:0;color:#737973;font-size:14px;line-height:1.45}
+      .simpleChoices{display:grid;gap:12px}
+      .simpleChoice{width:100%;min-height:96px;border:1px solid #DDE1DA;border-radius:18px;background:#fff;padding:17px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:left}
+      .simpleChoice.on{border:1.5px solid #84C900;background:linear-gradient(110deg,#FAFFE8,#F5FFDA)}
+      .choiceCopy{display:grid;gap:5px}
+      .choiceCopy strong{font-size:17px;letter-spacing:-.02em}
+      .choiceCopy small{font-size:12px;color:#747A75;line-height:1.4}
+      .choiceRadio{width:28px;height:28px;border-radius:50%;border:1.5px solid #AEB4AE;background:#fff;display:grid;place-items:center;flex:0 0 auto;font-size:13px;font-weight:950}
+      .simpleChoice.on .choiceRadio,.durationChoices button.on .choiceRadio{background:#0E100F;border-color:#0E100F;color:#C8FF00}
+      .wizardCard{margin-top:12px;background:#fff;border:1px solid #E0E3DD;border-radius:19px;padding:18px}
+      .compactCard{margin-top:14px}
+      .wizardProfile{text-align:center;color:#666C67;font-size:10px;line-height:1.4;margin:22px 0 6px}
+      .durationChoices{display:grid;gap:9px;margin-top:12px}
+      .durationChoices button{border:1px solid #DFE2DC;background:#fff;border-radius:15px;padding:15px 14px;display:flex;align-items:center;justify-content:space-between;text-align:left}
+      .durationChoices button.on{border-color:#84C900;background:#F8FFE7}
+      .durationChoices strong{font-size:15px}
+      .peopleCard{display:flex;align-items:center;justify-content:space-between;gap:18px}
+      .peopleTitle{display:block;font-size:16px;margin-top:7px}
+      .peopleControl{display:flex;align-items:center;gap:14px}
+      .peopleControl button{width:38px;height:38px;border-radius:50%;border:1px solid #D8DCD6;background:#F7F8F5;font-size:21px}
+      .peopleControl b{min-width:18px;text-align:center;font-size:18px}
+      .budgetMockCard{background:#fff;border:1px solid #E0E3DD;border-radius:20px;padding:28px 20px 20px;text-align:center}
+      .budgetBig{font-size:43px;line-height:1;font-weight:950;letter-spacing:-.055em;margin:4px 0 8px}
+      .budgetRange{margin:30px 0 11px}
+      .budgetScale{font-size:10px}
+      .budgetStatus{margin-top:24px;background:#F5F7F0;border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;text-align:left}
+      .budgetStatus>span:last-child{display:grid;gap:3px}
+      .budgetStatus b{font-size:12px}
+      .budgetStatus small{font-size:9px;color:#6F756F;line-height:1.4}
+      .statusBars{width:32px;height:30px;display:flex;align-items:flex-end;gap:3px;justify-content:center}
+      .statusBars i{display:block;width:5px;border:2px solid #0E100F;background:#C8FF00;border-radius:2px}
+      .statusBars i:nth-child(1){height:9px}.statusBars i:nth-child(2){height:17px}.statusBars i:nth-child(3){height:25px}
+      .prefsCard{display:grid;gap:20px}
+      .prefBlock{display:grid;gap:9px}
+      .readonlyPref{border:1px solid #E0E3DD;border-radius:13px;background:#FAFBF8;padding:13px 14px;font-size:12px;color:#555B56}
+      .cleanChips{gap:7px}
+      .cleanChips .chip{font-size:10px;padding:8px 10px;background:#fff}
+      .cleanChips .chip.on{background:#EFFFBA;border-color:#84C900;color:#263500}
+      .prefsCard .input{border-radius:13px;background:#fff;font-size:12px;padding:13px 14px}
+      .recapCard{background:#fff;border:1px solid #E0E3DD;border-radius:18px;padding:3px 16px}
+      .recapCard .reviewRow{padding:14px 0;border-bottom:1px solid #ECEEE9}
+      .recapCard .reviewRow:last-child{border-bottom:0}
+      .readyCard{margin-top:16px;background:linear-gradient(105deg,#F7FFD9,#EDFFC0);border-radius:16px;padding:17px 18px;display:grid;gap:5px}
+      .readyCard b{font-size:13px}
+      .readyCard span{font-size:10px;color:#69705F;line-height:1.45}
+      @media(min-width:700px){
+        .qg.step-mode .headin,.qg.step-mode .main,
+        .qg.step-setup .headin,.qg.step-setup .main,
+        .qg.step-budget .headin,.qg.step-budget .main,
+        .qg.step-prefs .headin,.qg.step-prefs .main,
+        .qg.step-review .headin,.qg.step-review .main{max-width:480px!important}
+      }
+
     `}</style>
 
     <header className="head"><div className="headin"><div className="top">
@@ -635,119 +697,142 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
     </div></div></header>
 
     <main className="main">
-      {!['mode','generating','list','recipes','recipe','shopping','done'].includes(step)&&<>
-        <div className="progressTop"><span>COURSES NOXAI</span><span>{({mode:1,setup:2,budget:3,prefs:4,review:5} as any)[step]} / 5</span></div>
-        <div className="progressTrack"><div className="progressFill" style={{width:`${((({mode:1,setup:2,budget:3,prefs:4,review:5} as any)[step]||1)/5)*100}%`}}/></div>
-      </>}
+      {['mode','setup','budget','prefs','review'].includes(step)&&(()=>{
+        const wizardIndex=({mode:1,setup:2,budget:3,prefs:4,review:5} as Record<string,number>)[step]||1;
+        return <div className="wizardProgress">
+          <div className="wizardProgressLabel"><b>ÉTAPE {wizardIndex} / 5</b></div>
+          <div className="wizardSegments">{[1,2,3,4,5].map(n=><span key={n} className={n<=wizardIndex?'on':''}/>)}</div>
+        </div>
+      })()}
 
       {step==='mode'&&<>
-        <div className="modeProgress">
-          <div className="modeProgressTop"><b>ÉTAPE 1 / 5</b><span>On part de quoi ?</span></div>
-          <div className="modeTrack"><span/></div>
-        </div>
-
-        <div className="modeIntro">
+        <section className="wizardIntro">
           <h1>On part de quoi ?</h1>
-          <p>Dis à NOX si tu pars de zéro ou si tu veux simplement compléter ce que tu as déjà.</p>
-        </div>
+          <p>Choisis comment NOX doit préparer tes courses.</p>
+        </section>
 
-        <div className="modeChoices">
-          <button className={`modeCard ${mode==='empty'?'on':''}`} onClick={()=>setMode('empty')}>
-            <span className="modeVisual emptyFridge"/>
-            <span className="modeCopy">
-              <strong>Je pars de zéro</strong>
-              <span className="modeSub">Frigo vide</span>
-              <p>Créer toutes les courses nécessaires pour les prochains jours.</p>
-              <span className="modeBenefit">✦ Idéal pour repartir sur de bonnes bases</span>
-            </span>
-            <span className="modeSelect">{mode==='empty'?'✓':''}</span>
+        <div className="simpleChoices">
+          <button className={`simpleChoice ${mode==='empty'?'on':''}`} onClick={()=>setMode('empty')}>
+            <span className="choiceCopy"><strong>Frigo vide</strong><small>NOX crée toute ta liste de courses.</small></span>
+            <span className="choiceRadio">{mode==='empty'?'✓':''}</span>
           </button>
-
-          <button className={`modeCard ${mode==='complete'?'on':''}`} onClick={()=>setMode('complete')}>
-            <span className="modeVisual stocked"><span className="modeFood">🥬🍅🥛</span></span>
-            <span className="modeCopy">
-              <strong>J’ai déjà des aliments</strong>
-              <span className="modeSub">Compléter mon frigo</span>
-              <p>Tenir compte de ce que tu as déjà et acheter uniquement ce qui manque.</p>
-              <span className="modeBenefit">◇ Moins de gaspillage, plus d’économies</span>
-            </span>
-            <span className="modeSelect">{mode==='complete'?'✓':''}</span>
+          <button className={`simpleChoice ${mode==='complete'?'on':''}`} onClick={()=>setMode('complete')}>
+            <span className="choiceCopy"><strong>Compléter mon frigo</strong><small>NOX achète uniquement ce qui manque.</small></span>
+            <span className="choiceRadio">{mode==='complete'?'✓':''}</span>
           </button>
         </div>
 
-        {mode==='complete'&&<div className="fridgeEntry">
+        {mode==='complete'&&<div className="wizardCard compactCard">
           <div className="label">CE QUE TU AS DÉJÀ</div>
-          <textarea className="input" value={fridgeText} onChange={e=>setFridgeText(e.target.value)} placeholder="Ex. 6 œufs, riz, tomates, yaourts…"/>
+          <textarea className="input" value={fridgeText} onChange={e=>setFridgeText(e.target.value)} placeholder="Ex. riz, tomates, yaourts…"/>
         </div>}
 
-        <div className="profileHint">
-          <span className="profileHintIcon">○</span>
-          <span>Adapté automatiquement à ton profil NOX · <b>{goal}</b>{diet!=='Non renseigné'?` · ${diet}`:''}</span>
-        </div>
-
-        <div className="modeFooter"><Footer next={()=>setStep('setup')} label="CONTINUER  →"/></div>
+        <div className="wizardProfile">Adapté automatiquement à ton profil NOX · <b>{goal}</b>{diet!=='Non renseigné'?` · ${diet}`:''}</div>
+        <Footer next={()=>setStep('setup')} label="CONTINUER →"/>
       </>}
 
       {step==='setup'&&<>
-        <div className="eyebrow">ÉTAPE 2</div><h1>Pour combien ?</h1><p className="lead">NOX ajuste les quantités selon la durée et le nombre de personnes.</p>
-        <div className="card"><div className="label">DURÉE</div><div className="dayGrid">{[3,5,7].map(d=><button key={d} className={`day ${days===d?'on':''}`} onClick={()=>setDays(d)}>{d} jours</button>)}</div></div>
-        <div className="card"><div className="label">PERSONNES</div><div className="people"><button className="round" onClick={()=>setPeople(Math.max(1,people-1))}>−</button><strong>{people}</strong><button className="round" onClick={()=>setPeople(Math.min(10,people+1))}>+</button></div></div>
-        <Footer next={()=>setStep('budget')} label="CONTINUER"/>
-      </>}
+        <section className="wizardIntro">
+          <h1>Pour combien ?</h1>
+          <p>Choisis la durée et le nombre de personnes.</p>
+        </section>
 
-      {step==='budget'&&<>
-        <div className="eyebrow">ÉTAPE 3 / 5</div>
-        <h1>Ton budget maximum</h1>
-        <p className="lead">Déplace le curseur pour choisir l’enveloppe à ne pas dépasser.</p>
-
-        <div className="budgetMeterCard">
-          <div className="budgetMeterTop">
-            <div>
-              <div className="label">BUDGET POUR {days} JOURS</div>
-              <div className="budgetMeterValue">{Math.round(Number.isFinite(budgetNumber)&&budgetNumber>0?budgetNumber:40)} €</div>
-            </div>
-            <div className="budgetMeterPeople">{people} pers.</div>
-          </div>
-
-          <input
-            className="budgetRange"
-            type="range"
-            min="20"
-            max="150"
-            step="5"
-            value={Number.isFinite(budgetNumber)&&budgetNumber>0?Math.min(150,Math.max(20,budgetNumber)):40}
-            onChange={e=>setBudget(e.currentTarget.value)}
-            style={{'--budget-fill':`${(((Number.isFinite(budgetNumber)&&budgetNumber>0?Math.min(150,Math.max(20,budgetNumber)):40)-20)/130)*100}%`} as React.CSSProperties}
-          />
-
-          <div className="budgetScale">
-            <span>20 €</span><span>50 €</span><span>100 €</span><span>150 €</span>
-          </div>
-
-          <div className="budgetMeterHint">
-            <b>{budgetNumber<35?'Budget serré':budgetNumber<70?'Budget équilibré':budgetNumber<110?'Budget confortable':'Budget large'}</b>
-            <span>NOX adaptera les quantités et les choix à ce maximum.</span>
+        <div className="wizardCard">
+          <div className="label">DURÉE DES COURSES</div>
+          <div className="durationChoices">
+            {[3,5,7].map(d=><button key={d} className={days===d?'on':''} onClick={()=>setDays(d)}>
+              <strong>{d} jours</strong>
+              <span className="choiceRadio">{days===d?'✓':''}</span>
+            </button>)}
           </div>
         </div>
 
-        <p className="lead" style={{fontSize:11}}>Les montants servent uniquement à construire une estimation NOXAI cohérente. Ce ne sont pas des prix magasin.</p>
+        <div className="wizardCard peopleCard">
+          <div><div className="label">PERSONNES</div><strong className="peopleTitle">{people} personne{people>1?'s':''}</strong></div>
+          <div className="peopleControl"><button onClick={()=>setPeople(Math.max(1,people-1))}>−</button><b>{people}</b><button onClick={()=>setPeople(Math.min(10,people+1))}>+</button></div>
+        </div>
+
+        <div className="wizardProfile">Les quantités seront adaptées automatiquement.</div>
+        <Footer next={()=>setStep('budget')} label="CONTINUER →"/>
+      </>}
+
+      {step==='budget'&&<>
+        <section className="wizardIntro">
+          <h1>Quel est ton budget ?</h1>
+          <p>Définis le budget maximum pour ces courses.</p>
+        </section>
+
+        <div className="budgetMockCard">
+          <div className="budgetBig">{Math.round(Number.isFinite(budgetNumber)&&budgetNumber>0?budgetNumber:120).toLocaleString('fr-FR')} €</div>
+          <input
+            className="budgetRange"
+            type="range"
+            min="10"
+            max="10000"
+            step="10"
+            value={Number.isFinite(budgetNumber)&&budgetNumber>0?Math.min(10000,Math.max(10,budgetNumber)):120}
+            onChange={e=>setBudget(e.currentTarget.value)}
+            style={{'--budget-fill':`${(((Number.isFinite(budgetNumber)&&budgetNumber>0?Math.min(10000,Math.max(10,budgetNumber)):120)-10)/9990)*100}%`} as React.CSSProperties}
+          />
+          <div className="budgetScale"><span>10 €</span><span>10 000 €</span></div>
+          <div className="budgetStatus">
+            <span className="statusBars"><i/><i/><i/></span>
+            <span><b>{budgetNumber<50?'Budget serré':budgetNumber<150?'Budget équilibré':budgetNumber<500?'Budget confortable':'Budget large'}</b><small>NOX adaptera les quantités et les choix à ce maximum.</small></span>
+          </div>
+        </div>
+
+        <div className="wizardProfile">Estimation NOXAI · ce ne sont pas des prix magasin.</div>
         <Footer next={()=>setStep('prefs')} label="CONTINUER →" disabled={!canContinueSetup}/>
       </>}
 
       {step==='prefs'&&<>
-        <div className="eyebrow">ÉTAPE 4</div><h1>Tes préférences</h1><p className="lead">On exclut ce qui ne te convient pas et on privilégie les aliments que tu apprécies.</p>
-        <div className="card"><div className="label">ALLERGIES ET INTOLÉRANCES</div><div className="chips">{ALLERGIES.map(a=><button key={a} className={`chip ${allergies.includes(a)?'on':''}`} onClick={()=>toggleAllergy(a)}>{allergies.includes(a)?'✓ ':''}{a}</button>)}</div><input className="input" style={{marginTop:12}} value={otherAllergy} onChange={e=>setOtherAllergy(e.target.value)} placeholder="Autre allergie…"/></div>
-        <div className="card"><div className="label">ALIMENTS AIMÉS</div><input className="input" value={likes} onChange={e=>setLikes(e.target.value)} placeholder="Poulet, riz, tomates…"/></div>
-        <div className="card"><div className="label">ALIMENTS REFUSÉS</div><input className="input" value={dislikes} onChange={e=>setDislikes(e.target.value)} placeholder="Poisson…"/></div>
-        <Footer next={()=>setStep('review')} label="VOIR LE RÉCAPITULATIF"/>
+        <section className="wizardIntro">
+          <h1>Des préférences ?</h1>
+          <p>Indique ce qu’il faut prendre en compte.</p>
+        </section>
+
+        <div className="wizardCard prefsCard">
+          <div className="prefBlock">
+            <div className="label">RÉGIME ALIMENTAIRE</div>
+            <div className="readonlyPref">{diet}</div>
+          </div>
+          <div className="prefBlock">
+            <div className="label">ALLERGIES OU INTOLÉRANCES</div>
+            <div className="chips cleanChips">{ALLERGIES.map(a=><button key={a} className={`chip ${allergies.includes(a)?'on':''}`} onClick={()=>toggleAllergy(a)}>{allergies.includes(a)?'✓ ':''}{a}</button>)}</div>
+            <input className="input" value={otherAllergy} onChange={e=>setOtherAllergy(e.target.value)} placeholder="Autre allergie (optionnel)"/>
+          </div>
+          <div className="prefBlock">
+            <div className="label">ALIMENTS À PRIVILÉGIER</div>
+            <input className="input" value={likes} onChange={e=>setLikes(e.target.value)} placeholder="Ex. poulet, riz, brocoli…"/>
+          </div>
+          <div className="prefBlock">
+            <div className="label">ALIMENTS À ÉVITER</div>
+            <input className="input" value={dislikes} onChange={e=>setDislikes(e.target.value)} placeholder="Ex. poisson…"/>
+          </div>
+        </div>
+
+        <div className="wizardProfile">Adapté automatiquement à ton profil NOX.</div>
+        <Footer next={()=>setStep('review')} label="CONTINUER →"/>
       </>}
 
       {step==='review'&&<>
-        <div className="eyebrow">ÉTAPE 5</div><h1>Tout est prêt</h1><p className="lead">Vérifie les informations utilisées par NOX avant de générer ta liste.</p>
-        <div className="review">
-          <Row l="Mode" v={mode==='empty'?'Frigo vide':'Compléter mon frigo'}/><Row l="Durée" v={`${days} jours`}/><Row l="Personnes" v={String(people)}/><Row l="Budget maximum" v={`${budgetNumber.toFixed(2)} €`}/><Row l="Objectif NOX" v={goal}/><Row l="Régime" v={diet}/><Row l="Allergies" v={allAllergies.join(', ')||'Aucune'}/>
+        <section className="wizardIntro">
+          <h1>Récapitulatif</h1>
+          <p>Vérifie tes choix avant de générer ta liste de courses.</p>
+        </section>
+
+        <div className="recapCard">
+          <Row l="Mode" v={mode==='empty'?'Frigo vide':'Compléter mon frigo'}/>
+          <Row l="Durée" v={`${days} jours`}/>
+          <Row l="Personnes" v={String(people)}/>
+          <Row l="Budget" v={`${budgetNumber.toLocaleString('fr-FR')} €`}/>
+          <Row l="Régime" v={diet}/>
+          <Row l="Allergies" v={allAllergies.join(', ')||'Aucune'}/>
+          <Row l="À privilégier" v={likes||'Non renseigné'}/>
         </div>
-        <Footer next={generate} label="✦  GÉNÉRER MA LISTE"/>
+
+        <div className="readyCard"><b>Tout est prêt !</b><span>NOX va générer une liste personnalisée avec des recettes adaptées.</span></div>
+        <Footer next={generate} label="GÉNÉRER MA LISTE →"/>
       </>}
 
       {step==='generating'&&<div className="gen"><div className="genIcon">✦</div><h1>NOX prépare ta liste…</h1><p className="lead" style={{textAlign:'center'}}>Analyse de ton profil, de ton budget et de tes préférences.</p><div className="genRows">{['Analyse du profil NOX','Calcul des quantités','Vérification des contraintes','Optimisation du budget','Création de la liste'].map((x,i)=><div key={x} className={`genRow ${genStage>i?'done':''}`}>{genStage>i?'✓':'○'} &nbsp; {x}</div>)}</div><div className="genBar"><div style={{width:`${Math.min(100,genStage*20)}%`}}/></div></div>}
