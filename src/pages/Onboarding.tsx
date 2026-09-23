@@ -1,53 +1,62 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Check, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
-const ACCENT = '#B7FF00';
-const BG = '#F6F7F2';
-const SURFACE = '#FFFFFF';
-const BORDER = '#E7E9E2';
-const DARK = '#111111';
-const MUTED = '#777C73';
-const TOTAL = 8;
+const ACCENT = '#C8FF00';
+const BG = '#F7F8F4';
+const WHITE = '#FFFFFF';
+const BLACK = '#0B0B0B';
+const MUTED = '#7A7F76';
+const BORDER = '#E8EAE4';
+const TOTAL = 9;
 
 const GOALS = [
-  ['perdre_gras', 'Perdre du gras', 'Déficit modéré et progression durable'],
-  ['prendre_muscle', 'Prendre du muscle', 'Léger surplus et entraînement progressif'],
-  ['recomposition', 'Recomposition', 'Construire du muscle en maîtrisant le gras'],
-  ['force', 'Force', 'Priorité à la performance'],
-  ['performance', 'Performance', 'Soutenir énergie et récupération'],
-  ['maintien', 'Maintien', 'Stabiliser le poids et les habitudes'],
+  ['perdre_gras', 'Perdre du gras', 'Affiner progressivement ma silhouette'],
+  ['prendre_muscle', 'Prendre du muscle', 'Construire plus de masse musculaire'],
+  ['recomposition', 'Recomposition', 'Plus de muscle, moins de masse grasse'],
+  ['force', 'Gagner en force', 'Devenir plus fort sur mes mouvements'],
+  ['performance', 'Performance', 'Améliorer mes capacités physiques'],
+  ['maintien', 'Me maintenir', 'Rester en forme et conserver mes acquis'],
 ] as const;
 
 const LEVELS = [
-  ['débutant', 'Débutant', 'Moins de 6 mois'],
-  ['intermédiaire', 'Intermédiaire', '6 mois à 2 ans'],
-  ['avancé', 'Avancé', '2 ans et plus'],
+  ['débutant', 'Débutant', 'Je débute ou je reprends'],
+  ['intermédiaire', 'Intermédiaire', 'Je m’entraîne régulièrement'],
+  ['avancé', 'Avancé', 'J’ai plusieurs années de pratique'],
 ] as const;
 
 const LOCATIONS = [
-  ['salle', 'Salle'], ['maison', 'Maison'], ['exterieur', 'Extérieur'], ['mixte', 'Mixte'],
+  ['salle', 'Salle de sport'],
+  ['maison', 'À la maison'],
+  ['exterieur', 'En extérieur'],
+  ['mixte', 'Un peu partout'],
 ] as const;
 
 const DAYS = [
-  [1, 'LUN'], [2, 'MAR'], [3, 'MER'], [4, 'JEU'], [5, 'VEN'], [6, 'SAM'], [7, 'DIM'],
+  [1, 'LUN'], [2, 'MAR'], [3, 'MER'], [4, 'JEU'],
+  [5, 'VEN'], [6, 'SAM'], [7, 'DIM'],
 ] as const;
 
 const ACTIVITIES = [
-  ['sedentaire', 'Sédentaire', 'Peu de marche, travail surtout assis', 1.2],
-  ['leger', 'Légèrement actif', 'Un peu de marche au quotidien', 1.375],
-  ['modere', 'Modérément actif', 'Marche régulière, journées assez actives', 1.55],
-  ['actif', 'Actif', 'Beaucoup de marche ou travail physique', 1.725],
-  ['tres_actif', 'Très actif', 'Travail très physique ou activité quotidienne élevée', 1.9],
+  ['sedentaire', 'Plutôt sédentaire', 'Je bouge peu en dehors du sport', 1.2],
+  ['leger', 'Un peu actif', 'Je marche et bouge un peu chaque jour', 1.375],
+  ['modere', 'Actif', 'Je bouge régulièrement au quotidien', 1.55],
+  ['actif', 'Très actif', 'Je marche beaucoup ou j’ai un travail physique', 1.725],
+  ['tres_actif', 'Très intense', 'Mon quotidien est très physique', 1.9],
 ] as const;
 
-const DIETS = ['omnivore', 'vegetarien', 'vegan', 'sans_gluten', 'sans_lactose', 'halal', 'casher', 'keto'];
-const DIET_LABELS: Record<string, string> = {
-  omnivore: 'Omnivore', vegetarien: 'Végétarien', vegan: 'Vegan',
-  sans_gluten: 'Sans gluten', sans_lactose: 'Sans lactose',
-  halal: 'Halal', casher: 'Casher', keto: 'Kéto',
-};
+const DIETS = [
+  ['omnivore', 'Je mange de tout'],
+  ['vegetarien', 'Végétarien'],
+  ['vegan', 'Vegan'],
+  ['sans_gluten', 'Sans gluten'],
+  ['sans_lactose', 'Sans lactose'],
+  ['halal', 'Halal'],
+  ['casher', 'Casher'],
+  ['keto', 'Kéto'],
+] as const;
 
 function ageFromDob(dob: string) {
   const birth = new Date(`${dob}T12:00:00`);
@@ -70,20 +79,18 @@ function nutritionTarget(args: {
   const activity = ACTIVITIES.find(a => a[0] === args.activity);
   if (!activity) throw new Error("Niveau d'activité invalide.");
 
-  // Mifflin-St Jeor (adulte), puis facteur d'activité.
   const bmr = 10 * args.weight + 6.25 * args.height - 5 * args.age + (args.sex === 'homme' ? 5 : -161);
   const maintenance = bmr * activity[3];
   const factors: Record<string, number> = {
-    perdre_gras: 0.85, prendre_muscle: 1.08, recomposition: 0.95,
-    force: 1, performance: 1, maintien: 1,
+    perdre_gras: 0.85,
+    prendre_muscle: 1.08,
+    recomposition: 0.95,
+    force: 1,
+    performance: 1,
+    maintien: 1,
   };
+
   const calories = Math.round((maintenance * (factors[args.goal] ?? 1)) / 25) * 25;
-
-  // Garde-fou : NOX n'enregistre jamais une cible aberrante.
-  if (!Number.isFinite(calories) || calories < 1200 || calories > 5000) {
-    throw new Error("Objectif calorique hors plage. Vérifie le profil.");
-  }
-
   const protein = Math.round(args.weight * (['prendre_muscle', 'recomposition'].includes(args.goal) ? 2 : 1.8));
   const fat = Math.round(args.weight * 0.8);
   const carbs = Math.max(0, Math.round((calories - protein * 4 - fat * 9) / 4));
@@ -97,43 +104,53 @@ export default function Onboarding() {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [goal, setGoal] = useState('');
-  const [level, setLevel] = useState('');
-  const [location, setLocation] = useState('');
-  const [days, setDays] = useState<number[]>([]);
-  const [duration, setDuration] = useState('60');
+
+  const [firstName, setFirstName] = useState(String(user?.user_metadata?.first_name || user?.user_metadata?.name || ''));
+  const [lastName, setLastName] = useState(String(user?.user_metadata?.last_name || ''));
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
   const [dob, setDob] = useState('');
   const [sex, setSex] = useState<'homme' | 'femme' | ''>('');
   const [activity, setActivity] = useState('');
+  const [level, setLevel] = useState('');
+  const [location, setLocation] = useState('');
+  const [days, setDays] = useState<number[]>([]);
+  const [duration, setDuration] = useState('60');
+  const [goal, setGoal] = useState('');
   const [dietPrefs, setDietPrefs] = useState<string[]>(['omnivore']);
+  const [allergies, setAllergies] = useState('');
+  const [foodLikes, setFoodLikes] = useState('');
+  const [foodDislikes, setFoodDislikes] = useState('');
+  const [mealsPerDay, setMealsPerDay] = useState('3');
+  const [cookingTime, setCookingTime] = useState('30');
 
-  const age = useMemo(() => dob ? ageFromDob(dob) : 0, [dob]);
-  const physicalValid =
-    !!sex && !!dob && age >= 18 && age <= 100 &&
+  const age = useMemo(() => (dob ? ageFromDob(dob) : 0), [dob]);
+  const physicalValid = !!sex && !!dob && age >= 18 && age <= 100 &&
     Number(weight) >= 35 && Number(weight) <= 350 &&
     Number(height) >= 120 && Number(height) <= 230;
 
   const preview = useMemo(() => {
     if (!goal || !activity || !physicalValid || !sex) return null;
-    try {
-      return nutritionTarget({
-        sex, weight: Number(weight), height: Number(height), age, activity, goal,
-      });
-    } catch { return null; }
+    return nutritionTarget({ sex, weight: Number(weight), height: Number(height), age, activity, goal });
   }, [goal, activity, physicalValid, sex, weight, height, age]);
 
   const canNext =
-    step === 1 ? !!goal :
-    step === 2 ? !!level :
-    step === 3 ? !!location :
-    step === 4 ? days.length > 0 :
-    step === 5 ? physicalValid :
-    step === 6 ? !!activity : true;
+    step === 1 ? firstName.trim().length > 1 && lastName.trim().length > 1 :
+    step === 2 ? physicalValid :
+    step === 3 ? !!activity :
+    step === 4 ? !!level && !!location :
+    step === 5 ? days.length > 0 :
+    step === 6 ? !!goal :
+    step === 7 ? dietPrefs.length > 0 :
+    true;
 
-  const next = () => { setError(''); setStep(s => Math.min(TOTAL, s + 1)); };
-  const prev = () => { setError(''); setStep(s => Math.max(1, s - 1)); };
+  const toggleDiet = (id: string) => {
+    setDietPrefs(current => {
+      if (id === 'omnivore') return ['omnivore'];
+      if (current.includes(id)) return current.filter(x => x !== id);
+      return [...current.filter(x => x !== 'omnivore'), id];
+    });
+  };
 
   const finish = async () => {
     if (!user || saving || !preview || !sex) return;
@@ -141,7 +158,20 @@ export default function Onboarding() {
     setError('');
 
     try {
-      // Le profil reste incomplet tant que la cible nutritionnelle n'est pas sauvegardée.
+      const nutritionContext = [
+        ...dietPrefs,
+        allergies.trim() ? `allergies:${allergies.trim()}` : '',
+        foodLikes.trim() ? `likes:${foodLikes.trim()}` : '',
+        foodDislikes.trim() ? `dislikes:${foodDislikes.trim()}` : '',
+        `meals_per_day:${mealsPerDay}`,
+        `cooking_time_min:${cookingTime}`,
+      ].filter(Boolean);
+
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: { first_name: firstName.trim(), last_name: lastName.trim(), name: firstName.trim() },
+      });
+      if (metadataError) throw metadataError;
+
       const { error: profileError } = await supabase.from('profiles').update({
         goal_type: goal,
         experience_level: level,
@@ -152,223 +182,200 @@ export default function Onboarding() {
         height_cm: Number(height),
         date_of_birth: dob,
         sex,
-        diet_preferences: dietPrefs,
+        diet_preferences: nutritionContext,
         activity_level: activity,
         onboarding_completed: false,
         updated_at: new Date().toISOString(),
       }).eq('id', user.id);
-      if (profileError) throw new Error(`Profil : ${profileError.message}`);
+      if (profileError) throw profileError;
 
-      // Une seule source de vérité par utilisateur.
-      // La contrainte UNIQUE(user_id) permet un upsert sûr et évite les doublons.
-      const target = {
+      const { error: targetError } = await supabase.from('nutrition_targets').upsert({
         user_id: user.id,
         calories: preview.calories,
         protein_g: preview.protein,
         carbs_g: preview.carbs,
         fat_g: preview.fat,
-        // Compatibilité avec le schéma actuel : carbs/fat existent aussi en colonnes historiques.
         carbs: preview.carbs,
         fat: preview.fat,
         start_date: new Date().toISOString().slice(0, 10),
         is_active: true,
-      };
+      }, { onConflict: 'user_id' });
+      if (targetError) throw targetError;
 
-      const { error: targetError } = await supabase
-        .from('nutrition_targets')
-        .upsert(target, { onConflict: 'user_id' });
-
-      if (targetError) throw new Error(`Nutrition : ${targetError.message}`);
-
-      const { error: completeError } = await supabase.from('profiles').update({
-        onboarding_completed: true,
-        updated_at: new Date().toISOString(),
-      }).eq('id', user.id);
-      if (completeError) throw new Error(`Finalisation : ${completeError.message}`);
-
-      navigate('/generate-program');
+      navigate('/future', { state: { onboarding: true } });
     } catch (e: any) {
       console.error('Erreur onboarding NOX :', e);
-      setError(e?.message || "Impossible d'enregistrer le profil.");
+      setError(e?.message || "Impossible d'enregistrer ton profil.");
     } finally {
       setSaving(false);
     }
   };
 
-  const card = (selected: boolean): React.CSSProperties => ({
-    width: '100%', padding: '16px 18px', marginBottom: 10,
-    background: selected ? '#F2FFD0' : SURFACE,
-    border: `1.5px solid ${selected ? '#9EDB00' : BORDER}`,
-    borderRadius: 16, cursor: 'pointer', textAlign: 'left',
-  });
-
-  const title: React.CSSProperties = {
-    fontSize: 28, fontWeight: 900, color: DARK, lineHeight: 1.08,
-    letterSpacing: '-.03em', marginBottom: 10,
+  const next = () => {
+    if (!canNext) return;
+    setError('');
+    setStep(s => Math.min(TOTAL, s + 1));
   };
-
-  const sub: React.CSSProperties = {
-    fontSize: 13, color: MUTED, lineHeight: 1.55, marginBottom: 24,
-  };
-
-  const stepLabel = (text: string) => (
-    <div style={{ fontSize: 11, color: MUTED, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>
-      Étape {step} · {text}
-    </div>
-  );
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100dvh', background: BG, color: BLACK, display: 'flex', flexDirection: 'column' }}>
       <header style={{ padding: '20px 20px 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          {step > 1
-            ? <button onClick={prev} aria-label="Retour" style={{ width: 38, height: 38, borderRadius: 12, border: `1px solid ${BORDER}`, background: SURFACE, fontSize: 20 }}>←</button>
-            : <div style={{ width: 38 }} />}
-          <div style={{ fontSize: 12, color: MUTED, fontWeight: 800 }}>{step} / {TOTAL}</div>
-          <div style={{ width: 38 }} />
+        <div style={{ maxWidth: 560, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <button onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1}
+            style={{ width: 42, height: 42, borderRadius: 14, border: `1px solid ${BORDER}`, background: WHITE, display: 'grid', placeItems: 'center', opacity: step === 1 ? 0 : 1 }}>
+            <ArrowLeft size={18} />
+          </button>
+          <div style={{ fontSize: 19, fontWeight: 950, letterSpacing: '-.04em' }}>NOX<span style={{ color: '#9ED100' }}>.</span></div>
+          <div style={{ width: 42, textAlign: 'right', fontSize: 11, fontWeight: 850, color: MUTED }}>{step}/{TOTAL}</div>
         </div>
-        <div style={{ height: 5, background: '#E7E9E2', borderRadius: 99, overflow: 'hidden', marginBottom: 30 }}>
-          <div style={{ height: '100%', width: `${((step - 1) / (TOTAL - 1)) * 100}%`, background: ACCENT, transition: 'width .3s' }} />
+        <div style={{ maxWidth: 560, height: 4, margin: '18px auto 0', borderRadius: 999, background: '#E4E7DF', overflow: 'hidden' }}>
+          <div style={{ width: `${(step / TOTAL) * 100}%`, height: '100%', borderRadius: 999, background: BLACK }} />
         </div>
       </header>
 
-      <main style={{ flex: 1, padding: '0 20px', overflowY: 'auto' }}>
-        {step === 1 && <div>
-          {stepLabel('Objectif')}<div style={title}>Quel est ton objectif principal ?</div>
-          <div style={sub}>Il servira à adapter l'entraînement et la cible énergétique.</div>
-          {GOALS.map(([id, label, desc]) =>
-            <button key={id} onClick={() => setGoal(id)} style={card(goal === id)}>
-              <b style={{ fontSize: 15, color: DARK }}>{label}</b>
-              <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>{desc}</div>
-            </button>)}
-        </div>}
+      <main style={{ width: '100%', maxWidth: 560, margin: '0 auto', flex: 1, boxSizing: 'border-box', padding: '38px 20px 28px' }}>
+        {step === 1 && <Screen eyebrow="01 · TOI" title={<>Commençons par<br />faire connaissance.</>} subtitle="NOX construit une expérience autour de toi, pas autour d’un profil générique.">
+          <Field label="PRÉNOM" value={firstName} setValue={setFirstName} placeholder="Alex" />
+          <Field label="NOM" value={lastName} setValue={setLastName} placeholder="Martin" />
+          <Info>Ton email est déjà lié à ton compte NOX.</Info>
+        </Screen>}
 
-        {step === 2 && <div>
-          {stepLabel('Niveau')}<div style={title}>Ton niveau d'expérience</div>
-          <div style={sub}>NOX adapte le volume et la progression.</div>
-          {LEVELS.map(([id, label, desc]) =>
-            <button key={id} onClick={() => setLevel(id)} style={card(level === id)}>
-              <b style={{ fontSize: 15, color: DARK }}>{label}</b>
-              <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>{desc}</div>
-            </button>)}
-        </div>}
-
-        {step === 3 && <div>
-          {stepLabel('Lieu')}<div style={title}>Où t'entraînes-tu ?</div>
-          <div style={sub}>Pour proposer des exercices compatibles avec ton environnement.</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {LOCATIONS.map(([id, label]) =>
-              <button key={id} onClick={() => setLocation(id)} style={{ ...card(location === id), textAlign: 'center', marginBottom: 0 }}>
-                <b style={{ color: DARK }}>{label}</b>
-              </button>)}
+        {step === 2 && <Screen eyebrow="02 · TON CORPS" title={<>Ton point<br />de départ.</>} subtitle="Ces données permettent d’adapter les estimations et ton futur programme.">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+            {(['homme', 'femme'] as const).map(s => <Choice key={s} selected={sex === s} onClick={() => setSex(s)} centered>{s === 'homme' ? 'Homme' : 'Femme'}</Choice>)}
           </div>
-        </div>}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="POIDS · KG" value={weight} setValue={setWeight} type="number" placeholder="80" />
+            <Field label="TAILLE · CM" value={height} setValue={setHeight} type="number" placeholder="178" />
+          </div>
+          <Field label="DATE DE NAISSANCE" value={dob} setValue={setDob} type="date" />
+          {dob && age > 0 && age < 18 && <Info>Le parcours automatique NOX est actuellement réservé aux adultes.</Info>}
+        </Screen>}
 
-        {step === 4 && <div>
-          {stepLabel('Planning')}<div style={title}>Tes jours d'entraînement</div>
-          <div style={sub}>Choisis les jours où tu peux réellement t'entraîner.</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 26 }}>
+        {step === 3 && <Screen eyebrow="03 · MODE DE VIE" title={<>À quoi ressemble<br />ton quotidien ?</>} subtitle="En dehors du sport, combien bouges-tu réellement ?">
+          {ACTIVITIES.map(([id, label, desc]) => <Choice key={id} selected={activity === id} onClick={() => setActivity(id)}><b>{label}</b><span>{desc}</span></Choice>)}
+        </Screen>}
+
+        {step === 4 && <Screen eyebrow="04 · SPORT" title={<>Ton expérience.<br />Ton terrain.</>} subtitle="NOX adaptera la difficulté et les exercices à ce que tu peux réellement faire.">
+          <SmallTitle>TON NIVEAU</SmallTitle>
+          {LEVELS.map(([id, label, desc]) => <Choice key={id} selected={level === id} onClick={() => setLevel(id)}><b>{label}</b><span>{desc}</span></Choice>)}
+          <SmallTitle>OÙ T’ENTRAÎNES-TU ?</SmallTitle>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {LOCATIONS.map(([id, label]) => <Choice key={id} selected={location === id} onClick={() => setLocation(id)} centered>{label}</Choice>)}
+          </div>
+        </Screen>}
+
+        {step === 5 && <Screen eyebrow="05 · DISPONIBILITÉS" title={<>Un plan qui tient<br />dans ta vraie vie.</>} subtitle="Choisis uniquement les jours où tu peux réellement t’entraîner.">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 28 }}>
             {DAYS.map(([id, label]) => {
               const selected = days.includes(id);
-              return <button key={id} onClick={() => setDays(p => selected ? p.filter(x => x !== id) : [...p, id].sort())}
-                style={{ padding: '13px 0', borderRadius: 11, border: `1px solid ${selected ? '#9EDB00' : BORDER}`, background: selected ? ACCENT : SURFACE, fontWeight: 900 }}>
-                {label}
-              </button>;
+              return <button key={id} onClick={() => setDays(c => selected ? c.filter(x => x !== id) : [...c, id].sort())}
+                style={{ minHeight: 54, borderRadius: 15, border: `1.5px solid ${selected ? BLACK : BORDER}`, background: selected ? BLACK : WHITE, color: selected ? ACCENT : BLACK, fontWeight: 900 }}>{label}</button>;
             })}
           </div>
-          <div style={{ fontSize: 12, color: MUTED, fontWeight: 800, marginBottom: 10 }}>Durée par séance</div>
+          <SmallTitle>DURÉE D’UNE SÉANCE</SmallTitle>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {['30','45','60','75','90'].map(d =>
-              <button key={d} onClick={() => setDuration(d)} style={{ padding: '11px 16px', borderRadius: 12, border: `1px solid ${duration === d ? DARK : BORDER}`, background: duration === d ? DARK : SURFACE, color: duration === d ? ACCENT : DARK, fontWeight: 800 }}>{d} min</button>)}
+            {['30','45','60','75','90'].map(d => <Pill key={d} selected={duration === d} onClick={() => setDuration(d)}>{d} min</Pill>)}
           </div>
-        </div>}
+        </Screen>}
 
-        {step === 5 && <div>
-          {stepLabel('Profil')}<div style={title}>Ton profil physique</div>
-          <div style={sub}>Ces données sont nécessaires au calcul. NOX ne crée plus de cible calorique si elles sont incomplètes.</div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-            {(['homme','femme'] as const).map(s =>
-              <button key={s} onClick={() => setSex(s)} style={{ ...card(sex === s), textAlign: 'center', marginBottom: 0, textTransform: 'capitalize' }}><b>{s}</b></button>)}
-          </div>
-          <Field label="Poids actuel (kg)" value={weight} setValue={setWeight} type="number" placeholder="80" />
-          <Field label="Taille (cm)" value={height} setValue={setHeight} type="number" placeholder="178" />
-          <Field label="Date de naissance" value={dob} setValue={setDob} type="date" />
-          {dob && age > 0 && age < 18 && <div style={{ padding: 12, borderRadius: 12, background: '#FFF4E8', color: '#8A5A20', fontSize: 12 }}>Le calcul automatique NOX est actuellement réservé aux adultes.</div>}
-        </div>}
+        {step === 6 && <Screen eyebrow="06 · OBJECTIF" title={<>Qu’est-ce que tu<br />veux changer ?</>} subtitle="Choisis ta priorité. Tu décriras précisément ton physique idéal dans NOX Future.">
+          {GOALS.map(([id, label, desc]) => <Choice key={id} selected={goal === id} onClick={() => setGoal(id)}><b>{label}</b><span>{desc}</span></Choice>)}
+        </Screen>}
 
-        {step === 6 && <div>
-          {stepLabel('Activité')}<div style={title}>Ton activité au quotidien</div>
-          <div style={sub}>Choisis ton activité habituelle en dehors des séances planifiées.</div>
-          {ACTIVITIES.map(([id, label, desc]) =>
-            <button key={id} onClick={() => setActivity(id)} style={card(activity === id)}>
-              <b style={{ fontSize: 15, color: DARK }}>{label}</b>
-              <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>{desc}</div>
-            </button>)}
-        </div>}
-
-        {step === 7 && <div>
-          {stepLabel('Nutrition')}<div style={title}>Tes préférences alimentaires</div>
-          <div style={sub}>Elles personnalisent les suggestions de repas, pas le calcul calorique.</div>
+        {step === 7 && <Screen eyebrow="07 · NUTRITION" title={<>Mange comme<br />tu aimes manger.</>} subtitle="NOX utilisera ces préférences pour personnaliser tes futures suggestions alimentaires.">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {DIETS.map(id => {
-              const selected = dietPrefs.includes(id);
-              return <button key={id} onClick={() => setDietPrefs(p => id === 'omnivore' ? (selected ? [] : ['omnivore']) : selected ? p.filter(x => x !== id) : [...p.filter(x => x !== 'omnivore'), id])}
-                style={{ ...card(selected), textAlign: 'center', marginBottom: 0 }}><b>{DIET_LABELS[id]}</b></button>;
-            })}
+            {DIETS.map(([id, label]) => <Choice key={id} selected={dietPrefs.includes(id)} onClick={() => toggleDiet(id)} centered>{label}</Choice>)}
           </div>
-        </div>}
+        </Screen>}
 
-        {step === 8 && <div>
-          {stepLabel('Résumé')}<div style={title}>Ton profil NOX est prêt</div>
-          <div style={sub}>Vérifie les informations avant de construire ton plan.</div>
-          <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: 18, marginBottom: 14 }}>
-            <Row label="Objectif" value={GOALS.find(g => g[0] === goal)?.[1] || goal} />
-            <Row label="Niveau" value={LEVELS.find(l => l[0] === level)?.[1] || level} />
-            <Row label="Séances" value={`${days.length} / semaine`} />
-            <Row label="Poids" value={`${weight} kg`} />
-            <Row label="Taille" value={`${height} cm`} />
-            <Row label="Âge" value={`${age} ans`} last />
+        {step === 8 && <Screen eyebrow="08 · TES HABITUDES" title={<>La nutrition doit<br />s’adapter à toi.</>} subtitle="Renseigne uniquement ce qui compte pour toi. Tu peux laisser un champ vide.">
+          <Field label="ALLERGIES / INTOLÉRANCES" value={allergies} setValue={setAllergies} placeholder="Ex. arachides, lactose..." />
+          <Field label="ALIMENTS QUE TU AIMES" value={foodLikes} setValue={setFoodLikes} placeholder="Ex. poulet, riz, saumon..." />
+          <Field label="ALIMENTS QUE TU N’AIMES PAS" value={foodDislikes} setValue={setFoodDislikes} placeholder="Ex. brocoli, champignons..." />
+          <SmallTitle>NOMBRE DE REPAS</SmallTitle>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>{['2','3','4','5'].map(n => <Pill key={n} selected={mealsPerDay === n} onClick={() => setMealsPerDay(n)}>{n}</Pill>)}</div>
+          <SmallTitle>TEMPS POUR CUISINER</SmallTitle>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{['10','20','30','45','60'].map(n => <Pill key={n} selected={cookingTime === n} onClick={() => setCookingTime(n)}>{n} min</Pill>)}</div>
+        </Screen>}
+
+        {step === 9 && <Screen eyebrow="09 · PRÊT" title={<>Maintenant,<br />visualise ton objectif.</>} subtitle="Ton profil est prêt. La prochaine étape est NOX Future : ta photo actuelle, ton objectif visuel, puis ta projection IA.">
+          <div style={{ background: BLACK, color: WHITE, borderRadius: 28, padding: 22, boxShadow: '0 18px 45px rgba(0,0,0,.10)' }}>
+            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.12em', color: '#888', marginBottom: 16 }}>TON PROFIL NOX</div>
+            <SummaryRow label="Objectif" value={GOALS.find(g => g[0] === goal)?.[1] || goal} />
+            <SummaryRow label="Niveau" value={LEVELS.find(l => l[0] === level)?.[1] || level} />
+            <SummaryRow label="Entraînement" value={`${days.length}× / semaine`} />
+            <SummaryRow label="Séance" value={`${duration} min`} />
+            <SummaryRow label="Nutrition" value={`${dietPrefs.length} préférence${dietPrefs.length > 1 ? 's' : ''}`} last />
           </div>
-          {preview && <div style={{ background: '#F2FFD0', border: '1px solid #D7F58A', borderRadius: 18, padding: 18 }}>
-            <div style={{ fontSize: 11, color: '#687600', fontWeight: 900, textTransform: 'uppercase' }}>Cible initiale estimée</div>
-            <div style={{ fontSize: 32, fontWeight: 950, margin: '6px 0 10px' }}>{preview.calories} kcal</div>
-            <div style={{ fontSize: 12, color: MUTED }}>{preview.protein} g protéines · {preview.carbs} g glucides · {preview.fat} g lipides</div>
+          {preview && <div style={{ marginTop: 12, background: '#F0FFD0', border: '1px solid #D9F48E', borderRadius: 22, padding: 18 }}>
+            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.1em', color: '#687600' }}>BASE NUTRITIONNELLE ESTIMÉE</div>
+            <div style={{ marginTop: 6, fontSize: 26, fontWeight: 950 }}>{preview.calories} kcal</div>
+            <div style={{ marginTop: 5, color: MUTED, fontSize: 12 }}>{preview.protein} g protéines · {preview.carbs} g glucides · {preview.fat} g lipides</div>
           </div>}
-          <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5, marginTop: 12 }}>Estimation de départ basée sur le profil. Elle pourra être ajustée selon l'évolution réelle.</div>
-        </div>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 18, color: MUTED, fontSize: 12, lineHeight: 1.5 }}>
+            <div style={{ width: 26, height: 26, borderRadius: 9, background: ACCENT, display: 'grid', placeItems: 'center', color: BLACK }}><Check size={14} strokeWidth={3} /></div>
+            Après NOX Future, ton objectif servira à construire ton programme personnalisé.
+          </div>
+        </Screen>}
       </main>
 
-      <footer style={{ padding: '16px 20px', paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
-        {error && <div style={{ background: '#FFF0F0', border: '1px solid #F0C4C4', color: '#A52A2A', borderRadius: 12, padding: 11, fontSize: 12, marginBottom: 10 }}>{error}</div>}
+      <footer style={{ width: '100%', maxWidth: 560, margin: '0 auto', boxSizing: 'border-box', padding: '12px 20px max(24px, env(safe-area-inset-bottom))' }}>
+        {error && <div style={{ marginBottom: 10, padding: '12px 14px', borderRadius: 14, background: '#FFF1F0', border: '1px solid #FFD1CD', color: '#B42318', fontSize: 12 }}>{error}</div>}
         {step < TOTAL
-          ? <button onClick={() => canNext && next()} disabled={!canNext} style={footerButton(canNext)}>CONTINUER</button>
-          : <button onClick={finish} disabled={saving || !preview} style={footerButton(!saving && !!preview)}>{saving ? 'ENREGISTREMENT...' : 'CONSTRUIRE MON PLAN NOX'}</button>}
+          ? <button onClick={next} disabled={!canNext} style={primaryButton(canNext)}><span>CONTINUER</span><ChevronRight size={19} /></button>
+          : <button onClick={finish} disabled={saving || !preview} style={primaryButton(!saving && !!preview)}><span>{saving ? 'PRÉPARATION...' : 'CRÉER MON NOX FUTURE'}</span>{!saving && <ChevronRight size={19} />}</button>}
       </footer>
     </div>
   );
 }
 
-function footerButton(enabled: boolean): React.CSSProperties {
-  return {
-    width: '100%', padding: 18, border: 'none', borderRadius: 16,
-    background: enabled ? ACCENT : '#E4E6DF', color: enabled ? DARK : '#A5AAA1',
-    fontWeight: 950, fontSize: 16, cursor: enabled ? 'pointer' : 'not-allowed',
-  };
+function Screen({ eyebrow, title, subtitle, children }: { eyebrow: string; title: React.ReactNode; subtitle: string; children: React.ReactNode }) {
+  return <section>
+    <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.13em', color: '#9BA096', marginBottom: 11 }}>{eyebrow}</div>
+    <h1 style={{ margin: 0, color: BLACK, fontSize: 'clamp(34px, 9vw, 46px)', lineHeight: .96, letterSpacing: '-.06em', fontWeight: 950 }}>{title}</h1>
+    <p style={{ margin: '16px 0 28px', maxWidth: 440, color: MUTED, fontSize: 14, lineHeight: 1.6 }}>{subtitle}</p>
+    {children}
+  </section>;
 }
 
-function Field({ label, value, setValue, type, placeholder }: {
-  label: string; value: string; setValue: (v: string) => void; type: string; placeholder?: string;
-}) {
-  return <div style={{ marginBottom: 18 }}>
-    <label style={{ display: 'block', fontSize: 12, color: MUTED, fontWeight: 800, marginBottom: 8 }}>{label}</label>
+function Choice({ selected, onClick, children, centered = false }: { selected: boolean; onClick: () => void; children: React.ReactNode; centered?: boolean }) {
+  return <button onClick={onClick} style={{ width: '100%', minHeight: 64, marginBottom: 10, padding: '14px 16px', boxSizing: 'border-box', borderRadius: 18, border: `1.5px solid ${selected ? BLACK : BORDER}`, background: selected ? BLACK : WHITE, color: selected ? WHITE : BLACK, textAlign: centered ? 'center' : 'left', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, fontSize: 13, fontWeight: 850 }}>
+    {children}
+  </button>;
+}
+
+function Field({ label, value, setValue, type = 'text', placeholder }: { label: string; value: string; setValue: (v: string) => void; type?: string; placeholder?: string }) {
+  return <div style={{ marginBottom: 17 }}>
+    <label style={{ display: 'block', margin: '0 0 8px 2px', fontSize: 10, fontWeight: 900, letterSpacing: '.09em', color: MUTED }}>{label}</label>
     <input value={value} onChange={e => setValue(e.target.value)} type={type} placeholder={placeholder}
-      style={{ width: '100%', padding: 16, boxSizing: 'border-box', background: SURFACE, border: `1.5px solid ${value ? '#BBD968' : BORDER}`, borderRadius: 14, color: DARK, fontSize: type === 'date' ? 17 : 24, fontWeight: 850, outline: 'none' }} />
+      style={{ width: '100%', height: 58, padding: '0 16px', boxSizing: 'border-box', borderRadius: 17, border: `1.5px solid ${BORDER}`, background: WHITE, color: BLACK, outline: 'none', fontSize: 15, fontWeight: 750 }} />
   </div>;
 }
 
-function Row({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
-  return <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '10px 0', borderBottom: last ? 'none' : `1px solid ${BORDER}` }}>
-    <span style={{ color: MUTED, fontSize: 13 }}>{label}</span>
-    <b style={{ color: DARK, fontSize: 13, textAlign: 'right' }}>{value}</b>
+function SmallTitle({ children }: { children: React.ReactNode }) {
+  return <div style={{ margin: '22px 2px 10px', color: MUTED, fontSize: 10, fontWeight: 900, letterSpacing: '.1em' }}>{children}</div>;
+}
+
+function Pill({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
+  return <button onClick={onClick} style={{ minWidth: 58, padding: '12px 15px', borderRadius: 13, border: `1px solid ${selected ? BLACK : BORDER}`, background: selected ? BLACK : WHITE, color: selected ? ACCENT : BLACK, fontWeight: 900 }}>{children}</button>;
+}
+
+function Info({ children }: { children: React.ReactNode }) {
+  return <div style={{ padding: '13px 14px', borderRadius: 15, background: '#F0FFD0', border: '1px solid #DDF59C', color: '#596700', fontSize: 11, lineHeight: 1.5, fontWeight: 650 }}>{children}</div>;
+}
+
+function SummaryRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
+  return <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: last ? 'none' : '1px solid #242424' }}>
+    <span style={{ color: '#858585', fontSize: 12 }}>{label}</span><strong style={{ color: WHITE, fontSize: 12, textAlign: 'right' }}>{value}</strong>
   </div>;
+}
+
+function primaryButton(enabled: boolean): React.CSSProperties {
+  return {
+    width: '100%', minHeight: 60, padding: '0 18px', border: 0, borderRadius: 18,
+    background: enabled ? ACCENT : '#E1E4DD', color: enabled ? BLACK : '#A4A8A0',
+    fontSize: 13, fontWeight: 950, letterSpacing: '.035em', display: 'flex',
+    alignItems: 'center', justifyContent: 'space-between', cursor: enabled ? 'pointer' : 'not-allowed',
+  };
 }
