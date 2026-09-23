@@ -612,6 +612,20 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       }
       }
 
+
+      /* BUDGET — BAROMÈTRE */
+      .budgetMeterCard{margin-top:24px;background:#fff;border:1px solid #E0E3DD;border-radius:24px;padding:22px 20px}
+      .budgetMeterTop{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+      .budgetMeterValue{font-size:44px;line-height:1;font-weight:950;letter-spacing:-.055em;margin-top:10px}
+      .budgetMeterPeople{background:#F2F4EF;border-radius:999px;padding:8px 11px;font-size:10px;font-weight:850;white-space:nowrap}
+      .budgetRange{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:99px;outline:none;margin:30px 0 12px;background:linear-gradient(90deg,#9ADE18 0%,#9ADE18 var(--budget-fill),#E6E9E3 var(--budget-fill),#E6E9E3 100%)}
+      .budgetRange::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:30px;height:30px;border-radius:50%;background:#0D0F0E;border:6px solid #C8FF00;box-shadow:0 4px 12px rgba(0,0,0,.18);cursor:pointer}
+      .budgetRange::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#0D0F0E;border:6px solid #C8FF00;box-shadow:0 4px 12px rgba(0,0,0,.18);cursor:pointer}
+      .budgetScale{display:flex;justify-content:space-between;color:#8A908B;font-size:9px;font-weight:800}
+      .budgetMeterHint{margin-top:22px;background:#F6F8F2;border-radius:16px;padding:14px 15px;display:grid;gap:4px}
+      .budgetMeterHint b{font-size:12px}
+      .budgetMeterHint span{font-size:10px;color:#747A75;line-height:1.45}
+
     `}</style>
 
     <header className="head"><div className="headin"><div className="top">
@@ -682,10 +696,42 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       </>}
 
       {step==='budget'&&<>
-        <div className="eyebrow">ÉTAPE 3</div><h1>Ton budget maximum</h1><p className="lead">Indique l’enveloppe à ne pas dépasser. NOX cherchera la liste la plus cohérente avec ce montant.</p>
-        <div className="card"><div className="label">BUDGET POUR {days} JOURS</div><div className="money"><input type="text" inputMode="decimal" autoComplete="off" value={budget} onChange={e=>setBudget(e.currentTarget.value.replace(/[^0-9,.]/g,''))} onInput={e=>setBudget((e.currentTarget as HTMLInputElement).value.replace(/[^0-9,.]/g,''))} placeholder="50"/><span>€</span></div><div className="budgetHints">{[20,40,60,80].map(v=><button type="button" key={v} className={budgetNumber===v?'on':''} onClick={()=>setBudget(String(v))}>{v} €</button>)}</div></div>
-        <p className="lead" style={{fontSize:11}}>Les prix affichés sont des estimations NOXAI utilisées pour construire une liste cohérente sans dépasser ton budget.</p>
-        <Footer next={()=>setStep('prefs')} label="CONTINUER" disabled={!canContinueSetup}/>
+        <div className="eyebrow">ÉTAPE 3 / 5</div>
+        <h1>Ton budget maximum</h1>
+        <p className="lead">Déplace le curseur pour choisir l’enveloppe à ne pas dépasser.</p>
+
+        <div className="budgetMeterCard">
+          <div className="budgetMeterTop">
+            <div>
+              <div className="label">BUDGET POUR {days} JOURS</div>
+              <div className="budgetMeterValue">{Math.round(Number.isFinite(budgetNumber)&&budgetNumber>0?budgetNumber:40)} €</div>
+            </div>
+            <div className="budgetMeterPeople">{people} pers.</div>
+          </div>
+
+          <input
+            className="budgetRange"
+            type="range"
+            min="20"
+            max="150"
+            step="5"
+            value={Number.isFinite(budgetNumber)&&budgetNumber>0?Math.min(150,Math.max(20,budgetNumber)):40}
+            onChange={e=>setBudget(e.currentTarget.value)}
+            style={{'--budget-fill':`${(((Number.isFinite(budgetNumber)&&budgetNumber>0?Math.min(150,Math.max(20,budgetNumber)):40)-20)/130)*100}%`} as React.CSSProperties}
+          />
+
+          <div className="budgetScale">
+            <span>20 €</span><span>50 €</span><span>100 €</span><span>150 €</span>
+          </div>
+
+          <div className="budgetMeterHint">
+            <b>{budgetNumber<35?'Budget serré':budgetNumber<70?'Budget équilibré':budgetNumber<110?'Budget confortable':'Budget large'}</b>
+            <span>NOX adaptera les quantités et les choix à ce maximum.</span>
+          </div>
+        </div>
+
+        <p className="lead" style={{fontSize:11}}>Les montants servent uniquement à construire une estimation NOXAI cohérente. Ce ne sont pas des prix magasin.</p>
+        <Footer next={()=>setStep('prefs')} label="CONTINUER →" disabled={!canContinueSetup}/>
       </>}
 
       {step==='prefs'&&<>
