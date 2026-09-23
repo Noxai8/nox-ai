@@ -167,40 +167,58 @@ export default function Onboarding() {
         `cooking_time_min:${cookingTime}`,
       ].filter(Boolean);
 
-      const { error: metadataError } = await supabase.auth.updateUser({
-        data: { first_name: firstName.trim(), last_name: lastName.trim(), name: firstName.trim() },
-      });
-      if (metadataError) throw metadataError;
+      try {
+        const { error: metadataError } = await supabase.auth.updateUser({
+          data: { first_name: firstName.trim(), last_name: lastName.trim(), name: firstName.trim() },
+        });
+        if (metadataError) console.warn('Onboarding NOX — métadonnées Auth non mises à jour :', metadataError);
+      } catch (metadataRequestError) {
+        console.warn('Onboarding NOX — requête Auth indisponible :', metadataRequestError);
+      }
 
-      const { error: profileError } = await supabase.from('profiles').update({
-        goal_type: goal,
-        experience_level: level,
-        training_location: location,
-        available_days: days,
-        session_length_min: Number(duration),
-        starting_weight_kg: Number(weight),
-        height_cm: Number(height),
-        date_of_birth: dob,
-        sex,
-        diet_preferences: nutritionContext,
-        activity_level: activity,
-        onboarding_completed: false,
-        updated_at: new Date().toISOString(),
-      }).eq('id', user.id);
-      if (profileError) throw profileError;
+      try {
+        const { error: profileError } = await supabase.from('profiles').update({
+          goal_type: goal,
+          experience_level: level,
+          training_location: location,
+          available_days: days,
+          session_length_min: Number(duration),
+          starting_weight_kg: Number(weight),
+          height_cm: Number(height),
+          date_of_birth: dob,
+          sex,
+          diet_preferences: nutritionContext,
+          activity_level: activity,
+          onboarding_completed: false,
+          updated_at: new Date().toISOString(),
+        }).eq('id', user.id);
 
-      const { error: targetError } = await supabase.from('nutrition_targets').upsert({
-        user_id: user.id,
-        calories: preview.calories,
-        protein_g: preview.protein,
-        carbs_g: preview.carbs,
-        fat_g: preview.fat,
-        carbs: preview.carbs,
-        fat: preview.fat,
-        start_date: new Date().toISOString().slice(0, 10),
-        is_active: true,
-      }, { onConflict: 'user_id' });
-      if (targetError) throw targetError;
+        if (profileError) throw new Error(`Profil NOX : ${profileError.message}`);
+      } catch (profileRequestError: any) {
+        throw new Error(
+          profileRequestError?.message?.startsWith('Profil NOX :')
+            ? profileRequestError.message
+            : `Profil NOX : ${profileRequestError?.message || 'connexion impossible'}`
+        );
+      }
+
+      try {
+        const { error: targetError } = await supabase.from('nutrition_targets').upsert({
+          user_id: user.id,
+          calories: preview.calories,
+          protein_g: preview.protein,
+          carbs_g: preview.carbs,
+          fat_g: preview.fat,
+          carbs: preview.carbs,
+          fat: preview.fat,
+          start_date: new Date().toISOString().slice(0, 10),
+          is_active: true,
+        }, { onConflict: 'user_id' });
+
+        if (targetError) console.warn('Onboarding NOX — cible nutritionnelle non sauvegardée :', targetError);
+      } catch (targetRequestError) {
+        console.warn('Onboarding NOX — requête nutrition indisponible :', targetRequestError);
+      }
 
       navigate('/future', { state: { onboarding: true } });
     } catch (e: any) {
