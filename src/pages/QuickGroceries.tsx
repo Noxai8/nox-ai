@@ -484,15 +484,51 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       </>}
 
       {step==='mode'&&<>
-        <div className="eyebrow">ÉTAPE 1</div><h1>On part de quoi ?</h1>
-        <p className="lead">Dis à NOX si tu pars de zéro ou si tu veux simplement compléter ce que tu as déjà.</p>
-        <div className="choiceGrid">
-          <button className={`choice ${mode==='empty'?'on':''}`} onClick={()=>setMode('empty')}><span className="choiceIcon">○</span>{mode==='empty'&&<i className="tick">✓</i>}<b>Frigo vide</b><span>Créer toutes les courses nécessaires pour les prochains jours.</span></button>
-          <button className={`choice ${mode==='complete'?'on':''}`} onClick={()=>setMode('complete')}><span className="choiceIcon">＋</span>{mode==='complete'&&<i className="tick">✓</i>}<b>Compléter mon frigo</b><span>Tenir compte de ce que tu as déjà et acheter uniquement ce qui manque.</span></button>
+        <div className="modeProgress">
+          <div className="modeProgressTop"><b>ÉTAPE 1 / 5</b><span>On part de quoi ?</span></div>
+          <div className="modeTrack"><span/></div>
         </div>
-        {mode==='complete'&&<div className="card" style={{marginTop:12}}><div className="label">CE QUE TU AS DÉJÀ</div><textarea className="input" value={fridgeText} onChange={e=>setFridgeText(e.target.value)} placeholder="Ex. 6 œufs, riz, tomates, yaourts…"/></div>}
-        <div className="profileBox" style={{marginTop:13}}><small>Profil NOX utilisé automatiquement</small><div style={{marginTop:7}}><b>{goal}</b> · {diet}</div></div>
-        <Footer next={()=>setStep('setup')} label="CONTINUER"/>
+
+        <div className="modeIntro">
+          <h1>On part de quoi ?</h1>
+          <p>Dis à NOX si tu pars de zéro ou si tu veux simplement compléter ce que tu as déjà.</p>
+        </div>
+
+        <div className="modeChoices">
+          <button className={`modeCard ${mode==='empty'?'on':''}`} onClick={()=>setMode('empty')}>
+            <span className="modeVisual emptyFridge"/>
+            <span className="modeCopy">
+              <strong>Je pars de zéro</strong>
+              <span className="modeSub">Frigo vide</span>
+              <p>Créer toutes les courses nécessaires pour les prochains jours.</p>
+              <span className="modeBenefit">✦ Idéal pour repartir sur de bonnes bases</span>
+            </span>
+            <span className="modeSelect">{mode==='empty'?'✓':''}</span>
+          </button>
+
+          <button className={`modeCard ${mode==='complete'?'on':''}`} onClick={()=>setMode('complete')}>
+            <span className="modeVisual stocked"><span className="modeFood">🥬🍅🥛</span></span>
+            <span className="modeCopy">
+              <strong>J’ai déjà des aliments</strong>
+              <span className="modeSub">Compléter mon frigo</span>
+              <p>Tenir compte de ce que tu as déjà et acheter uniquement ce qui manque.</p>
+              <span className="modeBenefit">◇ Moins de gaspillage, plus d’économies</span>
+            </span>
+            <span className="modeSelect">{mode==='complete'?'✓':''}</span>
+          </button>
+        </div>
+
+        {mode==='complete'&&<div className="fridgeEntry">
+          <div className="label">CE QUE TU AS DÉJÀ</div>
+          <textarea className="input" value={fridgeText} onChange={e=>setFridgeText(e.target.value)} placeholder="Ex. 6 œufs, riz, tomates, yaourts…"/>
+        </div>}
+
+        <div className="profileHint">
+          <span className="profileHintIcon">○</span>
+          <span>Adapté automatiquement à ton profil NOX · <b>{goal}</b>{diet!=='Non renseigné'?` · ${diet}`:''}</span>
+        </div>
+
+        <div className="modeFooter"><Footer next={()=>setStep('setup')} label="CONTINUER  →"/></div>
       </>}
 
       {step==='setup'&&<>
