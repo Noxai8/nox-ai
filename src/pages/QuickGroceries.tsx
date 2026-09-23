@@ -21,6 +21,7 @@ type Recipe = {
   calories:number; protein:number; carbs:number; fat:number;
   ingredients:{name:string; qty:string}[]; steps:string[];
   tip?:string; variation?:string; imageUrl?:string;
+  category:'Petit-déjeuner'|'Plat'|'Dessert & collation';
 };
 
 const ALLERGIES = ['Arachides','Fruits à coque','Lait','Œufs','Gluten','Soja','Poisson','Crustacés','Sésame','Moutarde'];
@@ -108,6 +109,7 @@ export default function QuickGroceries(){
   const [selectedRecipe,setSelectedRecipe] = useState<Recipe|null>(null);
   const [recipesLoading,setRecipesLoading] = useState(false);
   const [recipesError,setRecipesError] = useState('');
+  const [activeRecipeCategory,setActiveRecipeCategory] = useState<'Petit-déjeuner'|'Plat'|'Dessert & collation'>('Petit-déjeuner');
 
   useEffect(()=>{
     if(!user) return;
@@ -177,9 +179,22 @@ export default function QuickGroceries(){
     setRecipesLoading(true); setRecipesError('');
     try{
       const groceryText=list.map(x=>`${x.name} (${x.qty})`).join(', ');
+      const fridgeContext=mode==='complete'?(fridgeText.trim()||'aucun aliment renseigné'):'frigo vide';
+
       const prompt=`Tu es le chef nutrition NOXAI.
-Crée EXACTEMENT 5 recettes simples, gourmandes, équilibrées et réalistes en utilisant EN PRIORITÉ cette liste de courses:
+Crée un MINI LIVRET DE 15 IDÉES DE RECETTES personnalisées:
+- exactement 5 "Petit-déjeuner"
+- exactement 5 "Plat"
+- exactement 5 "Dessert & collation"
+
+BASE ALIMENTAIRE
+COURSES DISPONIBLES:
 ${groceryText}
+
+CONTENU DU FRIGO DÉCLARÉ PAR L'UTILISATEUR:
+${fridgeContext}
+
+Utilise EN PRIORITÉ les courses ET les aliments du frigo. Ne prétends jamais qu'un aliment est disponible s'il n'apparaît ni dans les courses ni dans le frigo. Tu peux seulement ajouter sel, poivre, eau et épices basiques.
 
 PROFIL UTILISATEUR
 - Objectif: ${goal}
@@ -187,53 +202,71 @@ PROFIL UTILISATEUR
 - Nombre de personnes: ${people}
 - Allergies/intolérances à exclure ABSOLUMENT: ${allAllergies.join(', ')||'aucune'}
 - Aliments refusés: ${dislikes||'aucun'}
+- Aliments appréciés: ${likes||'non renseigné'}
 - Cible quotidienne: ${target.calories||'non renseignée'} kcal
 - Protéines quotidiennes: ${target.protein_g||'non renseigné'} g
 - Glucides quotidiens: ${target.carbs_g||'non renseigné'} g
 - Lipides quotidiens: ${target.fat_g||'non renseigné'} g
 
-OBJECTIF NUTRITIONNEL
-Chaque recette représente UN REPAS PRINCIPAL PAR PERSONNE.
-Les calories et macros retournées doivent toujours être PAR PORTION, jamais pour toute la recette.
-Adapte réellement les recettes à l'objectif indiqué:
-- perte de poids / sèche: privilégier protéines, légumes, satiété, fibres et densité calorique maîtrisée;
-- maintien / équilibre: repas complets et équilibrés en protéines, glucides, légumes/fibres et bonnes sources de lipides;
-- prise de masse / muscle: portions plus énergétiques, suffisamment de protéines et de glucides, sans transformer le repas en malbouffe.
-Quand les cibles quotidiennes sont disponibles, construis chaque repas principal de façon cohérente avec celles-ci. Ne cherche PAS à mettre toute la cible quotidienne dans un seul repas.
-Évite les calories inutiles et les quantités incohérentes avec l'objectif.
-Privilégie des aliments peu transformés et une vraie source de protéines, des légumes/fruits ou fibres, et une source de glucides adaptée lorsque pertinent.
-Ne présente jamais une recette comme "saine" uniquement parce qu'elle est faible en calories: elle doit aussi être nutritionnellement cohérente et rassasiante.
+SÉCURITÉ ET RÉGIME
+Respecte STRICTEMENT le régime alimentaire, les allergies/intolérances et les aliments refusés.
+Si le profil est vegan, aucun ingrédient animal.
+Si le profil est végétarien, aucune viande ni poisson.
+Si le profil est halal, aucun porc et aucun ingrédient explicitement non halal.
+Si le profil est sans gluten ou sans lactose, exclure les ingrédients incompatibles.
+En cas de doute sur un ingrédient potentiellement allergène ou incompatible, NE L'UTILISE PAS.
 
-RÈGLES DE CUISINE
-- utilise surtout les ingrédients déjà achetés;
-- n'ajoute que sel, poivre, eau et épices basiques si nécessaire;
-- respecte strictement alimentation, allergies et refus;
-- recettes faciles, réalistes et faisables en 10 à 35 minutes;
-- varie les 5 recettes autant que possible;
-- les quantités d'ingrédients doivent correspondre à ${people} personne(s);
-- calories, protéines, glucides et lipides doivent être des estimations réalistes PAR PORTION;
-- vérifie mentalement la cohérence entre les quantités indiquées et les macros annoncées;
+OBJECTIF NUTRITIONNEL
+Toutes les calories et macros sont PAR PORTION.
+Adapte chaque catégorie à l'objectif et aux cibles quotidiennes:
+- Petit-déjeuner: rassasiant et cohérent avec la journée, avec protéines/fibres quand possible.
+- Plat: repas principal équilibré, avec protéines, fibres/légumes et glucides/lipides adaptés à l'objectif.
+- Dessert & collation: portion raisonnable et cohérente avec l'objectif; pas de dessert hypercalorique gratuit.
+Pour perte de gras/sèche: satiété, protéines, fibres et densité calorique maîtrisée.
+Pour maintien/recomposition: équilibre global et protéines suffisantes.
+Pour prise de muscle/force/performance: protéines suffisantes et énergie/glucides adaptés.
+Ne mets jamais toute la cible calorique quotidienne dans une seule recette.
+
+RÈGLES
+- exactement 15 recettes au total;
+- exactement 5 recettes par catégorie;
+- catégories autorisées UNIQUEMENT: "Petit-déjeuner", "Plat", "Dessert & collation";
+- recettes différentes et réalistes;
+- 5 à 35 minutes;
+- quantités d'ingrédients pour ${people} personne(s);
+- macros estimées réalistes PAR PORTION;
 - aucune image, aucune URL;
-- retourne UNIQUEMENT un tableau JSON valide, sans markdown ni commentaire.
+- retourne UNIQUEMENT un tableau JSON valide, sans markdown.
 
 Format exact:
-[{"title":"...","description":"...","minutes":20,"difficulty":"Facile","calories":650,"protein":42,"carbs":68,"fat":18,"ingredients":[{"name":"Poulet","qty":"240 g"}],"steps":["...","..."],"tip":"...","variation":"..."}]`;
+[{"category":"Petit-déjeuner","title":"...","description":"...","minutes":10,"difficulty":"Facile","calories":400,"protein":25,"carbs":45,"fat":12,"ingredients":[{"name":"...","qty":"..."}],"steps":["..."],"tip":"...","variation":"..."}]`;
 
       const {data,error:invokeError}=await supabase.functions.invoke('generate-recipes',{body:{prompt}});
-      if(invokeError)throw new Error(invokeError.message||'Génération des recettes impossible');
+      if(invokeError)throw new Error(invokeError.message||'Génération du livret impossible');
+
       const direct=Array.isArray(data)?data:(Array.isArray(data?.recipes)?data.recipes:null);
       let parsed:any[]=direct||[];
       if(!parsed.length){
         const raw=data?.content?.[0]?.text||data?.data?.content?.[0]?.text||data?.text||data?.result||'';
         const cleaned=String(raw).replace(/```json/gi,'').replace(/```/g,'').trim();
         const a=cleaned.indexOf('['),b=cleaned.lastIndexOf(']');
-        if(a<0||b<=a)throw new Error('Réponse recettes invalide');
+        if(a<0||b<=a)throw new Error('Réponse livret invalide');
         parsed=JSON.parse(cleaned.slice(a,b+1));
       }
-      const next:Recipe[]=parsed.slice(0,5).map((r:any,i:number)=>({
+
+      const allowed=['Petit-déjeuner','Plat','Dessert & collation'] as const;
+      const normalizeCategory=(value:any):Recipe['category']=>{
+        const v=norm(String(value||''));
+        if(v.includes('petit'))return 'Petit-déjeuner';
+        if(v.includes('dessert')||v.includes('collation'))return 'Dessert & collation';
+        return 'Plat';
+      };
+
+      const mapped:Recipe[]=parsed.map((r:any,i:number)=>({
         id:`recipe-${Date.now()}-${i}`,
+        category:normalizeCategory(r.category),
         title:String(r.title||`Recette ${i+1}`),
-        description:String(r.description||'Une recette simple avec tes courses.'),
+        description:String(r.description||'Une idée NOXAI avec tes ingrédients.'),
         minutes:Number(r.minutes)||20,
         difficulty:String(r.difficulty||'Facile'),
         calories:Number(r.calories)||0,
@@ -242,24 +275,32 @@ Format exact:
         fat:Number(r.fat)||0,
         ingredients:Array.isArray(r.ingredients)?r.ingredients.map((x:any)=>({name:String(x.name||''),qty:String(x.qty||'')})).filter((x:any)=>x.name):[],
         steps:Array.isArray(r.steps)?r.steps.map((x:any)=>String(x)).filter(Boolean):[],
-        tip:r.tip?String(r.tip):'Prépare les ingrédients avant de commencer pour cuisiner plus vite.',
-        variation:r.variation?String(r.variation):'Adapte les quantités selon ta faim et ton objectif.'
+        tip:r.tip?String(r.tip):'Prépare les ingrédients avant de commencer.',
+        variation:r.variation?String(r.variation):'Adapte les quantités à ton objectif.'
       }));
-      if(!next.length)throw new Error('Aucune recette générée');
 
-      // On attend que TOUTES les images soient prêtes avant d'afficher
-      // les recettes. Ainsi aucune carte ne sort sans sa photo.
+      const next:Recipe[]=allowed.flatMap(category=>mapped.filter(r=>r.category===category).slice(0,5));
+      if(allowed.some(category=>next.filter(r=>r.category===category).length<5)){
+        throw new Error('NOXAI n’a pas reçu 5 idées dans chaque catégorie. Réessaie.');
+      }
+
+      // Les recettes ne deviennent visibles qu'une fois leur image prête.
       const recipesWithImages=await Promise.all(
         next.map(async recipe=>{
           const imageUrl=await generateRecipeImage(recipe);
-          return {...recipe,imageUrl:imageUrl||undefined};
+          if(!imageUrl)throw new Error(`Image impossible pour "${recipe.title}". Réessaie.`);
+          return {...recipe,imageUrl};
         })
       );
 
       setRecipes(recipesWithImages);
+      setActiveRecipeCategory('Petit-déjeuner');
     }catch(e:any){
-      setRecipesError(e?.message||'Impossible de générer les recettes.');
-    }finally{setRecipesLoading(false);}
+      setRecipes([]);
+      setRecipesError(e?.message||'Impossible de générer le livret.');
+    }finally{
+      setRecipesLoading(false);
+    }
   };
 
   const generate=async()=>{
@@ -405,7 +446,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
 
       .budgetHero{background:#EAF7E5;border:1px solid #D5EAD0;border-radius:20px;padding:16px;margin-bottom:17px}.budgetHeroTop{display:flex;justify-content:space-between;align-items:end}.budgetHero strong{font-size:28px}.budgetHero small{font-size:9px;color:#687268}.budgetLine{height:7px;background:#D7E3D4;border-radius:99px;margin-top:11px;overflow:hidden}.budgetLine div{height:100%;background:#64B846;border-radius:99px}
       .actions{display:grid;gap:9px;margin:18px 0}.actionMain,.actionAlt{min-height:53px;border-radius:16px;font-weight:950;font-size:11px}.actionMain{border:0;background:#0E100F;color:#c8ff00}.actionAlt{border:1px solid #DDE1DA;background:#fff;color:#0E100F}
-      .recipeGrid{display:grid;gap:14px}.recipeCard{border:1px solid #E1E4DD;background:#fff;border-radius:22px;overflow:hidden;text-align:left;padding:0;box-shadow:0 8px 28px rgba(14,16,15,.035)}.recipeVisual{height:155px;background:radial-gradient(circle at 30% 30%,#55734A 0,#263824 36%,#111712 100%);position:relative;overflow:hidden}.recipeVisual.empty:before{content:'✦';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:52px;color:#c8ff00}.recipeVisual.empty:after{content:'IMAGE EN PRÉPARATION';position:absolute;bottom:12px;left:14px;color:#fff;font-size:8px;font-weight:900;letter-spacing:.12em;background:rgba(0,0,0,.38);padding:7px 9px;border-radius:999px}.recipeVisual img{width:100%;height:100%;display:block;object-fit:cover}.recipeBody{padding:15px}.recipeBody b{font-size:16px}.recipeBody p{font-size:10px;color:#777D78;line-height:1.45;margin:6px 0 11px}.recipeMeta{display:flex;gap:6px;flex-wrap:wrap}.recipeMeta span{background:#F3F5F0;border-radius:9px;padding:7px 9px;font-size:8px;font-weight:850}
+      .recipeBookTabs{display:flex;gap:7px;overflow-x:auto;margin:16px 0 18px;padding-bottom:3px}.recipeBookTabs button{white-space:nowrap;border:1px solid #DDE1DA;background:#fff;border-radius:999px;padding:10px 13px;font-size:9px;font-weight:900;color:#656B66}.recipeBookTabs button.on{background:#0E100F;color:#fff;border-color:#0E100F}.recipeGrid{display:grid;gap:14px}.recipeCard{border:1px solid #E1E4DD;background:#fff;border-radius:22px;overflow:hidden;text-align:left;padding:0;box-shadow:0 8px 28px rgba(14,16,15,.035)}.recipeVisual{height:155px;background:radial-gradient(circle at 30% 30%,#55734A 0,#263824 36%,#111712 100%);position:relative;overflow:hidden}.recipeVisual.empty:before{content:'✦';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:52px;color:#c8ff00}.recipeVisual.empty:after{content:'IMAGE EN PRÉPARATION';position:absolute;bottom:12px;left:14px;color:#fff;font-size:8px;font-weight:900;letter-spacing:.12em;background:rgba(0,0,0,.38);padding:7px 9px;border-radius:999px}.recipeVisual img{width:100%;height:100%;display:block;object-fit:cover}.recipeBody{padding:15px}.recipeBody b{font-size:16px}.recipeBody p{font-size:10px;color:#777D78;line-height:1.45;margin:6px 0 11px}.recipeMeta{display:flex;gap:6px;flex-wrap:wrap}.recipeMeta span{background:#F3F5F0;border-radius:9px;padding:7px 9px;font-size:8px;font-weight:850}
       .recipeDetail{margin:-6px 0 0}.dishPhoto{height:270px;border-radius:24px;background:radial-gradient(circle at 35% 28%,#5E7D50 0,#314A2B 35%,#151C16 72%);position:relative;overflow:hidden;box-shadow:0 14px 38px rgba(14,16,15,.10);display:grid;place-items:center}.dishPhoto.empty:before{content:'✦';font-size:76px;font-weight:950;color:#c8ff00}.dishPhoto.empty:after{content:'IMAGE EN PRÉPARATION';position:absolute;left:18px;top:18px;color:#fff;font-size:9px;font-weight:900;letter-spacing:.12em;background:rgba(0,0,0,.45);padding:8px 11px;border-radius:999px}.dishPhoto img{width:100%;height:100%;display:block;object-fit:cover}.dishBadges{position:absolute;left:14px;right:14px;bottom:14px;display:flex;gap:7px;z-index:2}.dishBadges span{background:rgba(20,20,20,.72);color:#fff;padding:8px 10px;border-radius:10px;font-size:8px;font-weight:850;backdrop-filter:blur(8px)}.recipeTag{display:inline-flex;background:#DFF4D9;color:#26752A;border-radius:999px;padding:7px 11px;font-size:9px;font-weight:950;margin:18px 0 9px}.recipeTitle{font-size:34px;line-height:1;letter-spacing:-.05em;margin:0 0 8px}.recipeDesc{font-size:14px;color:#707670;line-height:1.45;margin:0 0 17px}.macroGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:14px 0}.macro{background:#fff;border:1px solid #E3E6DF;border-radius:15px;padding:12px 5px;text-align:center}.macro b{display:block;font-size:13px}.macro small{font-size:7px;color:#858B85}.recipePanel{background:#fff;border:1px solid #E3E6DF;border-radius:20px;padding:17px;margin-top:12px}.sectionTitle{font-size:15px;font-weight:950;margin:0 0 10px}.ingredientRow{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #ECEEE8;font-size:10px}.ingredientRow:last-child{border-bottom:0}.ingredientName{display:flex;align-items:center;gap:9px}.ingredientDot{width:25px;height:25px;border-radius:8px;background:#F0F5EB;display:grid;place-items:center;font-size:11px}.steps{display:grid;gap:12px}.stepRow{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;font-size:10px;line-height:1.55}.stepNum{width:28px;height:28px;border-radius:50%;background:#D9F7D5;color:#1E6827;display:grid;place-items:center;font-weight:950}.tipBox{border-radius:18px;padding:15px;margin-top:11px;font-size:10px;line-height:1.5}.tipBox.green{background:#F0FAEF}.tipBox.warm{background:#FBF7EF}.tipBox b{display:block;font-size:11px;margin-bottom:4px}.recipeActions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:16px}.recipeActions button{min-height:54px;border-radius:16px;font-size:10px;font-weight:950}.recipeActions .black{border:0;background:#0E100F;color:#c8ff00}.recipeActions .white{border:1px solid #DDE1DA;background:#fff;color:#0E100F}
       .shopTop{margin-bottom:20px}.shopProgress{display:flex;justify-content:space-between;font-size:10px;font-weight:850;margin-bottom:8px}.doneScreen{min-height:72vh;display:flex;flex-direction:column;justify-content:center;text-align:center}.doneCheck{width:100px;height:100px;border-radius:50%;background:#DFFFAD;display:grid;place-items:center;margin:0 auto 22px;font-size:43px;font-weight:950}.doneScreen h1{font-size:30px}.doneScreen .actions{margin-top:24px}
     `}</style>
@@ -478,11 +519,26 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       </>}
 
       {step==='recipes'&&<>
-        <div className="eyebrow">AVEC TES COURSES</div><h1>5 idées à cuisiner</h1>
-        <p className="lead">Des recettes créées à partir de ta liste, de ton profil et de tes préférences.</p>
-        {recipesLoading&&<div className="gen" style={{minHeight:'45vh'}}><div className="genIcon">✦</div><h1>NOX imagine tes recettes…</h1><p className="lead">On transforme tes courses en repas simples et adaptés.</p></div>}
+        <div className="eyebrow">TON LIVRET NOXAI</div><h1>15 idées avec tes ingrédients</h1>
+        <p className="lead">5 petits-déjeuners, 5 plats et 5 desserts/collations adaptés à tes courses{mode==='complete'?' et à ton frigo':''}, ton objectif et ton profil.</p>
+
+        {recipesLoading&&<div className="gen" style={{minHeight:'45vh'}}><div className="genIcon">✦</div><h1>NOX prépare ton livret…</h1><p className="lead">Les recettes apparaîtront seulement quand leurs photos seront prêtes.</p></div>}
         {recipesError&&<div className="warning">{recipesError}<div className="actions"><button className="actionMain" onClick={()=>generateRecipes(items)}>RÉESSAYER</button></div></div>}
-        {!recipesLoading&&<div className="recipeGrid">{recipes.map(r=><button key={r.id} className="recipeCard" onClick={()=>{setSelectedRecipe(r);setStep('recipe')}}><div className={`recipeVisual ${r.imageUrl?'':'empty'}`}>{r.imageUrl&&<img src={r.imageUrl} alt={r.title}/>}</div><div className="recipeBody"><b>{r.title}</b><p>{r.description}</p><div className="recipeMeta"><span>{r.minutes} min</span><span>{r.difficulty}</span><span>≈ {r.calories} kcal</span><span>{r.protein} g prot.</span></div></div></button>)}</div>}
+
+        {!recipesLoading&&recipes.length>0&&<>
+          <div className="recipeBookTabs">
+            {(['Petit-déjeuner','Plat','Dessert & collation'] as const).map(category=>{
+              const count=recipes.filter(r=>r.category===category).length;
+              return <button key={category} className={activeRecipeCategory===category?'on':''} onClick={()=>setActiveRecipeCategory(category)}>{category} · {count}</button>
+            })}
+          </div>
+          <div className="recipeGrid">
+            {recipes.filter(r=>r.category===activeRecipeCategory).map(r=><button key={r.id} className="recipeCard" onClick={()=>{setSelectedRecipe(r);setStep('recipe')}}>
+              <div className="recipeVisual">{r.imageUrl&&<img src={r.imageUrl} alt={r.title}/>}</div>
+              <div className="recipeBody"><b>{r.title}</b><p>{r.description}</p><div className="recipeMeta"><span>{r.minutes} min</span><span>{r.difficulty}</span><span>≈ {r.calories} kcal</span><span>{r.protein} g prot.</span></div></div>
+            </button>)}
+          </div>
+        </>}
         <div className="actions"><button className="actionAlt" onClick={()=>setStep('shopping')}>PASSER EN MODE COURSES</button></div>
       </>}
 
@@ -492,7 +548,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
             {selectedRecipe.imageUrl&&<img src={selectedRecipe.imageUrl} alt={selectedRecipe.title}/>}
             <div className="dishBadges"><span>◷ {selectedRecipe.minutes} min</span><span>{selectedRecipe.difficulty}</span><span>{people} portion{people>1?'s':''}</span></div>
           </div>
-          <span className="recipeTag">Plat NOXAI</span>
+          <span className="recipeTag">{selectedRecipe.category}</span>
           <h1 className="recipeTitle">{selectedRecipe.title}</h1>
           <p className="recipeDesc">{selectedRecipe.description}</p>
 
