@@ -225,18 +225,16 @@ Format:
       }));
       if(!next.length)throw new Error('Aucune recette générée');
 
-      // Affiche d'abord les recettes immédiatement, puis ajoute les photos
-      // au fur et à mesure sans bloquer l'écran.
-      setRecipes(next);
-
-      void Promise.all(
+      // On attend que TOUTES les images soient prêtes avant d'afficher
+      // les recettes. Ainsi aucune carte ne sort sans sa photo.
+      const recipesWithImages=await Promise.all(
         next.map(async recipe=>{
           const imageUrl=await generateRecipeImage(recipe);
-          if(!imageUrl)return;
-          setRecipes(current=>current.map(r=>r.id===recipe.id?{...r,imageUrl}:r));
-          setSelectedRecipe(current=>current?.id===recipe.id?{...current,imageUrl}:current);
+          return {...recipe,imageUrl:imageUrl||undefined};
         })
       );
+
+      setRecipes(recipesWithImages);
     }catch(e:any){
       setRecipesError(e?.message||'Impossible de générer les recettes.');
     }finally{setRecipesLoading(false);}
