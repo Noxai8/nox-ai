@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -330,7 +330,7 @@ export default function Onboarding() {
   );
 }
 
-function Screen({ eyebrow, title, subtitle, children }: { eyebrow: string; title: React.ReactNode; subtitle: string; children: React.ReactNode }) {
+function Screen({ eyebrow, title, subtitle, children }: { eyebrow: string; title: ReactNode; subtitle: string; children: ReactNode }) {
   return <section>
     <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.13em', color: '#9BA096', marginBottom: 11 }}>{eyebrow}</div>
     <h1 style={{ margin: 0, color: BLACK, fontSize: 'clamp(34px, 9vw, 46px)', lineHeight: .96, letterSpacing: '-.06em', fontWeight: 950 }}>{title}</h1>
@@ -339,7 +339,7 @@ function Screen({ eyebrow, title, subtitle, children }: { eyebrow: string; title
   </section>;
 }
 
-function Choice({ selected, onClick, children, centered = false }: { selected: boolean; onClick: () => void; children: React.ReactNode; centered?: boolean }) {
+function Choice({ selected, onClick, children, centered = false }: { selected: boolean; onClick: () => void; children: ReactNode; centered?: boolean }) {
   return <button onClick={onClick} style={{ width: '100%', minHeight: 64, marginBottom: 10, padding: '14px 16px', boxSizing: 'border-box', borderRadius: 18, border: `1.5px solid ${selected ? BLACK : BORDER}`, background: selected ? BLACK : WHITE, color: selected ? WHITE : BLACK, textAlign: centered ? 'center' : 'left', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, fontSize: 13, fontWeight: 850 }}>
     {children}
   </button>;
@@ -353,15 +353,15 @@ function Field({ label, value, setValue, type = 'text', placeholder }: { label: 
   </div>;
 }
 
-function SmallTitle({ children }: { children: React.ReactNode }) {
+function SmallTitle({ children }: { children: ReactNode }) {
   return <div style={{ margin: '22px 2px 10px', color: MUTED, fontSize: 10, fontWeight: 900, letterSpacing: '.1em' }}>{children}</div>;
 }
 
-function Pill({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
+function Pill({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: ReactNode }) {
   return <button onClick={onClick} style={{ minWidth: 58, padding: '12px 15px', borderRadius: 13, border: `1px solid ${selected ? BLACK : BORDER}`, background: selected ? BLACK : WHITE, color: selected ? ACCENT : BLACK, fontWeight: 900 }}>{children}</button>;
 }
 
-function Info({ children }: { children: React.ReactNode }) {
+function Info({ children }: { children: ReactNode }) {
   return <div style={{ padding: '13px 14px', borderRadius: 15, background: '#F0FFD0', border: '1px solid #DDF59C', color: '#596700', fontSize: 11, lineHeight: 1.5, fontWeight: 650 }}>{children}</div>;
 }
 
@@ -371,7 +371,7 @@ function SummaryRow({ label, value, last = false }: { label: string; value: stri
   </div>;
 }
 
-function primaryButton(enabled: boolean): React.CSSProperties {
+function primaryButton(enabled: boolean): CSSProperties {
   return {
     width: '100%', minHeight: 60, padding: '0 18px', border: 0, borderRadius: 18,
     background: enabled ? ACCENT : '#E1E4DD', color: enabled ? BLACK : '#A4A8A0',
