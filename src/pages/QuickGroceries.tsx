@@ -469,6 +469,44 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       .recipeBookTabs{display:flex;gap:7px;overflow-x:auto;margin:16px 0 18px;padding-bottom:3px}.recipeBookTabs button{white-space:nowrap;border:1px solid #DDE1DA;background:#fff;border-radius:999px;padding:10px 13px;font-size:9px;font-weight:900;color:#656B66}.recipeBookTabs button.on{background:#0E100F;color:#fff;border-color:#0E100F}.recipeGrid{display:grid;gap:14px}.recipeCard{border:1px solid #E1E4DD;background:#fff;border-radius:22px;overflow:hidden;text-align:left;padding:0;box-shadow:0 8px 28px rgba(14,16,15,.035)}.recipeVisual{height:155px;background:radial-gradient(circle at 30% 30%,#55734A 0,#263824 36%,#111712 100%);position:relative;overflow:hidden}.recipeVisual.empty:before{content:'✦';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:52px;color:#c8ff00}.recipeVisual.empty:after{content:'IMAGE EN PRÉPARATION';position:absolute;bottom:12px;left:14px;color:#fff;font-size:8px;font-weight:900;letter-spacing:.12em;background:rgba(0,0,0,.38);padding:7px 9px;border-radius:999px}.recipeVisual img{width:100%;height:100%;display:block;object-fit:cover}.recipeBody{padding:15px}.recipeBody b{font-size:16px}.recipeBody p{font-size:10px;color:#777D78;line-height:1.45;margin:6px 0 11px}.recipeMeta{display:flex;gap:6px;flex-wrap:wrap}.recipeMeta span{background:#F3F5F0;border-radius:9px;padding:7px 9px;font-size:8px;font-weight:850}
       .recipeDetail{margin:-6px 0 0}.dishPhoto{height:270px;border-radius:24px;background:radial-gradient(circle at 35% 28%,#5E7D50 0,#314A2B 35%,#151C16 72%);position:relative;overflow:hidden;box-shadow:0 14px 38px rgba(14,16,15,.10);display:grid;place-items:center}.dishPhoto.empty:before{content:'✦';font-size:76px;font-weight:950;color:#c8ff00}.dishPhoto.empty:after{content:'IMAGE EN PRÉPARATION';position:absolute;left:18px;top:18px;color:#fff;font-size:9px;font-weight:900;letter-spacing:.12em;background:rgba(0,0,0,.45);padding:8px 11px;border-radius:999px}.dishPhoto img{width:100%;height:100%;display:block;object-fit:cover}.dishBadges{position:absolute;left:14px;right:14px;bottom:14px;display:flex;gap:7px;z-index:2}.dishBadges span{background:rgba(20,20,20,.72);color:#fff;padding:8px 10px;border-radius:10px;font-size:8px;font-weight:850;backdrop-filter:blur(8px)}.recipeTag{display:inline-flex;background:#DFF4D9;color:#26752A;border-radius:999px;padding:7px 11px;font-size:9px;font-weight:950;margin:18px 0 9px}.recipeTitle{font-size:34px;line-height:1;letter-spacing:-.05em;margin:0 0 8px}.recipeDesc{font-size:14px;color:#707670;line-height:1.45;margin:0 0 17px}.macroGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:14px 0}.macro{background:#fff;border:1px solid #E3E6DF;border-radius:15px;padding:12px 5px;text-align:center}.macro b{display:block;font-size:13px}.macro small{font-size:7px;color:#858B85}.recipePanel{background:#fff;border:1px solid #E3E6DF;border-radius:20px;padding:17px;margin-top:12px}.sectionTitle{font-size:15px;font-weight:950;margin:0 0 10px}.ingredientRow{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #ECEEE8;font-size:10px}.ingredientRow:last-child{border-bottom:0}.ingredientName{display:flex;align-items:center;gap:9px}.ingredientDot{width:25px;height:25px;border-radius:8px;background:#F0F5EB;display:grid;place-items:center;font-size:11px}.steps{display:grid;gap:12px}.stepRow{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;font-size:10px;line-height:1.55}.stepNum{width:28px;height:28px;border-radius:50%;background:#D9F7D5;color:#1E6827;display:grid;place-items:center;font-weight:950}.tipBox{border-radius:18px;padding:15px;margin-top:11px;font-size:10px;line-height:1.5}.tipBox.green{background:#F0FAEF}.tipBox.warm{background:#FBF7EF}.tipBox b{display:block;font-size:11px;margin-bottom:4px}.recipeActions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:16px}.recipeActions button{min-height:54px;border-radius:16px;font-size:10px;font-weight:950}.recipeActions .black{border:0;background:#0E100F;color:#c8ff00}.recipeActions .white{border:1px solid #DDE1DA;background:#fff;color:#0E100F}
       .shopTop{margin-bottom:20px}.shopProgress{display:flex;justify-content:space-between;font-size:10px;font-weight:850;margin-bottom:8px}.doneScreen{min-height:72vh;display:flex;flex-direction:column;justify-content:center;text-align:center}.doneCheck{width:100px;height:100px;border-radius:50%;background:#DFFFAD;display:grid;place-items:center;margin:0 auto 22px;font-size:43px;font-weight:950}.doneScreen h1{font-size:30px}.doneScreen .actions{margin-top:24px}
+
+      /* ÉCRAN 1 — MAQUETTE PREMIUM */
+      .modeProgress{margin-bottom:34px}
+      .modeProgressTop{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+      .modeProgressTop b{font-size:11px;letter-spacing:.08em;color:#78A516}
+      .modeProgressTop span{font-size:10px;color:#8A8F8A}
+      .modeTrack{height:6px;background:#E7E9E3;border-radius:99px;overflow:hidden}
+      .modeTrack span{display:block;width:20%;height:100%;background:#93D315;border-radius:99px}
+      .modeIntro{text-align:center;margin-bottom:30px}
+      .modeIntro h1{font-size:38px;letter-spacing:-.055em;margin-bottom:10px}
+      .modeIntro p{max-width:340px;margin:0 auto;color:#777D78;font-size:14px;line-height:1.55}
+      .modeChoices{display:grid;gap:13px}
+      .modeCard{width:100%;min-height:174px;border:1px solid #E0E3DC;background:#fff;border-radius:25px;padding:17px;display:grid;grid-template-columns:112px 1fr;gap:15px;align-items:center;text-align:left;position:relative;overflow:hidden}
+      .modeCard.on{border:2px solid #91D10E;background:linear-gradient(110deg,#FBFFE9,#F7FFE0)}
+      .modeVisual{height:122px;border-radius:20px;background:#F3F5F0;display:grid;place-items:center;position:relative;overflow:hidden}
+      .modeVisual.emptyFridge:before{content:'';width:54px;height:86px;border:2px solid #B7BDB7;border-radius:7px;background:linear-gradient(90deg,#FDFEFC 0 74%,#E7EAE6 74%);box-shadow:0 9px 18px rgba(14,16,15,.10)}
+      .modeVisual.emptyFridge:after{content:'';position:absolute;width:37px;height:1px;background:#C8CDC8;box-shadow:0 -19px 0 #C8CDC8,0 19px 0 #C8CDC8}
+      .modeVisual.stocked{background:linear-gradient(145deg,#EEF3E8,#FAFBF8)}
+      .modeFood{font-size:34px;letter-spacing:-9px;transform:translateX(-5px)}
+      .modeCopy{padding-right:22px}
+      .modeCopy strong{display:block;font-size:20px;letter-spacing:-.025em;margin-bottom:5px}
+      .modeCopy .modeSub{display:block;font-size:14px;color:#303530;margin-bottom:7px}
+      .modeCopy p{margin:0;color:#7C827D;font-size:10px;line-height:1.45}
+      .modeBenefit{display:inline-flex;align-items:center;gap:6px;margin-top:12px;background:#F4F5F1;border-radius:999px;padding:7px 10px;font-size:8px;color:#555B56}
+      .modeCard.on .modeBenefit{background:#EAFBC0;color:#354512}
+      .modeSelect{position:absolute;right:15px;top:15px;width:29px;height:29px;border-radius:50%;border:1.5px solid #B8BDB8;background:#fff;display:grid;place-items:center;font-size:13px}
+      .modeCard.on .modeSelect{background:#0E100F;border-color:#0E100F;color:#c8ff00}
+      .fridgeEntry{margin-top:12px;background:#fff;border:1px solid #E1E4DD;border-radius:20px;padding:15px}
+      .profileHint{display:flex;align-items:center;justify-content:center;gap:9px;margin:22px 0 8px;color:#363B37;font-size:11px}
+      .profileHintIcon{width:27px;height:27px;border:1px solid #DDE1DA;border-radius:50%;display:grid;place-items:center;font-size:13px;flex:0 0 auto}
+      .profileHint b{font-weight:900}
+      @media(max-width:380px){
+        .modeCard{grid-template-columns:92px 1fr;padding:14px;gap:12px}
+        .modeVisual{height:108px}
+        .modeCopy strong{font-size:17px}
+        .modeIntro h1{font-size:34px}
+      }
+
     `}</style>
 
     <header className="head"><div className="headin"><div className="top">
@@ -478,7 +516,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
     </div></div></header>
 
     <main className="main">
-      {!['generating','list','recipes','recipe','shopping','done'].includes(step)&&<>
+      {!['mode','generating','list','recipes','recipe','shopping','done'].includes(step)&&<>
         <div className="progressTop"><span>COURSES NOXAI</span><span>{({mode:1,setup:2,budget:3,prefs:4,review:5} as any)[step]} / 5</span></div>
         <div className="progressTrack"><div className="progressFill" style={{width:`${((({mode:1,setup:2,budget:3,prefs:4,review:5} as any)[step]||1)/5)*100}%`}}/></div>
       </>}
