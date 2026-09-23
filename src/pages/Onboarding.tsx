@@ -10,7 +10,7 @@ const WHITE = '#FFFFFF';
 const BLACK = '#0B0B0B';
 const MUTED = '#7A7F76';
 const BORDER = '#E8EAE4';
-const TOTAL = 9;
+const TOTAL = 10;
 
 const GOALS = [
   ['perdre_gras', 'Perdre du gras', 'Affiner progressivement ma silhouette'],
@@ -117,6 +117,7 @@ export default function Onboarding() {
   const [days, setDays] = useState<number[]>([]);
   const [duration, setDuration] = useState('60');
   const [goal, setGoal] = useState('');
+  const [goalTime, setGoalTime] = useState('6');
   const [dietPrefs, setDietPrefs] = useState<string[]>(['omnivore']);
   const [allergies, setAllergies] = useState('');
   const [foodLikes, setFoodLikes] = useState('');
@@ -125,6 +126,12 @@ export default function Onboarding() {
   const [cookingTime, setCookingTime] = useState('30');
 
   const age = useMemo(() => (dob ? ageFromDob(dob) : 0), [dob]);
+  const bmi = useMemo(() => {
+    const w = Number(weight);
+    const h = Number(height) / 100;
+    if (!w || !h || h <= 0) return 0;
+    return w / (h * h);
+  }, [weight, height]);
   const physicalValid = !!sex && !!dob && age >= 18 && age <= 100 &&
     Number(weight) >= 35 && Number(weight) <= 350 &&
     Number(height) >= 120 && Number(height) <= 230;
@@ -141,7 +148,8 @@ export default function Onboarding() {
     step === 4 ? !!level && !!location :
     step === 5 ? days.length > 0 :
     step === 6 ? !!goal :
-    step === 7 ? dietPrefs.length > 0 :
+    step === 7 ? !!goalTime :
+    step === 8 ? dietPrefs.length > 0 :
     true;
 
   const toggleDiet = (id: string) => {
@@ -165,60 +173,43 @@ export default function Onboarding() {
         foodDislikes.trim() ? `dislikes:${foodDislikes.trim()}` : '',
         `meals_per_day:${mealsPerDay}`,
         `cooking_time_min:${cookingTime}`,
+        `goal_time_months:${goalTime}`,
       ].filter(Boolean);
 
-      try {
-        const { error: metadataError } = await supabase.auth.updateUser({
-          data: { first_name: firstName.trim(), last_name: lastName.trim(), name: firstName.trim() },
-        });
-        if (metadataError) console.warn('Onboarding NOX — métadonnées Auth non mises à jour :', metadataError);
-      } catch (metadataRequestError) {
-        console.warn('Onboarding NOX — requête Auth indisponible :', metadataRequestError);
-      }
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: { first_name: firstName.trim(), last_name: lastName.trim(), name: firstName.trim(), goal_time_months: Number(goalTime) },
+      });
+      if (metadataError) throw metadataError;
 
-      try {
-        const { error: profileError } = await supabase.from('profiles').update({
-          goal_type: goal,
-          experience_level: level,
-          training_location: location,
-          available_days: days,
-          session_length_min: Number(duration),
-          starting_weight_kg: Number(weight),
-          height_cm: Number(height),
-          date_of_birth: dob,
-          sex,
-          diet_preferences: nutritionContext,
-          activity_level: activity,
-          onboarding_completed: false,
-          updated_at: new Date().toISOString(),
-        }).eq('id', user.id);
+      const { error: profileError } = await supabase.from('profiles').update({
+        goal_type: goal,
+        experience_level: level,
+        training_location: location,
+        available_days: days,
+        session_length_min: Number(duration),
+        starting_weight_kg: Number(weight),
+        height_cm: Number(height),
+        date_of_birth: dob,
+        sex,
+        diet_preferences: nutritionContext,
+        activity_level: activity,
+        onboarding_completed: false,
+        updated_at: new Date().toISOString(),
+      }).eq('id', user.id);
+      if (profileError) throw profileError;
 
-        if (profileError) throw new Error(`Profil NOX : ${profileError.message}`);
-      } catch (profileRequestError: any) {
-        throw new Error(
-          profileRequestError?.message?.startsWith('Profil NOX :')
-            ? profileRequestError.message
-            : `Profil NOX : ${profileRequestError?.message || 'connexion impossible'}`
-        );
-      }
-
-      try {
-        const { error: targetError } = await supabase.from('nutrition_targets').upsert({
-          user_id: user.id,
-          calories: preview.calories,
-          protein_g: preview.protein,
-          carbs_g: preview.carbs,
-          fat_g: preview.fat,
-          carbs: preview.carbs,
-          fat: preview.fat,
-          start_date: new Date().toISOString().slice(0, 10),
-          is_active: true,
-        }, { onConflict: 'user_id' });
-
-        if (targetError) console.warn('Onboarding NOX — cible nutritionnelle non sauvegardée :', targetError);
-      } catch (targetRequestError) {
-        console.warn('Onboarding NOX — requête nutrition indisponible :', targetRequestError);
-      }
+      const { error: targetError } = await supabase.from('nutrition_targets').upsert({
+        user_id: user.id,
+        calories: preview.calories,
+        protein_g: preview.protein,
+        carbs_g: preview.carbs,
+        fat_g: preview.fat,
+        carbs: preview.carbs,
+        fat: preview.fat,
+        start_date: new Date().toISOString().slice(0, 10),
+        is_active: true,
+      }, { onConflict: 'user_id' });
+      if (targetError) throw targetError;
 
       navigate('/future', { state: { onboarding: true } });
     } catch (e: any) {
@@ -267,6 +258,11 @@ export default function Onboarding() {
             <Field label="TAILLE · CM" value={height} setValue={setHeight} type="number" placeholder="178" />
           </div>
           <Field label="DATE DE NAISSANCE" value={dob} setValue={setDob} type="date" />
+          {bmi > 0 && Number(weight) >= 35 && Number(height) >= 120 && <div style={{ marginBottom: 14, background: '#F0FFD0', border: '1px solid #DDF59C', borderRadius: 18, padding: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.1em', color: '#687600' }}>TON IMC · REPÈRE GÉNÉRAL</div>
+            <div style={{ marginTop: 5, fontSize: 28, fontWeight: 950 }}>{bmi.toFixed(1).replace('.', ',')}</div>
+            <div style={{ marginTop: 5, color: MUTED, fontSize: 11, lineHeight: 1.5 }}>L’IMC est un indicateur général. Il ne distingue pas la masse musculaire de la masse grasse. NOX l’utilise comme un repère parmi d’autres.</div>
+          </div>}
           {dob && age > 0 && age < 18 && <Info>Le parcours automatique NOX est actuellement réservé aux adultes.</Info>}
         </Screen>}
 
@@ -301,13 +297,29 @@ export default function Onboarding() {
           {GOALS.map(([id, label, desc]) => <Choice key={id} selected={goal === id} onClick={() => setGoal(id)}><b>{label}</b><span>{desc}</span></Choice>)}
         </Screen>}
 
-        {step === 7 && <Screen eyebrow="07 · NUTRITION" title={<>Mange comme<br />tu aimes manger.</>} subtitle="NOX utilisera ces préférences pour personnaliser tes futures suggestions alimentaires.">
+        {step === 7 && <Screen eyebrow="07 · TON HORIZON" title={<>En combien de temps<br />veux-tu avancer ?</>} subtitle="Donne à NOX l’horizon que tu as en tête. Ce délai est un objectif de parcours, pas une promesse de résultat.">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {[['3','3 mois'],['6','6 mois'],['9','9 mois'],['12','12 mois']].map(([id,label]) =>
+              <Choice key={id} selected={goalTime === id} onClick={() => setGoalTime(id)} centered>{label}</Choice>
+            )}
+          </div>
+          <button onClick={() => setGoalTime('0')} style={{ width: '100%', marginTop: 2, minHeight: 54, borderRadius: 17, border: `1.5px solid ${goalTime === '0' ? BLACK : BORDER}`, background: goalTime === '0' ? BLACK : WHITE, color: goalTime === '0' ? WHITE : BLACK, fontWeight: 850 }}>
+            Je ne sais pas encore
+          </button>
+          <div style={{ marginTop: 18, background: '#F0FFD0', border: '1px solid #DDF59C', borderRadius: 20, padding: 17 }}>
+            <div style={{ fontSize: 10, fontWeight: 950, letterSpacing: '.1em', color: '#687600' }}>CONSEIL NOX</div>
+            <div style={{ marginTop: 7, fontSize: 17, fontWeight: 950, lineHeight: 1.2 }}>Tu as l’objectif. NOX construit le chemin avec toi.</div>
+            <div style={{ marginTop: 8, color: MUTED, fontSize: 11.5, lineHeight: 1.55 }}>NOX va organiser ton entraînement, ta nutrition, tes habitudes et ta récupération autour de ton profil, puis adapter ton parcours au fil de ton évolution.</div>
+          </div>
+        </Screen>}
+
+        {step === 8 && <Screen eyebrow="08 · NUTRITION" title={<>Mange comme<br />tu aimes manger.</>} subtitle="NOX utilisera ces préférences pour personnaliser tes futures suggestions alimentaires.">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {DIETS.map(([id, label]) => <Choice key={id} selected={dietPrefs.includes(id)} onClick={() => toggleDiet(id)} centered>{label}</Choice>)}
           </div>
         </Screen>}
 
-        {step === 8 && <Screen eyebrow="08 · TES HABITUDES" title={<>La nutrition doit<br />s’adapter à toi.</>} subtitle="Renseigne uniquement ce qui compte pour toi. Tu peux laisser un champ vide.">
+        {step === 9 && <Screen eyebrow="09 · TES HABITUDES" title={<>La nutrition doit<br />s’adapter à toi.</>} subtitle="Renseigne uniquement ce qui compte pour toi. Tu peux laisser un champ vide.">
           <Field label="ALLERGIES / INTOLÉRANCES" value={allergies} setValue={setAllergies} placeholder="Ex. arachides, lactose..." />
           <Field label="ALIMENTS QUE TU AIMES" value={foodLikes} setValue={setFoodLikes} placeholder="Ex. poulet, riz, saumon..." />
           <Field label="ALIMENTS QUE TU N’AIMES PAS" value={foodDislikes} setValue={setFoodDislikes} placeholder="Ex. brocoli, champignons..." />
@@ -317,10 +329,12 @@ export default function Onboarding() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{['10','20','30','45','60'].map(n => <Pill key={n} selected={cookingTime === n} onClick={() => setCookingTime(n)}>{n} min</Pill>)}</div>
         </Screen>}
 
-        {step === 9 && <Screen eyebrow="09 · PRÊT" title={<>Maintenant,<br />visualise ton objectif.</>} subtitle="Ton profil est prêt. La prochaine étape est NOX Future : ta photo actuelle, ton objectif visuel, puis ta projection IA.">
+        {step === 10 && <Screen eyebrow="10 · PRÊT" title={<>Maintenant,<br />visualise ton objectif.</>} subtitle="Ton profil est prêt. La prochaine étape est NOX Future : ta photo actuelle, ton objectif visuel, puis ta projection IA.">
           <div style={{ background: BLACK, color: WHITE, borderRadius: 28, padding: 22, boxShadow: '0 18px 45px rgba(0,0,0,.10)' }}>
             <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.12em', color: '#888', marginBottom: 16 }}>TON PROFIL NOX</div>
             <SummaryRow label="Objectif" value={GOALS.find(g => g[0] === goal)?.[1] || goal} />
+            <SummaryRow label="Horizon souhaité" value={goalTime === '0' ? 'À définir' : `${goalTime} mois`} />
+            <SummaryRow label="IMC indicatif" value={bmi ? bmi.toFixed(1).replace('.', ',') : '—'} />
             <SummaryRow label="Niveau" value={LEVELS.find(l => l[0] === level)?.[1] || level} />
             <SummaryRow label="Entraînement" value={`${days.length}× / semaine`} />
             <SummaryRow label="Séance" value={`${duration} min`} />
@@ -331,6 +345,11 @@ export default function Onboarding() {
             <div style={{ marginTop: 6, fontSize: 26, fontWeight: 950 }}>{preview.calories} kcal</div>
             <div style={{ marginTop: 5, color: MUTED, fontSize: 12 }}>{preview.protein} g protéines · {preview.carbs} g glucides · {preview.fat} g lipides</div>
           </div>}
+          <div style={{ marginTop: 12, padding: 18, borderRadius: 22, background: WHITE, border: `1px solid ${BORDER}` }}>
+            <div style={{ fontSize: 10, fontWeight: 950, letterSpacing: '.1em', color: '#8B9086' }}>TON PROCHAIN PAS</div>
+            <div style={{ marginTop: 6, fontSize: 18, fontWeight: 950 }}>Tu as l’objectif. NOX construit le chemin avec toi.</div>
+            <div style={{ marginTop: 7, color: MUTED, fontSize: 11.5, lineHeight: 1.55 }}>Tu n’as pas besoin de tout réussir d’un coup. NOX transforme ta direction en actions concrètes et t’aide à garder le cap.</div>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 18, color: MUTED, fontSize: 12, lineHeight: 1.5 }}>
             <div style={{ width: 26, height: 26, borderRadius: 9, background: ACCENT, display: 'grid', placeItems: 'center', color: BLACK }}><Check size={14} strokeWidth={3} /></div>
             Après NOX Future, ton objectif servira à construire ton programme personnalisé.
