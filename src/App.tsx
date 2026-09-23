@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, type ReactNode } from 'react';
 import { AuthProvider, useAuth } from './lib/AuthContext';
 import './styles/globals.css';
 
@@ -42,11 +42,15 @@ const SleepTracker = lazy(() => import('./pages/SleepTracker'));
 const CoachDashboard = lazy(() => import('./pages/CoachDashboard'));
 const Reschedule = lazy(() => import('./pages/Reschedule'));
 
+/* =========================================================
+   LOADER NOX — WHITE PREMIUM
+========================================================= */
+
 const Loader = () => (
   <div
     style={{
       minHeight: '100vh',
-      background: '#0a0a0a',
+      background: '#F7F8F4',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -54,80 +58,435 @@ const Loader = () => (
   >
     <div
       style={{
-        color: '#c8ff00',
-        fontWeight: 900,
-        letterSpacing: '.15em',
-        fontSize: 18,
+        color: '#0B0B0B',
+        fontWeight: 950,
+        letterSpacing: '-0.04em',
+        fontSize: 28,
       }}
     >
-      NOX
+      NOX<span style={{ color: '#C8FF00' }}>.</span>
     </div>
   </div>
 );
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+/* =========================================================
+   PROTECTED ROUTE
+========================================================= */
+
+function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
 
-  if (loading) return <Loader />;
-  if (!user) return <Navigate to="/" />;
+  if (loading) {
+    return <Loader />;
+  }
+
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
 
   return <>{children}</>;
 }
 
+/* =========================================================
+   ROUTES
+========================================================= */
+
 function AppRoutes() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  /*
+   * Important :
+   * on attend que Supabase ait terminé de restaurer la session
+   * avant de décider si "/" doit afficher Landing ou Home.
+   */
+  if (loading) {
+    return <Loader />;
+  }
 
   return (
     <Suspense fallback={<Loader />}>
       <Routes>
-        <Route path="/" element={user ? <Navigate to="/home" /> : <Landing />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login />} />
+        {/* PUBLIC */}
+        <Route
+          path="/"
+          element={user ? <Navigate to="/home" replace /> : <Landing />}
+        />
 
-        <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-        <Route path="/generate-program" element={<ProtectedRoute><GenerateProgram /></ProtectedRoute>} />
-        <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-        <Route path="/training/:sessionId" element={<ProtectedRoute><Training /></ProtectedRoute>} />
-        <Route path="/program" element={<ProtectedRoute><Program /></ProtectedRoute>} />
-        <Route path="/body" element={<ProtectedRoute><Body /></ProtectedRoute>} />
-        <Route path="/coach" element={<ProtectedRoute><Coach /></ProtectedRoute>} />
+        <Route
+          path="/register"
+          element={user ? <Navigate to="/home" replace /> : <Register />}
+        />
 
-        <Route path="/fuel" element={<ProtectedRoute><Fuel /></ProtectedRoute>} />
-        <Route path="/quick-groceries" element={<ProtectedRoute><QuickGroceries /></ProtectedRoute>} />
+        <Route
+          path="/login"
+          element={user ? <Navigate to="/home" replace /> : <Login />}
+        />
 
-        <Route path="/play" element={<ProtectedRoute><Play /></ProtectedRoute>} />
-        <Route path="/future" element={<ProtectedRoute><NoxFuture /></ProtectedRoute>} />
-        <Route path="/weekly-review" element={<ProtectedRoute><WeeklyReview /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="/subscribe" element={<ProtectedRoute><Subscribe /></ProtectedRoute>} />
-        <Route path="/rest-day" element={<ProtectedRoute><RestDay /></ProtectedRoute>} />
-        <Route path="/partner" element={<ProtectedRoute><Partner /></ProtectedRoute>} />
-        <Route path="/recovery" element={<ProtectedRoute><Recovery /></ProtectedRoute>} />
-        <Route path="/reschedule" element={<ProtectedRoute><Reschedule /></ProtectedRoute>} />
-        <Route path="/share-timeline" element={<ProtectedRoute><ShareTimeline /></ProtectedRoute>} />
-        <Route path="/calibration" element={<ProtectedRoute><BeginnerCalibration /></ProtectedRoute>} />
-        <Route path="/notification-settings" element={<ProtectedRoute><NotificationSettings /></ProtectedRoute>} />
-        <Route path="/fuel-ai" element={<ProtectedRoute><FuelAI /></ProtectedRoute>} />
-        <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
-        <Route path="/fasting" element={<ProtectedRoute><FastingTracker /></ProtectedRoute>} />
-        <Route path="/mood" element={<ProtectedRoute><MoodTracker /></ProtectedRoute>} />
-        <Route path="/recipes" element={<ProtectedRoute><Recipes /></ProtectedRoute>} />
-        <Route path="/meal-planner" element={<ProtectedRoute><MealPlanner /></ProtectedRoute>} />
-        <Route path="/food-scan" element={<ProtectedRoute><FoodScan /></ProtectedRoute>} />
-        <Route path="/training-calendar" element={<ProtectedRoute><TrainingCalendar /></ProtectedRoute>} />
-        <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><SocialProfile /></ProtectedRoute>} />
-        <Route path="/profile/:userId" element={<ProtectedRoute><SocialProfile /></ProtectedRoute>} />
-        <Route path="/calendar" element={<ProtectedRoute><NoxCalendar /></ProtectedRoute>} />
-        <Route path="/pantry" element={<ProtectedRoute><Pantry /></ProtectedRoute>} />
-        <Route path="/sleep" element={<ProtectedRoute><SleepTracker /></ProtectedRoute>} />
-        <Route path="/coach-dashboard" element={<ProtectedRoute><CoachDashboard /></ProtectedRoute>} />
+        {/* =================================================
+            NOUVEAU PARCOURS NOX
 
-        <Route path="*" element={<Navigate to="/" />} />
+            Register
+               ↓
+            Onboarding
+               ↓
+            NOX Future
+               ↓
+            Generate Program
+               ↓
+            Home
+        ================================================= */}
+
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute>
+              <Onboarding />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/future"
+          element={
+            <ProtectedRoute>
+              <NoxFuture />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/generate-program"
+          element={
+            <ProtectedRoute>
+              <GenerateProgram />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* HOME */}
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* TRAINING */}
+        <Route
+          path="/training/:sessionId"
+          element={
+            <ProtectedRoute>
+              <Training />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/program"
+          element={
+            <ProtectedRoute>
+              <Program />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/training-calendar"
+          element={
+            <ProtectedRoute>
+              <TrainingCalendar />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reschedule"
+          element={
+            <ProtectedRoute>
+              <Reschedule />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* BODY / PROGRESS */}
+        <Route
+          path="/body"
+          element={
+            <ProtectedRoute>
+              <Body />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/progress"
+          element={
+            <ProtectedRoute>
+              <Progress />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* COACH */}
+        <Route
+          path="/coach"
+          element={
+            <ProtectedRoute>
+              <Coach />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/coach-dashboard"
+          element={
+            <ProtectedRoute>
+              <CoachDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* NUTRITION */}
+        <Route
+          path="/fuel"
+          element={
+            <ProtectedRoute>
+              <Fuel />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/fuel-ai"
+          element={
+            <ProtectedRoute>
+              <FuelAI />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quick-groceries"
+          element={
+            <ProtectedRoute>
+              <QuickGroceries />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/recipes"
+          element={
+            <ProtectedRoute>
+              <Recipes />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/meal-planner"
+          element={
+            <ProtectedRoute>
+              <MealPlanner />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/food-scan"
+          element={
+            <ProtectedRoute>
+              <FoodScan />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/pantry"
+          element={
+            <ProtectedRoute>
+              <Pantry />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/fasting"
+          element={
+            <ProtectedRoute>
+              <FastingTracker />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* HEALTH / RECOVERY */}
+        <Route
+          path="/recovery"
+          element={
+            <ProtectedRoute>
+              <Recovery />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/sleep"
+          element={
+            <ProtectedRoute>
+              <SleepTracker />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/mood"
+          element={
+            <ProtectedRoute>
+              <MoodTracker />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/rest-day"
+          element={
+            <ProtectedRoute>
+              <RestDay />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* NOX FEATURES */}
+        <Route
+          path="/play"
+          element={
+            <ProtectedRoute>
+              <Play />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/weekly-review"
+          element={
+            <ProtectedRoute>
+              <WeeklyReview />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/calendar"
+          element={
+            <ProtectedRoute>
+              <NoxCalendar />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/calibration"
+          element={
+            <ProtectedRoute>
+              <BeginnerCalibration />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* SOCIAL */}
+        <Route
+          path="/leaderboard"
+          element={
+            <ProtectedRoute>
+              <Leaderboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/partner"
+          element={
+            <ProtectedRoute>
+              <Partner />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/share-timeline"
+          element={
+            <ProtectedRoute>
+              <ShareTimeline />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <SocialProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile/:userId"
+          element={
+            <ProtectedRoute>
+              <SocialProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* SETTINGS */}
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/notification-settings"
+          element={
+            <ProtectedRoute>
+              <NotificationSettings />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/subscribe"
+          element={
+            <ProtectedRoute>
+              <Subscribe />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* FALLBACK */}
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to={user ? '/home' : '/'}
+              replace
+            />
+          }
+        />
       </Routes>
     </Suspense>
   );
 }
+
+/* =========================================================
+   APP
+========================================================= */
 
 export default function App() {
   return (
