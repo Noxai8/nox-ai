@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
 const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
+const BG = '#F6F7F2';
+const SURFACE = '#FFFFFF';
+const BORDER = '#E7E9E2';
+const DARK = '#111111';
+const MUTED = '#777C73';
 
 const STEPS = [
   'Analyse de ton profil...',
@@ -220,8 +224,10 @@ function getAvailableDays(profile: any): string[] {
     return [];
   }
 
-  const days = profile.available_days
-    .map((day: unknown) => {
+  const rawDays: unknown[] = profile.available_days as unknown[];
+
+  const days: string[] = rawDays
+    .map((day: unknown): string | null => {
       const numericDay = Number(day);
 
       if (
@@ -518,6 +524,21 @@ function shouldRetryGeneration(error: unknown): boolean {
 export default function GenerateProgram() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const routeState = (location.state || {}) as {
+    fromFuture?: boolean;
+    goalDescription?: string;
+  };
+
+  const onboardingFlow =
+    Boolean(routeState.fromFuture) ||
+    new URLSearchParams(location.search).get('onboarding') === '1';
+
+  const futureGoalFromState =
+    typeof routeState.goalDescription === 'string'
+      ? routeState.goalDescription.trim()
+      : '';
 
   const [profile, setProfile] = useState<any>(null);
   const [stepIdx, setStepIdx] = useState(0);
@@ -525,6 +546,7 @@ export default function GenerateProgram() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
   const [programName, setProgramName] = useState('');
+  const [futureGoal, setFutureGoal] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -596,33 +618,51 @@ export default function GenerateProgram() {
     setError('');
 
     try {
-      let goalType = 'transformation physique';
+      let goalType =
+        typeof profile?.goal_type === 'string' && profile.goal_type.trim()
+          ? profile.goal_type.trim()
+          : 'transformation physique';
 
-      try {
-        const { data: goalData, error: goalError } =
-          await supabase
+      if (goalType === 'transformation physique') {
+        try {
+          const { data: goalData, error: goalError } = await supabase
             .from('goals')
             .select('goal_type')
             .eq('user_id', user.id)
             .limit(1)
             .maybeSingle();
 
-        if (goalError) {
-          console.warn(
-            'Objectif NOX non chargé :',
-            goalError
-          );
-        } else if (
-          typeof goalData?.goal_type === 'string' &&
-          goalData.goal_type.trim()
-        ) {
-          goalType = goalData.goal_type.trim();
+          if (!goalError && typeof goalData?.goal_type === 'string' && goalData.goal_type.trim()) {
+            goalType = goalData.goal_type.trim();
+          }
+        } catch (goalLoadError) {
+          console.warn('Objectif NOX indisponible :', goalLoadError);
         }
-      } catch (goalLoadError) {
-        console.warn(
-          'Objectif NOX indisponible :',
-          goalLoadError
-        );
+      }
+
+      let desiredPhysique = futureGoalFromState;
+
+      if (!desiredPhysique) {
+        try {
+          const { data: futureData, error: futureError } = await supabase
+            .from('future_you_generations')
+            .select('prompt, created_at')
+            .eq('user_id', user.id)
+            .eq('status', 'completed')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (!futureError && typeof futureData?.prompt === 'string') {
+            desiredPhysique = futureData.prompt.trim();
+          }
+        } catch (futureLoadError) {
+          console.warn('Objectif NOX Future indisponible :', futureLoadError);
+        }
+      }
+
+      if (desiredPhysique) {
+        setFutureGoal(desiredPhysique);
       }
 
       const basePrompt = `Tu es NOX, un coach IA expert en programmation sportive.
@@ -644,6 +684,9 @@ PROFIL UTILISATEUR :
 - Poids actuel : ${profile?.starting_weight_kg || '?'} kg
 - Activité quotidienne : ${profile?.activity_level || 'modérée'}
 - Motivation : ${profile?.motivation || 'améliorer mon physique'}
+- Physique souhaité décrit dans NOX Future : ${desiredPhysique || 'non renseigné'}
+
+Utilise la description NOX Future comme direction personnelle, sans promettre qu'un physique précis sera atteint ni dans quel délai.
 
 FORMAT OBLIGATOIRE :
 
@@ -922,6 +965,21 @@ Génère exactement ${sessionCount} séances.`;
       }
 
       setProgramName(prog.name);
+
+      if (onboardingFlow) {
+        const { error: onboardingError } = await supabase
+          .from('profiles')
+          .update({
+            onboarding_completed: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+
+        if (onboardingError) {
+          console.warn('Programme créé, mais onboarding non finalisé :', onboardingError);
+        }
+      }
+
       setDone(true);
     } catch (err: any) {
       console.error(
@@ -959,302 +1017,86 @@ Génère exactement ${sessionCount} séances.`;
 
   if (done) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: BG,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 32,
-          textAlign: 'center',
-        }}
-      >
-        <div
-          style={{
-            fontSize: 72,
-            marginBottom: 24,
-          }}
-        >
-          ⚡
+      <div style={{ minHeight: '100vh', background: BG, padding: '56px 20px 40px', color: DARK }}>
+        <div style={{ width: '100%', maxWidth: 520, margin: '0 auto' }}>
+          <div style={{ fontSize: 13, fontWeight: 950, letterSpacing: '.16em', marginBottom: 46 }}>NOX<span style={{ color: ACCENT }}>.</span></div>
+          <div style={{ width: 58, height: 58, borderRadius: 20, background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 26, marginBottom: 26 }}>✓</div>
+          <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: '.16em', color: MUTED, marginBottom: 10 }}>TON ÉCOSYSTÈME NOX EST PRÊT</div>
+          <h1 style={{ margin: 0, fontSize: 36, lineHeight: 1.02, letterSpacing: '-.05em', fontWeight: 950 }}>TON PROGRAMME<br />COMMENCE ICI.</h1>
+          <p style={{ color: MUTED, lineHeight: 1.6, fontSize: 15, margin: '18px 0 26px' }}>
+            Ton entraînement a été construit à partir de ton profil, de tes disponibilités et de ton objectif{futureGoal ? ' NOX Future' : ''}. Il reste adaptable à ta progression réelle.
+          </p>
+
+          <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 22, marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: MUTED, fontWeight: 900, letterSpacing: '.12em', marginBottom: 7 }}>PROGRAMME D'ENTRAÎNEMENT</div>
+            <div style={{ fontSize: 20, fontWeight: 950 }}>{programName}</div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 28 }}>
+            {[
+              ['ENTRAÎNEMENT', 'Séances adaptées'],
+              ['NUTRITION', 'Cibles personnalisées'],
+              ['HABITUDES', 'Régularité au quotidien'],
+              ['SUIVI', 'Ajuste avec tes progrès'],
+            ].map(([title, sub]) => (
+              <div key={title} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 17 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 99, background: ACCENT, marginBottom: 18 }} />
+                <div style={{ fontSize: 12, fontWeight: 950, marginBottom: 5 }}>{title}</div>
+                <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.35 }}>{sub}</div>
+              </div>
+            ))}
+          </div>
+
+          <button onClick={() => navigate(onboardingFlow ? '/home' : '/program')} style={{ width: '100%', padding: 18, background: ACCENT, border: 0, borderRadius: 18, color: '#000', fontWeight: 950, fontSize: 15, cursor: 'pointer' }}>
+            {onboardingFlow ? 'ENTRER DANS NOX →' : 'VOIR MON PROGRAMME →'}
+          </button>
+          {onboardingFlow && (
+            <button onClick={() => navigate('/program')} style={{ width: '100%', padding: 15, background: 'transparent', border: 0, color: MUTED, fontWeight: 800, cursor: 'pointer', marginTop: 6 }}>
+              Voir d'abord mon programme
+            </button>
+          )}
+          <p style={{ color: MUTED, fontSize: 11, lineHeight: 1.5, textAlign: 'center', marginTop: 22 }}>
+            NOX adapte une stratégie à tes données. Aucun résultat physique précis ni délai n'est garanti.
+          </p>
         </div>
-
-        <div
-          style={{
-            fontSize: 11,
-            color: '#555',
-            textTransform: 'uppercase',
-            letterSpacing: '.15em',
-            marginBottom: 12,
-          }}
-        >
-          Prêt
-        </div>
-
-        <div
-          style={{
-            fontSize: 26,
-            fontWeight: 900,
-            color: '#fff',
-            letterSpacing: '-.02em',
-            marginBottom: 8,
-          }}
-        >
-          TON PLAN EST PRÊT
-        </div>
-
-        <div
-          style={{
-            fontSize: 15,
-            color: ACCENT,
-            fontWeight: 700,
-            marginBottom: 32,
-          }}
-        >
-          {programName}
-        </div>
-
-        <div
-          style={{
-            fontSize: 14,
-            color: '#555',
-            marginBottom: 40,
-            lineHeight: 1.6,
-            maxWidth: 300,
-          }}
-        >
-          Programme structuré avec progression,
-          volume et consignes adaptés à ton profil.
-        </div>
-
-        <button
-          onClick={() => navigate('/program')}
-          style={{
-            width: '100%',
-            maxWidth: 320,
-            padding: 18,
-            background: ACCENT,
-            border: 'none',
-            borderRadius: 16,
-            color: '#000',
-            fontWeight: 900,
-            fontSize: 16,
-            cursor: 'pointer',
-            marginBottom: 12,
-          }}
-        >
-          VOIR MON PROGRAMME →
-        </button>
-
-        <button
-          onClick={() => navigate('/home')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#555',
-            cursor: 'pointer',
-            fontSize: 14,
-          }}
-        >
-          Retour à l'accueil
-        </button>
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: BG,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 32,
-        textAlign: 'center',
-      }}
-    >
-      <div
-        style={{
-          fontSize: 56,
-          marginBottom: 32,
-          animation:
-            'pulse 1.5s ease-in-out infinite',
-        }}
-      >
-        🧠
-      </div>
+    <div style={{ minHeight: '100vh', background: BG, padding: '56px 20px 40px', color: DARK }}>
+      <div style={{ width: '100%', maxWidth: 480, margin: '0 auto' }}>
+        <div style={{ fontSize: 13, fontWeight: 950, letterSpacing: '.16em', marginBottom: 54 }}>NOX<span style={{ color: ACCENT }}>.</span></div>
+        <div style={{ fontSize: 11, color: MUTED, textTransform: 'uppercase', letterSpacing: '.16em', fontWeight: 900, marginBottom: 10 }}>NOX Intelligence</div>
+        <h1 style={{ fontSize: 34, lineHeight: 1.03, fontWeight: 950, letterSpacing: '-.045em', margin: '0 0 12px' }}>CONSTRUCTION DE<br />TON PROGRAMME.</h1>
+        <p style={{ color: MUTED, fontSize: 14, lineHeight: 1.55, margin: '0 0 34px' }}>NOX assemble ton profil, tes contraintes et ton objectif pour construire ton point de départ.</p>
 
-      <div
-        style={{
-          fontSize: 11,
-          color: '#555',
-          textTransform: 'uppercase',
-          letterSpacing: '.15em',
-          marginBottom: 12,
-        }}
-      >
-        NOX Intelligence
-      </div>
-
-      <div
-        style={{
-          fontSize: 24,
-          fontWeight: 900,
-          color: '#fff',
-          letterSpacing: '-.02em',
-          marginBottom: 40,
-        }}
-      >
-        CONSTRUCTION DU PROGRAMME...
-      </div>
-
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 320,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-          marginBottom: 48,
-        }}
-      >
-        {STEPS.map((step, i) => (
-          <div
-            key={step}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              opacity:
-                i <= stepIdx ? 1 : 0.2,
-              transition: 'opacity .4s',
-            }}
-          >
-            <div
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                background:
-                  i < stepIdx
-                    ? ACCENT
-                    : i === stepIdx
-                      ? ACCENT + '44'
-                      : '#1a1a1a',
-                border:
-                  '2px solid ' +
-                  (i <= stepIdx
-                    ? ACCENT
-                    : '#1a1a1a'),
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                transition: 'all .4s',
-              }}
-            >
-              {i < stepIdx ? (
-                <span
-                  style={{
-                    fontSize: 12,
-                  }}
-                >
-                  ✓
-                </span>
-              ) : i === stepIdx ? (
-                <div
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: ACCENT,
-                    animation:
-                      'pulse 1s infinite',
-                  }}
-                />
-              ) : null}
+        <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 26, padding: 22, marginBottom: 18 }}>
+          {STEPS.map((step, i) => (
+            <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '11px 0', opacity: i <= stepIdx ? 1 : .34, transition: 'opacity .35s' }}>
+              <div style={{ width: 26, height: 26, borderRadius: 99, flexShrink: 0, background: i < stepIdx ? ACCENT : i === stepIdx ? '#efffc2' : BG, border: `1px solid ${i <= stepIdx ? ACCENT : BORDER}`, display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 950 }}>
+                {i < stepIdx ? '✓' : i === stepIdx ? '•' : i + 1}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: i === stepIdx ? 900 : 650, color: i < stepIdx ? DARK : i === stepIdx ? DARK : MUTED }}>{step}</div>
             </div>
-
-            <div
-              style={{
-                fontSize: 13,
-                color:
-                  i === stepIdx
-                    ? '#fff'
-                    : i < stepIdx
-                      ? ACCENT
-                      : '#333',
-                fontWeight:
-                  i === stepIdx
-                    ? 700
-                    : 400,
-                textAlign: 'left',
-              }}
-            >
-              {step}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {error && (
-        <div
-          style={{
-            background: '#ff444422',
-            border: '1px solid #ff4444',
-            borderRadius: 14,
-            padding: 16,
-            color: '#ff8888',
-            fontSize: 13,
-            marginBottom: 16,
-            maxWidth: 320,
-          }}
-        >
-          {error}
-
-          <button
-            onClick={() => void generate()}
-            disabled={generating}
-            style={{
-              display: 'block',
-              margin: '12px auto 0',
-              padding: '8px 20px',
-              background: '#ff4444',
-              border: 'none',
-              borderRadius: 10,
-              color: '#fff',
-              fontWeight: 800,
-              cursor: generating
-                ? 'default'
-                : 'pointer',
-              opacity: generating
-                ? 0.6
-                : 1,
-            }}
-          >
-            {generating
-              ? 'GÉNÉRATION...'
-              : 'RÉESSAYER'}
-          </button>
+          ))}
         </div>
-      )}
 
-      <style>{`
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-            transform: scale(1);
-          }
+        <div style={{ height: 7, background: '#E9ECE4', borderRadius: 99, overflow: 'hidden', marginBottom: 24 }}>
+          <div style={{ height: '100%', width: `${((stepIdx + 1) / STEPS.length) * 100}%`, background: ACCENT, borderRadius: 99, transition: 'width .4s ease' }} />
+        </div>
 
-          50% {
-            opacity: .6;
-            transform: scale(.95);
-          }
-        }
-      `}</style>
+        {error && (
+          <div style={{ background: '#FFF5F5', border: '1px solid #FFD2D2', borderRadius: 18, padding: 16, color: '#A32929', fontSize: 13, lineHeight: 1.5 }}>
+            {error}
+            <button onClick={() => void generate()} disabled={generating} style={{ display: 'block', width: '100%', marginTop: 14, padding: 13, background: DARK, border: 0, borderRadius: 13, color: '#fff', fontWeight: 900, cursor: generating ? 'default' : 'pointer', opacity: generating ? .6 : 1 }}>
+              {generating ? 'GÉNÉRATION...' : 'RÉESSAYER'}
+            </button>
+          </div>
+        )}
+
+        <p style={{ color: MUTED, fontSize: 11, lineHeight: 1.55, textAlign: 'center', marginTop: 28 }}>Le programme est une proposition personnalisée et peut être ajusté selon ta progression, ta récupération et tes contraintes.</p>
+      </div>
     </div>
   );
 }
