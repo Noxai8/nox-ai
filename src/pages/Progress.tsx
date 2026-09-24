@@ -137,20 +137,27 @@ export default function Progress() {
     const volData = Object.entries(weekVolumes).slice(-8).map(([week, vol]) => ({ week, vol: Math.round(vol) }));
     setVolumeData(volData);
 
-    // Nutrition par semaine
-    const weekNutrition: Record<string, { kcal: number; protein: number; days: number }> = {};
+    // Nutrition par semaine — moyenne sur les jours réellement renseignés
+    const weekNutrition: Record<string, { kcal: number; protein: number; loggedDays: Set<string> }> = {};
     (foodData || []).forEach((f: any) => {
-      const week = getWeekKey(new Date(f.created_at));
-      if (!weekNutrition[week]) weekNutrition[week] = { kcal: 0, protein: 0, days: 0 };
-      weekNutrition[week].kcal += f.calories || 0;
-      weekNutrition[week].protein += f.protein || 0;
+      if (!f.created_at) return;
+      const date = new Date(f.created_at);
+      const week = getWeekKey(date);
+      const day = date.toISOString().slice(0, 10);
+      if (!weekNutrition[week]) weekNutrition[week] = { kcal: 0, protein: 0, loggedDays: new Set<string>() };
+      weekNutrition[week].kcal += Number(f.calories) || 0;
+      weekNutrition[week].protein += Number(f.protein) || 0;
+      weekNutrition[week].loggedDays.add(day);
     });
-    // Calculer moyennes
-    const nutWeeks = Object.entries(weekNutrition).slice(-8).map(([week, data]) => ({
-      week,
-      avgKcal: Math.round(data.kcal / 7),
-      avgProtein: Math.round(data.protein / 7),
-    }));
+    const nutWeeks = Object.entries(weekNutrition).slice(-8).map(([week, data]) => {
+      const daysLogged = data.loggedDays.size;
+      return {
+        week,
+        avgKcal: daysLogged > 0 ? Math.round(data.kcal / daysLogged) : 0,
+        avgProtein: daysLogged > 0 ? Math.round(data.protein / daysLogged) : 0,
+        daysLogged,
+      };
+    });
     setNutritionWeeks(nutWeeks);
 
     setWorkouts(wkts || []);
@@ -301,8 +308,9 @@ export default function Progress() {
       const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
       const monthWorkouts = workouts.filter(w => w.created_at >= monthStart);
       const monthPRs = prs.filter(p => p.created_at >= monthStart);
-      const startW = bodyLogs[0]?.weight;
-      const endW = bodyLogs[bodyLogs.length - 1]?.weight;
+      const monthBodyLogs = bodyLogs.filter((b: any) => b.created_at >= monthStart && b.weight != null);
+      const startW = monthBodyLogs[0]?.weight;
+      const endW = monthBodyLogs[monthBodyLogs.length - 1]?.weight;
 
       const prompt = `Génère un rapport mensuel de progression fitness concis et motivant.
 
@@ -311,7 +319,7 @@ DONNÉES DU MOIS :
 - Records personnels : ${monthPRs.length}
 - Poids début : ${startW || 'N/A'}kg → fin : ${endW || 'N/A'}kg
 - Évolution : ${startW && endW ? ((endW - startW) > 0 ? '+' : '') + (endW - startW).toFixed(1) + 'kg' : 'N/A'}
-- Objectif : ${profile?.goal_type || 'transformation'}
+- Objectif : ${profile?.goal_type || 'non renseigné'}
 - Volume total : ${workouts.filter(w => w.created_at >= monthStart).reduce((s, w) => s + (w.total_volume || 0), 0).toFixed(0)}kg
 
 Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois prochain. Pas de markdown.`;
@@ -330,9 +338,10 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
   // Stats clés
   const totalWorkouts = workouts.length;
   const totalVolume = workouts.reduce((s, w) => s + (w.total_volume || 0), 0);
-  const startWeight = bodyLogs[0]?.weight;
-  const currentWeight = bodyLogs[bodyLogs.length - 1]?.weight;
-  const weightDelta = startWeight && currentWeight ? (currentWeight - startWeight).toFixed(1) : null;
+  const weightLogs = bodyLogs.filter((b: any) => b.weight != null);
+  const startWeight = weightLogs[0]?.weight;
+  const currentWeight = weightLogs[weightLogs.length - 1]?.weight;
+  const weightDelta = startWeight != null && currentWeight != null ? (Number(currentWeight) - Number(startWeight)).toFixed(1) : null;
   const weekWorkouts = workouts.filter(w => new Date(w.created_at) > new Date(Date.now() - 7 * 86400000)).length;
 
   type MainTab = 'timeline' | 'body' | 'training' | 'nutrition' | 'prs' | 'exercices';
@@ -463,13 +472,13 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
             {/* Évolution poids */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 11, color: '#8B8F86', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>ÉVOLUTION DU POIDS</div>
-              {bodyLogs.length > 1 ? (
+              {weightLogs.length > 1 ? (
                 <>
                   {/* Mini graphique SVG */}
                   <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 20, padding: 16, marginBottom: 12 }}>
-                    <svg width="100%" height="80" viewBox={`0 0 ${bodyLogs.length * 30} 80`} preserveAspectRatio="none">
-                      {bodyLogs.map((log, i) => {
-                        const weights = bodyLogs.map(l => l.weight).filter(Boolean);
+                    <svg width="100%" height="80" viewBox={`0 0 ${weightLogs.length * 30} 80`} preserveAspectRatio="none">
+                      {weightLogs.map((log, i) => {
+                        const weights = weightLogs.map(l => l.weight).filter(Boolean);
                         const minW = Math.min(...weights);
                         const maxW = Math.max(...weights);
                         const range = maxW - minW || 1;
@@ -477,13 +486,13 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
                         const y = 70 - ((log.weight - minW) / range) * 60;
                         return i > 0 ? (
                           <line key={i}
-                            x1={(i-1)*30+15} y1={70-((bodyLogs[i-1].weight-minW)/range)*60}
+                            x1={(i-1)*30+15} y1={70-((weightLogs[i-1].weight-minW)/range)*60}
                             x2={x} y2={y}
                             stroke={ACCENT} strokeWidth="2" />
                         ) : null;
                       })}
-                      {bodyLogs.map((log, i) => {
-                        const weights = bodyLogs.map(l => l.weight).filter(Boolean);
+                      {weightLogs.map((log, i) => {
+                        const weights = weightLogs.map(l => l.weight).filter(Boolean);
                         const minW = Math.min(...weights);
                         const maxW = Math.max(...weights);
                         const range = maxW - minW || 1;
@@ -493,7 +502,7 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
                       })}
                     </svg>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                      <span style={{ fontSize: 10, color: '#8B8F86' }}>{new Date(bodyLogs[0].created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                      <span style={{ fontSize: 10, color: '#8B8F86' }}>{new Date(weightLogs[0].created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
                       <span style={{ fontSize: 12, fontWeight: 900, color: ACCENT }}>
                         {weightDelta && (parseFloat(weightDelta) > 0 ? '+' : '')}{weightDelta}kg
                       </span>
@@ -592,7 +601,7 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
               {[
                 { label: 'Séances totales', value: totalWorkouts, unit: '' },
                 { label: 'Cette semaine', value: weekWorkouts, unit: '' },
-                { label: 'Volume total', value: Math.round(totalVolume / 1000), unit: 'tonnes' },
+                { label: 'Volume total', value: totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) : Math.round(totalVolume), unit: totalVolume >= 1000 ? 't' : 'kg' },
                 { label: 'Durée moy.', value: Math.round(workouts.reduce((s, w) => s + (w.duration_minutes || 0), 0) / Math.max(workouts.length, 1)), unit: 'min' },
               ].map(({ label, value, unit }) => (
                 <div key={label} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 20, padding: 16 }}>
@@ -683,7 +692,7 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
                     <span style={{ fontSize: 10, color: '#8B8F86' }}>{new Date(exerciseHistory[0].created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
                     <span style={{ fontSize: 13, fontWeight: 900, color: ACCENT }}>
-                      +{(exerciseHistory[exerciseHistory.length-1].weight - exerciseHistory[0].weight).toFixed(1)}kg
+                      {(() => { const delta = Number(exerciseHistory[exerciseHistory.length - 1].weight) - Number(exerciseHistory[0].weight); return `${delta > 0 ? '+' : ''}${delta.toFixed(1)}kg`; })()}
                     </span>
                     <span style={{ fontSize: 10, color: '#8B8F86' }}>Aujourd'hui</span>
                   </div>
