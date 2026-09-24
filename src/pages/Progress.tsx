@@ -4,10 +4,13 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 
-const ACCENT = '#B7FF00';
-const BG = '#F6F7F2';
+const ACCENT = '#C8FF00';
+const BG = '#F7F8F4';
+const WHITE  = '#FFFFFF';
 const SURFACE = '#FFFFFF';
-const BORDER = '#E8EAE2';
+const BORDER = '#E8EAE4';
+const BLACK  = '#0B0B0B';
+const MUTED  = '#7A7F76';
 
 export default function Progress() {
   const { user } = useAuth();
@@ -344,59 +347,49 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, color: '#090909', paddingBottom: 105 }}>
+    <div style={{ minHeight: '100vh', background: BG, color: BLACK, paddingBottom: 110 }}>
       {/* Header */}
-      <div style={{ padding: '24px 20px 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ fontSize: 28, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.07em', color: '#090909' }}>NOX</div>
-              <div style={{ width: 9, height: 9, borderRadius: '50%', background: ACCENT }} />
-            </div>
-            <div style={{ fontSize: 10, color: '#9A9D96', fontWeight: 800, marginTop: 7, letterSpacing: '.08em' }}>PROGRÈS</div>
-          </div>
-          <button onClick={generateMonthlyReport} disabled={reportLoading}
-            style={{ padding: '10px 14px', background: '#090909', border: 0, borderRadius: 20, color: '#fff', fontSize: 11, fontWeight: 850, cursor: 'pointer', touchAction: 'manipulation' }}>
-            {reportLoading ? '...' : '📋 Rapport'}
-          </button>
-        </div>
-
-        <div style={{ margin: '24px 0 18px' }}>
-          <div style={{ fontSize: 13, color: '#777B72', fontWeight: 700 }}>Ton évolution en un coup d'œil</div>
-          <h1 style={{ margin: '3px 0 0', fontSize: 34, lineHeight: 1, fontWeight: 950, letterSpacing: '-.055em', color: '#090909' }}>
-            Progrès.
+      <div style={{ padding: '22px 20px 0' }}>
+        <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.12em', marginBottom: 6 }}>PROGRÈS</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <h1 style={{ margin: 0, fontSize: 36, lineHeight: .95, fontWeight: 950, letterSpacing: '-.05em', color: BLACK }}>
+            TA<br />TRANSFORMATION.
           </h1>
+          <button onClick={generateMonthlyReport} disabled={reportLoading}
+            style={{ padding: '10px 16px', background: BLACK, border: 0, borderRadius: 14, color: ACCENT, fontSize: 11, fontWeight: 900, cursor: 'pointer', touchAction: 'manipulation', flexShrink: 0 }}>
+            {reportLoading ? '...' : 'Rapport'}
+          </button>
         </div>
 
         {/* Rapport mensuel */}
         {report && (
-          <div style={{ background: ACCENT + '0d', border: '1px solid ' + ACCENT + '33', borderRadius: 20, padding: '12px 16px', marginBottom: 14 }}>
-            <div style={{ fontSize: 10, color: ACCENT, fontWeight: 800, textTransform: 'uppercase', marginBottom: 6 }}>📋 RAPPORT DU MOIS</div>
-            <div style={{ fontSize: 13, color: '#343730', lineHeight: 1.6 }}>{report}</div>
-            <button onClick={() => setReport(null)} style={{ marginTop: 8, background: 'none', border: 'none', color: '#8B8F86', cursor: 'pointer', fontSize: 11 }}>Fermer</button>
+          <div style={{ background: '#F0FFD0', border: '1px solid #DDF59C', borderRadius: 20, padding: '16px 18px', marginBottom: 14 }}>
+            <div style={{ fontSize: 10, color: '#687600', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>RAPPORT DU MOIS</div>
+            <div style={{ fontSize: 14, color: BLACK, lineHeight: 1.6 }}>{report}</div>
+            <button onClick={() => setReport(null)} style={{ marginTop: 10, background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 12 }}>Fermer</button>
           </div>
         )}
 
         {/* Stats rapides */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, marginBottom: 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
           {[
             { label: 'Séances', value: totalWorkouts },
             { label: 'PR', value: prs.length },
             { label: 'Poids Δ', value: weightDelta ? (parseFloat(weightDelta) > 0 ? '+' : '') + weightDelta + 'kg' : '—' },
             { label: 'Volume', value: totalVolume > 1000 ? Math.round(totalVolume / 1000) + 't' : Math.round(totalVolume) + 'kg' },
           ].map(({ label, value }) => (
-            <div key={label} style={{ padding: '10px 0', textAlign: 'center' }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: ACCENT }}>{value}</div>
-              <div style={{ fontSize: 9, color: '#8B8F86', fontWeight: 700, textTransform: 'uppercase' }}>{label}</div>
+            <div key={label} style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: '14px 0', textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 950, color: BLACK }}>{value}</div>
+              <div style={{ fontSize: 9, color: MUTED, fontWeight: 700, textTransform: 'uppercase', marginTop: 3 }}>{label}</div>
             </div>
           ))}
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, overflowX: 'auto', background: '#ECEEE8', borderRadius: 16, padding: 4, marginBottom: 14 }}>
+        <div style={{ display: 'flex', gap: 4, overflowX: 'auto', background: '#ECEEE8', borderRadius: 18, padding: 4, marginBottom: 0 }}>
           {TABS.map(([id, label]) => (
-            <button key={id} onClick={() => setTab(id)}
-              style={{ padding: '10px 15px', background: tab === id ? '#090909' : 'transparent', border: 'none', borderRadius: 12, color: tab === id ? '#fff' : '#777B72', fontSize: 11, fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap', touchAction: 'manipulation' }}>
+            <button key={id} onClick={() => setTab(id as any)}
+              style={{ padding: '10px 14px', background: tab === id ? BLACK : 'transparent', border: 'none', borderRadius: 14, color: tab === id ? ACCENT : MUTED, fontSize: 11, fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap', touchAction: 'manipulation' }}>
               {label}
             </button>
           ))}
