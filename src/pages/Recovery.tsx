@@ -3,17 +3,20 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const ACCENT = '#C8FF00';
+const BG = '#F7F8F4';
+const SURFACE = '#FFFFFF';
+const BORDER = '#E8EAE4';
+const BLACK = '#0B0B0B';
+const MUTED = '#7A7F76';
+const SOFT_LIME = '#F0FFD0';
 
 const WEARABLES = [
-  { id: 'apple_watch', name: 'Apple Watch', icon: '⌚', color: '#555', connected: false },
-  { id: 'oura', name: 'Oura Ring', icon: '💍', color: '#555', connected: false },
-  { id: 'whoop', name: 'WHOOP', icon: '📿', color: '#555', connected: false },
-  { id: 'garmin', name: 'Garmin', icon: '🏃', color: '#555', connected: false },
-  { id: 'fitbit', name: 'Fitbit', icon: '⌚', color: '#555', connected: false },
+  { id: 'apple_watch', name: 'Apple Watch', icon: '⌚', color: MUTED, connected: false },
+  { id: 'oura', name: 'Oura Ring', icon: '💍', color: MUTED, connected: false },
+  { id: 'whoop', name: 'WHOOP', icon: '📿', color: MUTED, connected: false },
+  { id: 'garmin', name: 'Garmin', icon: '🏃', color: MUTED, connected: false },
+  { id: 'fitbit', name: 'Fitbit', icon: '⌚', color: MUTED, connected: false },
 ];
 
 export default function Recovery() {
@@ -56,14 +59,14 @@ export default function Recovery() {
 
     let label, color, advice;
     if (score >= 75) {
-      label = 'PRÊT À PERFORMER'; color = ACCENT;
-      advice = 'Ton corps est récupéré. Séance à pleine intensité possible.';
+      label = 'TU PEUX GARDER LE RYTHME.'; color = ACCENT;
+      advice = 'Tes signaux de récupération sont bons aujourd’hui. Tu peux maintenir la séance et le rythme prévus.';
     } else if (score >= 50) {
-      label = 'RÉCUPÉRATION MODÉRÉE'; color = '#ffaa00';
-      advice = 'Tu peux t\'entraîner mais réduis l\'intensité de 20%. Priorité aux mouvements composés.';
+      label = 'RALENTIS UN PEU.'; color = '#ffaa00';
+      advice = 'Ta récupération est moyenne aujourd’hui. Tu peux bouger, mais évite de forcer inutilement et reste attentif à tes sensations.';
     } else {
-      label = 'REPOS RECOMMANDÉ'; color = '#ff4444';
-      advice = 'Ton corps signale de la fatigue. Repos actif ou séance légère seulement.';
+      label = 'PRIORITÉ RÉCUPÉRATION.'; color = '#ff4444';
+      advice = 'Tes signaux indiquent une récupération faible aujourd’hui. Privilégie le repos actif ou une séance légère.';
     }
     setReadiness({ score, label, color, advice });
   };
@@ -88,13 +91,13 @@ export default function Recovery() {
 
   const ScaleSelector = ({ label, stateKey, emoji }: any) => (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 12, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
-        {emoji} {label} <span style={{ color: '#333' }}>(1 = très bien · 5 = très mauvais)</span>
+      <div style={{ fontSize: 12, color: MUTED, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
+        {emoji} {label} <span style={{ color: MUTED }}>(1 = très bien · 5 = très mauvais)</span>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         {[1, 2, 3, 4, 5].map(v => (
           <button key={v} onClick={() => setCheckin(p => ({ ...p, [stateKey]: String(v) }))}
-            style={{ flex: 1, padding: '12px 0', background: checkin[stateKey as keyof typeof checkin] === String(v) ? ACCENT : SURFACE, border: '1px solid ' + (checkin[stateKey as keyof typeof checkin] === String(v) ? ACCENT : BORDER), borderRadius: 10, color: checkin[stateKey as keyof typeof checkin] === String(v) ? '#000' : '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+            style={{ flex: 1, padding: '12px 0', background: checkin[stateKey as keyof typeof checkin] === String(v) ? BLACK : SURFACE, border: '1px solid ' + (checkin[stateKey as keyof typeof checkin] === String(v) ? BLACK : BORDER), borderRadius: 16, color: checkin[stateKey as keyof typeof checkin] === String(v) ? '#000' : '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
             {v}
           </button>
         ))}
@@ -104,33 +107,38 @@ export default function Recovery() {
 
   return (
     <div style={{ minHeight: '100vh', background: BG, paddingBottom: 80 }}>
-      <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid ' + BORDER }}>
-        <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Récupération</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>RECOVERY</div>
+      <div style={{ maxWidth: 560, margin: '0 auto', padding: '28px 20px 8px' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em' }}>RÉCUPÉRATION</div>
+        <div style={{ marginTop: 10, fontSize: 40, lineHeight: .95, letterSpacing: '-.04em', fontWeight: 950, color: BLACK }}>
+          TON CORPS<br />RÉCUPÈRE AUSSI.
+        </div>
+        <div style={{ marginTop: 16, fontSize: 14, lineHeight: 1.5, color: MUTED }}>
+          Dis à NOX comment ton corps se sent aujourd’hui. Tes signaux de récupération servent à adapter ses recommandations.
+        </div>
       </div>
 
-      <div style={{ padding: '20px 20px 0' }}>
+      <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 20px 0' }}>
 
         {/* Score readiness */}
         {readiness && (
-          <div style={{ background: SURFACE, border: '1px solid ' + readiness.color + '44', borderRadius: 16, padding: 20, marginBottom: 16, textAlign: 'center' }}>
-            <div style={{ fontSize: 56, fontWeight: 900, color: readiness.color, lineHeight: 1 }}>{readiness.score}</div>
-            <div style={{ fontSize: 14, fontWeight: 900, color: readiness.color, marginTop: 8 }}>{readiness.label}</div>
-            <div style={{ fontSize: 13, color: '#888', marginTop: 8, lineHeight: 1.5 }}>{readiness.advice}</div>
+          <div style={{ background: SOFT_LIME, border: '1px solid ' + BORDER, borderRadius: 24, padding: 20, marginBottom: 16, textAlign: 'center' }}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: BLACK, letterSpacing: '.1em', textTransform: 'uppercase' }}>RECOMMANDATION NOX</div>
+            <div style={{ fontSize: 28, lineHeight: 1, fontWeight: 950, color: BLACK, marginTop: 12, letterSpacing: '-.03em' }}>{readiness.label}</div>
+            <div style={{ fontSize: 14, color: '#4F534C', marginTop: 12, lineHeight: 1.55 }}>{readiness.advice}</div>
           </div>
         )}
 
         {/* Check-in du jour */}
         {!todayCheckin ? (
-          <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, padding: 20, marginBottom: 16 }}>
-            <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', marginBottom: 20 }}>CHECK-IN RÉCUPÉRATION</div>
+          <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 24, padding: 20, marginBottom: 16 }}>
+            <div style={{ fontSize: 15, fontWeight: 900, color: BLACK, marginBottom: 20 }}>CHECK-IN RÉCUPÉRATION</div>
 
             {/* Sommeil */}
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>😴 HEURES DE SOMMEIL</div>
+              <div style={{ fontSize: 12, color: MUTED, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>😴 HEURES DE SOMMEIL</div>
               <input value={checkin.sleep_hours} onChange={e => setCheckin(p => ({ ...p, sleep_hours: e.target.value }))}
                 type="number" step="0.5" min="0" max="12" placeholder="7.5"
-                style={{ width: '100%', padding: '12px 16px', background: '#0d0d0d', border: '1px solid ' + BORDER, borderRadius: 10, color: '#fff', fontSize: 18, fontWeight: 700, boxSizing: 'border-box', outline: 'none' }} />
+                style={{ width: '100%', padding: '12px 16px', background: BG, border: '1px solid ' + BORDER, borderRadius: 16, color: BLACK, fontSize: 18, fontWeight: 700, boxSizing: 'border-box', outline: 'none' }} />
             </div>
 
             <ScaleSelector label="Qualité du sommeil" stateKey="sleep_quality" emoji="🌙" />
@@ -140,53 +148,34 @@ export default function Recovery() {
 
             {/* HRV optionnel */}
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
+              <div style={{ fontSize: 12, color: MUTED, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
                 📱 HRV (optionnel — depuis ta montre)
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <input value={checkin.hrv} onChange={e => setCheckin(p => ({ ...p, hrv: e.target.value }))}
                   type="number" placeholder="HRV ms"
-                  style={{ flex: 1, padding: '10px 14px', background: '#0d0d0d', border: '1px solid ' + BORDER, borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none' }} />
+                  style={{ flex: 1, padding: '10px 14px', background: BG, border: '1px solid ' + BORDER, borderRadius: 16, color: BLACK, fontSize: 14, outline: 'none' }} />
                 <input value={checkin.resting_hr} onChange={e => setCheckin(p => ({ ...p, resting_hr: e.target.value }))}
                   type="number" placeholder="FC repos bpm"
-                  style={{ flex: 1, padding: '10px 14px', background: '#0d0d0d', border: '1px solid ' + BORDER, borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none' }} />
+                  style={{ flex: 1, padding: '10px 14px', background: BG, border: '1px solid ' + BORDER, borderRadius: 16, color: BLACK, fontSize: 14, outline: 'none' }} />
               </div>
             </div>
 
             <button onClick={saveCheckin}
-              style={{ width: '100%', padding: 16, background: ACCENT, border: 'none', borderRadius: 12, color: '#000', fontWeight: 900, fontSize: 15, cursor: 'pointer' }}>
+              style={{ width: '100%', padding: 16, background: BLACK, border: 'none', borderRadius: 18, color: '#fff', fontWeight: 900, fontSize: 15, cursor: 'pointer' }}>
               ENREGISTRER MON CHECK-IN
             </button>
           </div>
         ) : (
-          <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 14, padding: 16, marginBottom: 16 }}>
+          <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 22, padding: 16, marginBottom: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: ACCENT }}>✓ Check-in récupération enregistré aujourd'hui</div>
           </div>
         )}
 
-        {/* Wearables */}
-        <div style={{ fontSize: 13, fontWeight: 800, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>
-          INTÉGRATIONS WEARABLES
-        </div>
-        <div style={{ background: '#111', border: '1px solid #1a1a1a', borderRadius: 14, padding: '4px 0', marginBottom: 16 }}>
-          {WEARABLES.map((w, i) => (
-            <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderBottom: i < WEARABLES.length - 1 ? '1px solid #1a1a1a' : 'none' }}>
-              <span style={{ fontSize: 22, flexShrink: 0 }}>{w.icon}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{w.name}</div>
-                <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>Disponible prochainement</div>
-              </div>
-              <div style={{ background: '#1a1a1a', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: '#555', fontWeight: 700 }}>
-                BIENTÔT
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ background: '#4488ff11', border: '1px solid #4488ff22', borderRadius: 14, padding: 16 }}>
-          <div style={{ fontSize: 12, color: '#4488ff', fontWeight: 800, marginBottom: 6 }}>À VENIR</div>
-          <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6 }}>
-            Apple Health, Oura, WHOOP, Garmin Connect et Fitbit seront intégrés pour récupérer automatiquement HRV, sommeil, FC repos et activité quotidienne — et les injecter dans la boucle NOX.
+        <div style={{ marginTop: 8, padding: '16px 18px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 22 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: MUTED, letterSpacing: '.06em' }}>DONNÉES AVANCÉES</div>
+          <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.5, color: MUTED }}>
+            HRV et fréquence cardiaque restent optionnelles. Les intégrations automatiques pourront être ajoutées plus tard sans bloquer ton check-in quotidien.
           </div>
         </div>
       </div>
