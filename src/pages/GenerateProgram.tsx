@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
 const ACCENT = '#c8ff00';
-const BG = '#F6F7F2';
+const BG = '#F7F8F4';
 const SURFACE = '#FFFFFF';
 const BORDER = '#E7E9E2';
 const DARK = '#111111';
@@ -458,6 +458,11 @@ function readableGenerationError(error: unknown): string {
     return 'La réponse IA était incomplète ou mal formatée.';
   }
 
+  if (message.startsWith('PROFILE_INCOMPLETE:')) {
+    const missing = message.slice('PROFILE_INCOMPLETE:'.length);
+    return `Ton profil est incomplet pour générer un programme fiable : ${missing}. Complète ces informations puis réessaie.`;
+  }
+
   if (message === 'PROGRAM_INVALID') {
     return 'Le programme généré avait une structure invalide.';
   }
@@ -519,6 +524,85 @@ function shouldRetryGeneration(error: unknown): boolean {
     message.startsWith('SETS_INVALID:') ||
     message.startsWith('REPS_MISSING:')
   );
+}
+
+
+function cleanProfileText(value: unknown): string {
+  return typeof value === 'string' && value.trim() ? value.trim() : '';
+}
+
+function resolveTrainingEquipment(profile: any): string {
+  const explicitEquipment = cleanProfileText(profile?.equipment);
+  if (explicitEquipment) return explicitEquipment;
+
+  const location = cleanProfileText(profile?.training_location).toLowerCase();
+
+  if (!location) return 'non renseigné';
+
+  if (
+    location.includes('maison') ||
+    location.includes('domicile') ||
+    location.includes('home')
+  ) {
+    return 'entraînement à domicile ; utiliser uniquement le matériel explicitement disponible dans le profil, sinon privilégier le poids du corps';
+  }
+
+  if (
+    location.includes('salle') ||
+    location.includes('gym')
+  ) {
+    return 'salle de sport ; ne pas supposer qu’une machine précise est disponible si ce n’est pas indiqué';
+  }
+
+  if (
+    location.includes('extérieur') ||
+    location.includes('exterieur') ||
+    location.includes('outdoor')
+  ) {
+    return 'extérieur ; privilégier poids du corps et exercices ne nécessitant pas de machine';
+  }
+
+  return profile?.training_location;
+}
+
+function requireGenerationProfile(
+  profile: any,
+  availableDays: string[]
+): {
+  sessionCount: number;
+  sessionLength: number;
+  goalType: string;
+  experienceLevel: string;
+  equipment: string;
+} {
+  const missing: string[] = [];
+
+  const goalType = cleanProfileText(profile?.goal_type);
+  const experienceLevel = cleanProfileText(profile?.experience_level);
+  const equipment = resolveTrainingEquipment(profile);
+  const sessionLength = Number(profile?.session_length_min);
+
+  if (!goalType) missing.push('objectif');
+  if (!experienceLevel) missing.push('niveau sportif');
+  if (availableDays.length === 0) missing.push('jours disponibles');
+  if (!Number.isFinite(sessionLength) || sessionLength <= 0) {
+    missing.push('durée des séances');
+  }
+  if (equipment === 'non renseigné') {
+    missing.push("lieu ou matériel d'entraînement");
+  }
+
+  if (missing.length > 0) {
+    throw new Error(`PROFILE_INCOMPLETE:${missing.join(', ')}`);
+  }
+
+  return {
+    sessionCount: availableDays.length,
+    sessionLength,
+    goalType,
+    experienceLevel,
+    equipment,
+  };
 }
 
 export default function GenerateProgram() {
@@ -603,41 +687,50 @@ export default function GenerateProgram() {
 
     const availableDays = getAvailableDays(profile);
 
-    const sessionCount =
-      availableDays.length > 0
-        ? availableDays.length
-        : 4;
+    let generationProfile: ReturnType<typeof requireGenerationProfile>;
 
-    const sessionLength =
-      Number(profile?.session_length_min) > 0
-        ? Number(profile.session_length_min)
-        : 60;
+    try {
+      generationProfile = requireGenerationProfile(profile, availableDays);
+    } catch (profileError) {
+      setError(readableGenerationError(profileError));
+      return;
+    }
+
+    const {
+      sessionCount,
+      sessionLength,
+      goalType: profileGoalType,
+      experienceLevel,
+      equipment,
+    } = generationProfile;
 
     setGenerating(true);
     setStepIdx(0);
     setError('');
 
     try {
-      let goalType =
-        typeof profile?.goal_type === 'string' && profile.goal_type.trim()
-          ? profile.goal_type.trim()
-          : 'transformation physique';
+      let goalType = profileGoalType;
 
-      if (goalType === 'transformation physique') {
-        try {
-          const { data: goalData, error: goalError } = await supabase
-            .from('goals')
-            .select('goal_type')
-            .eq('user_id', user.id)
-            .limit(1)
-            .maybeSingle();
+      // Si un objectif dédié existe dans la table goals, on l'utilise.
+      // En cas d'absence ou d'erreur, on conserve l'objectif réel du profil
+      // au lieu d'inventer un objectif générique.
+      try {
+        const { data: goalData, error: goalError } = await supabase
+          .from('goals')
+          .select('goal_type')
+          .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle();
 
-          if (!goalError && typeof goalData?.goal_type === 'string' && goalData.goal_type.trim()) {
-            goalType = goalData.goal_type.trim();
-          }
-        } catch (goalLoadError) {
-          console.warn('Objectif NOX indisponible :', goalLoadError);
+        if (
+          !goalError &&
+          typeof goalData?.goal_type === 'string' &&
+          goalData.goal_type.trim()
+        ) {
+          goalType = goalData.goal_type.trim();
         }
+      } catch (goalLoadError) {
+        console.warn('Objectif NOX indisponible :', goalLoadError);
       }
 
       let desiredPhysique = futureGoalFromState;
@@ -671,19 +764,16 @@ Ta mission est de créer un programme d'entraînement personnalisé, cohérent, 
 
 PROFIL UTILISATEUR :
 - Objectif : ${goalType}
-- Niveau : ${profile?.experience_level || 'débutant'}
+- Niveau : ${experienceLevel}
 - Séances par semaine : ${sessionCount}
 - Durée d'une séance : ${sessionLength} minutes
-- Jours disponibles : ${
-        availableDays.length > 0
-          ? availableDays.join(', ')
-          : 'LUN, MER, VEN, SAM'
-      }
-- Équipement : ${profile?.equipment || 'salle complète'}
-- Blessures / contraintes : ${profile?.injuries || 'aucune'}
-- Poids actuel : ${profile?.starting_weight_kg || '?'} kg
-- Activité quotidienne : ${profile?.activity_level || 'modérée'}
-- Motivation : ${profile?.motivation || 'améliorer mon physique'}
+- Jours disponibles : ${availableDays.join(', ')}
+- Lieu d'entraînement : ${cleanProfileText(profile?.training_location) || 'non renseigné'}
+- Équipement réellement connu : ${equipment}
+- Blessures / contraintes : ${cleanProfileText(profile?.injuries) || 'non renseigné'}
+- Poids actuel : ${profile?.starting_weight_kg != null ? `${profile.starting_weight_kg} kg` : 'non renseigné'}
+- Activité quotidienne : ${cleanProfileText(profile?.activity_level) || 'non renseigné'}
+- Motivation : ${cleanProfileText(profile?.motivation) || 'non renseignée'}
 - Physique souhaité décrit dans NOX Future : ${desiredPhysique || 'non renseigné'}
 
 Utilise la description NOX Future comme direction personnelle, sans promettre qu'un physique précis sera atteint ni dans quel délai.
@@ -754,8 +844,10 @@ RÈGLES DE PROGRAMMATION :
 - Adapte la structure au nombre réel de séances.
 - Ne force pas automatiquement un split push/pull/legs.
 - Choisis la structure la plus pertinente selon l'objectif, le niveau et la fréquence.
-- Adapte tous les exercices au matériel disponible.
-- Respecte les blessures et contraintes déclarées.
+- Adapte tous les exercices au matériel réellement connu.
+- Si le lieu est le domicile et qu'aucun matériel précis n'est renseigné, n'invente jamais de barre, haltères, poulie ou machine : privilégie le poids du corps.
+- Si une donnée du profil est indiquée "non renseigné", ne transforme jamais cette absence en information supposée.
+- Respecte les blessures et contraintes déclarées. Si elles sont non renseignées, ne prétends pas que l'utilisateur n'a aucune blessure.
 - Place généralement les mouvements les plus techniques et exigeants avant les exercices d'isolation.
 - Le volume doit rester récupérable.
 - Débutant : privilégie généralement 2 à 3 séries de travail par exercice.
