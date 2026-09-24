@@ -28,6 +28,7 @@ export default function NoxFuture() {
   const [projection, setProjection] = useState<any>(null);
   const [error, setError] = useState('');
   const [credits, setCredits] = useState({ used: 0, max: 1, canGenerate: true });
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -39,18 +40,108 @@ export default function NoxFuture() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('profiles').select('*').eq('id', user.id).maybeSingle().then(({data}) => {
-      setProfile(data);
-      const plan = data?.subscription_plan || 'free';
-      const max = ({free:1,nox:1,pro:999,ultra:999} as Record<string,number>)[plan] || 1;
-      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-      supabase.from('future_you_generations').select('id,prompt,projection_text,created_at').eq('user_id',user.id).gte('created_at',monthStart)
-        .then(({data: rows}) => {
-          const used=rows?.length||0;
-          setCredits({used,max,canGenerate:max>=999||used<max});
-        });
-    });
-  },[user]);
+
+    let cancelled = false;
+
+    const loadFuture = async () => {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (profileError) {
+        console.error('NOX Future : profil indisponible', profileError);
+      }
+
+      setProfile(profileData || null);
+
+      const plan = profileData?.subscription_plan || 'free';
+      const max = ({ free: 1, nox: 1, pro: 999, ultra: 999 } as Record<string, number>)[plan] || 1;
+      const monthStart = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        1
+      ).toISOString();
+
+      const { data: monthRows, error: monthError } = await supabase
+        .from('future_you_generations')
+        .select('id')
+        .eq('user_id', user.id)
+        .gte('created_at', monthStart);
+
+      if (!cancelled) {
+        if (monthError) {
+          console.warn('NOX Future : crédits indisponibles', monthError);
+        }
+        const used = monthRows?.length || 0;
+        setCredits({ used, max, canGenerate: max >= 999 || used < max });
+      }
+
+      const { data: latest, error: historyError } = await supabase
+        .from('future_you_generations')
+        .select('id,prompt,projection_text,source_photo_url,generated_image_url,status,created_at')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (historyError) {
+        console.warn('NOX Future : historique indisponible', historyError);
+        setHistoryLoaded(true);
+        return;
+      }
+
+      if (latest) {
+        let restored: any = {};
+
+        if (typeof latest.projection_text === 'string' && latest.projection_text.trim()) {
+          try {
+            restored = JSON.parse(latest.projection_text);
+          } catch {
+            restored = { message_coach: latest.projection_text };
+          }
+        }
+
+        restored.projected_image =
+          latest.generated_image_url ||
+          restored.projected_image ||
+          restored.image_url ||
+          null;
+
+        restored.titre = restored.titre || 'TON NOX FUTURE';
+        restored.tagline = restored.tagline || 'Une vision possible de ton objectif.';
+        restored.message_coach =
+          restored.message_coach ||
+          'Cette projection est un repère visuel lié à ton objectif.';
+
+        setProjection(restored);
+
+        if (latest.prompt) setGoal(latest.prompt);
+        if (latest.source_photo_url) {
+          setPhotos({ face: latest.source_photo_url });
+        }
+
+        // Hors onboarding, /future doit montrer directement la dernière direction.
+        if (!onboardingFlow) {
+          setStep('result');
+        }
+      }
+
+      setHistoryLoaded(true);
+    };
+
+    void loadFuture();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, onboardingFlow]);
 
   useEffect(() => () => {
     streamRef.current?.getTracks().forEach(t=>t.stop());
@@ -169,8 +260,8 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.`;
       const sourcePhoto = photos.face || photos.side || photos.back || null;
       const {error:saveError}=await supabase.from('future_you_generations').insert({
         user_id: user.id,
-        source_photo_url: sourcePhoto ? sourcePhoto.slice(0,2000) : null,
-        generated_image_url: null,
+        source_photo_url: sourcePhoto || null,
+        generated_image_url: parsed.projected_image || null,
         projection_months: 3,
         prompt: goal,
         projection_text: typeof parsed === 'string' ? parsed : JSON.stringify(parsed),
@@ -188,6 +279,15 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.`;
   };
 
   const continueFlow=()=> navigate('/generate-program',{state:{fromFuture:true,goalDescription:goal}});
+
+  if (!historyLoaded && !onboardingFlow) {
+    return <div style={{minHeight:'100dvh',background:BG,color:BLACK,display:'grid',placeItems:'center',padding:24}}>
+      <div style={{textAlign:'center'}}>
+        <div style={{fontSize:13,fontWeight:950,letterSpacing:'.16em',marginBottom:12}}>NOX<span style={{color:ACCENT}}>.</span></div>
+        <div style={{fontSize:12,color:MUTED,fontWeight:800}}>CHARGEMENT DE TA DIRECTION...</div>
+      </div>
+    </div>;
+  }
 
   return <div style={{minHeight:'100dvh',background:BG,color:BLACK,paddingBottom:onboardingFlow?24:86}}>
     <input ref={inputRef} type="file" accept="image/*" hidden onChange={importPhoto}/>
