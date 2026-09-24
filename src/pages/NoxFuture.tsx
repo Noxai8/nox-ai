@@ -167,7 +167,7 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.`;
     }
   };
 
-  const continueFlow=()=> onboardingFlow ? navigate('/generate-program',{state:{fromFuture:true,goalDescription:goal}}) : navigate('/home');
+  const continueFlow=()=> navigate('/generate-program',{state:{fromFuture:true,goalDescription:goal}});
 
   return <div style={{minHeight:'100dvh',background:BG,color:BLACK,paddingBottom:onboardingFlow?24:86}}>
     <input ref={inputRef} type="file" accept="image/*" hidden onChange={importPhoto}/>
@@ -258,7 +258,7 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.`;
           <Eyebrow>MESSAGE NOX</Eyebrow><div style={{fontSize:14,lineHeight:1.65,fontWeight:650}}>{projection.message_coach}</div>
         </div>
         <div style={notice}>Projection IA illustrative et non garantie. Elle représente un scénario visuel possible ; ton évolution réelle peut être différente.</div>
-        <button onClick={continueFlow} style={{...primary(true),marginTop:18}}>{onboardingFlow?'CONTINUER VERS MON PROGRAMME':'TERMINER'} <ChevronRight size={18}/></button>
+        <button onClick={continueFlow} style={{...primary(true),marginTop:18}}>CONSTRUIRE LE CHEMIN <ChevronRight size={18}/></button>
         {!onboardingFlow&&<button onClick={()=>{setProjection(null);setGoal('');setPhotos({});setStep('consent')}} style={{...secondary,marginTop:10}}><RotateCcw size={16}/> NOUVELLE PROJECTION</button>}
       </>}
     </main>
