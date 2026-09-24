@@ -1,1021 +1,362 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
-import TutorialTooltip from '../components/TutorialTooltip';
-import {
-  getNoxExerciseCoachTips,
-  getNoxExerciseHdCover,
-  getNoxExerciseMuscles,
-  getNoxExerciseSteps,
-  getNoxExerciseThumbnail,
-  resolveNoxExercise,
-} from '../lib/noxExercises';
+import { ArrowLeft, ChevronRight, Plus } from 'lucide-react';
 
-const ACCENT = '#B7FF00';
-const BG = '#F6F7F2';
-const SURFACE = '#FFFFFF';
-const BORDER = '#E4E4DF';
-const MUTED = '#77776F';
+const ACCENT = '#C8FF00';
+const BG     = '#F7F8F4';
+const WHITE  = '#FFFFFF';
+const BLACK  = '#0B0B0B';
+const MUTED  = '#7A7F76';
+const BORDER = '#E8EAE4';
+const LIME   = '#F0FFD0';
 
-type Filter = 'Tous' | 'Pectoraux' | 'Dos' | 'Jambes' | 'Épaules' | 'Bras';
-
-function resolvedNoxExercise(exercise: any) {
-  return resolveNoxExercise({
-    exercise_id: exercise?.exercise_id,
-    id: exercise?.id,
-    name: exercise?.name,
-    exercise_name: exercise?.exercise_name,
-  });
-}
-
-function exerciseFilterGroup(exercise: any): Exclude<Filter, 'Tous'> {
-  const nox = resolvedNoxExercise(exercise);
-  const primary = nox?.muscles?.primary || [];
-  const secondary = nox?.muscles?.secondary || [];
-  const stabilizers = nox?.muscles?.stabilizers || [];
-  const text = `${nox?.name || exercise?.name || ''} ${[...primary, ...secondary, ...stabilizers].join(' ')}`.toLowerCase();
-
-  if (nox?.category === 'legs') return 'Jambes';
-
-  if (
-    text.includes('pector') ||
-    text.includes('poitrine') ||
-    text.includes('bench') ||
-    text.includes('chest')
-  ) return 'Pectoraux';
-
-  if (
-    text.includes('dos') ||
-    text.includes('dors') ||
-    text.includes('rhombo') ||
-    text.includes('trapè') ||
-    text.includes('trape') ||
-    text.includes('rowing') ||
-    text.includes('traction') ||
-    text.includes('tirage')
-  ) return 'Dos';
-
-  if (
-    text.includes('épaule') ||
-    text.includes('epaule') ||
-    text.includes('delto')
-  ) return 'Épaules';
-
-  if (nox?.category === 'push') {
-    if (
-      text.includes('triceps') &&
-      !text.includes('pector') &&
-      !text.includes('delto')
-    ) return 'Bras';
-
-    return 'Épaules';
-  }
-
-  if (nox?.category === 'pull') return 'Bras';
-
-  return 'Bras';
-}
-
-function muscleTags(exercise: any): string[] {
-  const nox = resolvedNoxExercise(exercise);
-
-  if (nox) {
-    const muscles = getNoxExerciseMuscles(nox.id);
-    const tags = [
-      ...muscles.primary,
-      ...muscles.secondary,
-      ...muscles.stabilizers,
-    ].filter(Boolean);
-
-    return Array.from(new Set(tags)).slice(0, 3);
-  }
-
-  const raw = String(exercise?.muscles || '');
-  if (raw.trim()) {
-    return raw
-      .split(/[·,/]/)
-      .map((s: string) => s.trim())
-      .filter(Boolean)
-      .slice(0, 3);
-  }
-
-  return ['Muscles ciblés'];
-}
-
-function exerciseTechnique(exercise: any) {
-  const nox = resolvedNoxExercise(exercise);
-
-  if (!nox) {
-    return {
-      description:
-        'Consulte les consignes de ton programme et privilégie une exécution lente, stable et contrôlée.',
-      steps: [
-        'Prépare une position stable.',
-        'Choisis une charge adaptée à ton niveau.',
-        'Exécute le mouvement sans élan.',
-        'Garde une amplitude confortable.',
-        'Arrête la série si la technique se dégrade.',
-      ],
-      tip: 'La qualité d’exécution passe avant la charge.',
-    };
-  }
-
-  const steps = getNoxExerciseSteps(nox.id);
-  const tips = getNoxExerciseCoachTips(nox.id);
-
-  return {
-    description: steps.map(step => step.cue).join(' '),
-    steps: steps.map(step => `${step.title} — ${step.cue}`),
-    tip: tips[0] || 'La qualité d’exécution passe avant la charge.',
-  };
-}
-
-function searchIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-      <path d="M20 20L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-export default function Program() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  const [program, setProgram] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedSession, setSelectedSession] = useState<any>(null);
-  const [selectedExercise, setSelectedExercise] = useState<any>(null);
-  const [tab, setTab] = useState<'plan' | 'exercises'>('plan');
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<Filter>('Tous');
-
-  useEffect(() => {
-    if (user) load();
-  }, [user]);
-
-  const load = async () => {
-    const { data } = await supabase
-      .from('workout_programs')
-      .select('*')
-      .eq('user_id', user!.id)
-      .eq('is_active', true)
-      .maybeSingle();
-
-    setProgram(data);
-    setLoading(false);
-  };
-
-  const sessions: any[] = program?.program_json?.sessions || [];
-  const allExercises: any[] = sessions.flatMap((s: any) => s.exercises || []);
-  const uniqueExercises = allExercises.filter(
-    (e, i, arr) => arr.findIndex(x => x.name === e.name) === i,
-  );
-  const sessionLength = program?.program_json?.session_length_min || 60;
-
-  const filteredExercises = useMemo(() => {
-    return uniqueExercises.filter(ex => {
-      const q = query.trim().toLowerCase();
-      const nox = resolvedNoxExercise(ex);
-      const muscleText = nox
-        ? [
-            ...nox.muscles.primary,
-            ...nox.muscles.secondary,
-            ...nox.muscles.stabilizers,
-          ].join(' ')
-        : ex.muscles || '';
-      const matchesSearch = !q || `${nox?.name || ex.name} ${muscleText}`.toLowerCase().includes(q);
-      const matchesFilter = filter === 'Tous' || exerciseFilterGroup(ex) === filter;
-      return matchesSearch && matchesFilter;
-    });
-  }, [uniqueExercises, query, filter]);
-
-  const programGoal =
-    program?.program_json?.goal_label ||
-    program?.program_json?.goal ||
-    program?.goal ||
-    'Perte de Gras';
-
-  const phaseLabel =
-    program?.program_json?.phase_name ||
-    program?.program_json?.phase ||
-    'Phase 1';
-
-  const completedSessions = Number(program?.program_json?.completed_sessions || 0);
-  const totalSessions = Math.max(sessions.length, 1);
-  const progress = Math.max(0, Math.min(100, Math.round((completedSessions / totalSessions) * 100)));
-  const displayedProgress = progress || (program ? 35 : 0);
-  const currentDay = Math.min(completedSessions + 1, totalSessions);
-
-  const objectiveText =
-    program?.program_json?.objective_text ||
-    program?.program_json?.target ||
-    '-5 kg en 12 semaines';
-
-  if (loading) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#fff', display: 'grid', placeItems: 'center' }}>
-        <div style={{ display: 'grid', justifyItems: 'center', gap: 12 }}>
-          <NoxMark />
-          <div style={{ color: '#111', fontSize: 11, fontWeight: 900, letterSpacing: '.14em' }}>
-            CHARGEMENT DU PROGRAMME
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (selectedExercise) {
-    return <ExerciseDetail exercise={selectedExercise} onBack={() => setSelectedExercise(null)} />;
-  }
-
-  if (selectedSession) {
-    const sessionIndex = Math.max(0, sessions.findIndex(s => s === selectedSession));
-    return (
-      <SessionDetail
-        session={selectedSession}
-        sessionIndex={sessionIndex}
-        sessionLength={sessionLength}
-        onBack={() => setSelectedSession(null)}
-        onStart={() => navigate('/training/' + (selectedSession.id || sessionIndex))}
-        onExercise={setSelectedExercise}
-      />
-    );
-  }
-
-  const todaySessionIndex = sessions.length
-    ? Math.min(Math.max(currentDay - 1, 0), sessions.length - 1)
-    : 0;
-  const todaySession = sessions[todaySessionIndex] || sessions[0] || null;
-  const todayExerciseCount = todaySession?.exercises?.length || 0;
-  const todayDuration = todaySession?.duration || sessionLength;
-
-  return (
-    <div style={{ minHeight: '100vh', background: BG, color: '#090909', paddingBottom: 104 }}>
-      <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
-        <header style={{ padding: '24px 20px 16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14 }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ fontSize: 28, fontWeight: 1000, lineHeight: 1, letterSpacing: '-.07em' }}>NOX</div>
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: ACCENT }} />
-              </div>
-              <div style={{ color: '#9A9D96', fontSize: 10, fontWeight: 850, marginTop: 7, letterSpacing: '.06em' }}>
-                ACTIVITÉ
-              </div>
-            </div>
-
-            <button
-              onClick={() => navigate('/generate-program')}
-              style={{
-                border: 0,
-                borderRadius: 14,
-                background: '#090909',
-                color: ACCENT,
-                minHeight: 42,
-                padding: '0 14px',
-                fontSize: 9.5,
-                fontWeight: 950,
-                cursor: 'pointer',
-              }}
-            >
-              NOUVEAU
-            </button>
-          </div>
-
-          <div style={{ marginTop: 27 }}>
-            <div style={{ color: MUTED, fontSize: 13, fontWeight: 700 }}>
-              {program ? `${programGoal} · ${phaseLabel}` : 'Ton entraînement'}
-            </div>
-            <h1 style={{ margin: '4px 0 0', fontSize: 34, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.06em' }}>
-              Activité.
-            </h1>
-          </div>
-        </header>
-
-        {!program ? (
-          <EmptyProgram onCreate={() => navigate('/generate-program')} />
-        ) : (
-          <>
-            <section style={{ padding: '0 20px' }}>
-              {todaySession && (
-                <div
-                  style={{
-                    background: '#090909',
-                    color: '#fff',
-                    borderRadius: 29,
-                    padding: 21,
-                    boxShadow: '0 16px 38px rgba(0,0,0,.13)',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                    <div>
-                      <div style={{ color: '#777', fontSize: 9.5, fontWeight: 900, letterSpacing: '.1em' }}>
-                        SÉANCE DU JOUR
-                      </div>
-                      <div style={{ marginTop: 5, color: ACCENT, fontSize: 10.5, fontWeight: 950 }}>
-                        Jour {currentDay}
-                      </div>
-                    </div>
-                    <div style={{ background: '#171717', color: ACCENT, borderRadius: 999, padding: '7px 10px', fontSize: 9, fontWeight: 950 }}>
-                      PRÊT
-                    </div>
-                  </div>
-
-                  <h2 style={{ margin: '18px 0 0', fontSize: 30, lineHeight: .95, fontWeight: 1000, letterSpacing: '-.055em' }}>
-                    {todaySession.name || `Séance ${todaySessionIndex + 1}`}
-                  </h2>
-
-                  <div style={{ marginTop: 8, color: '#888', fontSize: 11.5, lineHeight: 1.45 }}>
-                    {todayExerciseCount} exercices · {todayDuration} min
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginTop: 22 }}>
-                    {[
-                      [String(todayDuration), 'MIN'],
-                      [String(todayExerciseCount), 'EXERCICES'],
-                      [String(todaySessionIndex + 1), 'SÉANCE'],
-                    ].map(([value, label]) => (
-                      <div key={label} style={{ borderRadius: 15, background: '#151515', padding: '13px 10px' }}>
-                        <div style={{ fontSize: 20, fontWeight: 1000, letterSpacing: '-.04em' }}>{value}</div>
-                        <div style={{ marginTop: 4, color: '#666', fontSize: 7.5, fontWeight: 900 }}>{label}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={() => navigate('/training/' + (todaySession.id || todaySessionIndex))}
-                    style={{
-                      width: '100%',
-                      minHeight: 52,
-                      marginTop: 18,
-                      border: 0,
-                      borderRadius: 15,
-                      background: ACCENT,
-                      color: '#090909',
-                      fontSize: 11,
-                      fontWeight: 1000,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    COMMENCER LA SÉANCE →
-                  </button>
-                </div>
-              )}
-
-              <div style={{ marginTop: 13, background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 22, padding: 17 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: 950 }}>Progression du programme</div>
-                    <div style={{ marginTop: 4, color: MUTED, fontSize: 10.5 }}>
-                      Jour {currentDay} sur {totalSessions}
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 19, fontWeight: 1000 }}>{displayedProgress}%</div>
-                </div>
-                <div style={{ height: 6, marginTop: 13, background: '#EFF0EB', borderRadius: 999, overflow: 'hidden' }}>
-                  <div style={{ width: `${displayedProgress}%`, height: '100%', background: ACCENT, borderRadius: 999 }} />
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 4,
-                  padding: 4,
-                  marginTop: 13,
-                  borderRadius: 15,
-                  background: '#EDEEE9',
-                }}
-              >
-                {[
-                  { id: 'plan', label: 'MON PLAN' },
-                  { id: 'exercises', label: 'EXERCICES' },
-                ].map(item => {
-                  const active = tab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setTab(item.id as 'plan' | 'exercises')}
-                      style={{
-                        minHeight: 42,
-                        border: 0,
-                        borderRadius: 12,
-                        background: active ? '#fff' : 'transparent',
-                        color: '#090909',
-                        boxShadow: active ? '0 3px 12px rgba(0,0,0,.05)' : 'none',
-                        fontSize: 10,
-                        fontWeight: 950,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            {tab === 'plan' ? (
-              <section style={{ padding: '23px 20px 26px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 13 }}>
-                  <div>
-                    <h2 style={{ margin: 0, fontSize: 21, fontWeight: 1000, letterSpacing: '-.045em' }}>Ton programme</h2>
-                    <div style={{ marginTop: 3, color: '#9A9D96', fontSize: 10.5 }}>
-                      {sessions.length} séance{sessions.length !== 1 ? 's' : ''}
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 10, color: MUTED, fontWeight: 850 }}>{phaseLabel}</div>
-                </div>
-
-                <div style={{ display: 'grid', gap: 10 }}>
-                  {sessions.map((session: any, si: number) => (
-                    <SessionRow
-                      key={`${session.name}-${si}`}
-                      session={session}
-                      index={si}
-                      sessionLength={sessionLength}
-                      onOpen={() => setSelectedSession(session)}
-                      onStart={() => navigate('/training/' + (session.id || si))}
-                    />
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => navigate('/progress')}
-                  style={{
-                    width: '100%',
-                    marginTop: 13,
-                    minHeight: 68,
-                    border: `1px solid ${BORDER}`,
-                    background: '#fff',
-                    borderRadius: 20,
-                    padding: '11px 14px',
-                    display: 'grid',
-                    gridTemplateColumns: '42px 1fr auto',
-                    gap: 11,
-                    alignItems: 'center',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    color: '#090909',
-                  }}
-                >
-                  <div style={{ width: 42, height: 42, borderRadius: 14, background: ACCENT, display: 'grid', placeItems: 'center', fontWeight: 1000 }}>↗</div>
-                  <div>
-                    <div style={{ fontSize: 10, color: MUTED, fontWeight: 800 }}>Objectif</div>
-                    <div style={{ marginTop: 2, fontSize: 13, fontWeight: 900 }}>{objectiveText}</div>
-                  </div>
-                  <span style={{ fontSize: 22 }}>›</span>
-                </button>
-              </section>
-            ) : (
-              <section style={{ padding: '23px 20px 26px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 13 }}>
-                  <div>
-                    <h2 style={{ margin: 0, fontSize: 21, fontWeight: 1000, letterSpacing: '-.045em' }}>Exercices</h2>
-                    <div style={{ marginTop: 3, color: '#9A9D96', fontSize: 10.5 }}>
-                      {uniqueExercises.length} dans ton programme
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ minHeight: 48, borderRadius: 15, border: `1px solid ${BORDER}`, background: '#fff', display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10, color: '#92958D' }}>
-                  {searchIcon()}
-                  <input
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                    placeholder="Rechercher un exercice..."
-                    style={{ flex: 1, border: 0, outline: 0, background: 'transparent', color: '#090909', fontSize: 12.5 }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: 7, overflowX: 'auto', padding: '12px 0', scrollbarWidth: 'none' }}>
-                  {(['Tous', 'Pectoraux', 'Dos', 'Jambes', 'Épaules', 'Bras'] as Filter[]).map(item => {
-                    const active = item === filter;
-                    return (
-                      <button
-                        key={item}
-                        onClick={() => setFilter(item)}
-                        style={{
-                          flexShrink: 0,
-                          borderRadius: 999,
-                          border: active ? `1px solid ${ACCENT}` : `1px solid ${BORDER}`,
-                          background: active ? ACCENT : '#fff',
-                          color: '#090909',
-                          padding: '8px 12px',
-                          fontSize: 9.5,
-                          fontWeight: active ? 950 : 750,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {item}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div style={{ display: 'grid', gap: 9 }}>
-                  {filteredExercises.map((exercise: any, i: number) => (
-                    <ExerciseListRow
-                      key={`${exercise.name}-${i}`}
-                      exercise={exercise}
-                      onOpen={() => setSelectedExercise(exercise)}
-                    />
-                  ))}
-                </div>
-
-                {filteredExercises.length === 0 && (
-                  <div style={{ padding: '48px 20px', textAlign: 'center', color: MUTED, fontSize: 12 }}>
-                    Aucun exercice trouvé.
-                  </div>
-                )}
-              </section>
-            )}
-          </>
-        )}
-      </main>
-
-      <TutorialTooltip page="program" />
-      <BottomNav active="activity" />
-    </div>
-  );
-}
-
-function NoxMark() {
-  return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ position: 'relative', width: 27, height: 21, flexShrink: 0 }}>
-        <span style={{ position: 'absolute', width: 12, height: 7, left: 1, top: 2, borderRadius: 999, background: ACCENT, transform: 'rotate(28deg)' }} />
-        <span style={{ position: 'absolute', width: 21, height: 8, left: 7, top: 10, borderRadius: 999, background: ACCENT, transform: 'rotate(7deg)' }} />
-      </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-        <span style={{ fontSize: 16.5, fontWeight: 1000, letterSpacing: '-.04em' }}>NOX</span>
-        <span style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: '.1em', color: '#5E5E59' }}>AI</span>
-      </div>
-    </div>
-  );
-}
-
-const iconButton: React.CSSProperties = {
-  width: 34,
-  height: 34,
-  border: 0,
-  background: 'transparent',
-  color: '#111',
-  borderRadius: 10,
-  cursor: 'pointer',
-  fontSize: 28,
-  lineHeight: 1,
-  display: 'grid',
-  placeItems: 'center',
-  padding: 0,
+// Muscles par exercice — sans images
+const MUSCLE_MAP: Record<string, string> = {
+  'bench': 'Pectoraux · Triceps · Epaules',
+  'squat': 'Quadriceps · Fessiers · Ischio',
+  'deadlift': 'Ischio · Lombaires · Fessiers',
+  'press': 'Epaules · Triceps',
+  'curl': 'Biceps · Avant-bras',
+  'row': 'Dos · Biceps · Trapèzes',
+  'pull': 'Dos · Biceps',
+  'dip': 'Triceps · Pectoraux',
+  'lunge': 'Quadriceps · Fessiers',
+  'plank': 'Abdominaux · Core',
+  'fly': 'Pectoraux',
+  'raise': 'Epaules',
+  'extension': 'Triceps',
+  'pushdown': 'Triceps',
+  'crunch': 'Abdominaux',
+  'hip': 'Fessiers · Ischio',
+  'calf': 'Mollets',
+  'leg': 'Jambes',
 };
 
-function SessionRow({
-  session,
-  index,
-  sessionLength,
-  onOpen,
-  onStart,
-}: {
-  session: any;
-  index: number;
-  sessionLength: number;
-  onOpen: () => void;
-  onStart: () => void;
-}) {
-  return (
-    <div
-      style={{
-        minHeight: 68,
-        border: '1px solid #E4E4DF',
-        borderRadius: 20,
-        background: '#fff',
-        padding: '8px 9px',
-        display: 'grid',
-        gridTemplateColumns: '42px 1fr 39px',
-        gap: 10,
-        alignItems: 'center',
-      }}
-    >
-      <button
-        onClick={onOpen}
-        style={{
-          width: 42,
-          height: 42,
-          borderRadius: 10,
-          border: 0,
-          background: ACCENT,
-          color: '#111',
-          fontSize: 13,
-          fontWeight: 1000,
-          cursor: 'pointer',
-        }}
-      >
-        {session.day || `J${index + 1}`}
-      </button>
-
-      <button onClick={onOpen} style={{ border: 0, background: 'transparent', padding: 0, textAlign: 'left', cursor: 'pointer', color: '#111' }}>
-        <div style={{ fontSize: 13.5, fontWeight: 950 }}>{session.name || `Séance ${index + 1}`}</div>
-        <div style={{ marginTop: 4, fontSize: 10.5, color: '#77776F' }}>
-          {session.exercises?.length || 0} exercices · {session.duration || sessionLength} min
-        </div>
-      </button>
-
-      <button
-        onClick={onStart}
-        aria-label={`Commencer ${session.name || `séance ${index + 1}`}`}
-        style={{
-          width: 36,
-          height: 36,
-          border: 0,
-          borderRadius: 10,
-          background: ACCENT,
-          color: '#111',
-          display: 'grid',
-          placeItems: 'center',
-          cursor: 'pointer',
-          fontSize: 15,
-          fontWeight: 1000,
-        }}
-      >
-        ▶
-      </button>
-    </div>
-  );
+function getMuscles(name: string): string {
+  const lower = (name || '').toLowerCase();
+  for (const [key, val] of Object.entries(MUSCLE_MAP)) {
+    if (lower.includes(key)) return val;
+  }
+  return 'Musculation';
 }
 
-function SessionDetail({
-  session,
-  sessionIndex,
-  sessionLength,
-  onBack,
-  onStart,
-  onExercise,
-}: {
-  session: any;
-  sessionIndex: number;
-  sessionLength: number;
-  onBack: () => void;
-  onStart: () => void;
-  onExercise: (exercise: any) => void;
-}) {
-  return (
-    <div style={{ minHeight: '100vh', background: '#F6F7F2', color: '#111', paddingBottom: 92 }}>
-      <main style={{ maxWidth: 560, minHeight: '100vh', margin: '0 auto', background: '#fff', padding: '18px 18px 28px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 36px', alignItems: 'center' }}>
-          <button onClick={onBack} style={iconButton}>‹</button>
-          <div style={{ justifySelf: 'center' }}><NoxMark /></div>
-          <div />
-        </div>
+type View = 'program' | 'session' | 'exercise';
 
-        <div style={{ marginTop: 26, display: 'flex', alignItems: 'center', gap: 13 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 11, background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 16, fontWeight: 1000 }}>
-            {session.day || `J${sessionIndex + 1}`}
-          </div>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 26, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.045em' }}>
-              {session.name || `Séance ${sessionIndex + 1}`}
-            </h1>
-            <div style={{ marginTop: 6, fontSize: 11.5, color: '#77776F' }}>
-              {session.exercises?.length || 0} exercices · {session.duration || sessionLength} min
-            </div>
-          </div>
-        </div>
+export default function Program() {
+  const { user }   = useAuth();
+  const navigate   = useNavigate();
+  const [program,   setProgram]   = useState<any>(null);
+  const [loading,   setLoading]   = useState(true);
+  const [view,      setView]      = useState<View>('program');
+  const [selSession, setSelSession] = useState<any>(null);
+  const [selEx,      setSelEx]    = useState<any>(null);
+  const [filter,    setFilter]    = useState('Tous');
+  const [profile,   setProfile]   = useState<any>(null);
 
-        <div style={{ display: 'grid', gap: 8, marginTop: 22 }}>
-          {(session.exercises || []).map((exercise: any, index: number) => (
-            <ExerciseListRow
-              key={`${exercise.name}-${index}`}
-              exercise={exercise}
-              onOpen={() => onExercise(exercise)}
-            />
-          ))}
-        </div>
+  useEffect(() => { if (user) load(); }, [user]);
 
-        <button
-          onClick={onStart}
-          style={{
-            width: '100%',
-            minHeight: 50,
-            marginTop: 18,
-            border: 0,
-            borderRadius: 11,
-            background: ACCENT,
-            color: '#111',
-            fontSize: 11.5,
-            fontWeight: 1000,
-            cursor: 'pointer',
-          }}
-        >
-          COMMENCER LA SÉANCE →
-        </button>
-      </main>
-      <BottomNav active="activity" />
-    </div>
+  const load = async () => {
+    setLoading(true);
+    const [{ data: prog }, { data: prof }] = await Promise.all([
+      supabase.from('workout_programs').select('*').eq('user_id', user!.id).eq('is_active', true).maybeSingle(),
+      supabase.from('profiles').select('*').eq('id', user!.id).maybeSingle(),
+    ]);
+    setProgram(prog); setProfile(prof); setLoading(false);
+  };
+
+  const sessions = program?.program_json?.sessions || [];
+  const dayNames = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  const todayName = dayNames[new Date().getDay()];
+  const todaySession = sessions.find((s: any) =>
+    String(s?.day || '').toLowerCase().includes(todayName.toLowerCase().slice(0,3))
   );
-}
 
-function ExerciseListRow({
-  exercise,
-  onOpen,
-}: {
-  exercise: any;
-  onOpen: () => void;
-}) {
-  const tags = muscleTags(exercise);
-  const nox = resolvedNoxExercise(exercise);
-  const thumbnail = getNoxExerciseThumbnail(exercise);
-  const hdCover = getNoxExerciseHdCover(exercise);
+  // VUE EXERCISE
+  if (view === 'exercise' && selEx) {
+    const muscles = getMuscles(selEx.name);
+    const tips: string[] = [
+      'Garde le dos droit et les abdos contractes tout au long du mouvement.',
+      'Controle la phase descendante — 2 secondes en descente minimum.',
+      'Respire : expire a l\'effort, inspire au retour.',
+      'Si la technique se degrade, reduis la charge.',
+    ];
+    return (
+      <div style={{ minHeight: '100vh', background: BG, color: BLACK, paddingBottom: 110 }}>
+        <div style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
+          <header style={{ padding: '20px 20px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button onClick={() => setView('session')} style={{ width: 40, height: 40, borderRadius: 14, border: `1px solid ${BORDER}`, background: WHITE, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
+              <ArrowLeft size={18} />
+            </button>
+            <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.1em' }}>TECHNIQUE</div>
+          </header>
+          <main style={{ padding: '24px 20px 0' }}>
+            <h1 style={{ margin: '0 0 6px', fontSize: 32, lineHeight: .95, fontWeight: 950, letterSpacing: '-.04em' }}>{selEx.name}</h1>
+            <div style={{ fontSize: 13, color: MUTED, marginBottom: 24 }}>{muscles}</div>
 
-  return (
-    <button
-      onClick={onOpen}
-      style={{
-        width: '100%',
-        minHeight: 70,
-        display: 'grid',
-        gridTemplateColumns: '64px 1fr 22px',
-        gap: 10,
-        alignItems: 'center',
-        textAlign: 'left',
-        border: '1px solid #E4E4DF',
-        background: '#fff',
-        color: '#111',
-        borderRadius: 12,
-        padding: 6,
-        cursor: 'pointer',
-      }}
-    >
-      {hdCover || thumbnail ? (
-        <NoxExerciseImage
-          src={hdCover || thumbnail}
-          fallbackSrc={hdCover ? thumbnail : null}
-          alt={`Aperçu ${nox?.name || exercise.name}`}
-          compact
-        />
-      ) : (
-        <NoxExerciseFallback compact />
-      )}
-
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 12.5, lineHeight: 1.15, fontWeight: 950, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {nox?.name || exercise.name}
-        </div>
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 5 }}>
-          {tags.slice(0, 2).map(tag => (
-            <span key={tag} style={{ background: '#F1F1EE', borderRadius: 6, padding: '3px 6px', fontSize: 8.5, color: '#66665F' }}>
-              {tag}
-            </span>
-          ))}
-        </div>
-        <div style={{ marginTop: 5, color: '#77776F', fontSize: 9.5 }}>
-          {exercise.sets || '3-4'} séries · {exercise.reps || '8-12'} reps
-        </div>
-      </div>
-
-      <span style={{ fontSize: 22, color: '#111' }}>›</span>
-    </button>
-  );
-}
-
-function ExerciseDetail({
-  exercise,
-  onBack,
-}: {
-  exercise: any;
-  onBack: () => void;
-}) {
-  const tags = muscleTags(exercise);
-  const nox = resolvedNoxExercise(exercise);
-  const technique = exerciseTechnique(exercise);
-  const thumbnail = getNoxExerciseThumbnail(exercise);
-  const hdCover = getNoxExerciseHdCover(exercise);
-  const displayName = String(nox?.name || exercise?.name || 'Exercice');
-
-  const rawDescription =
-    typeof exercise?.description === 'string'
-      ? exercise.description.trim()
-      : '';
-
-  const description = rawDescription || technique.description;
-
-  const rawInstructions = exercise?.instructions;
-
-  const customSteps: string[] = Array.isArray(rawInstructions)
-    ? rawInstructions
-        .map((step: unknown) => {
-          if (typeof step === 'string') return step.trim();
-          if (step && typeof step === 'object') {
-            const value = step as Record<string, unknown>;
-            return String(value.cue || value.text || value.title || '').trim();
-          }
-          return '';
-        })
-        .filter(Boolean)
-        .slice(0, 5)
-    : typeof rawInstructions === 'string'
-      ? rawInstructions
-          .split(/\n|\. /)
-          .map((step: string) => step.trim())
-          .filter(Boolean)
-          .slice(0, 5)
-      : [];
-
-  const steps = customSteps.length ? customSteps : technique.steps;
-
-  return (
-    <div style={{ minHeight: '100vh', background: '#F6F7F2', color: '#111' }}>
-      <main style={{ maxWidth: 560, minHeight: '100vh', margin: '0 auto', background: '#fff', padding: '18px 18px 34px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 36px', alignItems: 'center' }}>
-          <button onClick={onBack} style={iconButton}>‹</button>
-          <div style={{ justifySelf: 'center' }}><NoxMark /></div>
-          <div />
-        </div>
-
-        <div style={{ marginTop: 18, borderRadius: 14, overflow: 'hidden', background: '#F1F1ED' }}>
-          {hdCover || thumbnail ? (
-            <NoxExerciseImage
-              src={hdCover || thumbnail}
-              fallbackSrc={hdCover ? thumbnail : null}
-              alt={`Démonstration ${displayName}`}
-            />
-          ) : (
-            <NoxExerciseFallback />
-          )}
-        </div>
-
-        <h1 style={{ margin: '18px 0 0', fontSize: 28, lineHeight: .95, fontWeight: 1000, letterSpacing: '-.05em' }}>
-          {displayName}
-        </h1>
-
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 9 }}>
-          {tags.map(tag => (
-            <span key={tag} style={{ borderRadius: 7, padding: '5px 8px', background: '#F1F1EE', color: '#5F5F59', fontSize: 9.5, fontWeight: 700 }}>
-              {tag}
-            </span>
-          ))}
-        </div>
-
-        <section style={{ marginTop: 20 }}>
-          <h2 style={{ margin: 0, fontSize: 14, fontWeight: 1000 }}>Technique</h2>
-          <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
-            {steps.map((step: string, index: number) => (
-              <div key={`${step}-${index}`} style={{ display: 'grid', gridTemplateColumns: '28px 1fr', gap: 10, alignItems: 'start' }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 1000 }}>
-                  {index + 1}
+            {/* Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 20 }}>
+              {[
+                { label: 'SERIES', v: selEx.sets || '3' },
+                { label: 'REPS', v: selEx.reps || '8-12' },
+                { label: 'REPOS', v: selEx.rest || '90s' },
+              ].map(({ label, v }) => (
+                <div key={label} style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: '14px 0', textAlign: 'center' }}>
+                  <div style={{ fontSize: 22, fontWeight: 950, color: BLACK }}>{v}</div>
+                  <div style={{ fontSize: 9, color: MUTED, fontWeight: 700, marginTop: 3 }}>{label}</div>
                 </div>
-                <div style={{ paddingTop: 5, color: '#3E3E3A', fontSize: 11.5, lineHeight: 1.45 }}>{step}</div>
+              ))}
+            </div>
+
+            {/* Zone typographique à la place de l'image */}
+            <div style={{ background: BLACK, borderRadius: 24, padding: 28, marginBottom: 20, minHeight: 160, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.12em' }}>EXECUTION</div>
+              <div>
+                <div style={{ fontSize: 36, fontWeight: 950, color: WHITE, lineHeight: .95, letterSpacing: '-.04em' }}>
+                  {selEx.sets || 3} × {selEx.reps || '8-12'}
+                </div>
+                <div style={{ fontSize: 13, color: '#888', marginTop: 8 }}>{muscles}</div>
+              </div>
+              <div style={{ display: 'inline-block', padding: '6px 12px', background: ACCENT, borderRadius: 20, fontSize: 11, fontWeight: 900, color: BLACK, alignSelf: 'flex-start' }}>
+                Repos {selEx.rest || '90s'}
+              </div>
+            </div>
+
+            {/* Conseils technique */}
+            <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.1em', marginBottom: 12 }}>POINTS CLES</div>
+            {tips.map((tip, i) => (
+              <div key={i} style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: i < tips.length - 1 ? `1px solid ${BORDER}` : 'none' }}>
+                <div style={{ width: 24, height: 24, borderRadius: 8, background: LIME, display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 900, color: '#687600', flexShrink: 0 }}>{i+1}</div>
+                <div style={{ fontSize: 13, color: BLACK, lineHeight: 1.55 }}>{tip}</div>
               </div>
             ))}
-          </div>
-        </section>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 7, marginTop: 18 }}>
-          <Metric value={exercise.sets || '4'} label="SÉRIES" />
-          <Metric value={exercise.reps || '8-12'} label="RÉPÉTITIONS" />
-          <Metric value={exercise.rest || '90 sec'} label="REPOS" />
+            {selEx.note && (
+              <div style={{ marginTop: 16, background: LIME, border: '1px solid #DDF59C', borderRadius: 16, padding: '12px 16px', fontSize: 13, color: '#456000', lineHeight: 1.55 }}>
+                {selEx.note}
+              </div>
+            )}
+          </main>
         </div>
-
-        <InfoCard title="Description">
-          <div style={{ color: '#55554F', fontSize: 11.5, lineHeight: 1.55 }}>{description}</div>
-        </InfoCard>
-
-        <div style={{ marginTop: 11, border: '1px solid #E1E1DC', borderRadius: 12, padding: 13, display: 'grid', gridTemplateColumns: '30px 1fr', gap: 10, background: '#FCFCFA' }}>
-          <div style={{ width: 28, height: 28, borderRadius: 9, background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 1000 }}>N</div>
-          <div>
-            <div style={{ fontSize: 11.5, fontWeight: 950 }}>Conseil NOX</div>
-            <div style={{ marginTop: 3, color: '#55554F', fontSize: 10.5, lineHeight: 1.45 }}>{technique.tip}</div>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-}
-
-
-function NoxExerciseImage({
-  src,
-  fallbackSrc,
-  alt,
-}: {
-  src: string | null;
-  fallbackSrc?: string | null;
-  alt: string;
-}) {
-  const [error, setError] = useState(false);
-  const [fallbackError, setFallbackError] = useState(false);
-
-  if (!src || (error && (!fallbackSrc || fallbackError))) return <NoxExerciseFallback />;
-
-  return (
-    <img
-      src={error && fallbackSrc ? fallbackSrc : src}
-      alt={alt}
-      onError={() => {
-        if (!error) setError(true);
-        else setFallbackError(true);
-      }}
-      style={{ width: '100%', aspectRatio: '4/3', objectFit: 'contain', background: '#F1F1ED', display: 'block' }}
-    />
-  );
-}
-
-function NoxExerciseFallback({ compact = false }: { compact?: boolean }) {
-  if (compact) {
-    return (
-      <div
-        style={{
-          width: 64,
-          height: 58,
-          borderRadius: 9,
-          background: '#111',
-          display: 'grid',
-          placeItems: 'center',
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ display: 'grid', justifyItems: 'center', gap: 2 }}>
-          <div style={{ color: ACCENT, fontSize: 10, fontWeight: 1000, letterSpacing: '.08em' }}>NOX</div>
-          <div style={{ color: '#fff', fontSize: 6.5, fontWeight: 850, letterSpacing: '.12em' }}>EXERCISE</div>
-        </div>
+        <BottomNav active="training" />
       </div>
     );
   }
 
-  return (
-    <div
-      style={{
-        aspectRatio: '16 / 9',
-        display: 'grid',
-        placeItems: 'center',
-        background: '#111',
-        padding: 24,
-      }}
-    >
-      <div style={{ display: 'grid', justifyItems: 'center', gap: 10, textAlign: 'center' }}>
-        <NoxMark />
-        <div style={{ color: '#fff', fontSize: 12, fontWeight: 1000, letterSpacing: '.1em' }}>
-          DÉMO NOX
+  // VUE SESSION
+  if (view === 'session' && selSession) {
+    const exos = selSession.exercises || [];
+    const isToday = todaySession === selSession;
+    return (
+      <div style={{ minHeight: '100vh', background: BG, color: BLACK, paddingBottom: 110 }}>
+        <div style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
+          <header style={{ padding: '20px 20px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button onClick={() => setView('program')} style={{ width: 40, height: 40, borderRadius: 14, border: `1px solid ${BORDER}`, background: WHITE, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
+              <ArrowLeft size={18} />
+            </button>
+            <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.1em' }}>SÉANCE</div>
+          </header>
+          <main style={{ padding: '24px 20px 0' }}>
+            {/* Hero séance */}
+            <div style={{ background: BLACK, borderRadius: 28, padding: 22, marginBottom: 20 }}>
+              <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.12em', marginBottom: 8 }}>
+                {isToday ? "AUJOURD'HUI" : (selSession.day || '').toUpperCase()}
+              </div>
+              <h1 style={{ margin: '0 0 6px', fontSize: 32, lineHeight: .95, fontWeight: 950, color: WHITE, letterSpacing: '-.04em' }}>
+                {selSession.name}
+              </h1>
+              <div style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
+                {exos.length} exercices · {selSession.duration || program?.program_json?.session_length_min || 60} min
+              </div>
+              <div style={{ fontSize: 11, color: MUTED, marginBottom: 10 }}>OBJECTIF DE CETTE SÉANCE</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: WHITE, lineHeight: 1.4 }}>
+                {selSession.objective || selSession.focus || `Développer ${getMuscles(selSession.name || '')}.`}
+              </div>
+            </div>
+
+            {/* Liste exercices — sans images */}
+            <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.1em', marginBottom: 12 }}>
+              {exos.length} EXERCICE{exos.length > 1 ? 'S' : ''}
+            </div>
+            {exos.map((ex: any, i: number) => (
+              <button key={i} onClick={() => { setSelEx(ex); setView('exercise'); }} style={{
+                width: '100%', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 18,
+                padding: '16px 18px', marginBottom: 10, textAlign: 'left', cursor: 'pointer',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                boxSizing: 'border-box',
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 9, background: BG, display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 900, color: MUTED, flexShrink: 0 }}>{i+1}</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: BLACK }}>{ex.name}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginLeft: 38 }}>
+                    <span style={{ fontSize: 11, color: MUTED }}>{ex.sets || 3} × {ex.reps || '8-12'}</span>
+                    <span style={{ fontSize: 11, color: '#C4C7C0' }}>·</span>
+                    <span style={{ fontSize: 11, color: MUTED }}>{getMuscles(ex.name)}</span>
+                  </div>
+                </div>
+                <ChevronRight size={16} color={MUTED} />
+              </button>
+            ))}
+
+            {/* CTA COMMENCER */}
+            <button
+              onClick={() => {
+                const idx = sessions.findIndex((s: any) => s === selSession);
+                navigate(`/training/${selSession.id || idx}`);
+              }}
+              style={{
+                width: '100%', padding: '18px 0', background: ACCENT, border: 0,
+                borderRadius: 20, color: BLACK, fontSize: 14, fontWeight: 950,
+                cursor: 'pointer', marginTop: 8, letterSpacing: '.02em',
+              }}
+            >
+              COMMENCER →
+            </button>
+          </main>
         </div>
-        <div style={{ color: '#9B9B94', fontSize: 10.5, lineHeight: 1.4 }}>
-          Visuel NOX bientôt disponible
-        </div>
+        <BottomNav active="training" />
       </div>
+    );
+  }
+
+  // VUE PROGRAMME (liste)
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: BG, display: 'grid', placeItems: 'center' }}>
+      <div style={{ fontSize: 22, fontWeight: 950, letterSpacing: '-.04em', color: BLACK }}>NOX<span style={{ color: '#9ED100' }}>.</span></div>
     </div>
   );
-}
 
-function EmptyProgram({ onCreate }: { onCreate: () => void }) {
   return (
-    <section style={{ padding: '72px 24px 34px', textAlign: 'center' }}>
-      <div style={{ width: 78, height: 78, margin: '0 auto', borderRadius: 22, background: '#F1F1ED', display: 'grid', placeItems: 'center', fontSize: 38, color: '#C8C8C2' }}>
-        ◫
-      </div>
-      <h2 style={{ margin: '22px 0 0', fontSize: 17, fontWeight: 1000 }}>Aucun programme pour le moment</h2>
-      <p style={{ color: '#77776F', lineHeight: 1.5, fontSize: 11.5, maxWidth: 310, margin: '8px auto 22px' }}>
-        Crée ton premier programme et commence à t'entraîner avec NOX.
-      </p>
+    <div style={{ minHeight: '100vh', background: BG, color: BLACK, paddingBottom: 110 }}>
+      <div style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
+        <header style={{ padding: '22px 20px 0' }}>
+          <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.12em', marginBottom: 6 }}>ENTRAÎNEMENT</div>
+          <h1 style={{ margin: '0 0 28px', fontSize: 36, lineHeight: .95, fontWeight: 950, letterSpacing: '-.05em' }}>
+            BOUGE POUR<br />TON OBJECTIF.
+          </h1>
+        </header>
 
-      <div style={{ maxWidth: 300, margin: '0 auto 24px', display: 'grid', gap: 10, textAlign: 'left' }}>
-        {['Des programmes personnalisés', 'Des démos NOX pour chaque exercice', 'Un suivi de ta progression', 'Des résultats concrets'].map((text, index) => (
-          <div key={text} style={{ display: 'grid', gridTemplateColumns: '24px 1fr', gap: 8, alignItems: 'center', fontSize: 11, color: '#55554F' }}>
-            <span style={{ color: ACCENT, fontSize: 17, fontWeight: 1000 }}>{['▥', '▶', '↗', '✓'][index]}</span>
-            <span>{text}</span>
+        <main style={{ padding: '0 20px' }}>
+
+          {/* PAS DE PROGRAMME */}
+          {!program && (
+            <div style={{ background: BLACK, borderRadius: 24, padding: 24, marginBottom: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.12em', marginBottom: 8 }}>PROGRAMME</div>
+              <div style={{ fontSize: 22, fontWeight: 950, color: WHITE, lineHeight: 1.05, marginBottom: 12 }}>
+                Pas encore de<br />programme généré.
+              </div>
+              <button onClick={() => navigate('/generate-program')} style={{
+                padding: '12px 20px', background: ACCENT, border: 0, borderRadius: 14,
+                color: BLACK, fontWeight: 900, fontSize: 13, cursor: 'pointer',
+              }}>
+                CRÉER MON PROGRAMME
+              </button>
+            </div>
+          )}
+
+          {/* SÉANCE DU JOUR */}
+          {program && todaySession && (
+            <div style={{ background: BLACK, borderRadius: 24, padding: 22, marginBottom: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.12em', marginBottom: 8 }}>AUJOURD'HUI</div>
+              <div style={{ fontSize: 26, fontWeight: 950, color: WHITE, lineHeight: 1.0, letterSpacing: '-.03em', marginBottom: 6 }}>
+                {todaySession.name}
+              </div>
+              <div style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
+                {todaySession.exercises?.length || 0} exercices · {todaySession.duration || program?.program_json?.session_length_min || 60} min
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => { setSelSession(todaySession); setView('session'); }} style={{
+                  flex: 1, padding: '12px 0', background: 'transparent', border: '1px solid #333',
+                  borderRadius: 14, color: WHITE, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                }}>
+                  Voir la séance
+                </button>
+                <button onClick={() => {
+                  const idx = sessions.findIndex((s: any) => s === todaySession);
+                  navigate(`/training/${todaySession.id || idx}`);
+                }} style={{
+                  flex: 2, padding: '12px 0', background: ACCENT, border: 0,
+                  borderRadius: 14, color: BLACK, fontSize: 13, fontWeight: 900, cursor: 'pointer',
+                }}>
+                  COMMENCER →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* REPOS */}
+          {program && !todaySession && (
+            <div style={{ background: LIME, border: '1px solid #DDF59C', borderRadius: 24, padding: 22, marginBottom: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 900, color: '#687600', letterSpacing: '.12em', marginBottom: 8 }}>AUJOURD'HUI</div>
+              <div style={{ fontSize: 26, fontWeight: 950, color: BLACK, lineHeight: 1.0, marginBottom: 6 }}>JOUR DE REPOS.</div>
+              <div style={{ fontSize: 13, color: '#69715F' }}>La récupération fait partie de l'entraînement.</div>
+            </div>
+          )}
+
+          {/* TOUTES LES SÉANCES */}
+          {program && sessions.length > 0 && (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.1em', marginBottom: 12 }}>
+                MON PROGRAMME · {sessions.length} SÉANCE{sessions.length > 1 ? 'S' : ''}
+              </div>
+              {sessions.map((session: any, i: number) => {
+                const isToday = session === todaySession;
+                return (
+                  <button key={i} onClick={() => { setSelSession(session); setView('session'); }} style={{
+                    width: '100%', background: WHITE, border: `1px solid ${isToday ? ACCENT : BORDER}`,
+                    borderRadius: 20, padding: '16px 18px', marginBottom: 10,
+                    textAlign: 'left', cursor: 'pointer', boxSizing: 'border-box',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        {isToday && (
+                          <div style={{ padding: '2px 8px', background: ACCENT, borderRadius: 20, fontSize: 9, fontWeight: 900, color: BLACK }}>
+                            AUJOURD'HUI
+                          </div>
+                        )}
+                        <div style={{ fontSize: 11, color: MUTED, fontWeight: 700 }}>
+                          {String(session.day || `Jour ${i+1}`).toUpperCase()}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 17, fontWeight: 800, color: BLACK, marginBottom: 4 }}>{session.name}</div>
+                      <div style={{ fontSize: 12, color: MUTED }}>
+                        {session.exercises?.length || 0} exercices
+                        {session.focus ? ` · ${session.focus}` : ''}
+                      </div>
+                    </div>
+                    <ChevronRight size={18} color={MUTED} />
+                  </button>
+                );
+              })}
+            </>
+          )}
+
+          {/* LIENS UTILES */}
+          <div style={{ marginTop: 6 }}>
+            {[
+              { label: 'Calendrier d\'entraînement', path: '/training-calendar' },
+              { label: 'Modifier le programme',      path: '/generate-program' },
+            ].map(({ label, path }) => (
+              <button key={label} onClick={() => navigate(path)} style={{
+                width: '100%', background: 'transparent', border: `1px solid ${BORDER}`,
+                borderRadius: 16, padding: '14px 18px', marginBottom: 10,
+                textAlign: 'left', cursor: 'pointer', display: 'flex',
+                justifyContent: 'space-between', alignItems: 'center',
+                boxSizing: 'border-box',
+              }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: BLACK }}>{label}</span>
+                <ChevronRight size={16} color={MUTED} />
+              </button>
+            ))}
           </div>
-        ))}
+        </main>
       </div>
-
-      <button
-        onClick={onCreate}
-        style={{ width: '100%', minHeight: 49, border: 0, borderRadius: 11, background: ACCENT, color: '#111', fontSize: 11, fontWeight: 1000, cursor: 'pointer' }}
-      >
-        CRÉER MON PROGRAMME →
-      </button>
-    </section>
-  );
-}
-
-function Metric({ value, label }: { value: string; label: string }) {
-  return (
-    <div style={{ minHeight: 70, borderRadius: 11, border: '1px solid #E4E4DF', background: '#FAFAF8', display: 'grid', placeItems: 'center', textAlign: 'center', padding: 7 }}>
-      <div>
-        <div style={{ fontSize: 17, fontWeight: 1000, lineHeight: 1.05 }}>{value}</div>
-        <div style={{ marginTop: 5, fontSize: 7.5, color: '#77776F', fontWeight: 850 }}>{label}</div>
-      </div>
+      <BottomNav active="training" />
     </div>
-  );
-}
-
-function InfoCard({ title, children }: { title: string; children: any }) {
-  return (
-    <section style={{ marginTop: 11, borderRadius: 12, border: '1px solid #E4E4DF', background: '#FAFAF8', padding: 13 }}>
-      <h3 style={{ margin: 0, fontSize: 11.5, fontWeight: 950 }}>{title}</h3>
-      <div style={{ marginTop: 8 }}>{children}</div>
-    </section>
   );
 }

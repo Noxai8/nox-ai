@@ -51,8 +51,8 @@ cursor.setDate(cursor.getDate() - 1);
 }
 return streak;
 }
-const ACCENT = '#B7FF00';
-const BG = '#F6F7F2';
+const ACCENT = '#C8FF00';
+const BG = '#F7F8F4';
 const SURFACE = '#FFFFFF';
 const BORDER = '#E8EAE2';
 function resolvedNoxExercise(exercise: any) {
@@ -581,7 +581,7 @@ try {
 };
 // ─── LOADING ────────────────────────────────────────────────
 if (loading) return (
-<div style={{ minHeight: '100vh', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+<div style={{ minHeight: '100vh', background: '#F7F8F4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
 <NoxBrand />
 <div style={{ width: 38, height: 38, border: '3px solid #ECECE7', borderTop: '3px solid ' + ACCENT, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
 <div style={{ color: '#77776F', fontSize: 12, fontWeight: 700 }}>Chargement de la séance...</div>
@@ -589,7 +589,7 @@ if (loading) return (
 </div>
 );
 if (!exercises.length) return (
-<div style={{ minHeight: '100vh', background: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center' }}>
+<div style={{ minHeight: '100vh', background: '#F7F8F4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center' }}>
 <NoxBrand />
 <div style={{ width: 72, height: 72, marginTop: 34, borderRadius: 22, background: '#F3F3EF', display: 'grid', placeItems: 'center', fontSize: 28, fontWeight: 1000, color: ACCENT }}>N</div>
 <div style={{ fontSize: 22, fontWeight: 1000, color: '#111', marginTop: 18, marginBottom: 8 }}>Séance introuvable</div>
@@ -605,26 +605,41 @@ if (done) {
 const duration = Math.max(1, Math.round((Date.now() - startTime) / 60000));
 
 return (
-  <div style={{ minHeight: '100vh', background: '#FFFFFF', color: '#111', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 28, textAlign: 'center' }}>
-    <NoxBrand />
-    <div style={{ width: 84, height: 84, borderRadius: 28, background: ACCENT, display: 'grid', placeItems: 'center', marginTop: 34, fontSize: 40, fontWeight: 1000 }}>✓</div>
-    <div style={{ fontSize: 10, color: '#77776F', textTransform: 'uppercase', letterSpacing: '.18em', marginTop: 22, marginBottom: 7, fontWeight: 900 }}>Complété</div>
-    <div style={{ fontSize: 29, lineHeight: .95, fontWeight: 1000, color: '#111', marginBottom: 28, letterSpacing: '-.045em' }}>SÉANCE TERMINÉE</div>
+  <div style={{ minHeight: '100vh', background: '#F7F8F4', color: '#0B0B0B', display: 'flex', flexDirection: 'column', padding: 24, paddingTop: 60, maxWidth: 560, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+    <div style={{ fontSize: 10, fontWeight: 900, color: '#7A7F76', letterSpacing: '.12em', marginBottom: 8 }}>SÉANCE</div>
+    <h1 style={{ margin: '0 0 6px', fontSize: 40, lineHeight: .9, fontWeight: 950, letterSpacing: '-.05em' }}>
+      TERMINÉE.
+    </h1>
+    <div style={{ fontSize: 14, color: '#7A7F76', marginBottom: 32 }}>NOX a enregistré ta progression.</div>
 
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, width: '100%', maxWidth: 340, marginBottom: 14 }}>
-      <DoneMetric label="Durée" value={`${duration} min`} symbol="◷" />
-      <DoneMetric label="Exercices" value={String(exercises.length)} symbol="▥" />
-      <DoneMetric label="Séries" value={String(completedSets.length)} symbol="✓" />
+    <div style={{ background: '#0B0B0B', borderRadius: 24, padding: 22, marginBottom: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 28, fontWeight: 950, color: '#FFFFFF' }}>{duration}</div>
+          <div style={{ fontSize: 9, color: '#7A7F76', fontWeight: 700, marginTop: 3 }}>MIN</div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 28, fontWeight: 950, color: '#FFFFFF' }}>{exercises.length}</div>
+          <div style={{ fontSize: 9, color: '#7A7F76', fontWeight: 700, marginTop: 3 }}>EXERCICES</div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 28, fontWeight: 950, color: ACCENT }}>{completedSets.length}</div>
+          <div style={{ fontSize: 9, color: '#7A7F76', fontWeight: 700, marginTop: 3 }}>SÉRIES</div>
+        </div>
+      </div>
+      <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #1a1a1a', fontSize: 12, color: '#888' }}>
+        +50 XP · Streak mis à jour
+      </div>
     </div>
 
-    <div style={{ background: '#F8FFE5', border: `1px solid ${ACCENT}`, borderRadius: 13, padding: 14, marginBottom: 24, width: '100%', maxWidth: 340 }}>
-      <div style={{ fontSize: 12, color: '#111', fontWeight: 900 }}>+50 XP · Streak recalculé</div>
-      <div style={{ fontSize: 10.5, color: '#77776F', marginTop: 4 }}>NOX a enregistré ta progression.</div>
+    <div style={{ background: '#F0FFD0', border: '1px solid #DDF59C', borderRadius: 18, padding: 16, marginBottom: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 900, color: '#687600', marginBottom: 4 }}>COMMENT TU TE SENS ?</div>
+      <div style={{ fontSize: 13, color: '#456000', lineHeight: 1.5 }}>NOX utilise ton ressenti pour adapter la prochaine séance.</div>
     </div>
 
     <button onClick={() => navigate('/home')}
-      style={{ width: '100%', maxWidth: 340, padding: 17, background: ACCENT, border: 'none', borderRadius: 13, color: '#111', fontWeight: 1000, fontSize: 13, cursor: 'pointer' }}>
-      RETOUR À L'ACCUEIL →
+      style={{ width: '100%', padding: 18, background: '#0B0B0B', border: 'none', borderRadius: 18, color: ACCENT, fontWeight: 900, fontSize: 14, cursor: 'pointer', marginTop: 'auto' }}>
+      RETOUR À L'ACCUEIL
     </button>
   </div>
 );
@@ -638,7 +653,7 @@ const exerciseProgress = ((currentIdx + (currentSet - 1) / totalSets) / exercise
 return (
 <div style={{
 minHeight: '100vh',
-background: resting ? '#090909' : '#F6F7F2',
+background: resting ? '#090909' : '#F7F8F4',
 color: resting ? '#fff' : '#111',
 display: 'flex',
 flexDirection: 'column',
@@ -649,7 +664,7 @@ width: '100%',
 maxWidth: 560,
 minHeight: '100vh',
 margin: '0 auto',
-background: resting ? '#090909' : '#F6F7F2',
+background: resting ? '#090909' : '#F7F8F4',
 display: 'flex',
 flexDirection: 'column',
 }}>
@@ -736,9 +751,12 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
 
     {/* PR Banner */}
     {newPR && (
-      <div style={{ margin: '0 20px 12px', background: ACCENT, borderRadius: 13, padding: '12px 15px', textAlign: 'center', animation: 'fadeIn .3s', color: '#111' }}>
-        <div style={{ fontSize: 14, fontWeight: 1000 }}>NOUVEAU RECORD</div>
-        <div style={{ fontSize: 11.5, marginTop: 3 }}>{newPR.name} — {newPR.weight} kg × {newPR.reps}</div>
+      <div style={{ margin: '0 20px 12px', background: ACCENT, borderRadius: 18, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 900, color: '#0B0B0B', letterSpacing: '.1em', marginBottom: 2 }}>NOUVEAU RECORD</div>
+          <div style={{ fontSize: 15, fontWeight: 950, color: '#0B0B0B' }}>{newPR.name} — {newPR.weight}kg × {newPR.reps}</div>
+        </div>
+        <div style={{ fontSize: 28 }}>⚡</div>
       </div>
     )}
 
