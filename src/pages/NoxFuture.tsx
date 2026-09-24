@@ -122,7 +122,6 @@ export default function NoxFuture() {
     if(!user||!goal.trim())return;
     setError('');setStep('generating');
     try{
-      const {data:{session}}=await supabase.auth.getSession();
       const prompt=`Tu es NOX. Crée une projection visuelle illustrative cohérente avec l'objectif déclaré.
 Conserve l'identité, le visage, la carnation, les cheveux, la pose et les proportions générales de la personne.
 Les changements corporels doivent rester modérés et plausibles. Ne garantis aucun résultat ni délai.
@@ -130,20 +129,32 @@ Objectif principal : ${profile?.goal_type||'transformation physique'}
 Description de l'utilisateur : ${goal}
 Réponds avec un JSON court contenant titre, tagline et message_coach.`;
 
-      const response=await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/nox-future',{
-        method:'POST',
-        headers:{'Content-Type':'application/json',...(session?.access_token?{Authorization:`Bearer ${session.access_token}`}:{})},
-        body:JSON.stringify({
+      const { data, error: functionError } = await supabase.functions.invoke('nox-future', {
+        body: {
           prompt,
           photos,
-          source_image:photos.face||photos.side||photos.back||null,
-          goal_description:goal,
-          objective:profile?.goal_type||'transformation physique',
-          request_visual_projection:Boolean(photos.face||photos.side||photos.back),
-        }),
+          source_image: photos.face || photos.side || photos.back || null,
+          goal_description: goal,
+          objective: profile?.goal_type || 'transformation physique',
+          request_visual_projection: Boolean(photos.face || photos.side || photos.back),
+        },
       });
-      const data=await response.json().catch(()=>null);
-      if(!response.ok) throw new Error(data?.error?.message||data?.error||`Erreur serveur (${response.status})`);
+
+      if (functionError) {
+        console.error('NOX Future Edge Function error:', functionError);
+        throw new Error(functionError.message || 'Impossible de contacter NOX Future.');
+      }
+
+      if (!data) {
+        throw new Error('NOX Future n’a renvoyé aucune donnée.');
+      }
+
+      if (data?.error) {
+        throw new Error(
+          data?.error?.message ||
+          (typeof data.error === 'string' ? data.error : 'La génération NOX Future a échoué.')
+        );
+      }
 
       const text=data?.data?.content?.[0]?.text||data?.content?.[0]?.text||data?.text||'';
       let parsed:any={};
