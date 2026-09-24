@@ -79,6 +79,7 @@ export default function Coach() {
       { data: workouts },
       { data: prs },
       { data: body },
+      { data: recovery },
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
       supabase.from('workout_programs').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
@@ -87,6 +88,14 @@ export default function Coach() {
       supabase.from('workouts').select('*').eq('user_id', user.id).eq('status', 'completed').gte('created_at', weekStart).order('created_at', { ascending: false }),
       supabase.from('personal_records').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
       supabase.from('body_logs').select('weight, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
+      supabase.from('recovery_checkins')
+        .select('sleep_hours, sleep_quality, fatigue, soreness, stress, hrv, resting_hr, created_at')
+        .eq('user_id', user.id)
+        .gte('created_at', start)
+        .lte('created_at', end)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     const todayKcal   = (food || []).reduce((s: number, e: any) => s + (e.calories || 0), 0);
@@ -96,6 +105,18 @@ export default function Coach() {
     const todaySession = sessions.find((s: any) =>
       String(s?.day || '').toLowerCase().includes(dayNames[new Date().getDay()].toLowerCase().slice(0,3))
     );
+
+    // Habitudes : même stockage local que Habits.tsx.
+    const todayKey = new Date().toISOString().slice(0, 10);
+    let habitDone: string[] = [];
+    let customHabits: any[] = [];
+    try {
+      habitDone = JSON.parse(localStorage.getItem(`nox-habits-${user.id}-${todayKey}`) || '[]');
+      customHabits = JSON.parse(localStorage.getItem(`nox-custom-habits-${user.id}`) || '[]');
+    } catch {
+      habitDone = [];
+      customHabits = [];
+    }
 
     setContext({
       profile:       prof,
@@ -108,13 +129,18 @@ export default function Coach() {
       weekWorkouts:  (workouts || []).length,
       recentPRs:     (prs || []).slice(0, 3),
       lastWeight:    (body || [])[0]?.weight,
+      recovery:      recovery || null,
+      habits: {
+        completedIds: habitDone,
+        customHabits,
+      },
       hour:          new Date().getHours(),
     });
   };
 
   const buildSystemPrompt = () => {
     if (!context) return '';
-    const { profile, todayKcal, todayProt, caloriesTarget, proteinTarget, todayFoods, todaySession, weekWorkouts, lastWeight, hour } = context;
+    const { profile, todayKcal, todayProt, caloriesTarget, proteinTarget, todayFoods, todaySession, weekWorkouts, lastWeight, recovery, habits, hour } = context;
     return `Tu es NOX, assistant personnel de transformation. Tu parles directement, avec précision, sans fioritures. Tu connais tout du profil de l'utilisateur.
 
 PROFIL :
@@ -130,12 +156,27 @@ AUJOURD'HUI (${hour}h) :
 - Séance du jour : ${todaySession || 'pas de séance prévue'}
 - Séances cette semaine : ${weekWorkouts}
 
+RECUPERATION AUJOURD'HUI :
+- Sommeil : ${recovery?.sleep_hours != null ? recovery.sleep_hours + 'h' : 'non renseigné'}
+- Qualité du sommeil : ${recovery?.sleep_quality ?? 'non renseignée'}
+- Fatigue : ${recovery?.fatigue ?? 'non renseignée'}
+- Courbatures : ${recovery?.soreness ?? 'non renseignées'}
+- Stress : ${recovery?.stress ?? 'non renseigné'}
+- HRV : ${recovery?.hrv ?? 'non renseignée'}
+- Fréquence cardiaque au repos : ${recovery?.resting_hr ?? 'non renseignée'}
+
+HABITUDES AUJOURD'HUI :
+- Habitudes validées : ${habits?.completedIds?.length ? habits.completedIds.join(', ') : 'aucune validée'}
+- Habitudes personnalisées configurées : ${habits?.customHabits?.length ? habits.customHabits.map((h: any) => h.label || h.name || h.title || h.id).filter(Boolean).join(', ') : 'aucune'}
+
 REGLES :
 - Réponds toujours en français
 - Maximum 3-4 phrases par réponse sauf si l'utilisateur demande des détails
 - Pas de markdown, pas de listes à puce
 - Quand tu peux proposer une action concrète, termine par une ligne qui commence par ACTION: suivie de l'action
 - Ne culpabilise jamais. Adapte, propose, explique.
+- Tiens compte de la récupération et des habitudes quand elles sont renseignées. Si fatigue, sommeil, stress ou courbatures justifient une adaptation, privilégie une recommandation prudente plutôt qu'une séance plus intense.
+- N'invente jamais une donnée de récupération ou une habitude absente.
 - Tu ne garantis aucun résultat physique précis`;
   };
 
