@@ -19,6 +19,7 @@ const Play = lazy(() => import('./pages/Play'));
 const NoxFuture = lazy(() => import('./pages/NoxFuture'));
 const WeeklyReview = lazy(() => import('./pages/WeeklyReview'));
 const Settings = lazy(() => import('./pages/Settings'));
+const BarcodeScanner = lazy(() => import('./pages/BarcodeScanner'));
 const Subscribe = lazy(() => import('./pages/Subscribe'));
 const RestDay = lazy(() => import('./pages/RestDay'));
 const Partner = lazy(() => import('./pages/Partner'));
@@ -438,7 +439,7 @@ function AppRoutes() {
           path="/profile"
           element={
             <ProtectedRoute>
-              <SocialProfile />
+              <Settings />
             </ProtectedRoute>
           }
         />

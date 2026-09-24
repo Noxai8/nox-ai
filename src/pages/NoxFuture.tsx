@@ -44,7 +44,7 @@ export default function NoxFuture() {
       const plan = data?.subscription_plan || 'free';
       const max = ({free:1,nox:1,pro:999,ultra:999} as Record<string,number>)[plan] || 1;
       const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-      supabase.from('future_you_generations').select('id').eq('user_id',user.id).gte('created_at',monthStart)
+      supabase.from('future_you_generations').select('id,prompt,projection_text,created_at').eq('user_id',user.id).gte('created_at',monthStart)
         .then(({data: rows}) => {
           const used=rows?.length||0;
           setCredits({used,max,canGenerate:max>=999||used<max});
@@ -154,10 +154,19 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.`;
       parsed.message_coach=parsed.message_coach||'Cette projection est un repère visuel. Le programme NOX sera construit autour de ton profil, de tes contraintes et de ton objectif.';
       setProjection(parsed);
 
+      // Sauvegarder génération complète — texte + photo + objectif
+      const sourcePhoto = photos.face || photos.side || photos.back || null;
       const {error:saveError}=await supabase.from('future_you_generations').insert({
-        user_id:user.id,source_photo_url:null,generated_image_url:null,projection_months:3,prompt:goal,status:'completed',
+        user_id: user.id,
+        source_photo_url: sourcePhoto ? sourcePhoto.slice(0,2000) : null,
+        generated_image_url: null,
+        projection_months: 3,
+        prompt: goal,
+        projection_text: typeof parsed === 'string' ? parsed : JSON.stringify(parsed),
+        status: 'completed',
+        created_at: new Date().toISOString(),
       });
-      if(saveError) console.warn('NOX Future : historique non sauvegardé',saveError);
+      if(saveError) console.warn('NOX Future : historique non sauvegardé', saveError);
       setCredits(c=>({...c,used:c.used+1,canGenerate:c.max>=999||c.used+1<c.max}));
       setStep('result');
     }catch(e:any){

@@ -194,10 +194,16 @@ REGLES :
       const resp = await fetch(`${FN}/nox-coach`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
-        body: JSON.stringify({ message: text, history, systemPrompt: buildSystemPrompt() }),
+        body: JSON.stringify({
+          system: buildSystemPrompt(),
+          messages: [
+            ...history.map((m: any) => ({ role: m.role, content: m.content })),
+            { role: 'user', content: text }
+          ]
+        }),
       });
       const data = await resp.json();
-      const reply = data?.content || data?.message || data?.data?.content || '';
+      const reply = data?.content?.[0]?.text || data?.content || data?.message || '';
 
       // Extraire ACTION si présente
       let displayText = reply;
@@ -228,10 +234,13 @@ REGLES :
       const resp = await fetch(`${FN}/nox-coach`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
-        body: JSON.stringify({ message: 'ET MAINTENANT ?', history: [], systemPrompt: prompt }),
+        body: JSON.stringify({
+          system: prompt,
+          messages: [{ role: 'user', content: 'ET MAINTENANT ?' }]
+        }),
       });
       const data = await resp.json();
-      const reply = data?.content || data?.message || data?.data?.content || '';
+      const reply = data?.content?.[0]?.text || data?.content || data?.message || '';
 
       let displayText = reply;
       let action: NoxAction = null;
