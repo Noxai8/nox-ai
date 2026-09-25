@@ -68,7 +68,8 @@ export default function Fuel() {
   } | null>(null);
 
   const [water, setWater] = useState(0);
-  const [ideas, setIdeas] = useState<string | null>(null);
+  const [ideas, setIdeas] = useState<{ name: string; kcal: number; protein: number; desc: string }[]>([]);
+  const [ideasError, setIdeasError] = useState<string | null>(null);
   const [loadIdeas, setLoadIdeas] = useState(false);
 
   const [showAdd, setShowAdd] = useState(false);
@@ -334,7 +335,10 @@ export default function Fuel() {
   };
 
   const addWater = async (ml: number) => {
-    await supabase.from('food_entries').insert({
+    // Optimistic update — valeur immédiate
+    setWater(current => current + ml);
+    // Persistance réelle
+    const { error } = await supabase.from('food_entries').insert({
       user_id: user!.id,
       meal_type: 'Eau',
       food_name: 'Eau',
@@ -345,55 +349,49 @@ export default function Fuel() {
       water_ml: ml,
       created_at: new Date().toISOString(),
     });
-
-    setWater(current => current + ml);
+    if (error) {
+      // Rollback si erreur
+      setWater(current => current - ml);
+      console.error('Erreur addWater:', error.message);
+    }
   };
 
   const handlePhoto = (file: File) => {
     const reader = new FileReader();
-
     reader.onload = async event => {
       const result = event.target?.result as string;
-      const b64 = result.split(',')[1];
-
       setPhotoB64(result);
       setScanning(true);
-
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        const response = await fetch(`${FN}/analyze-meal`, {
+        const { data: { session } } = await supabase.auth.getSession();
+        const resp = await fetch(`${FN}/analyze-meal`, {
           method: 'POST',
-
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.access_token || ''}`,
-          },
-
-          body: JSON.stringify({
-            image: b64,
-          }),
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+          body: JSON.stringify({ image: result }),
         });
-
-        const data = await response.json();
-
-        const text =
-          data?.content?.[0]?.text ||
-          data?.data?.content?.[0]?.text ||
-          '';
-
-        const match = text.match(/\{[\s\S]*\}/);
-
-        if (match) {
-          setScanRes(JSON.parse(match[0]));
+        const data = await resp.json();
+        if (!resp.ok || data?.error) {
+          const msg = data?.error === 'PRO_REQUIRED'
+            ? 'Le scan IA est réservé à NOX Pro.'
+            : data?.error || `Erreur serveur (${resp.status})`;
+          setScanRes({ error: msg });
+          setScanning(false);
+          return;
         }
-      } catch {}
-
+        // La réponse peut être directement un objet JSON ou dans content[0].text
+        if (data?.total) {
+          setScanRes(data);
+        } else {
+          const text = data?.content?.[0]?.text || '';
+          const match = text.match(/\{[\s\S]*\}/);
+          if (match) setScanRes(JSON.parse(match[0]));
+          else setScanRes({ error: 'Analyse impossible. Essaie avec une photo plus nette.' });
+        }
+      } catch (e: any) {
+        setScanRes({ error: e?.message || 'Erreur réseau.' });
+      }
       setScanning(false);
     };
-
     reader.readAsDataURL(file);
   };
 
@@ -449,22 +447,49 @@ export default function Fuel() {
 
   const fetchIdeas = async () => {
     setLoadIdeas(true);
+    setIdeasError(null);
+    setIdeas([]);
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      const mealType = currentMeal();
       const resp = await fetch(`${FN}/nox-coach`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
         body: JSON.stringify({
-          system: 'Tu es NOX, assistant nutritionnel. Réponds uniquement en français, sans markdown, sans tirets ni astérisques.',
-          messages: [{ role: 'user', content: `Il reste ${kcalLeft} kcal et ${protLeft}g de protéines aujourd'hui. Propose 3 idées de repas simples et réalistes, une par ligne, avec les calories approximatives entre parenthèses. Pas d'introduction, pas de conclusion.` }],
+          system: `Tu es NOX, assistant nutritionnel. Réponds UNIQUEMENT avec un tableau JSON valide, sans markdown, sans explication. Format strict : [{"name":"...","kcal":0,"protein":0,"desc":"..."}]. 3 éléments maximum.`,
+          messages: [{
+            role: 'user',
+            content: `Calories restantes : ${kcalLeft} kcal. Protéines restantes : ${protLeft}g. Glucides restants : ${targets ? Math.max(0, targets.carbs - Math.round(totals.carbs)) : '?'}g. Repas : ${mealType}. Propose 3 idées de repas adaptées. JSON uniquement.`
+          }],
         }),
       });
       const data = await resp.json();
-      if (data?.error === 'PRO_REQUIRED') { setIdeas(''); return; }
+      if (!resp.ok || data?.error) {
+        setIdeasError(data?.error === 'PRO_REQUIRED' ? 'Idées IA disponibles avec NOX Pro.' : data?.error || `Erreur ${resp.status}`);
+        return;
+      }
       const text = data?.content?.[0]?.text || '';
-      if (text) setIdeas(text.trim());
-    } catch {}
-    setLoadIdeas(false);
+      // Parser le JSON retourné
+      const clean = text.replace(/\`\`\`json/gi,'').replace(/\`\`\`/g,'').trim();
+      const start = clean.indexOf('['), end = clean.lastIndexOf(']');
+      if (start >= 0 && end > start) {
+        const parsed = JSON.parse(clean.slice(start, end + 1));
+        if (Array.isArray(parsed) && parsed.length) {
+          setIdeas(parsed.slice(0, 3).map((x: any) => ({
+            name: String(x.name || 'Repas'),
+            kcal: Number(x.kcal || 0),
+            protein: Number(x.protein || 0),
+            desc: String(x.desc || ''),
+          })));
+          return;
+        }
+      }
+      setIdeasError('Réponse IA invalide. Réessaie.');
+    } catch (e: any) {
+      setIdeasError(e?.message || 'Erreur réseau.');
+    } finally {
+      setLoadIdeas(false);
+    }
   };
 
   const filtered =
@@ -674,10 +699,29 @@ export default function Fuel() {
               )}
             </button>
 
-            {ideas && (
-              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #E1F5A5' }}>
-                {ideas.split('\n').filter(l => l.trim()).map((line, i) => (
-                  <div key={i} style={{ fontSize: 12, color: '#30342E', padding: '5px 0', lineHeight: 1.35 }}>{line}</div>
+            {ideasError && (
+              <div style={{ marginTop: 10, padding: '10px 12px', background: 'rgba(255,92,92,.08)', border: '1px solid rgba(255,92,92,.2)', borderRadius: 10, fontSize: 12, color: '#c03' }}>
+                {ideasError}
+              </div>
+            )}
+            {ideas.length > 0 && (
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #E1F5A5', display: 'grid', gap: 8 }}>
+                {ideas.map((idea, i) => (
+                  <div key={i} style={{ background: WHITE, borderRadius: 14, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: BLACK }}>{idea.name}</div>
+                      <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+                        ~{idea.kcal} kcal{idea.protein > 0 ? ` · ${idea.protein}g prot.` : ''}
+                        {idea.desc ? ` · ${idea.desc}` : ''}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => addEntry({ food_name: idea.name, calories: idea.kcal, protein: idea.protein, carbs: 0, fat: 0 })}
+                      style={{ flexShrink: 0, padding: '6px 12px', background: BLACK, border: 0, borderRadius: 10, color: ACCENT, fontSize: 10, fontWeight: 900, cursor: 'pointer' }}
+                    >
+                      + AJOUTER
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -1470,7 +1514,12 @@ export default function Fuel() {
                   </div>
                 )}
 
-                {scanRes && !scanning && (
+                {scanRes?.error && !scanning && (
+                  <div style={{ padding: '14px 16px', background: 'rgba(255,92,92,.08)', border: '1px solid rgba(255,92,92,.2)', borderRadius: 14, fontSize: 13, color: '#c03', textAlign: 'center' }}>
+                    {scanRes.error}
+                  </div>
+                )}
+                {scanRes && !scanRes.error && !scanning && (
                   <div>
                     <div
                       style={{
