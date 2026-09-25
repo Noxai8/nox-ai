@@ -68,20 +68,6 @@ export default function Fuel() {
   } | null>(null);
 
   const [water, setWater] = useState(0);
-  type MealIdea = {
-    name: string;
-    kcal: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    desc: string;
-    ingredients?: { name: string; grams?: number; unit?: string }[];
-    instructions?: string[];
-  };
-
-  const [ideas, setIdeas] = useState<MealIdea[]>([]);
-  const [ideasError, setIdeasError] = useState<string | null>(null);
-  const [loadIdeas, setLoadIdeas] = useState(false);
 
   const [showAdd, setShowAdd] = useState(false);
 
@@ -456,107 +442,7 @@ export default function Fuel() {
     }
   };
 
-  const fetchIdeas = async () => {
-    if (!isPro) { navigate('/subscribe'); return; }
-    if (!targets) { setIdeasError('Configure d’abord ton cap nutritionnel.'); return; }
-
-    setLoadIdeas(true);
-    setIdeasError(null);
-    setIdeas([]);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error('Session expirée. Reconnecte-toi.');
-
-      const resp = await fetch(`${FN}/generate-meal-plan`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          mode: 'ideas',
-          mealType: currentMeal(),
-          target: {
-            calories: targets.kcal,
-            protein: targets.protein,
-            carbs: targets.carbs,
-            fat: targets.fat,
-          },
-          remaining: {
-            kcal: Math.max(0, targets.kcal - Math.round(totals.kcal)),
-            protein: Math.max(0, targets.protein - Math.round(totals.protein)),
-            carbs: Math.max(0, targets.carbs - Math.round(totals.carbs)),
-            fat: Math.max(0, targets.fat - Math.round(totals.fat)),
-          },
-        }),
-      });
-
-      const data = await resp.json().catch(() => null);
-      if (!resp.ok) {
-        const msg = typeof data?.error === 'string' ? data.error
-          : data?.error?.message ? String(data.error.message)
-          : data?.message ? String(data.message)
-          : `Erreur NOX (${resp.status})`;
-        if (msg === 'PRO_REQUIRED') { navigate('/subscribe'); return; }
-        throw new Error(msg);
-      }
-
-      if (!Array.isArray(data?.ideas) || data.ideas.length === 0) {
-        throw new Error('Aucune idée de repas générée. Réessaie.');
-      }
-
-      const cleanIdeas: MealIdea[] = data.ideas
-        .filter((x: any) => x && typeof x.name === 'string')
-        .slice(0, 3)
-        .map((x: any) => ({
-          name: String(x.name),
-          kcal: Math.max(0, Math.round(Number(x.kcal) || 0)),
-          protein: Math.max(0, Math.round(Number(x.protein) || 0)),
-          carbs: Math.max(0, Math.round(Number(x.carbs) || 0)),
-          fat: Math.max(0, Math.round(Number(x.fat) || 0)),
-          desc: typeof x.desc === 'string' ? x.desc : '',
-          ingredients: Array.isArray(x.ingredients) ? x.ingredients : [],
-          instructions: Array.isArray(x.instructions) ? x.instructions : [],
-        }));
-
-      if (!cleanIdeas.length) throw new Error('Aucune idée exploitable générée. Réessaie.');
-      setIdeas(cleanIdeas);
-    } catch (err: unknown) {
-      console.error('fetchIdeas error:', err);
-      setIdeasError(err instanceof Error ? err.message : 'Impossible de générer des idées de repas.');
-    } finally {
-      setLoadIdeas(false);
-    }
-  };
-
-  const addIdeaToDay = async (idea: MealIdea) => {
-    if (!user) return;
-    setSaving(true);
-    setIdeasError(null);
-    try {
-      const { error } = await supabase.from('food_entries').insert({
-        user_id: user.id,
-        meal_type: currentMeal(),
-        food_name: idea.name,
-        calories: idea.kcal,
-        protein: idea.protein,
-        carbs: idea.carbs,
-        fat: idea.fat,
-        created_at: new Date().toISOString(),
-      });
-      if (error) throw error;
-      await load();
-      setIdeas(current => current.filter(item => item !== idea));
-    } catch (err) {
-      console.error('addIdeaToDay error:', err);
-      setIdeasError('Impossible d’ajouter ce repas à ta journée.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-    const filtered =
+  const filtered =
     search.length > 1
       ? FOOD_DB.filter(food =>
           food.name.toLowerCase().includes(search.toLowerCase())
@@ -739,48 +625,19 @@ export default function Fuel() {
               </button>
             </div>
 
+            {/* COURSES / FRIGO / RECETTES — flow centralisé */}
             <button
               type="button"
-              onClick={async () => {
-                if (!isPro) { navigate('/subscribe'); return; }
-                await fetchIdeas();
-              }}
-              disabled={isPro && loadIdeas}
-              style={{
-                width: '100%', height: 40, marginTop: 12,
-                padding: '0 8px 0 14px', border: 0, borderRadius: 11,
-                background: BLACK, color: WHITE,
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                cursor: loadIdeas ? 'wait' : 'pointer', boxSizing: 'border-box',
-              }}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, fontWeight: 900 }}>
-                <span style={{ color: ACCENT }}>✨</span>
-                {loadIdeas && isPro ? 'NOX RÉFLÉCHIT...' : 'IDÉES DE REPAS'}
-              </span>
-              {!isPro && (
-                <span style={{ background: ACCENT, color: BLACK, borderRadius: 7, padding: '4px 8px', fontSize: 9, lineHeight: 1, fontWeight: 950 }}>PRO</span>
-              )}
-            </button>
-
-            {ideasError && (
-              <div style={{ marginTop: 10, padding: '10px 12px', background: 'rgba(255,92,92,.08)', border: '1px solid rgba(255,92,92,.2)', borderRadius: 10, fontSize: 12, color: '#c03' }}>
-                {typeof ideasError === 'string' ? ideasError : 'Impossible de générer des idées de repas.'}
-              </div>
-            )}
-            {/* FRIGO AI */}
-            <button
-              type="button"
-              onClick={() => navigate('/fuel-ai')}
+              onClick={() => navigate('/quick-groceries')}
               style={{
                 width: '100%',
-                height: 40,
-                marginTop: 8,
-                padding: '0 10px 0 14px',
-                border: '1px solid #C8E87A',
+                height: 44,
+                marginTop: 12,
+                padding: '0 12px 0 14px',
+                border: 0,
                 borderRadius: 11,
-                background: 'transparent',
-                color: BLACK,
+                background: BLACK,
+                color: WHITE,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -789,37 +646,11 @@ export default function Fuel() {
               }}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, fontWeight: 900 }}>
-                🧊 FRIGO AI
+                <span style={{ color: ACCENT }}>🧊</span>
+                TROUVER MON PROCHAIN REPAS
               </span>
-              <ChevronRight size={14} color={MUTED} />
+              <ChevronRight size={14} color={ACCENT} />
             </button>
-
-            {ideas.length > 0 && (
-              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #E1F5A5', display: 'grid', gap: 8 }}>
-                {ideas.map((idea, i) => (
-                  <div key={i} style={{ background: WHITE, borderRadius: 14, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: BLACK }}>{idea.name}</div>
-                      <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
-                        ~{idea.kcal} kcal · {idea.protein}g prot. · {idea.carbs}g gluc. · {idea.fat}g lip.
-                      </div>
-                      {idea.desc && (
-                        <div style={{ fontSize: 10, color: '#555B52', marginTop: 4, lineHeight: 1.4 }}>
-                          {idea.desc}
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => addIdeaToDay(idea)}
-                      disabled={saving}
-                      style={{ flexShrink: 0, padding: '6px 12px', background: BLACK, border: 0, borderRadius: 10, color: ACCENT, fontSize: 10, fontWeight: 900, cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1 }}
-                    >
-                      {saving ? 'AJOUT...' : '+ AJOUTER'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* CALORIES + MACROS — toujours visible, sans inventer de cibles */}
