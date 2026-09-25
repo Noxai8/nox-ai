@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
+  UserRound,
 } from 'lucide-react';
 
 const BG = '#F7F8F4';
@@ -50,8 +51,11 @@ type Recommendation = {
   objective: 'loss' | 'gain' | 'maintain';
 };
 
-const roundTo5 = (value: number) => Math.round(value / 5) * 5;
-const roundTo10 = (value: number) => Math.round(value / 10) * 10;
+const roundTo5 = (value: number) =>
+  Math.round(value / 5) * 5;
+
+const roundTo10 = (value: number) =>
+  Math.round(value / 10) * 10;
 
 const normalize = (value?: string | null) =>
   (value || '')
@@ -62,28 +66,43 @@ const normalize = (value?: string | null) =>
     .replace(/\s+/g, ' ')
     .trim();
 
+/* =========================================================
+   AGE
+========================================================= */
+
 const calculateAge = (dateOfBirth: string) => {
   const birth = new Date(`${dateOfBirth}T00:00:00`);
 
-  if (Number.isNaN(birth.getTime())) return null;
+  if (Number.isNaN(birth.getTime())) {
+    return null;
+  }
 
   const today = new Date();
 
-  let age = today.getFullYear() - birth.getFullYear();
+  let age =
+    today.getFullYear() - birth.getFullYear();
 
-  const monthDifference = today.getMonth() - birth.getMonth();
+  const monthDifference =
+    today.getMonth() - birth.getMonth();
 
   if (
     monthDifference < 0 ||
-    (monthDifference === 0 && today.getDate() < birth.getDate())
+    (monthDifference === 0 &&
+      today.getDate() < birth.getDate())
   ) {
     age -= 1;
   }
 
-  if (age < 14 || age > 100) return null;
+  if (age < 14 || age > 100) {
+    return null;
+  }
 
   return age;
 };
+
+/* =========================================================
+   OBJECTIVE
+========================================================= */
 
 const getObjective = (
   goalType?: string | null
@@ -118,10 +137,20 @@ const getObjective = (
 const getObjectiveLabel = (
   objective: 'loss' | 'gain' | 'maintain'
 ) => {
-  if (objective === 'loss') return 'Perte de gras';
-  if (objective === 'gain') return 'Prise de muscle';
+  if (objective === 'loss') {
+    return 'Perte de gras';
+  }
+
+  if (objective === 'gain') {
+    return 'Prise de muscle';
+  }
+
   return 'Maintien';
 };
+
+/* =========================================================
+   ACTIVITY
+========================================================= */
 
 const getActivityFactor = (
   activityLevel?: string | null,
@@ -131,8 +160,8 @@ const getActivityFactor = (
   const days = Number(daysPerWeek || 0);
 
   /*
-   * On privilégie la fréquence d'entraînement réelle
-   * lorsqu'elle existe dans goals.
+   * On privilégie la fréquence d'entraînement
+   * enregistrée dans goals lorsqu'elle existe.
    */
   if (days >= 6) return 1.725;
   if (days >= 4) return 1.55;
@@ -172,7 +201,13 @@ const getActivityFactor = (
   return 1.375;
 };
 
-const getSexOffset = (sex?: string | null) => {
+/* =========================================================
+   SEX
+========================================================= */
+
+const getSexOffset = (
+  sex?: string | null
+) => {
   const normalizedSex = normalize(sex);
 
   if (
@@ -196,12 +231,18 @@ const getSexOffset = (sex?: string | null) => {
   return null;
 };
 
+/* =========================================================
+   NOX NUTRITION RECOMMENDATION
+========================================================= */
+
 const calculateRecommendation = (
   profile: ProfileData,
   goal: GoalData | null
 ): Recommendation | null => {
   const height = Number(profile.height_cm);
-  const weight = Number(profile.starting_weight_kg);
+  const weight = Number(
+    profile.starting_weight_kg
+  );
 
   if (
     !profile.date_of_birth ||
@@ -213,119 +254,198 @@ const calculateRecommendation = (
     return null;
   }
 
-  const age = calculateAge(profile.date_of_birth);
-  const sexOffset = getSexOffset(profile.sex);
+  const age = calculateAge(
+    profile.date_of_birth
+  );
 
-  if (age == null || sexOffset == null) {
+  const sexOffset = getSexOffset(
+    profile.sex
+  );
+
+  if (
+    age == null ||
+    sexOffset == null
+  ) {
     return null;
   }
 
   /*
-   * Mifflin-St Jeor :
-   * BMR = 10W + 6.25H - 5A + sexe
+   * Mifflin-St Jeor
+   *
+   * BMR =
+   * 10 × poids
+   * + 6.25 × taille
+   * - 5 × âge
+   * + coefficient sexe
    */
+
   const bmr =
     10 * weight +
     6.25 * height -
     5 * age +
     sexOffset;
 
-  const activityFactor = getActivityFactor(
-    profile.activity_level,
-    goal?.days_per_week
-  );
+  const activityFactor =
+    getActivityFactor(
+      profile.activity_level,
+      goal?.days_per_week
+    );
 
-  const maintenance = bmr * activityFactor;
+  const maintenance =
+    bmr * activityFactor;
 
   const objective = getObjective(
-    goal?.goal_type || profile.goal_type
+    goal?.goal_type ||
+      profile.goal_type
   );
 
   /*
-   * Ajustement volontairement modéré :
-   * - perte : ~15 %
-   * - maintien : maintenance
-   * - prise : ~8 %
+   * Ajustement calorique modéré.
    */
-  let targetCalories = maintenance;
+
+  let targetCalories =
+    maintenance;
 
   if (objective === 'loss') {
-    targetCalories = maintenance * 0.85;
+    targetCalories =
+      maintenance * 0.85;
   }
 
   if (objective === 'gain') {
-    targetCalories = maintenance * 1.08;
+    targetCalories =
+      maintenance * 1.08;
   }
 
   /*
-   * Protéines :
-   * perte -> 2 g/kg
-   * prise -> 1.8 g/kg
-   * maintien -> 1.7 g/kg
+   * Protéines
    */
+
   let proteinPerKg = 1.7;
 
-  if (objective === 'loss') proteinPerKg = 2;
-  if (objective === 'gain') proteinPerKg = 1.8;
+  if (objective === 'loss') {
+    proteinPerKg = 2;
+  }
 
-  const protein = roundTo5(weight * proteinPerKg);
+  if (objective === 'gain') {
+    proteinPerKg = 1.8;
+  }
 
-  /*
-   * Lipides :
-   * base simple à 0.8 g/kg.
-   */
-  const fat = Math.max(45, roundTo5(weight * 0.8));
-
-  /*
-   * Les glucides remplissent les calories restantes.
-   */
-  const calories = Math.max(1200, roundTo10(targetCalories));
-
-  const caloriesFromProtein = protein * 4;
-  const caloriesFromFat = fat * 9;
-
-  const remainingCalories = Math.max(
-    0,
-    calories - caloriesFromProtein - caloriesFromFat
+  const protein = roundTo5(
+    weight * proteinPerKg
   );
 
-  const carbs = Math.max(0, roundTo5(remainingCalories / 4));
+  /*
+   * Lipides
+   */
+
+  const fat = Math.max(
+    45,
+    roundTo5(weight * 0.8)
+  );
+
+  /*
+   * Calories finales
+   */
+
+  const calories = Math.max(
+    1200,
+    roundTo10(targetCalories)
+  );
+
+  /*
+   * Glucides = calories restantes
+   */
+
+  const caloriesFromProtein =
+    protein * 4;
+
+  const caloriesFromFat =
+    fat * 9;
+
+  const remainingCalories =
+    Math.max(
+      0,
+      calories -
+        caloriesFromProtein -
+        caloriesFromFat
+    );
+
+  const carbs = Math.max(
+    0,
+    roundTo5(
+      remainingCalories / 4
+    )
+  );
 
   return {
     calories,
     protein,
     carbs,
     fat,
-    maintenance: roundTo10(maintenance),
+    maintenance:
+      roundTo10(maintenance),
     age,
     objective,
   };
 };
 
+/* =========================================================
+   COMPONENT
+========================================================= */
+
 export default function NutritionGoals() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [goal, setGoal] = useState<GoalData | null>(null);
+  const [profile, setProfile] =
+    useState<ProfileData | null>(
+      null
+    );
 
-  const [calories, setCalories] = useState('');
-  const [protein, setProtein] = useState('');
-  const [carbs, setCarbs] = useState('');
-  const [fat, setFat] = useState('');
+  const [goal, setGoal] =
+    useState<GoalData | null>(
+      null
+    );
 
-  const [existingTargets, setExistingTargets] =
-    useState<ExistingTargets | null>(null);
+  const [
+    existingTargets,
+    setExistingTargets,
+  ] =
+    useState<ExistingTargets | null>(
+      null
+    );
 
-  const [manualOpen, setManualOpen] = useState(false);
+  const [calories, setCalories] =
+    useState('');
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState('');
+  const [protein, setProtein] =
+    useState('');
+
+  const [carbs, setCarbs] =
+    useState('');
+
+  const [fat, setFat] =
+    useState('');
+
+  const [
+    manualOpen,
+    setManualOpen,
+  ] = useState(false);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [saved, setSaved] =
+    useState(false);
+
+  const [error, setError] =
+    useState('');
 
   /* =========================================================
-     LOAD NOX PROFILE + ACTIVE GOAL + EXISTING TARGETS
+     LOAD DATA
   ========================================================= */
 
   useEffect(() => {
@@ -350,12 +470,12 @@ export default function NutritionGoals() {
             .from('profiles')
             .select(
               `
-              date_of_birth,
-              sex,
-              height_cm,
-              starting_weight_kg,
-              activity_level,
-              goal_type
+                date_of_birth,
+                sex,
+                height_cm,
+                starting_weight_kg,
+                activity_level,
+                goal_type
               `
             )
             .eq('id', user.id)
@@ -365,29 +485,51 @@ export default function NutritionGoals() {
             .from('goals')
             .select(
               `
-              goal_type,
-              target_weight_kg,
-              target_date,
-              days_per_week,
-              is_active
+                goal_type,
+                target_weight_kg,
+                target_date,
+                days_per_week,
+                is_active
               `
             )
-            .eq('user_id', user.id)
-            .eq('is_active', true)
-            .order('created_at', { ascending: false })
+            .eq(
+              'user_id',
+              user.id
+            )
+            .eq(
+              'is_active',
+              true
+            )
+            .order(
+              'created_at',
+              {
+                ascending: false,
+              }
+            )
             .limit(1)
             .maybeSingle(),
 
           supabase
-            .from('nutrition_targets')
-            .select('calories, protein_g, carbs_g, fat_g')
-            .eq('user_id', user.id)
+            .from(
+              'nutrition_targets'
+            )
+            .select(
+              'calories, protein_g, carbs_g, fat_g'
+            )
+            .eq(
+              'user_id',
+              user.id
+            )
             .maybeSingle(),
         ]);
 
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
-        if (profileResult.error) {
+        if (
+          profileResult.error
+        ) {
           console.error(
             'NutritionGoals profile:',
             profileResult.error
@@ -400,18 +542,18 @@ export default function NutritionGoals() {
           return;
         }
 
-        /*
-         * Une absence de goal n'empêche pas la page de fonctionner :
-         * on pourra utiliser profile.goal_type.
-         */
-        if (goalResult.error) {
+        if (
+          goalResult.error
+        ) {
           console.error(
             'NutritionGoals goal:',
             goalResult.error
           );
         }
 
-        if (targetResult.error) {
+        if (
+          targetResult.error
+        ) {
           console.error(
             'NutritionGoals targets:',
             targetResult.error
@@ -419,48 +561,73 @@ export default function NutritionGoals() {
         }
 
         const loadedProfile =
-          (profileResult.data as ProfileData | null) || null;
+          (profileResult.data as
+            | ProfileData
+            | null) || null;
 
         const loadedGoal =
-          !goalResult.error && goalResult.data
+          !goalResult.error &&
+          goalResult.data
             ? (goalResult.data as GoalData)
             : null;
 
         const loadedTargets =
-          !targetResult.error && targetResult.data
+          !targetResult.error &&
+          targetResult.data
             ? (targetResult.data as ExistingTargets)
             : null;
 
-        setProfile(loadedProfile);
-        setGoal(loadedGoal);
-        setExistingTargets(loadedTargets);
+        setProfile(
+          loadedProfile
+        );
+
+        setGoal(
+          loadedGoal
+        );
+
+        setExistingTargets(
+          loadedTargets
+        );
 
         /*
-         * Si l'utilisateur possède déjà un cap,
-         * on le précharge dans l'éditeur manuel.
+         * Si un cap existe déjà,
+         * on précharge l'éditeur manuel.
          */
+
         if (loadedTargets) {
           setCalories(
-            loadedTargets.calories != null
-              ? String(loadedTargets.calories)
+            loadedTargets.calories !=
+              null
+              ? String(
+                  loadedTargets.calories
+                )
               : ''
           );
 
           setProtein(
-            loadedTargets.protein_g != null
-              ? String(loadedTargets.protein_g)
+            loadedTargets.protein_g !=
+              null
+              ? String(
+                  loadedTargets.protein_g
+                )
               : ''
           );
 
           setCarbs(
-            loadedTargets.carbs_g != null
-              ? String(loadedTargets.carbs_g)
+            loadedTargets.carbs_g !=
+              null
+              ? String(
+                  loadedTargets.carbs_g
+                )
               : ''
           );
 
           setFat(
-            loadedTargets.fat_g != null
-              ? String(loadedTargets.fat_g)
+            loadedTargets.fat_g !=
+              null
+              ? String(
+                  loadedTargets.fat_g
+                )
               : ''
           );
         }
@@ -490,74 +657,109 @@ export default function NutritionGoals() {
   }, [user]);
 
   /* =========================================================
-     AUTOMATIC NOX RECOMMENDATION
+     RECOMMENDATION
   ========================================================= */
 
-  const recommendation = useMemo(() => {
-    if (!profile) return null;
+  const recommendation =
+    useMemo(() => {
+      if (!profile) {
+        return null;
+      }
 
-    return calculateRecommendation(profile, goal);
-  }, [profile, goal]);
+      return calculateRecommendation(
+        profile,
+        goal
+      );
+    }, [profile, goal]);
 
   /* =========================================================
      MISSING PROFILE DATA
   ========================================================= */
 
-  const missingData = useMemo(() => {
-    if (!profile) return ['profil'];
+  const missingData =
+    useMemo(() => {
+      if (!profile) {
+        return ['profil'];
+      }
 
-    const missing: string[] = [];
+      const missing: string[] =
+        [];
 
-    if (!profile.date_of_birth) {
-      missing.push('date de naissance');
-    }
+      if (
+        !profile.date_of_birth
+      ) {
+        missing.push(
+          'date de naissance'
+        );
+      }
 
-    if (!profile.sex) {
-      missing.push('sexe');
-    }
+      if (!profile.sex) {
+        missing.push('sexe');
+      }
 
-    if (
-      profile.height_cm == null ||
-      Number(profile.height_cm) <= 0
-    ) {
-      missing.push('taille');
-    }
+      if (
+        profile.height_cm ==
+          null ||
+        Number(
+          profile.height_cm
+        ) <= 0
+      ) {
+        missing.push('taille');
+      }
 
-    if (
-      profile.starting_weight_kg == null ||
-      Number(profile.starting_weight_kg) <= 0
-    ) {
-      missing.push('poids');
-    }
+      if (
+        profile.starting_weight_kg ==
+          null ||
+        Number(
+          profile.starting_weight_kg
+        ) <= 0
+      ) {
+        missing.push('poids');
+      }
 
-    return missing;
-  }, [profile]);
+      return missing;
+    }, [profile]);
 
   /* =========================================================
      MANUAL VALIDATION
   ========================================================= */
 
-  const caloriesNumber = Number(calories);
-  const proteinNumber = Number(protein);
-  const carbsNumber = Number(carbs);
-  const fatNumber = Number(fat);
+  const caloriesNumber =
+    Number(calories);
+
+  const proteinNumber =
+    Number(protein);
+
+  const carbsNumber =
+    Number(carbs);
+
+  const fatNumber =
+    Number(fat);
 
   const manualValid =
     calories.trim() !== '' &&
     protein.trim() !== '' &&
     carbs.trim() !== '' &&
     fat.trim() !== '' &&
-    Number.isFinite(caloriesNumber) &&
-    Number.isFinite(proteinNumber) &&
-    Number.isFinite(carbsNumber) &&
-    Number.isFinite(fatNumber) &&
+    Number.isFinite(
+      caloriesNumber
+    ) &&
+    Number.isFinite(
+      proteinNumber
+    ) &&
+    Number.isFinite(
+      carbsNumber
+    ) &&
+    Number.isFinite(
+      fatNumber
+    ) &&
     caloriesNumber > 0 &&
     proteinNumber > 0 &&
     carbsNumber >= 0 &&
     fatNumber >= 0;
 
   /* =========================================================
-     DATABASE SAVE
+     SAVE
   ========================================================= */
 
   const savePayload = async ({
@@ -571,7 +773,12 @@ export default function NutritionGoals() {
     targetCarbs: number;
     targetFat: number;
   }) => {
-    if (!user || saving) return;
+    if (
+      !user ||
+      saving
+    ) {
+      return;
+    }
 
     setSaving(true);
     setSaved(false);
@@ -580,17 +787,33 @@ export default function NutritionGoals() {
     try {
       const payload = {
         user_id: user.id,
-        calories: Math.round(targetCalories),
-        protein_g: Math.round(targetProtein),
-        carbs_g: Math.round(targetCarbs),
-        fat_g: Math.round(targetFat),
+        calories: Math.round(
+          targetCalories
+        ),
+        protein_g: Math.round(
+          targetProtein
+        ),
+        carbs_g: Math.round(
+          targetCarbs
+        ),
+        fat_g: Math.round(
+          targetFat
+        ),
       };
 
-      const { error: saveError } = await supabase
-        .from('nutrition_targets')
-        .upsert(payload, {
-          onConflict: 'user_id',
-        });
+      const {
+        error: saveError,
+      } = await supabase
+        .from(
+          'nutrition_targets'
+        )
+        .upsert(
+          payload,
+          {
+            onConflict:
+              'user_id',
+          }
+        );
 
       if (saveError) {
         console.error(
@@ -607,17 +830,24 @@ export default function NutritionGoals() {
       }
 
       /*
-       * Vérification réelle en base avant retour Fuel.
+       * Vérification réelle
+       * après écriture.
        */
+
       const {
         data: verify,
         error: verifyError,
       } = await supabase
-        .from('nutrition_targets')
+        .from(
+          'nutrition_targets'
+        )
         .select(
           'calories, protein_g, carbs_g, fat_g'
         )
-        .eq('user_id', user.id)
+        .eq(
+          'user_id',
+          user.id
+        )
         .maybeSingle();
 
       if (verifyError) {
@@ -642,20 +872,47 @@ export default function NutritionGoals() {
         return;
       }
 
-      setExistingTargets(verify);
+      setExistingTargets(
+        verify
+      );
 
-      setCalories(String(verify.calories ?? ''));
-      setProtein(String(verify.protein_g ?? ''));
-      setCarbs(String(verify.carbs_g ?? ''));
-      setFat(String(verify.fat_g ?? ''));
+      setCalories(
+        String(
+          verify.calories ?? ''
+        )
+      );
+
+      setProtein(
+        String(
+          verify.protein_g ?? ''
+        )
+      );
+
+      setCarbs(
+        String(
+          verify.carbs_g ?? ''
+        )
+      );
+
+      setFat(
+        String(
+          verify.fat_g ?? ''
+        )
+      );
 
       setSaved(true);
 
-      window.setTimeout(() => {
-        navigate('/fuel', {
-          replace: true,
-        });
-      }, 500);
+      window.setTimeout(
+        () => {
+          navigate(
+            '/fuel',
+            {
+              replace: true,
+            }
+          );
+        },
+        500
+      );
     } catch (err) {
       console.error(
         'NutritionGoals unexpected save:',
@@ -671,67 +928,97 @@ export default function NutritionGoals() {
   };
 
   /* =========================================================
-     USE NOX RECOMMENDATION
+     USE NOX CAP
   ========================================================= */
 
-  const useRecommendation = async () => {
-    if (!recommendation) return;
+  const useRecommendation =
+    async () => {
+      if (!recommendation) {
+        return;
+      }
 
-    await savePayload({
-      targetCalories: recommendation.calories,
-      targetProtein: recommendation.protein,
-      targetCarbs: recommendation.carbs,
-      targetFat: recommendation.fat,
-    });
-  };
+      await savePayload({
+        targetCalories:
+          recommendation.calories,
+        targetProtein:
+          recommendation.protein,
+        targetCarbs:
+          recommendation.carbs,
+        targetFat:
+          recommendation.fat,
+      });
+    };
 
   /* =========================================================
      MANUAL SAVE
   ========================================================= */
 
-  const saveManualTargets = async () => {
-    if (!manualValid) return;
+  const saveManualTargets =
+    async () => {
+      if (!manualValid) {
+        return;
+      }
 
-    await savePayload({
-      targetCalories: caloriesNumber,
-      targetProtein: proteinNumber,
-      targetCarbs: carbsNumber,
-      targetFat: fatNumber,
-    });
-  };
+      await savePayload({
+        targetCalories:
+          caloriesNumber,
+        targetProtein:
+          proteinNumber,
+        targetCarbs:
+          carbsNumber,
+        targetFat:
+          fatNumber,
+      });
+    };
 
   /* =========================================================
-     OPEN MANUAL EDITOR
+     OPEN MANUAL
   ========================================================= */
 
-  const openManualEditor = () => {
-    /*
-     * S'il n'existe pas encore de cap,
-     * on préremplit avec la recommandation NOX.
-     */
-    if (!existingTargets && recommendation) {
-      setCalories(
-        String(recommendation.calories)
-      );
+  const openManualEditor =
+    () => {
+      if (
+        !existingTargets &&
+        recommendation
+      ) {
+        setCalories(
+          String(
+            recommendation.calories
+          )
+        );
 
-      setProtein(
-        String(recommendation.protein)
-      );
+        setProtein(
+          String(
+            recommendation.protein
+          )
+        );
 
-      setCarbs(
-        String(recommendation.carbs)
-      );
+        setCarbs(
+          String(
+            recommendation.carbs
+          )
+        );
 
-      setFat(
-        String(recommendation.fat)
-      );
-    }
+        setFat(
+          String(
+            recommendation.fat
+          )
+        );
+      }
 
-    setManualOpen(true);
+      setManualOpen(true);
+    };
+
+  /* =========================================================
+     COMPLETE PROFILE
+  ========================================================= */
+
+  const completeProfile = () => {
+    navigate('/profile');
   };
 
   /* =========================================================
-     UI HELPERS
+     UI
   ========================================================= */
 
   const inputStyle = {
@@ -740,12 +1027,14 @@ export default function NutritionGoals() {
     borderRadius: 18,
     border: `1px solid ${BORDER}`,
     background: WHITE,
-    padding: '0 54px 0 18px',
+    padding:
+      '0 54px 0 18px',
     fontSize: 19,
     fontWeight: 850,
     color: BLACK,
     outline: 'none',
-    boxSizing: 'border-box' as const,
+    boxSizing:
+      'border-box' as const,
   };
 
   const Field = ({
@@ -756,10 +1045,16 @@ export default function NutritionGoals() {
   }: {
     label: string;
     value: string;
-    onChange: (value: string) => void;
+    onChange: (
+      value: string
+    ) => void;
     unit: string;
   }) => (
-    <div style={{ marginBottom: 18 }}>
+    <div
+      style={{
+        marginBottom: 18,
+      }}
+    >
       <div
         style={{
           fontSize: 14,
@@ -783,11 +1078,14 @@ export default function NutritionGoals() {
           value={value}
           disabled={saving}
           onChange={(e) =>
-            onChange(e.target.value)
+            onChange(
+              e.target.value
+            )
           }
           style={{
             ...inputStyle,
-            opacity: saving ? 0.65 : 1,
+            opacity:
+              saving ? 0.65 : 1,
           }}
         />
 
@@ -796,11 +1094,13 @@ export default function NutritionGoals() {
             position: 'absolute',
             right: 18,
             top: '50%',
-            transform: 'translateY(-50%)',
+            transform:
+              'translateY(-50%)',
             color: MUTED,
             fontSize: 13,
             fontWeight: 800,
-            pointerEvents: 'none',
+            pointerEvents:
+              'none',
           }}
         >
           {unit}
@@ -809,35 +1109,59 @@ export default function NutritionGoals() {
     </div>
   );
 
-  const activityLabel = (() => {
-    if (goal?.days_per_week) {
-      return `${goal.days_per_week} jour${
-        goal.days_per_week > 1 ? 's' : ''
-      } / semaine`;
-    }
-
-    if (profile?.activity_level) {
-      const activity =
-        normalize(profile.activity_level);
-
-      if (activity.includes('sedentaire')) {
-        return 'Sédentaire';
-      }
-
-      if (activity.includes('leger')) {
-        return 'Activité légère';
+  const activityLabel =
+    (() => {
+      if (
+        goal?.days_per_week
+      ) {
+        return `${
+          goal.days_per_week
+        } jour${
+          goal.days_per_week >
+          1
+            ? 's'
+            : ''
+        } / semaine`;
       }
 
       if (
-        activity.includes('actif') ||
-        activity.includes('active')
+        profile?.activity_level
       ) {
-        return 'Actif';
-      }
-    }
+        const activity =
+          normalize(
+            profile.activity_level
+          );
 
-    return 'Activité estimée';
-  })();
+        if (
+          activity.includes(
+            'sedentaire'
+          )
+        ) {
+          return 'Sédentaire';
+        }
+
+        if (
+          activity.includes(
+            'leger'
+          )
+        ) {
+          return 'Activité légère';
+        }
+
+        if (
+          activity.includes(
+            'actif'
+          ) ||
+          activity.includes(
+            'active'
+          )
+        ) {
+          return 'Actif';
+        }
+      }
+
+      return 'Activité estimée';
+    })();
 
   /* =========================================================
      RENDER
@@ -856,8 +1180,10 @@ export default function NutritionGoals() {
           width: '100%',
           maxWidth: 620,
           margin: '0 auto',
-          padding: '24px 18px 52px',
-          boxSizing: 'border-box',
+          padding:
+            '24px 18px 52px',
+          boxSizing:
+            'border-box',
         }}
       >
         {/* HEADER */}
@@ -872,7 +1198,9 @@ export default function NutritionGoals() {
         >
           <button
             type="button"
-            onClick={() => navigate('/fuel')}
+            onClick={() =>
+              navigate('/fuel')
+            }
             style={{
               width: 44,
               height: 44,
@@ -897,7 +1225,8 @@ export default function NutritionGoals() {
               style={{
                 fontSize: 12,
                 fontWeight: 900,
-                letterSpacing: '0.08em',
+                letterSpacing:
+                  '0.08em',
                 color: MUTED,
                 marginBottom: 3,
               }}
@@ -910,7 +1239,8 @@ export default function NutritionGoals() {
                 margin: 0,
                 fontSize: 29,
                 lineHeight: 1.05,
-                letterSpacing: '-0.045em',
+                letterSpacing:
+                  '-0.045em',
                 fontWeight: 950,
               }}
             >
@@ -921,15 +1251,17 @@ export default function NutritionGoals() {
 
         <p
           style={{
-            margin: '0 0 26px',
+            margin:
+              '0 0 26px',
             color: MUTED,
             fontSize: 15,
             lineHeight: 1.55,
           }}
         >
-          NOX utilise ton profil et ton
-          objectif pour te proposer un cap
-          adapté à ta journée.
+          NOX utilise ton profil et
+          ton objectif pour te
+          proposer un cap adapté à
+          ta journée.
         </p>
 
         {/* LOADING */}
@@ -945,7 +1277,8 @@ export default function NutritionGoals() {
               fontSize: 14,
             }}
           >
-            NOX prépare ta recommandation...
+            NOX prépare ta
+            recommandation...
           </div>
         )}
 
@@ -963,12 +1296,11 @@ export default function NutritionGoals() {
                   marginBottom: 14,
                 }}
               >
-                {/* BADGE */}
-
                 <div
                   style={{
                     display: 'flex',
-                    alignItems: 'center',
+                    alignItems:
+                      'center',
                     gap: 8,
                     marginBottom: 22,
                   }}
@@ -981,17 +1313,21 @@ export default function NutritionGoals() {
                       background: BLACK,
                       color: ACCENT,
                       display: 'grid',
-                      placeItems: 'center',
+                      placeItems:
+                        'center',
                     }}
                   >
-                    <Sparkles size={15} />
+                    <Sparkles
+                      size={15}
+                    />
                   </div>
 
                   <div
                     style={{
                       fontSize: 12,
                       fontWeight: 950,
-                      letterSpacing: '0.07em',
+                      letterSpacing:
+                        '0.07em',
                     }}
                   >
                     RECOMMANDÉ PAR NOX
@@ -1002,7 +1338,8 @@ export default function NutritionGoals() {
 
                 <div
                   style={{
-                    textAlign: 'center',
+                    textAlign:
+                      'center',
                     marginBottom: 22,
                   }}
                 >
@@ -1010,7 +1347,8 @@ export default function NutritionGoals() {
                     style={{
                       fontSize: 46,
                       fontWeight: 950,
-                      letterSpacing: '-0.055em',
+                      letterSpacing:
+                        '-0.055em',
                       lineHeight: 1,
                     }}
                   >
@@ -1046,50 +1384,64 @@ export default function NutritionGoals() {
                     {
                       value:
                         recommendation.protein,
-                      label: 'Protéines',
+                      label:
+                        'Protéines',
                     },
                     {
                       value:
                         recommendation.carbs,
-                      label: 'Glucides',
+                      label:
+                        'Glucides',
                     },
                     {
                       value:
                         recommendation.fat,
-                      label: 'Lipides',
+                      label:
+                        'Lipides',
                     },
-                  ].map((macro) => (
-                    <div
-                      key={macro.label}
-                      style={{
-                        background:
-                          'rgba(255,255,255,0.45)',
-                        borderRadius: 17,
-                        padding: '14px 8px',
-                        textAlign: 'center',
-                      }}
-                    >
+                  ].map(
+                    (macro) => (
                       <div
+                        key={
+                          macro.label
+                        }
                         style={{
-                          fontSize: 20,
-                          fontWeight: 950,
+                          background:
+                            'rgba(255,255,255,0.45)',
+                          borderRadius: 17,
+                          padding:
+                            '14px 8px',
+                          textAlign:
+                            'center',
                         }}
                       >
-                        {macro.value} g
-                      </div>
+                        <div
+                          style={{
+                            fontSize: 20,
+                            fontWeight: 950,
+                          }}
+                        >
+                          {
+                            macro.value
+                          }{' '}
+                          g
+                        </div>
 
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 800,
-                          marginTop: 3,
-                          opacity: 0.65,
-                        }}
-                      >
-                        {macro.label}
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 800,
+                            marginTop: 3,
+                            opacity: 0.65,
+                          }}
+                        >
+                          {
+                            macro.label
+                          }
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
 
                 {/* CONTEXT */}
@@ -1146,7 +1498,9 @@ export default function NutritionGoals() {
                     </span>
 
                     <strong>
-                      {activityLabel}
+                      {
+                        activityLabel
+                      }
                     </strong>
                   </div>
 
@@ -1169,12 +1523,22 @@ export default function NutritionGoals() {
 
                     <strong
                       style={{
-                        textAlign: 'right',
+                        textAlign:
+                          'right',
                       }}
                     >
-                      {profile.height_cm} cm ·{' '}
-                      {profile.starting_weight_kg}{' '}
-                      kg · {recommendation.age} ans
+                      {
+                        profile.height_cm
+                      }{' '}
+                      cm ·{' '}
+                      {
+                        profile.starting_weight_kg
+                      }{' '}
+                      kg ·{' '}
+                      {
+                        recommendation.age
+                      }{' '}
+                      ans
                     </strong>
                   </div>
                 </div>
@@ -1184,7 +1548,9 @@ export default function NutritionGoals() {
                 <button
                   type="button"
                   disabled={saving}
-                  onClick={useRecommendation}
+                  onClick={
+                    useRecommendation
+                  }
                   style={{
                     width: '100%',
                     minHeight: 58,
@@ -1194,11 +1560,14 @@ export default function NutritionGoals() {
                     color: WHITE,
                     fontSize: 14,
                     fontWeight: 950,
-                    letterSpacing: '0.025em',
+                    letterSpacing:
+                      '0.025em',
                     cursor: saving
                       ? 'wait'
                       : 'pointer',
-                    opacity: saving ? 0.7 : 1,
+                    opacity: saving
+                      ? 0.7
+                      : 1,
                   }}
                 >
                   {saving
@@ -1211,16 +1580,18 @@ export default function NutritionGoals() {
 
               <div
                 style={{
-                  textAlign: 'center',
+                  textAlign:
+                    'center',
                   color: MUTED,
                   fontSize: 12,
                   lineHeight: 1.45,
                   marginBottom: 18,
                 }}
               >
-                Estimation basée sur ton profil
-                NOX. Elle pourra évoluer avec
-                tes données et ta progression.
+                Estimation basée sur ton
+                profil NOX. Elle pourra
+                évoluer avec tes données
+                et ta progression.
               </div>
             </>
           )}
@@ -1240,9 +1611,27 @@ export default function NutritionGoals() {
             >
               <div
                 style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 14,
+                  background: ACCENT,
+                  display: 'grid',
+                  placeItems: 'center',
+                  marginBottom: 16,
+                }}
+              >
+                <UserRound
+                  size={20}
+                  strokeWidth={2.5}
+                />
+              </div>
+
+              <div
+                style={{
                   fontSize: 12,
                   fontWeight: 950,
-                  letterSpacing: '0.07em',
+                  letterSpacing:
+                    '0.07em',
                   color: MUTED,
                   marginBottom: 8,
                 }}
@@ -1254,12 +1643,13 @@ export default function NutritionGoals() {
                 style={{
                   fontSize: 21,
                   fontWeight: 950,
-                  letterSpacing: '-0.025em',
+                  letterSpacing:
+                    '-0.025em',
                   marginBottom: 8,
                 }}
               >
-                NOX ne peut pas encore calculer
-                ton cap.
+                Il manque quelques
+                informations à NOX.
               </div>
 
               <div
@@ -1269,31 +1659,123 @@ export default function NutritionGoals() {
                   lineHeight: 1.55,
                 }}
               >
-                {missingData.length > 0
-                  ? `Information${
-                      missingData.length > 1
-                        ? 's'
-                        : ''
-                    } manquante${
-                      missingData.length > 1
-                        ? 's'
-                        : ''
-                    } : ${missingData.join(', ')}.`
-                  : 'Certaines informations de ton profil sont incomplètes.'}
+                Complète ton profil pour
+                que NOX puisse calculer
+                automatiquement ton cap
+                nutritionnel.
               </div>
+
+              {/* MISSING DATA */}
+
+              {missingData.length >
+                0 && (
+                <div
+                  style={{
+                    marginTop: 18,
+                    padding: 15,
+                    borderRadius: 16,
+                    background: BG,
+                    border: `1px solid ${BORDER}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 900,
+                      letterSpacing:
+                        '0.06em',
+                      color: MUTED,
+                      marginBottom: 10,
+                    }}
+                  >
+                    À COMPLÉTER
+                  </div>
+
+                  {missingData.map(
+                    (item) => (
+                      <div
+                        key={item}
+                        style={{
+                          display:
+                            'flex',
+                          alignItems:
+                            'center',
+                          justifyContent:
+                            'space-between',
+                          gap: 12,
+                          padding:
+                            '7px 0',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 850,
+                          }}
+                        >
+                          {item
+                            .charAt(0)
+                            .toUpperCase() +
+                            item.slice(1)}
+                        </span>
+
+                        <span
+                          style={{
+                            color:
+                              '#A16400',
+                            fontSize: 11,
+                            fontWeight: 900,
+                          }}
+                        >
+                          MANQUANT
+                        </span>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+
+              {/* PROFILE SHORTCUT */}
 
               <button
                 type="button"
-                onClick={openManualEditor}
+                onClick={
+                  completeProfile
+                }
                 style={{
                   width: '100%',
-                  minHeight: 52,
+                  minHeight: 56,
+                  borderRadius: 17,
+                  border: 0,
+                  background: BLACK,
+                  color: WHITE,
+                  fontSize: 13,
+                  fontWeight: 950,
+                  marginTop: 18,
+                  cursor: 'pointer',
+                }}
+              >
+                COMPLÉTER MON PROFIL
+              </button>
+
+              {/* MANUAL FALLBACK */}
+
+              <button
+                type="button"
+                onClick={
+                  openManualEditor
+                }
+                style={{
+                  width: '100%',
+                  minHeight: 50,
                   borderRadius: 16,
                   border: `1px solid ${BORDER}`,
-                  background: BG,
+                  background:
+                    'transparent',
                   color: BLACK,
-                  fontWeight: 900,
-                  marginTop: 18,
+                  fontSize: 12,
+                  fontWeight: 850,
+                  marginTop: 9,
                   cursor: 'pointer',
                 }}
               >
@@ -1302,7 +1784,7 @@ export default function NutritionGoals() {
             </div>
           )}
 
-        {/* EXISTING TARGET */}
+        {/* CURRENT TARGET */}
 
         {!loading &&
           existingTargets &&
@@ -1312,7 +1794,8 @@ export default function NutritionGoals() {
                 background: WHITE,
                 border: `1px solid ${BORDER}`,
                 borderRadius: 20,
-                padding: '15px 17px',
+                padding:
+                  '15px 17px',
                 marginBottom: 14,
               }}
             >
@@ -1321,7 +1804,8 @@ export default function NutritionGoals() {
                   color: MUTED,
                   fontSize: 11,
                   fontWeight: 900,
-                  letterSpacing: '0.06em',
+                  letterSpacing:
+                    '0.06em',
                   marginBottom: 5,
                 }}
               >
@@ -1343,7 +1827,8 @@ export default function NutritionGoals() {
                 {existingTargets.carbs_g ??
                   '—'}{' '}
                 g glucides ·{' '}
-                {existingTargets.fat_g ?? '—'}{' '}
+                {existingTargets.fat_g ??
+                  '—'}{' '}
                 g lipides
               </div>
             </div>
@@ -1356,7 +1841,9 @@ export default function NutritionGoals() {
           !manualOpen && (
             <button
               type="button"
-              onClick={openManualEditor}
+              onClick={
+                openManualEditor
+              }
               style={{
                 width: '100%',
                 minHeight: 52,
@@ -1368,119 +1855,143 @@ export default function NutritionGoals() {
                 fontWeight: 900,
                 cursor: 'pointer',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                alignItems:
+                  'center',
+                justifyContent:
+                  'center',
                 gap: 7,
               }}
             >
               AJUSTER MANUELLEMENT
-              <ChevronDown size={17} />
+              <ChevronDown
+                size={17}
+              />
             </button>
           )}
 
         {/* MANUAL EDITOR */}
 
-        {!loading && manualOpen && (
-          <div
-            style={{
-              background: WHITE,
-              border: `1px solid ${BORDER}`,
-              borderRadius: 24,
-              padding: 19,
-              marginTop: 14,
-            }}
-          >
-            <button
-              type="button"
-              onClick={() =>
-                setManualOpen(false)
-              }
+        {!loading &&
+          manualOpen && (
+            <div
               style={{
-                width: '100%',
-                border: 0,
-                background: 'transparent',
-                padding: '0 0 18px',
-                display: 'flex',
-                justifyContent:
-                  'space-between',
-                alignItems: 'center',
-                cursor: 'pointer',
-                color: BLACK,
+                background: WHITE,
+                border: `1px solid ${BORDER}`,
+                borderRadius: 24,
+                padding: 19,
+                marginTop: 14,
               }}
             >
-              <span
+              <button
+                type="button"
+                onClick={() =>
+                  setManualOpen(
+                    false
+                  )
+                }
                 style={{
-                  fontSize: 17,
-                  fontWeight: 950,
+                  width: '100%',
+                  border: 0,
+                  background:
+                    'transparent',
+                  padding:
+                    '0 0 18px',
+                  display: 'flex',
+                  justifyContent:
+                    'space-between',
+                  alignItems:
+                    'center',
+                  cursor: 'pointer',
+                  color: BLACK,
                 }}
               >
-                Réglage manuel
-              </span>
+                <span
+                  style={{
+                    fontSize: 17,
+                    fontWeight: 950,
+                  }}
+                >
+                  Réglage manuel
+                </span>
 
-              <ChevronUp size={19} />
-            </button>
+                <ChevronUp
+                  size={19}
+                />
+              </button>
 
-            <Field
-              label="Calories"
-              value={calories}
-              onChange={setCalories}
-              unit="kcal"
-            />
+              <Field
+                label="Calories"
+                value={calories}
+                onChange={
+                  setCalories
+                }
+                unit="kcal"
+              />
 
-            <Field
-              label="Protéines"
-              value={protein}
-              onChange={setProtein}
-              unit="g"
-            />
+              <Field
+                label="Protéines"
+                value={protein}
+                onChange={
+                  setProtein
+                }
+                unit="g"
+              />
 
-            <Field
-              label="Glucides"
-              value={carbs}
-              onChange={setCarbs}
-              unit="g"
-            />
+              <Field
+                label="Glucides"
+                value={carbs}
+                onChange={
+                  setCarbs
+                }
+                unit="g"
+              />
 
-            <Field
-              label="Lipides"
-              value={fat}
-              onChange={setFat}
-              unit="g"
-            />
+              <Field
+                label="Lipides"
+                value={fat}
+                onChange={setFat}
+                unit="g"
+              />
 
-            <button
-              type="button"
-              disabled={
-                !manualValid || saving
-              }
-              onClick={saveManualTargets}
-              style={{
-                width: '100%',
-                minHeight: 56,
-                border: 0,
-                borderRadius: 18,
-                background:
-                  manualValid && !saving
-                    ? BLACK
-                    : '#DADDD5',
-                color:
-                  manualValid && !saving
-                    ? WHITE
-                    : '#92978E',
-                fontSize: 14,
-                fontWeight: 950,
-                cursor:
-                  manualValid && !saving
-                    ? 'pointer'
-                    : 'not-allowed',
-              }}
-            >
-              {saving
-                ? 'ENREGISTREMENT...'
-                : 'ENREGISTRER CE CAP'}
-            </button>
-          </div>
-        )}
+              <button
+                type="button"
+                disabled={
+                  !manualValid ||
+                  saving
+                }
+                onClick={
+                  saveManualTargets
+                }
+                style={{
+                  width: '100%',
+                  minHeight: 56,
+                  border: 0,
+                  borderRadius: 18,
+                  background:
+                    manualValid &&
+                    !saving
+                      ? BLACK
+                      : '#DADDD5',
+                  color:
+                    manualValid &&
+                    !saving
+                      ? WHITE
+                      : '#92978E',
+                  fontSize: 14,
+                  fontWeight: 950,
+                  cursor:
+                    manualValid &&
+                    !saving
+                      ? 'pointer'
+                      : 'not-allowed',
+                }}
+              >
+                {saving
+                  ? 'ENREGISTREMENT...'
+                  : 'ENREGISTRER CE CAP'}
+              </button>
+            </div>
+          )}
 
         {/* ERROR */}
 
@@ -1488,15 +1999,18 @@ export default function NutritionGoals() {
           <div
             style={{
               borderRadius: 18,
-              background: '#FFF0ED',
+              background:
+                '#FFF0ED',
               border:
                 '1px solid #FFD2CA',
-              padding: '15px 17px',
+              padding:
+                '15px 17px',
               color: '#C43D2F',
               fontSize: 13,
               lineHeight: 1.5,
               marginTop: 16,
-              wordBreak: 'break-word',
+              wordBreak:
+                'break-word',
             }}
           >
             {error}
@@ -1509,17 +2023,19 @@ export default function NutritionGoals() {
           <div
             style={{
               borderRadius: 18,
-              background: '#F1FFD9',
+              background:
+                '#F1FFD9',
               border: `1px solid ${ACCENT}`,
-              padding: '15px 17px',
+              padding:
+                '15px 17px',
               color: '#53651B',
               fontSize: 13,
               fontWeight: 800,
               marginTop: 16,
             }}
           >
-            Cap enregistré ✓ Retour vers
-            Nutrition...
+            Cap enregistré ✓ Retour
+            vers Nutrition...
           </div>
         )}
       </div>
