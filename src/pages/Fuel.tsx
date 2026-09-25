@@ -449,37 +449,21 @@ export default function Fuel() {
 
   const fetchIdeas = async () => {
     setLoadIdeas(true);
-
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      const response = await fetch(`${FN}/generate-program`, {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(`${FN}/nox-coach`, {
         method: 'POST',
-
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token || ''}`,
-        },
-
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
         body: JSON.stringify({
-          prompt: `Nutritionniste. Il reste ${kcalLeft} kcal et ${protLeft}g proteines. Propose 3 idees de repas simples, sans markdown, une par ligne avec calories entre parentheses.`,
+          system: 'Tu es NOX, assistant nutritionnel. Réponds uniquement en français, sans markdown, sans tirets ni astérisques.',
+          messages: [{ role: 'user', content: `Il reste ${kcalLeft} kcal et ${protLeft}g de protéines aujourd'hui. Propose 3 idées de repas simples et réalistes, une par ligne, avec les calories approximatives entre parenthèses. Pas d'introduction, pas de conclusion.` }],
         }),
       });
-
-      const data = await response.json();
-
-      const text =
-        data?.content?.[0]?.text ||
-        data?.data?.content?.[0]?.text ||
-        '';
-
-      if (text) {
-        setIdeas(text.trim());
-      }
+      const data = await resp.json();
+      if (data?.error === 'PRO_REQUIRED') { setIdeas(''); return; }
+      const text = data?.content?.[0]?.text || '';
+      if (text) setIdeas(text.trim());
     } catch {}
-
     setLoadIdeas(false);
   };
 
@@ -668,9 +652,9 @@ export default function Fuel() {
 
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 if (!isPro) { navigate('/subscribe'); return; }
-                fetchIdeas();
+                await fetchIdeas();
               }}
               disabled={isPro && loadIdeas}
               style={{
@@ -678,7 +662,7 @@ export default function Fuel() {
                 padding: '0 8px 0 14px', border: 0, borderRadius: 11,
                 background: BLACK, color: WHITE,
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                cursor: 'pointer', boxSizing: 'border-box',
+                cursor: loadIdeas ? 'wait' : 'pointer', boxSizing: 'border-box',
               }}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, fontWeight: 900 }}>
