@@ -360,10 +360,12 @@ const photoInputRef = useRef<HTMLInputElement>(null);
   };
 
   const rangeData = getRangeData();
-  const weightLogs = rangeData.filter(l => l.weight);
-  const latest = logs.find(l => l.weight);
+  const weightLogs = rangeData.filter(l => Number.isFinite(Number(l.weight)) && Number(l.weight) > 0);
+  const latest = logs.find(l => Number.isFinite(Number(l.weight)) && Number(l.weight) > 0);
   const oldest = weightLogs[0];
-  const delta = latest && oldest && latest.id !== oldest.id ? (latest.weight - oldest.weight).toFixed(1) : null;
+  const delta = latest && oldest && latest.id !== oldest.id
+    ? (Number(latest.weight) - Number(oldest.weight)).toFixed(1)
+    : null;
 
   const todayKey = new Date().toLocaleDateString('en-CA');
   const todayActivities = activities.filter(activity =>
@@ -460,7 +462,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
                     <div>
                       <div style={{ fontSize: 10, color: '#777', fontWeight: 850, letterSpacing: '.09em' }}>POIDS ACTUEL</div>
                       <div style={{ fontSize: 42, fontWeight: 950, letterSpacing: '-.055em', lineHeight: 1.05, marginTop: 6 }}>
-                        {latest.weight}<span style={{ fontSize: 15, color: '#777', marginLeft: 5 }}>kg</span>
+                        {Number(latest.weight)}<span style={{ fontSize: 15, color: '#777', marginLeft: 5 }}>kg</span>
                       </div>
                     </div>
                     {delta !== null && (
