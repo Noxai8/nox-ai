@@ -12,6 +12,17 @@ const MUTED = '#7A7F76';
 const BORDER = '#E8EAE4';
 const TOTAL = 10;
 
+const OBSTACLES = [
+  ['temps', 'Manque de temps'],
+  ['regularite', 'Régularité difficile'],
+  ['alimentation', 'Alimentation non maitrisée'],
+  ['motivation', 'Motivation insuffisante'],
+  ['organisation', 'Organisation'],
+  ['stagnation', 'Stagnation / plateau'],
+  ['stress', 'Stress et fatigue'],
+  ['blessure', 'Blessures passées'],
+] as const;
+
 const GOALS = [
   ['perdre_gras', 'Perdre du gras', 'Affiner progressivement ma silhouette'],
   ['prendre_muscle', 'Prendre du muscle', 'Construire plus de masse musculaire'],
@@ -123,6 +134,7 @@ export default function Onboarding() {
   const [foodLikes, setFoodLikes] = useState('');
   const [foodDislikes, setFoodDislikes] = useState('');
   const [mealsPerDay, setMealsPerDay] = useState('3');
+  const [obstacles, setObstacles] = useState<string[]>([]);
   const [cookingTime, setCookingTime] = useState('30');
 
   const age = useMemo(() => (dob ? ageFromDob(dob) : 0), [dob]);
@@ -168,6 +180,7 @@ export default function Onboarding() {
     try {
       const nutritionContext = [
         ...dietPrefs,
+        obstacles.length ? `obstacles:${obstacles.join(',')}` : '',
         allergies.trim() ? `allergies:${allergies.trim()}` : '',
         foodLikes.trim() ? `likes:${foodLikes.trim()}` : '',
         foodDislikes.trim() ? `dislikes:${foodDislikes.trim()}` : '',
@@ -181,7 +194,9 @@ export default function Onboarding() {
       });
       if (metadataError) throw metadataError;
 
-      const { error: profileError } = await supabase.from('profiles').update({
+      // Upsert garanti — évite goal_type = NULL si la ligne n'existe pas encore
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: user.id,
         goal_type: goal,
         experience_level: level,
         training_location: location,
@@ -189,13 +204,16 @@ export default function Onboarding() {
         session_length_min: Number(duration),
         starting_weight_kg: Number(weight),
         height_cm: Number(height),
+        weight_kg: Number(weight),
         date_of_birth: dob,
         sex,
         diet_preferences: nutritionContext,
         activity_level: activity,
-        onboarding_completed: false,
+        first_name: firstName.trim(),
+        display_name: firstName.trim(),
+        onboarding_completed: true,
         updated_at: new Date().toISOString(),
-      }).eq('id', user.id);
+      }, { onConflict: 'id' });
       if (profileError) throw profileError;
 
       const { error: targetError } = await supabase.from('nutrition_targets').upsert({
@@ -211,7 +229,8 @@ export default function Onboarding() {
       }, { onConflict: 'user_id' });
       if (targetError) throw targetError;
 
-      navigate('/future', { state: { onboarding: true } });
+      // Redirection vers Aujourd'hui — NOX Future accessible depuis Home ou Profil
+      navigate('/home');
     } catch (e: any) {
       console.error('Erreur onboarding NOX :', e);
       setError(e?.message || "Impossible d'enregistrer ton profil.");
@@ -235,7 +254,26 @@ export default function Onboarding() {
             <ArrowLeft size={18} />
           </button>
           <div style={{ fontSize: 19, fontWeight: 950, letterSpacing: '-.04em' }}>NOX<span style={{ color: '#9ED100' }}>.</span></div>
-          <div style={{ width: 42, textAlign: 'right', fontSize: 11, fontWeight: 850, color: MUTED }}>{step}/{TOTAL}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {step >= 8 && (
+              <button onClick={async () => {
+                // Sauvegarder ce qu'on a et aller en Free
+                if (user && goal) {
+                  await supabase.from('profiles').upsert({
+                    id: user.id,
+                    goal_type: goal || 'maintien',
+                    experience_level: level || 'débutant',
+                    onboarding_completed: true,
+                    updated_at: new Date().toISOString(),
+                  }, { onConflict: 'id' });
+                }
+                navigate('/home');
+              }} style={{ fontSize: 11, fontWeight: 700, color: MUTED, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>
+                Passer → Free
+              </button>
+            )}
+            <div style={{ fontSize: 11, fontWeight: 850, color: MUTED }}>{step}/{TOTAL}</div>
+          </div>
         </div>
         <div style={{ maxWidth: 560, height: 4, margin: '18px auto 0', borderRadius: 999, background: '#E4E7DF', overflow: 'hidden' }}>
           <div style={{ width: `${(step / TOTAL) * 100}%`, height: '100%', borderRadius: 999, background: BLACK }} />
@@ -361,7 +399,7 @@ export default function Onboarding() {
         {error && <div style={{ marginBottom: 10, padding: '12px 14px', borderRadius: 14, background: '#FFF1F0', border: '1px solid #FFD1CD', color: '#B42318', fontSize: 12 }}>{error}</div>}
         {step < TOTAL
           ? <button onClick={next} disabled={!canNext} style={primaryButton(canNext)}><span>CONTINUER</span><ChevronRight size={19} /></button>
-          : <button onClick={finish} disabled={saving || !preview} style={primaryButton(!saving && !!preview)}><span>{saving ? 'PRÉPARATION...' : 'CRÉER MON NOX FUTURE'}</span>{!saving && <ChevronRight size={19} />}</button>}
+          : <button onClick={finish} disabled={saving || !preview} style={primaryButton(!saving && !!preview)}><span>{saving ? 'ENREGISTREMENT...' : 'COMMENCER NOX'}</span>{!saving && <ChevronRight size={19} />}</button>}
       </footer>
     </div>
   );
