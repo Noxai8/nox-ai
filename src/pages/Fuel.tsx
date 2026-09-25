@@ -473,6 +473,7 @@ export default function Fuel() {
         throw new Error(msg);
       }
       const data = await resp.json();
+      console.log('🍽️ NOX MEAL IDEAS RAW:', data);
       const text = data?.content?.[0]?.text || '';
       // Parser le JSON retourné
       const clean = text.replace(/\`\`\`json/gi,'').replace(/\`\`\`/g,'').trim();
