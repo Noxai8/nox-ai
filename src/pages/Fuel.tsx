@@ -585,10 +585,18 @@ export default function Fuel() {
             </div>
 
             <div style={{ display: 'flex', gap: 8 }}>
-              <button style={{ width: 38, height: 38, borderRadius: '50%', border: 0, background: '#F1F2EF', fontSize: 16, cursor: 'pointer' }}>
+              <button
+                onClick={() => navigate('/progress')}
+                title="Voir la progression"
+                style={{ width: 38, height: 38, borderRadius: '50%', border: 0, background: '#F1F2EF', fontSize: 16, cursor: 'pointer' }}
+              >
                 ▣
               </button>
-              <button style={{ width: 38, height: 38, borderRadius: '50%', border: 0, background: '#F1F2EF', fontSize: 18, fontWeight: 900, cursor: 'pointer' }}>
+              <button
+                onClick={() => navigate('/meal-planner')}
+                title="Planifier la semaine"
+                style={{ width: 38, height: 38, borderRadius: '50%', border: 0, background: '#F1F2EF', fontSize: 18, fontWeight: 900, cursor: 'pointer' }}
+              >
                 ···
               </button>
             </div>
@@ -650,22 +658,35 @@ export default function Fuel() {
                 <div style={{ fontSize: 17, fontWeight: 900, lineHeight: 1.1, marginBottom: 5 }}>{noxMessage.title}</div>
                 <div style={{ fontSize: 12, lineHeight: 1.3, color: '#30342E' }}>{noxMessage.body}</div>
               </div>
-              <ChevronRight size={18} color="#83A000" style={{ marginTop: 6 }} />
+              <button
+                onClick={() => navigate(targets ? '/meal-planner' : '/onboarding')}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', marginTop: 6 }}
+              >
+                <ChevronRight size={18} color="#83A000" />
+              </button>
             </div>
 
             <button
-              onClick={() => isPro ? fetchIdeas() : navigate('/subscribe')}
+              type="button"
+              onClick={() => {
+                if (!isPro) { navigate('/subscribe'); return; }
+                fetchIdeas();
+              }}
+              disabled={isPro && loadIdeas}
               style={{
                 width: '100%', height: 40, marginTop: 12,
                 padding: '0 8px 0 14px', border: 0, borderRadius: 11,
                 background: BLACK, color: WHITE,
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                fontSize: 11, fontWeight: 900, cursor: 'pointer', boxSizing: 'border-box',
+                cursor: 'pointer', boxSizing: 'border-box',
               }}
             >
-              <span><span style={{ color: ACCENT }}>✨</span>{'  '}IDÉES DE REPAS</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, fontWeight: 900 }}>
+                <span style={{ color: ACCENT }}>✨</span>
+                {loadIdeas && isPro ? 'NOX RÉFLÉCHIT...' : 'IDÉES DE REPAS'}
+              </span>
               {!isPro && (
-                <span style={{ background: ACCENT, color: BLACK, borderRadius: 7, padding: '4px 7px', fontSize: 9, fontWeight: 950 }}>PRO</span>
+                <span style={{ background: ACCENT, color: BLACK, borderRadius: 7, padding: '4px 8px', fontSize: 9, lineHeight: 1, fontWeight: 950 }}>PRO</span>
               )}
             </button>
 
