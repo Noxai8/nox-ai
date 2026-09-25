@@ -576,12 +576,21 @@ Réponds en 3-4 phrases : bilan factuel, tendance principale et prochaine action
             {periodEvents.length === 0 ? (
               <div>
                 <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 18, marginBottom: 12 }}>
-                  <div style={{ fontSize: 18, fontWeight: 950, letterSpacing: '-.035em', marginBottom: 6 }}>Évolution sur 30 jours</div>
-                  <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5, marginBottom: 18 }}>
+                  <div style={{ fontSize: 18, fontWeight: 950, letterSpacing: '-.035em', marginBottom: 6 }}>Évolution sur {period === 'Tout' ? 'toute la période' : period}</div>
+                  <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5 }}>
                     Tes courbes apparaîtront ici dès que NOX aura suffisamment de données sur tes séances, ton poids ou ta nutrition.
                   </div>
-                  <div style={{ height: 120, borderRadius: 18, background: '#F6F7F3', display: 'grid', placeItems: 'center', color: MUTED, fontSize: 11 }}>
-                    Pas encore assez de données
+                  <div style={{
+                    marginTop: 14,
+                    padding: '13px 14px',
+                    borderRadius: 15,
+                    background: '#F6F7F3',
+                    color: MUTED,
+                    fontSize: 11,
+                    fontWeight: 750,
+                    textAlign: 'center',
+                  }}>
+                    Pas encore assez de données pour tracer une tendance.
                   </div>
                 </div>
                 <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 22, padding: 17 }}>
