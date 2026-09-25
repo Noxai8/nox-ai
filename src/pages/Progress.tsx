@@ -821,7 +821,7 @@ Réponds en 3-4 phrases : bilan factuel, tendance principale et prochaine action
                 { label: 'Séances totales', value: totalWorkouts, unit: '' },
                 { label: 'Cette semaine', value: weekWorkouts, unit: '' },
                 { label: 'Volume total', value: totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) : Math.round(totalVolume), unit: totalVolume >= 1000 ? 't' : 'kg' },
-                { label: 'Durée moy.', value: Math.round(workouts.reduce((s, w) => s + (w.duration_minutes || 0), 0) / Math.max(workouts.length, 1)), unit: 'min' },
+                { label: 'Durée moy.', value: periodWorkouts.length > 0 ? (Math.round(periodWorkouts.reduce((s: number, w: any) => s + (Number(w.duration_minutes) || Number(w.duration_min) || 45), 0) / periodWorkouts.length) || '—') : '—', unit: periodWorkouts.length > 0 ? 'min' : '' },
               ].map(({ label, value, unit }) => (
                 <div key={label} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 20, padding: 16 }}>
                   <div style={{ fontSize: 24, fontWeight: 900, color: ACCENT }}>{value}<span style={{ fontSize: 12, color: '#8B8F86' }}> {unit}</span></div>
@@ -830,6 +830,12 @@ Réponds en 3-4 phrases : bilan factuel, tendance principale et prochaine action
               ))}
             </div>
 
+            {/* État vide */}
+            {periodWorkouts.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '30px 0', color: MUTED, fontSize: 13 }}>
+                Aucune séance sur cette période.
+              </div>
+            )}
             {/* Volume hebdo */}
             {volumeData.length > 0 && (
               <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 20, padding: 16, marginBottom: 16 }}>
