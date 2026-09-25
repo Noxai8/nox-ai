@@ -290,7 +290,7 @@ Format exact:
       setActiveRecipeCategory('Petit-déjeuner');
       setRecipesLoading(false);
 
-      const IMAGE_CONCURRENCY=3;
+      const IMAGE_CONCURRENCY=6;
       let imageCursor=0;
       let imageFailures=0;
 
@@ -1096,11 +1096,12 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
       </>}
 
       {step==='recipes'&&(()=>{
-        const readyCount=recipes.filter(r=>!!r.imageUrl).length;
+        const readyCount=recipes.length;
         const filtered=recipes.filter(r=>r.category===activeRecipeCategory);
-        const visible=filtered.filter(r=>!!r.imageUrl);
-        const panelRecipe=selectedRecipe?.imageUrl ? selectedRecipe : visible[0] || null;
-        const progressPct=Math.max(4,(readyCount/15)*100);
+        const visible=filtered;
+        const panelRecipe=selectedRecipe || visible[0] || null;
+        const photosReady=recipes.filter(r=>!!r.imageUrl).length;
+        const progressPct=recipes.length ? 100 : 4;
 
         const openRecipe=(r:Recipe)=>{
           setSelectedRecipe(r);
@@ -1129,7 +1130,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
               <div className="generationSpark">✦</div>
               <div className="generationCopy">
                 <b>{readyCount===15?'Ton livret est prêt':'Génération en cours...'}</b>
-                <span>{readyCount===15?'Tes 15 recettes et leurs photos sont disponibles.':'Les recettes et leurs photos apparaissent au fur et à mesure.'}</span>
+                <span>{readyCount===15?(photosReady===15?'Tes 15 recettes et leurs photos sont disponibles.':`Tes 15 recettes sont prêtes · ${photosReady}/15 photos chargées`):'Les recettes apparaissent dès qu’elles sont générées.'}</span>
                 <div className="generationLine"><i style={{width:`${progressPct}%`}}/></div>
                 <strong>{readyCount} / 15 prêtes</strong>
               </div>
@@ -1141,7 +1142,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
           <div className="bookToolbar">
             <div className="premiumTabs">
               {(['Petit-déjeuner','Plat','Dessert & collation'] as const).map(category=>{
-                const ready=recipes.filter(r=>r.category===category&&!!r.imageUrl).length;
+                const ready=recipes.filter(r=>r.category===category).length;
                 const label=category==='Petit-déjeuner'?'Petit-déjeuner':category==='Plat'?'Plats':'Desserts & collations';
                 return <button key={category} className={activeRecipeCategory===category?'on':''} onClick={()=>setActiveRecipeCategory(category)}>{label} <span>({ready}/5)</span></button>
               })}
@@ -1152,7 +1153,7 @@ Ne dépasse jamais le budget et n'invente aucun prix magasin.`;
             <div className="premiumRecipeGrid">
               {visible.map(r=><button key={r.id} className={`premiumRecipeCard ${panelRecipe?.id===r.id?'selected':''}`} onClick={()=>openRecipe(r)}>
                 <div className="premiumRecipePhoto">
-                  <img src={r.imageUrl} alt={r.title}/>
+                  {r.imageUrl?<img src={r.imageUrl} alt={r.title}/>:<div className="premiumSkeletonPhoto"><span>✦</span><b>Recette prête</b><small>Photo en cours de génération</small></div>}
                   <span className={`premiumPill ${r.category==='Plat'?'green':'pink'}`}>{r.category==='Dessert & collation'?'Dessert':r.category}</span>
                   <span className="recipeHeart">♡</span>
                 </div>
