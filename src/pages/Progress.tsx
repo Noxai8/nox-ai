@@ -335,13 +335,39 @@ Réponds en 3-4 phrases : bilan factuel, tendance principale et prochaine action
 
       const resp = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/nox-coach', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ prompt }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          system: `Tu es NOX, le coach de progression fitness de l'utilisateur.
+
+Ton rôle est d'analyser ses données de progression de manière factuelle, concise et actionnable.
+
+Ne crée aucune donnée absente.
+Ne fais aucune supposition sur des données non renseignées.
+Réponds en français.
+Pas de markdown.`,
+          messages: [{ role: 'user', content: prompt }],
+        }),
       });
+
       const data = await resp.json();
-      setReport(data?.content?.[0]?.text || data?.data?.content?.[0]?.text || '');
-    } catch {}
-    setReportLoading(false);
+
+      if (!resp.ok) {
+        if (data?.error === 'PRO_REQUIRED') {
+          setReport('Le rapport NOX est réservé aux abonnements Pro.');
+          return;
+        }
+        throw new Error(data?.error || 'Impossible de générer le rapport NOX.');
+      }
+
+      const text = data?.content?.[0]?.text;
+      if (!text) throw new Error('Réponse NOX vide.');
+      setReport(text);
+    } catch (err: unknown) {
+      console.error('generateMonthlyReport:', err);
+      setReport(err instanceof Error ? err.message : 'Impossible de générer le rapport.');
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   // Période active — toutes les synthèses principales utilisent la même fenêtre.
