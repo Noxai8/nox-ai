@@ -360,11 +360,25 @@ const photoInputRef = useRef<HTMLInputElement>(null);
   };
 
   const rangeData = getRangeData();
-  const weightLogs = rangeData.filter(l => Number.isFinite(Number(l.weight)) && Number(l.weight) > 0);
+  const rawWeightLogs = rangeData.filter(l => Number.isFinite(Number(l.weight)) && Number(l.weight) > 0);
+
+  // Un seul point par jour : on garde le dernier check-in enregistré de chaque journée.
+  const weightLogs = Array.from(
+    rawWeightLogs.reduce((byDay, log) => {
+      const dayKey = new Date(log.created_at).toLocaleDateString('en-CA');
+      const current = byDay.get(dayKey);
+      if (!current || new Date(log.created_at).getTime() > new Date(current.created_at).getTime()) {
+        byDay.set(dayKey, log);
+      }
+      return byDay;
+    }, new Map<string, any>()).values()
+  ).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
   const latest = logs.find(l => Number.isFinite(Number(l.weight)) && Number(l.weight) > 0);
   const oldest = weightLogs[0];
-  const delta = latest && oldest && latest.id !== oldest.id
-    ? (Number(latest.weight) - Number(oldest.weight)).toFixed(1)
+  const latestPeriodWeight = weightLogs[weightLogs.length - 1];
+  const delta = latestPeriodWeight && oldest && latestPeriodWeight.id !== oldest.id
+    ? (Number(latestPeriodWeight.weight) - Number(oldest.weight)).toFixed(1)
     : null;
 
   const todayKey = new Date().toLocaleDateString('en-CA');
@@ -376,23 +390,98 @@ const photoInputRef = useRef<HTMLInputElement>(null);
 
   const MiniChart = () => {
     if (weightLogs.length < 2) return null;
-    const weights = weightLogs.map(l => l.weight);
-    const min = Math.min(...weights) - 1;
-    const max = Math.max(...weights) + 1;
-    const W = 300, H = 80;
+
+    const weights = weightLogs.map(l => Number(l.weight));
+    const dataMin = Math.min(...weights);
+    const dataMax = Math.max(...weights);
+    const spread = Math.max(dataMax - dataMin, 1);
+    const padding = Math.max(spread * 0.35, 0.8);
+    const min = dataMin - padding;
+    const max = dataMax + padding;
+
+    const W = 320;
+    const H = 112;
+    const PAD_X = 22;
+    const PAD_TOP = 20;
+    const PAD_BOTTOM = 28;
+    const plotW = W - PAD_X * 2;
+    const plotH = H - PAD_TOP - PAD_BOTTOM;
+
+    const pointFor = (l: any, i: number) => {
+      const x = PAD_X + (i / (weightLogs.length - 1)) * plotW;
+      const y = PAD_TOP + (1 - ((Number(l.weight) - min) / (max - min))) * plotH;
+      return { x, y };
+    };
+
     const points = weightLogs.map((l, i) => {
-      const x = (i / (weightLogs.length - 1)) * W;
-      const y = H - ((l.weight - min) / (max - min)) * H;
+      const { x, y } = pointFor(l, i);
       return `${x},${y}`;
     }).join(' ');
 
     return (
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 80 }}>
-        <polyline points={points} fill="none" stroke={ACCENT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 112, overflow: 'visible' }}>
+        {[0, 0.5, 1].map((ratio, i) => {
+          const y = PAD_TOP + ratio * plotH;
+          return (
+            <line
+              key={`grid-${i}`}
+              x1={PAD_X}
+              y1={y}
+              x2={W - PAD_X}
+              y2={y}
+              stroke="#E3E5DE"
+              strokeWidth="1"
+              strokeDasharray="3 5"
+            />
+          );
+        })}
+
+        <polyline
+          points={points}
+          fill="none"
+          stroke={ACCENT}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
         {weightLogs.map((l, i) => {
-          const x = (i / (weightLogs.length - 1)) * W;
-          const y = H - ((l.weight - min) / (max - min)) * H;
-          return <circle key={i} cx={x} cy={y} r="3" fill={ACCENT} />;
+          const { x, y } = pointFor(l, i);
+          const isFirst = i === 0;
+          const isLast = i === weightLogs.length - 1;
+          const showLabel = weightLogs.length <= 6 || isFirst || isLast;
+
+          return (
+            <g key={l.id}>
+              <circle cx={x} cy={y} r="5" fill={ACCENT} stroke="#090909" strokeWidth="2" />
+
+              {showLabel && (
+                <text
+                  x={x}
+                  y={Math.max(12, y - 10)}
+                  textAnchor={isFirst ? 'start' : isLast ? 'end' : 'middle'}
+                  fill="#090909"
+                  fontSize="10"
+                  fontWeight="900"
+                >
+                  {Number(l.weight)} kg
+                </text>
+              )}
+
+              {(isFirst || isLast || weightLogs.length <= 4) && (
+                <text
+                  x={x}
+                  y={H - 5}
+                  textAnchor={isFirst ? 'start' : isLast ? 'end' : 'middle'}
+                  fill="#777B72"
+                  fontSize="8.5"
+                  fontWeight="700"
+                >
+                  {new Date(l.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                </text>
+              )}
+            </g>
+          );
         })}
       </svg>
     );
@@ -461,7 +550,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ fontSize: 10, color: '#777', fontWeight: 850, letterSpacing: '.09em' }}>POIDS ACTUEL</div>
-                      <div style={{ fontSize: 42, fontWeight: 950, letterSpacing: '-.055em', lineHeight: 1.05, marginTop: 6, color: '#FFFFFF' }}>
+                      <div style={{ fontSize: 42, fontWeight: 950, letterSpacing: '-.055em', lineHeight: 1.05, marginTop: 6 }}>
                         {Number(latest.weight)}<span style={{ fontSize: 15, color: '#777', marginLeft: 5 }}>kg</span>
                       </div>
                     </div>
@@ -488,7 +577,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
 
                   <div style={{ borderRadius: 15, padding: '12px 10px 4px', background: '#F7F8F4', border: `1px solid ${BORDER}` }}>
                     {weightLogs.length >= 2 ? <MiniChart /> : (
-                      <div style={{ height: 80, display: 'grid', placeItems: 'center', color: '#555', fontSize: 11.5 }}>Encore un check-in pour afficher ta courbe</div>
+                      <div style={{ height: 80, display: 'grid', placeItems: 'center', color: '#555', fontSize: 11.5, textAlign: 'center', padding: '0 16px' }}>Encore une pesée un autre jour pour afficher ta courbe</div>
                     )}
                   </div>
                 </div>
