@@ -221,6 +221,14 @@ export default function Fuel() {
     };
   });
 
+  const mealIcon = (meal: string) =>
+    ({
+      'Petit-dejeuner': '☀️',
+      Dejeuner: '☀️',
+      Diner: '☾',
+      Snacks: '◉',
+    } as Record<string, string>)[meal] || '•';
+
   const mealLabel = (meal: string) =>
     (
       {
@@ -751,6 +759,11 @@ export default function Fuel() {
               style={{
                 ...card,
                 marginBottom: 10,
+                display: 'grid',
+                gridTemplateColumns: '128px 1fr',
+                gap: 16,
+                alignItems: 'center',
+                padding: 18,
               }}
             >
               <div
@@ -762,8 +775,8 @@ export default function Fuel() {
               >
                 <div
                   style={{
-                    width: 190,
-                    height: 190,
+                    width: 124,
+                    height: 124,
                     borderRadius: '50%',
                     display: 'grid',
                     placeItems: 'center',
@@ -774,8 +787,8 @@ export default function Fuel() {
                 >
                   <div
                     style={{
-                      width: 158,
-                      height: 158,
+                      width: 100,
+                      height: 100,
                       borderRadius: '50%',
                       background: WHITE,
                       display: 'grid',
@@ -798,7 +811,7 @@ export default function Fuel() {
 
                       <div
                         style={{
-                          fontSize: 46,
+                          fontSize: 28,
                           lineHeight: 0.95,
                           fontWeight: 950,
                           letterSpacing: '-.05em',
@@ -929,6 +942,11 @@ export default function Fuel() {
               style={{
                 ...card,
                 marginBottom: 10,
+                display: 'grid',
+                gridTemplateColumns: '128px 1fr',
+                gap: 16,
+                alignItems: 'center',
+                padding: 18,
                 textAlign: 'center',
                 padding: '28px 20px',
               }}
@@ -1060,29 +1078,19 @@ export default function Fuel() {
                       boxSizing: 'border-box',
                     }}
                   >
-                    <div>
-                      <div
-                        style={{
-                          fontSize: 15,
-                          fontWeight: 900,
-                          color: BLACK,
-                        }}
-                      >
-                        {mealLabel(meal)}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 12, background: BG, display: 'grid', placeItems: 'center', fontSize: 17, flexShrink: 0 }}>
+                        {mealIcon(meal)}
                       </div>
-
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: MUTED,
-                          marginTop: 3,
-                        }}
-                      >
-                        {mealEntries.length
-                          ? `${mealEntries.length} élément${
-                              mealEntries.length > 1 ? 's' : ''
-                            } · ${Math.round(mealKcal)} kcal`
-                          : 'Rien enregistré'}
+                      <div>
+                        <div style={{ fontSize: 15, fontWeight: 900, color: BLACK }}>
+                          {mealLabel(meal)}
+                        </div>
+                        <div style={{ fontSize: 10.5, color: MUTED, marginTop: 3 }}>
+                          {mealEntries.length
+                            ? `${Math.round(mealKcal)} kcal`
+                            : 'Rien enregistré'}
+                        </div>
                       </div>
                     </div>
 
