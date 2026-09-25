@@ -209,7 +209,6 @@ export default function Fuel() {
 
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
-
     const mondayOffset = (d.getDay() + 6) % 7;
 
     d.setDate(d.getDate() - mondayOffset + i);
@@ -232,8 +231,16 @@ export default function Fuel() {
       } as Record<string, string>
     )[meal] || meal;
 
+  /*
+   * MODIF NOX :
+   * même sans objectifs, NOX donne une direction au lieu
+   * de laisser disparaître complètement l'interprétation.
+   */
   const noxMessage = !targets
-    ? null
+    ? {
+        title: 'Configure ton cap.',
+        body: 'Définis tes objectifs nutritionnels pour que NOX puisse interpréter précisément ta journée.',
+      }
     : totals.kcal === 0
       ? {
           title: 'Ta journée commence ici.',
@@ -248,6 +255,27 @@ export default function Fuel() {
             title: 'Tu es sur la bonne trajectoire.',
             body: `Il te reste environ ${kcalLeft} kcal. Continue à construire tes repas autour de ton objectif.`,
           };
+
+  /*
+   * MODIF AJOUT RAPIDE :
+   * le gros + sélectionne automatiquement le repas
+   * le plus logique selon l'heure.
+   */
+  const currentMeal = () => {
+    const hour = new Date().getHours();
+
+    if (hour < 11) return 'Petit-dejeuner';
+    if (hour < 15) return 'Dejeuner';
+    if (hour < 18) return 'Snacks';
+
+    return 'Diner';
+  };
+
+  const openQuickAdd = () => {
+    setSelMeal(currentMeal());
+    setAddMode('choose');
+    setShowAdd(true);
+  };
 
   const closeAdd = () => {
     setShowAdd(false);
@@ -396,7 +424,6 @@ export default function Fuel() {
     );
 
     const match = lower.match(/(\d+)/);
-
     const grams = match ? parseInt(match[1]) : 100;
 
     if (food) {
@@ -605,6 +632,119 @@ export default function Fuel() {
             ))}
           </div>
 
+          {/* INTERPRÉTATION NOX — AVANT LES CHIFFRES */}
+          <div
+            style={{
+              background: LIME,
+              border: '1px solid #DDF59C',
+              borderRadius: 24,
+              padding: 20,
+              marginBottom: 10,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 900,
+                color: '#687600',
+                letterSpacing: '.1em',
+                marginBottom: 8,
+              }}
+            >
+              INTERPRÉTATION NOX
+            </div>
+
+            <div
+              style={{
+                fontSize: 19,
+                fontWeight: 950,
+                color: BLACK,
+                marginBottom: 6,
+              }}
+            >
+              {noxMessage.title}
+            </div>
+
+            <div
+              style={{
+                fontSize: 13,
+                color: '#69715F',
+                lineHeight: 1.5,
+                marginBottom: 14,
+              }}
+            >
+              {noxMessage.body}
+            </div>
+
+            {targets && (
+              <>
+                <button
+                  onClick={() =>
+                    isPro ? fetchIdeas() : navigate('/subscribe')
+                  }
+                  disabled={loadIdeas}
+                  style={{
+                    padding: '10px 15px',
+                    background: BLACK,
+                    border: 0,
+                    borderRadius: 13,
+                    color: ACCENT,
+                    fontSize: 11,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  {!isPro && (
+                    <span
+                      style={{
+                        background: ACCENT,
+                        color: BLACK,
+                        borderRadius: 6,
+                        padding: '1px 5px',
+                        fontSize: 8,
+                        fontWeight: 900,
+                      }}
+                    >
+                      PRO
+                    </span>
+                  )}
+
+                  {loadIdeas ? 'NOX réfléchit...' : 'IDÉES DE REPAS'}
+                </button>
+
+                {ideas && (
+                  <div
+                    style={{
+                      marginTop: 14,
+                      paddingTop: 14,
+                      borderTop: '1px solid #DDF59C',
+                    }}
+                  >
+                    {ideas
+                      .split('\n')
+                      .filter(line => line.trim())
+                      .map((line, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            fontSize: 13,
+                            color: '#444',
+                            padding: '8px 0',
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {line}
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
           {/* CALORIES + MACROS */}
           {hasTargets && targets ? (
             <div
@@ -627,7 +767,6 @@ export default function Fuel() {
                     borderRadius: '50%',
                     display: 'grid',
                     placeItems: 'center',
-
                     background: `conic-gradient(${
                       kcalPct >= 100 ? '#FF5C5C' : ACCENT
                     } ${kcalPct * 3.6}deg, ${BG} 0deg)`,
@@ -720,10 +859,7 @@ export default function Fuel() {
                 ].map(macro => {
                   const pct =
                     macro.target > 0
-                      ? Math.min(
-                          100,
-                          (macro.value / macro.target) * 100
-                        )
+                      ? Math.min(100, (macro.value / macro.target) * 100)
                       : 0;
 
                   return (
@@ -835,124 +971,13 @@ export default function Fuel() {
         </header>
 
         <main style={{ padding: '0 20px' }}>
-          {/* INTERPRETATION NOX */}
-          {noxMessage && (
-            <div
-              style={{
-                background: LIME,
-                border: '1px solid #DDF59C',
-                borderRadius: 24,
-                padding: 20,
-                marginBottom: 20,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 900,
-                  color: '#687600',
-                  letterSpacing: '.1em',
-                  marginBottom: 8,
-                }}
-              >
-                INTERPRÉTATION NOX
-              </div>
-
-              <div
-                style={{
-                  fontSize: 19,
-                  fontWeight: 950,
-                  color: BLACK,
-                  marginBottom: 6,
-                }}
-              >
-                {noxMessage.title}
-              </div>
-
-              <div
-                style={{
-                  fontSize: 13,
-                  color: '#69715F',
-                  lineHeight: 1.5,
-                  marginBottom: 14,
-                }}
-              >
-                {noxMessage.body}
-              </div>
-
-              <button
-                onClick={() =>
-                  isPro ? fetchIdeas() : navigate('/subscribe')
-                }
-                disabled={loadIdeas}
-                style={{
-                  padding: '10px 15px',
-                  background: BLACK,
-                  border: 0,
-                  borderRadius: 13,
-                  color: ACCENT,
-                  fontSize: 11,
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                {!isPro && (
-                  <span
-                    style={{
-                      background: ACCENT,
-                      color: BLACK,
-                      borderRadius: 6,
-                      padding: '1px 5px',
-                      fontSize: 8,
-                      fontWeight: 900,
-                    }}
-                  >
-                    PRO
-                  </span>
-                )}
-
-                {loadIdeas ? 'NOX réfléchit...' : 'IDÉES DE REPAS'}
-              </button>
-
-              {ideas && (
-                <div
-                  style={{
-                    marginTop: 14,
-                    paddingTop: 14,
-                    borderTop: '1px solid #DDF59C',
-                  }}
-                >
-                  {ideas
-                    .split('\n')
-                    .filter(line => line.trim())
-                    .map((line, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          fontSize: 13,
-                          color: '#444',
-                          padding: '8px 0',
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        {line}
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
-          )}
-
           {/* TES REPAS */}
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              margin: '2px 0 12px',
+              margin: '12px 0 12px',
             }}
           >
             <div>
@@ -979,8 +1004,9 @@ export default function Fuel() {
               </div>
             </div>
 
+            {/* MODIF : + CONTEXTUEL SELON L'HEURE */}
             <button
-              onClick={() => setShowAdd(true)}
+              onClick={openQuickAdd}
               style={{
                 width: 42,
                 height: 42,
@@ -1156,7 +1182,7 @@ export default function Fuel() {
             })}
           </div>
 
-          {/* HYDRATATION */}
+          {/* HYDRATATION — SANS FAUX OBJECTIF 2,5 L */}
           <div
             style={{
               ...card,
@@ -1201,27 +1227,8 @@ export default function Fuel() {
                   paddingTop: 4,
                 }}
               >
-                objectif 2,5 L
+                aujourd'hui
               </div>
-            </div>
-
-            <div
-              style={{
-                height: 7,
-                background: BG,
-                borderRadius: 99,
-                overflow: 'hidden',
-                marginBottom: 14,
-              }}
-            >
-              <div
-                style={{
-                  height: '100%',
-                  width: `${Math.min(100, water / 25)}%`,
-                  background: BLACK,
-                  borderRadius: 99,
-                }}
-              />
             </div>
 
             <div
@@ -1254,7 +1261,10 @@ export default function Fuel() {
         </main>
       </div>
 
-      {/* MODAL AJOUTER */}
+      {/* =========================================================
+          MODALE AJOUT
+          ========================================================= */}
+
       {showAdd && (
         <div
           onClick={closeAdd}
@@ -2010,113 +2020,197 @@ export default function Fuel() {
                 </div>
 
                 {(() => {
-                  const ratio = parseFloat(qty) / 100;
+                  const ratio = parseFloat(qty || '0') / 100;
 
                   return (
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(4,1fr)',
-                        gap: 8,
-                        marginBottom: 16,
-                      }}
-                    >
-                      {[
-                        ['Kcal', Math.round(selFood.kcal * ratio)],
-                        [
-                          'Prot',
-                          Math.round(selFood.protein * ratio) + 'g',
-                        ],
-                        [
-                          'Gluc',
-                          Math.round(selFood.carbs * ratio) + 'g',
-                        ],
-                        [
-                          'Lip',
-                          Math.round(selFood.fat * ratio) + 'g',
-                        ],
-                      ].map(([label, value]) => (
-                        <div
-                          key={label as string}
-                          style={{
-                            textAlign: 'center',
-                            background: BG,
-                            borderRadius: 10,
-                            padding: '10px 0',
-                          }}
-                        >
+                    <>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(4,1fr)',
+                          gap: 8,
+                          marginBottom: 16,
+                        }}
+                      >
+                        {[
+                          ['Kcal', Math.round(selFood.kcal * ratio)],
+                          ['Prot', `${Math.round(selFood.protein * ratio)}g`],
+                          ['Gluc', `${Math.round(selFood.carbs * ratio)}g`],
+                          ['Lip', `${Math.round(selFood.fat * ratio)}g`],
+                        ].map(([label, value]) => (
                           <div
+                            key={label as string}
                             style={{
-                              fontSize: 18,
-                              fontWeight: 950,
-                              color: BLACK,
+                              background: BG,
+                              borderRadius: 12,
+                              padding: '12px 4px',
+                              textAlign: 'center',
                             }}
                           >
-                            {value}
-                          </div>
+                            <div
+                              style={{
+                                fontSize: 17,
+                                fontWeight: 900,
+                              }}
+                            >
+                              {value}
+                            </div>
 
-                          <div
-                            style={{
-                              fontSize: 9,
-                              color: MUTED,
-                            }}
-                          >
-                            {label}
+                            <div
+                              style={{
+                                fontSize: 9,
+                                color: MUTED,
+                              }}
+                            >
+                              {label}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+
+                      <button
+                        disabled={saving || ratio <= 0}
+                        onClick={() =>
+                          addEntry({
+                            food_name: `${selFood.name} (${qty}g)`,
+                            calories: Math.round(selFood.kcal * ratio),
+                            protein: Math.round(selFood.protein * ratio),
+                            carbs: Math.round(selFood.carbs * ratio),
+                            fat: Math.round(selFood.fat * ratio),
+                          })
+                        }
+                        style={{
+                          width: '100%',
+                          padding: 16,
+                          border: 0,
+                          borderRadius: 16,
+                          background: BLACK,
+                          color: ACCENT,
+                          fontSize: 14,
+                          fontWeight: 900,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        AJOUTER
+                      </button>
+                    </>
                   );
                 })()}
+              </div>
+            )}
+
+            {/* AJOUT RAPIDE */}
+            {addMode === 'quick' && (
+              <div style={{ display: 'grid', gap: 12 }}>
+                <input
+                  value={quickKcal}
+                  onChange={event => setQuickKcal(event.target.value)}
+                  type="number"
+                  placeholder="Calories"
+                  style={{
+                    padding: 15,
+                    borderRadius: 14,
+                    border: `1px solid ${BORDER}`,
+                    background: BG,
+                    fontSize: 16,
+                    outline: 'none',
+                  }}
+                />
+
+                <input
+                  value={quickProt}
+                  onChange={event => setQuickProt(event.target.value)}
+                  type="number"
+                  placeholder="Protéines (g)"
+                  style={{
+                    padding: 15,
+                    borderRadius: 14,
+                    border: `1px solid ${BORDER}`,
+                    background: BG,
+                    fontSize: 16,
+                    outline: 'none',
+                  }}
+                />
 
                 <button
-                  onClick={() => {
-                    const ratio = parseFloat(qty) / 100;
-
+                  disabled={saving || !quickKcal}
+                  onClick={() =>
                     addEntry({
-                      food_name: `${selFood.name} (${qty}g)`,
-
-                      calories: Math.round(
-                        selFood.kcal * ratio
-                      ),
-
-                      protein:
-                        Math.round(
-                          selFood.protein *
-                            ratio *
-                            10
-                        ) / 10,
-
-                      carbs:
-                        Math.round(
-                          selFood.carbs *
-                            ratio *
-                            10
-                        ) / 10,
-
-                      fat:
-                        Math.round(
-                          selFood.fat *
-                            ratio *
-                            10
-                        ) / 10,
-                    });
-                  }}
-                  disabled={saving}
+                      food_name: 'Ajout rapide',
+                      calories: Number(quickKcal) || 0,
+                      protein: Number(quickProt) || 0,
+                      carbs: 0,
+                      fat: 0,
+                    })
+                  }
                   style={{
-                    width: '100%',
                     padding: 16,
-                    background: BLACK,
                     border: 0,
                     borderRadius: 16,
+                    background: BLACK,
                     color: ACCENT,
                     fontWeight: 900,
-                    fontSize: 14,
                     cursor: 'pointer',
                   }}
                 >
-                  AJOUTER À {mealLabel(selMeal).toUpperCase()}
+                  AJOUTER
                 </button>
+              </div>
+            )}
+
+            {/* VOCAL */}
+            {addMode === 'voice' && (
+              <div>
+                <button
+                  onClick={startVoice}
+                  disabled={listening}
+                  style={{
+                    width: '100%',
+                    padding: 22,
+                    borderRadius: 18,
+                    border: `1px solid ${BORDER}`,
+                    background: listening ? BLACK : BG,
+                    color: listening ? ACCENT : BLACK,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    marginBottom: 14,
+                  }}
+                >
+                  {listening ? 'J’ÉCOUTE...' : 'PARLER'}
+                </button>
+
+                {voiceText && (
+                  <>
+                    <div
+                      style={{
+                        padding: 16,
+                        background: BG,
+                        borderRadius: 14,
+                        marginBottom: 12,
+                        fontSize: 14,
+                      }}
+                    >
+                      {voiceText}
+                    </div>
+
+                    <button
+                      onClick={addVoiceEntry}
+                      disabled={saving}
+                      style={{
+                        width: '100%',
+                        padding: 16,
+                        border: 0,
+                        borderRadius: 16,
+                        background: BLACK,
+                        color: ACCENT,
+                        fontWeight: 900,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      AJOUTER
+                    </button>
+                  </>
+                )}
               </div>
             )}
 
@@ -2125,23 +2219,20 @@ export default function Fuel() {
               <div
                 style={{
                   textAlign: 'center',
-                  padding: '20px 0',
+                  padding: '26px 10px',
                 }}
               >
                 <ScanLine
-                  size={48}
+                  size={42}
                   color={BLACK}
-                  style={{
-                    marginBottom: 16,
-                  }}
+                  style={{ marginBottom: 12 }}
                 />
 
                 <div
                   style={{
                     fontSize: 18,
-                    fontWeight: 950,
-                    color: BLACK,
-                    marginBottom: 8,
+                    fontWeight: 900,
+                    marginBottom: 6,
                   }}
                 >
                   Scanner un code-barres
@@ -2151,343 +2242,69 @@ export default function Fuel() {
                   style={{
                     fontSize: 13,
                     color: MUTED,
-                    marginBottom: 24,
+                    lineHeight: 1.5,
                   }}
                 >
-                  Scanne l'emballage du produit
+                  Place le code-barres du produit face à la caméra.
                 </div>
-
-                <button
-                  onClick={() => {
-                    closeAdd();
-                    navigate('/barcode-scanner');
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: 16,
-                    background: BLACK,
-                    border: 0,
-                    borderRadius: 16,
-                    color: ACCENT,
-                    fontWeight: 900,
-                    fontSize: 14,
-                    cursor: 'pointer',
-                  }}
-                >
-                  OUVRIR LE SCANNER
-                </button>
-              </div>
-            )}
-
-            {/* AJOUT RAPIDE */}
-            {addMode === 'quick' && (
-              <div>
-                <div style={{ marginBottom: 14 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: MUTED,
-                      marginBottom: 8,
-                    }}
-                  >
-                    Calories *
-                  </div>
-
-                  <input
-                    value={quickKcal}
-                    onChange={event =>
-                      setQuickKcal(event.target.value)
-                    }
-                    type="number"
-                    placeholder="500"
-                    autoFocus
-                    style={{
-                      width: '100%',
-                      padding: 16,
-                      background: BG,
-                      border: `1px solid ${BORDER}`,
-                      borderRadius: 14,
-                      color: BLACK,
-                      fontSize: 36,
-                      fontWeight: 950,
-                      textAlign: 'center',
-                      boxSizing: 'border-box',
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: 20 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: MUTED,
-                      marginBottom: 8,
-                    }}
-                  >
-                    Protéines (g) — optionnel
-                  </div>
-
-                  <input
-                    value={quickProt}
-                    onChange={event =>
-                      setQuickProt(event.target.value)
-                    }
-                    type="number"
-                    placeholder="30"
-                    style={{
-                      width: '100%',
-                      padding: 14,
-                      background: BG,
-                      border: `1px solid ${BORDER}`,
-                      borderRadius: 14,
-                      color: BLACK,
-                      fontSize: 24,
-                      fontWeight: 900,
-                      textAlign: 'center',
-                      boxSizing: 'border-box',
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-
-                <button
-                  onClick={() =>
-                    addEntry({
-                      food_name: 'Ajout rapide',
-                      calories: parseInt(quickKcal) || 0,
-                      protein: parseFloat(quickProt) || 0,
-                      carbs: 0,
-                      fat: 0,
-                    })
-                  }
-                  disabled={!quickKcal || saving}
-                  style={{
-                    width: '100%',
-                    padding: 16,
-                    background: quickKcal ? BLACK : BORDER,
-                    border: 0,
-                    borderRadius: 16,
-                    color: quickKcal ? ACCENT : MUTED,
-                    fontWeight: 900,
-                    fontSize: 14,
-                    cursor: quickKcal
-                      ? 'pointer'
-                      : 'not-allowed',
-                  }}
-                >
-                  AJOUTER {quickKcal ? `${quickKcal} KCAL` : ''}
-                </button>
-              </div>
-            )}
-
-            {/* VOCAL */}
-            {addMode === 'voice' && (
-              <div style={{ textAlign: 'center' }}>
-                <button
-                  onClick={startVoice}
-                  disabled={listening}
-                  style={{
-                    width: 90,
-                    height: 90,
-                    borderRadius: '50%',
-                    background: listening
-                      ? '#FF5C5C'
-                      : BLACK,
-                    border: 0,
-                    fontSize: 32,
-                    cursor: 'pointer',
-                    margin: '10px auto 16px',
-                    display: 'grid',
-                    placeItems: 'center',
-                  }}
-                >
-                  {listening ? '⏹' : '🎤'}
-                </button>
-
-                {listening && (
-                  <div
-                    style={{
-                      color: '#FF5C5C',
-                      fontSize: 13,
-                      marginBottom: 12,
-                    }}
-                  >
-                    Écoute...
-                  </div>
-                )}
-
-                {voiceText && !listening && (
-                  <div>
-                    <div
-                      style={{
-                        background: BG,
-                        borderRadius: 14,
-                        padding: 14,
-                        marginBottom: 14,
-                        fontSize: 15,
-                        color: BLACK,
-                      }}
-                    >
-                      "{voiceText}"
-                    </div>
-
-                    <button
-                      onClick={addVoiceEntry}
-                      style={{
-                        width: '100%',
-                        padding: 14,
-                        background: BLACK,
-                        border: 0,
-                        borderRadius: 14,
-                        color: ACCENT,
-                        fontWeight: 900,
-                        fontSize: 14,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      AJOUTER CE REPAS
-                    </button>
-                  </div>
-                )}
-
-                {!voiceText && !listening && (
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: MUTED,
-                    }}
-                  >
-                    Ex: "200g de riz" ou "un steak 150g"
-                  </div>
-                )}
               </div>
             )}
 
             {/* MANUEL */}
             {addMode === 'custom' && (
-              <div>
+              <div style={{ display: 'grid', gap: 10 }}>
                 {[
-                  {
-                    label: 'Nom du repas',
-                    key: 'name',
-                    type: 'text',
-                    placeholder: 'Mon repas',
-                  },
-                  {
-                    label: 'Calories *',
-                    key: 'kcal',
-                    type: 'number',
-                    placeholder: '400',
-                  },
-                  {
-                    label: 'Protéines (g)',
-                    key: 'protein',
-                    type: 'number',
-                    placeholder: '30',
-                  },
-                  {
-                    label: 'Glucides (g)',
-                    key: 'carbs',
-                    type: 'number',
-                    placeholder: '40',
-                  },
-                  {
-                    label: 'Lipides (g)',
-                    key: 'fat',
-                    type: 'number',
-                    placeholder: '10',
-                  },
-                ].map(field => (
-                  <div
-                    key={field.key}
+                  ['name', 'Nom de l’aliment'],
+                  ['kcal', 'Calories'],
+                  ['protein', 'Protéines (g)'],
+                  ['carbs', 'Glucides (g)'],
+                  ['fat', 'Lipides (g)'],
+                ].map(([field, placeholder]) => (
+                  <input
+                    key={field}
+                    type={field === 'name' ? 'text' : 'number'}
+                    placeholder={placeholder}
+                    value={(customForm as any)[field]}
+                    onChange={event =>
+                      setCustomForm(current => ({
+                        ...current,
+                        [field]: event.target.value,
+                      }))
+                    }
                     style={{
-                      marginBottom: 12,
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: 14,
+                      background: BG,
+                      border: `1px solid ${BORDER}`,
+                      borderRadius: 14,
+                      fontSize: 15,
+                      outline: 'none',
                     }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: MUTED,
-                        marginBottom: 6,
-                      }}
-                    >
-                      {field.label}
-                    </div>
-
-                    <input
-                      value={(customForm as any)[field.key]}
-                      onChange={event =>
-                        setCustomForm(current => ({
-                          ...current,
-                          [field.key]: event.target.value,
-                        }))
-                      }
-                      type={field.type}
-                      placeholder={field.placeholder}
-                      style={{
-                        width: '100%',
-                        padding: '13px 14px',
-                        background: BG,
-                        border: `1px solid ${BORDER}`,
-                        borderRadius: 12,
-                        color: BLACK,
-                        fontSize: 16,
-                        boxSizing: 'border-box',
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
+                  />
                 ))}
 
                 <button
+                  disabled={saving || !customForm.name}
                   onClick={() =>
                     addEntry({
-                      food_name:
-                        customForm.name || 'Repas',
-
-                      calories:
-                        parseFloat(
-                          customForm.kcal
-                        ) || 0,
-
-                      protein:
-                        parseFloat(
-                          customForm.protein
-                        ) || 0,
-
-                      carbs:
-                        parseFloat(
-                          customForm.carbs
-                        ) || 0,
-
-                      fat:
-                        parseFloat(
-                          customForm.fat
-                        ) || 0,
+                      food_name: customForm.name,
+                      calories: Number(customForm.kcal) || 0,
+                      protein: Number(customForm.protein) || 0,
+                      carbs: Number(customForm.carbs) || 0,
+                      fat: Number(customForm.fat) || 0,
                     })
                   }
-                  disabled={!customForm.kcal || saving}
                   style={{
                     width: '100%',
                     padding: 16,
-                    background:
-                      customForm.kcal
-                        ? BLACK
-                        : BORDER,
                     border: 0,
                     borderRadius: 16,
-                    color:
-                      customForm.kcal
-                        ? ACCENT
-                        : MUTED,
+                    background: BLACK,
+                    color: ACCENT,
                     fontWeight: 900,
-                    fontSize: 14,
-                    cursor:
-                      customForm.kcal
-                        ? 'pointer'
-                        : 'not-allowed',
-                    marginTop: 8,
+                    cursor: 'pointer',
+                    marginTop: 4,
                   }}
                 >
                   AJOUTER
@@ -2498,7 +2315,7 @@ export default function Fuel() {
         </div>
       )}
 
-      <BottomNav active="nutrition" />
+      <BottomNav />
     </div>
   );
 }
