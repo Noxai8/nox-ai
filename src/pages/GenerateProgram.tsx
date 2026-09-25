@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { usePlan } from '../lib/usePlan';
+import PaywallCard from '../components/PaywallCard';
 import { useAuth } from '../lib/AuthContext';
 
 const ACCENT = '#c8ff00';
@@ -607,6 +609,7 @@ function requireGenerationProfile(
 
 export default function GenerateProgram() {
   const { user } = useAuth();
+  const { isPro } = usePlan();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -1151,6 +1154,19 @@ Génère exactement ${sessionCount} séances.`;
             NOX adapte une stratégie à tes données. Aucun résultat physique précis ni délai n'est garanti.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  if (!isPro) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#F7F8F4', padding: '60px 24px 24px', maxWidth: 560, margin: '0 auto', boxSizing: 'border-box' }}>
+        <div style={{ fontSize: 10, fontWeight: 900, color: '#7A7F76', letterSpacing: '.12em', marginBottom: 8 }}>PROGRAMME PERSONNALISÉ</div>
+        <h1 style={{ fontSize: 32, fontWeight: 950, letterSpacing: '-.04em', color: '#0B0B0B', marginBottom: 24 }}>BOUGE POUR<br />TON OBJECTIF.</h1>
+        <PaywallCard
+          feature="Programme IA personnalisé"
+          description="NOX génère un programme sur mesure selon ton objectif, ton niveau, tes jours disponibles et ton matériel."
+        />
       </div>
     );
   }

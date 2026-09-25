@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
+import { usePlan } from '../lib/usePlan';
+import PaywallCard from '../components/PaywallCard';
 import { ArrowUp, ChevronRight } from 'lucide-react';
 
 const ACCENT = '#C8FF00';
@@ -54,6 +56,7 @@ export default function Coach() {
   const bottomRef  = useRef<HTMLDivElement>(null);
   const inputRef   = useRef<HTMLTextAreaElement>(null);
 
+  const { isPro } = usePlan();
   const [messages, setMessages] = useState<{ role: 'user'|'assistant'; content: string; action?: NoxAction }[]>([]);
   const [input,    setInput]    = useState('');
   const [loading,  setLoading]  = useState(false);
@@ -264,8 +267,18 @@ REGLES :
     <div style={{ minHeight: '100vh', background: BG, color: BLACK, display: 'flex', flexDirection: 'column' }}>
       <div style={{ width: '100%', maxWidth: 560, margin: '0 auto', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
 
+        {/* PAYWALL */}
+        {!isPro && (
+          <div style={{ padding: '22px 20px 0' }}>
+            <PaywallCard
+              feature="NOX Intelligence"
+              description="Recommandations personnalisées, ET MAINTENANT ?, adaptation de ta journée. NOX analyse tout ton contexte pour décider de ta prochaine action."
+            />
+          </div>
+        )}
+
         {/* HEADER */}
-        <header style={{ padding: '22px 20px 0', flexShrink: 0 }}>
+        <header style={{ padding: '22px 20px 0', flexShrink: 0, display: isPro ? 'block' : 'none' }}>
           <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.12em', marginBottom: 6 }}>NOX</div>
           <h1 style={{ margin: '0 0 6px', fontSize: 36, lineHeight: .95, fontWeight: 950, letterSpacing: '-.05em' }}>
             NOX.

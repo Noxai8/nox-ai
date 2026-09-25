@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
+import { usePlan } from '../lib/usePlan';
+import PaywallCard from '../components/PaywallCard';
 import { Camera, ChevronRight, Plus, ScanLine, X } from 'lucide-react';
 
 const ACCENT = '#C8FF00';
@@ -53,6 +55,7 @@ export default function Fuel() {
   const fileRef    = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
 
+  const { isPro } = usePlan();
   const [entries,    setEntries]    = useState<any[]>([]);
   const [targets,    setTargets]    = useState({ kcal: 2200, protein: 160, carbs: 220, fat: 70 });
   const [water,      setWater]      = useState(0);
@@ -249,10 +252,12 @@ export default function Fuel() {
               <div style={{ fontSize: 13, color: '#69715F', lineHeight: 1.5, marginBottom: 14 }}>
                 Il te reste environ {kcalLeft} kcal et {protLeft}g de proteines a completer.
               </div>
-              <button onClick={fetchIdeas} disabled={loadIdeas} style={{
+              <button onClick={() => isPro ? fetchIdeas() : navigate('/subscribe')} disabled={loadIdeas} style={{
                 padding: '10px 16px', background: BLACK, border: 0, borderRadius: 14,
                 color: ACCENT, fontSize: 11, fontWeight: 900, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6,
               }}>
+                {!isPro && <span style={{ background: ACCENT, color: BLACK, borderRadius: 6, padding: '1px 5px', fontSize: 8, fontWeight: 900 }}>PRO</span>}
                 {loadIdeas ? 'NOX reflechit...' : 'VOIR DES IDEES DE REPAS'}
               </button>
               {ideas && (
@@ -405,17 +410,19 @@ export default function Fuel() {
             {/* MENU PRINCIPAL */}
             {addMode === 'choose' && (
               <div style={{ display: 'grid', gap: 10 }}>
-                {/* Scanner photo — prioritaire */}
+                {/* Scanner photo — Pro */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <button onClick={() => fileRef.current?.click()} style={{ padding: '18px 14px', background: BLACK, borderRadius: 18, border: 0, cursor: 'pointer', textAlign: 'left' }}>
+                  <button onClick={() => isPro ? fileRef.current?.click() : navigate('/subscribe')} style={{ padding: '18px 14px', background: BLACK, borderRadius: 18, border: 0, cursor: 'pointer', textAlign: 'left', position: 'relative' }}>
                     <Camera size={22} color={ACCENT} style={{ marginBottom: 10 }} />
                     <div style={{ fontSize: 14, fontWeight: 900, color: WHITE }}>Photo</div>
                     <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>IA analyse le repas</div>
+                    {!isPro && <div style={{ position: 'absolute', top: 8, right: 8, background: ACCENT, borderRadius: 8, padding: '2px 6px', fontSize: 8, fontWeight: 900, color: BLACK }}>PRO</div>}
                   </button>
-                  <button onClick={() => galleryRef.current?.click()} style={{ padding: '18px 14px', background: BG, borderRadius: 18, border: `1px solid ${BORDER}`, cursor: 'pointer', textAlign: 'left' }}>
+                  <button onClick={() => isPro ? galleryRef.current?.click() : navigate('/subscribe')} style={{ padding: '18px 14px', background: BG, borderRadius: 18, border: `1px solid ${BORDER}`, cursor: 'pointer', textAlign: 'left', position: 'relative' }}>
                     <Camera size={22} color={BLACK} style={{ marginBottom: 10 }} />
                     <div style={{ fontSize: 14, fontWeight: 900, color: BLACK }}>Galerie</div>
                     <div style={{ fontSize: 11, color: MUTED, marginTop: 3 }}>Photo existante</div>
+                    {!isPro && <div style={{ position: 'absolute', top: 8, right: 8, background: '#E8EAE4', borderRadius: 8, padding: '2px 6px', fontSize: 8, fontWeight: 900, color: MUTED }}>PRO</div>}
                   </button>
                 </div>
                 {/* Autres modes */}

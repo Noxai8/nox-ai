@@ -18,6 +18,8 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { usePlan } from '../lib/usePlan';
+import PaywallCard from '../components/PaywallCard';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 
@@ -38,6 +40,7 @@ type Step =
 
 export default function NoxFuture() {
   const { user } = useAuth();
+  const { isPro } = usePlan();
   const navigate = useNavigate();
   const location = useLocation();
 
