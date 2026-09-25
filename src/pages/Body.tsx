@@ -382,29 +382,51 @@ const photoInputRef = useRef<HTMLInputElement>(null);
     const weights = weightLogs.map(l => Number(l.weight));
     const minW = Math.min(...weights);
     const maxW = Math.max(...weights);
-    const pad = Math.max((maxW - minW) * 0.15, 0.5);
+    const range = maxW - minW;
+    const pad = Math.max(range * 0.25, 1);
     const lo = minW - pad;
     const hi = maxW + pad;
-    const W = 300, H = 120, BOTTOM = 24, CURVE_H = H - BOTTOM;
 
-    const px = (i: number) => (i / (weightLogs.length - 1)) * W;
-    const py = (w: number) => CURVE_H - ((w - lo) / (hi - lo)) * (CURVE_H - 16);
+    // Dimensions
+    const W = 300, H = 160;
+    const LEFT = 36, RIGHT = 8, TOP = 12, BOTTOM = 28;
+    const CW = W - LEFT - RIGHT;   // largeur zone courbe
+    const CH = H - TOP - BOTTOM;   // hauteur zone courbe
+
+    const px = (i: number) => LEFT + (i / (weightLogs.length - 1)) * CW;
+    const py = (w: number) => TOP + CH - ((w - lo) / (hi - lo)) * CH;
 
     const fmtDate = (iso: string) =>
       new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 
-    const polyPoints = weightLogs.map((l, i) => `${px(i)},${py(Number(l.weight))}`).join(' ');
+    // Courbe lissée avec cubic bezier
+    const pathD = weightLogs.reduce((d, l, i) => {
+      const x = px(i), y = py(Number(l.weight));
+      if (i === 0) return `M${x},${y}`;
+      const px0 = px(i - 1), py0 = py(Number(weightLogs[i - 1].weight));
+      const cpx = (px0 + x) / 2;
+      return `${d} C${cpx},${py0} ${cpx},${y} ${x},${y}`;
+    }, '');
 
-    // Trouver l'index le plus proche d'une position X
+    // Zone de remplissage sous la courbe
+    const fillD = `${pathD} L${px(weightLogs.length - 1)},${TOP + CH} L${px(0)},${TOP + CH} Z`;
+
+    // Graduation Y (3 valeurs propres)
+    const yTicks = [0.25, 0.5, 0.75].map(t => ({
+      val: lo + t * (hi - lo),
+      y: py(lo + t * (hi - lo)),
+    }));
+
+    // Interaction
     const nearestIdx = (clientX: number): number => {
       const svg = svgRef.current;
-      if (!svg) return 0;
+      if (!svg) return weightLogs.length - 1;
       const rect = svg.getBoundingClientRect();
-      const ratio = (clientX - rect.left) / rect.width;
-      const xInSvg = ratio * W;
+      const ratio = Math.max(0, Math.min(1, (clientX - rect.left - (rect.width * LEFT / W)) / (rect.width * CW / W)));
+      const xInCurve = ratio * CW;
       let best = 0, bestDist = Infinity;
       weightLogs.forEach((_, i) => {
-        const dist = Math.abs(px(i) - xInSvg);
+        const dist = Math.abs((i / (weightLogs.length - 1)) * CW - xInCurve);
         if (dist < bestDist) { bestDist = dist; best = i; }
       });
       return best;
@@ -412,64 +434,114 @@ const photoInputRef = useRef<HTMLInputElement>(null);
 
     const handleTouch = (e: React.TouchEvent) => {
       e.preventDefault();
-      const touch = e.touches[0] || e.changedTouches[0];
-      if (touch) setActiveIdx(nearestIdx(touch.clientX));
-    };
-
-    const handleMouse = (e: React.MouseEvent) => {
-      setActiveIdx(nearestIdx(e.clientX));
+      const t = e.touches[0] || e.changedTouches[0];
+      if (t) setActiveIdx(nearestIdx(t.clientX));
     };
 
     const sel = activeIdx !== null ? activeIdx : weightLogs.length - 1;
     const selLog = weightLogs[sel];
+    const selW = Number(selLog.weight);
     const selX = px(sel);
-    const selY = py(Number(selLog.weight));
-    const labelAnchor = sel === 0 ? 'start' : sel === weightLogs.length - 1 ? 'end' : 'middle';
+    const selY = py(selW);
+    const isActive = activeIdx !== null;
+
+    // Tooltip : côté gauche ou droit selon position
+    const tooltipRight = sel < weightLogs.length / 2;
 
     return (
-      <div>
-        {/* Label sélectionné */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, padding: '0 2px' }}>
-          <span style={{ fontSize: 18, fontWeight: 950, color: '#090909' }}>
-            {selLog.weight} <span style={{ fontSize: 11, color: '#666', fontWeight: 500 }}>kg</span>
-          </span>
-          <span style={{ fontSize: 11, color: '#888' }}>{fmtDate(selLog.created_at)}</span>
-        </div>
-
+      <div style={{ userSelect: 'none' }}>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${W} ${H}`}
-          style={{ width: '100%', height: H, display: 'block', touchAction: 'none', cursor: 'crosshair' }}
-          onMouseMove={handleMouse}
+          style={{ width: '100%', height: H, display: 'block', touchAction: 'none', overflow: 'visible' }}
+          onMouseMove={e => setActiveIdx(nearestIdx(e.clientX))}
           onMouseLeave={() => setActiveIdx(null)}
           onTouchStart={handleTouch}
           onTouchMove={handleTouch}
-          onTouchEnd={handleTouch}
+          onTouchEnd={e => { handleTouch(e); }}
         >
-          {/* Grille légère */}
-          {[0.33, 0.66].map(t => {
-            const y = CURVE_H - t * (CURVE_H - 16);
-            return <line key={t} x1={0} y1={y} x2={W} y2={y} stroke="#E8EAE2" strokeWidth="1" />;
-          })}
+          <defs>
+            {/* Dégradé sous la courbe */}
+            <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={ACCENT} stopOpacity="0.18" />
+              <stop offset="100%" stopColor={ACCENT} stopOpacity="0" />
+            </linearGradient>
+            {/* Glow sur le point actif */}
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+              <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+          </defs>
 
-          {/* Courbe */}
-          <polyline points={polyPoints} fill="none" stroke={ACCENT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          {/* Ticks Y */}
+          {yTicks.map(({ val, y }) => (
+            <g key={val}>
+              <line x1={LEFT} y1={y} x2={W - RIGHT} y2={y} stroke="#E8EAE2" strokeWidth="1" />
+              <text x={LEFT - 5} y={y + 3.5} textAnchor="end" fontSize="8.5" fill="#AAB0A8" fontWeight="600">
+                {val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}
+              </text>
+            </g>
+          ))}
 
-          {/* Points discrets */}
-          {weightLogs.map((l, i) => (
-            <circle key={i} cx={px(i)} cy={py(Number(l.weight))} r={i === sel ? 0 : 2.5} fill={ACCENT} opacity={0.5} />
+          {/* Axe X bas */}
+          <line x1={LEFT} y1={TOP + CH} x2={W - RIGHT} y2={TOP + CH} stroke="#E8EAE2" strokeWidth="1" />
+
+          {/* Aire sous la courbe */}
+          <path d={fillD} fill="url(#chartFill)" />
+
+          {/* Courbe principale */}
+          <path d={pathD} fill="none" stroke={ACCENT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+
+          {/* Points normaux */}
+          {weightLogs.map((l, i) => i !== sel && (
+            <circle key={i} cx={px(i)} cy={py(Number(l.weight))} r="3" fill={ACCENT} opacity="0.4" />
           ))}
 
           {/* Curseur vertical */}
-          <line x1={selX} y1={8} x2={selX} y2={CURVE_H} stroke={ACCENT} strokeWidth="1.5" strokeDasharray="3 3" opacity="0.7" />
+          {isActive && (
+            <line x1={selX} y1={TOP} x2={selX} y2={TOP + CH} stroke={ACCENT} strokeWidth="1" strokeDasharray="4 3" opacity="0.6" />
+          )}
 
-          {/* Point actif */}
-          <circle cx={selX} cy={selY} r="6" fill={ACCENT} />
-          <circle cx={selX} cy={selY} r="3" fill="#090909" />
+          {/* Point actif avec glow */}
+          <circle cx={selX} cy={selY} r="9" fill={ACCENT} opacity="0.15" filter="url(#glow)" />
+          <circle cx={selX} cy={selY} r="5.5" fill={ACCENT} />
+          <circle cx={selX} cy={selY} r="2.5" fill="#090909" />
 
-          {/* Dates première / dernière */}
-          <text x={2} y={H - 4} fontSize="8" fill="#666">{fmtDate(weightLogs[0].created_at)}</text>
-          <text x={W - 2} y={H - 4} fontSize="8" fill="#666" textAnchor="end">{fmtDate(weightLogs[weightLogs.length - 1].created_at)}</text>
+          {/* Tooltip inline dans le SVG */}
+          <g transform={`translate(${tooltipRight ? selX + 10 : selX - 10}, ${Math.max(selY - 32, TOP + 4)})`}>
+            <rect
+              x={tooltipRight ? 0 : -88}
+              y={0}
+              width={88}
+              height={28}
+              rx="6"
+              fill="#090909"
+              opacity="0.88"
+            />
+            <text
+              x={tooltipRight ? 10 : -78}
+              y={12}
+              fontSize="11"
+              fill={ACCENT}
+              fontWeight="800"
+            >
+              {selW % 1 === 0 ? selW.toFixed(0) : selW.toFixed(1)} kg
+            </text>
+            <text
+              x={tooltipRight ? 10 : -78}
+              y={23}
+              fontSize="8.5"
+              fill="#8B9080"
+            >
+              {fmtDate(selLog.created_at)}
+            </text>
+          </g>
+
+          {/* Dates axe X — première et dernière seulement */}
+          <text x={LEFT} y={H - 6} fontSize="8.5" fill="#AAB0A8">{fmtDate(weightLogs[0].created_at)}</text>
+          <text x={W - RIGHT} y={H - 6} fontSize="8.5" fill="#AAB0A8" textAnchor="end">
+            {fmtDate(weightLogs[weightLogs.length - 1].created_at)}
+          </text>
         </svg>
       </div>
     );
