@@ -65,6 +65,17 @@ export default function Progress() {
 
   useEffect(() => { if (user) loadAll(); }, [user]);
 
+  // Préselectionne automatiquement la photo la plus ancienne en AVANT
+  // et la plus récente en APRÈS. L'utilisateur peut ensuite les changer.
+  useEffect(() => {
+    if (photos.length < 2) return;
+    const ordered = [...photos].sort((a: any, b: any) =>
+      new Date(a.taken_at || a.created_at).getTime() - new Date(b.taken_at || b.created_at).getTime()
+    );
+    setCompareA(current => current && ordered.some((p: any) => p.id === current.id) ? current : ordered[0]);
+    setCompareB(current => current && ordered.some((p: any) => p.id === current.id) ? current : ordered[ordered.length - 1]);
+  }, [photos]);
+
   useEffect(() => {
     if (searchParams.get('add') !== 'photo') return;
     setTab('body');
@@ -758,12 +769,76 @@ Pas de markdown.`,
                         style={{ width: '100%', padding: 8, background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, color: BLACK, fontSize: 12, marginBottom: 6 }}
                       >
                         <option value="">Choisir...</option>
-                        {photos.map((p: any) => <option key={p.id} value={p.id}>{new Date(p.created_at).toLocaleDateString('fr-FR')}</option>)}
+                        {photos.map((p: any) => <option key={p.id} value={p.id}>{new Date(p.taken_at || p.created_at).toLocaleDateString('fr-FR')}</option>)}
                       </select>
                       {value?.photo_url && <img src={value.display_url || value.photo_url} style={{ width: '100%', borderRadius: 16, objectFit: 'cover', aspectRatio: '3/4' }} alt={label} />}
                     </div>
                   ))}
                 </div>
+
+                {compareA && compareB && (() => {
+                  const rawA = new Date(compareA.taken_at || compareA.created_at);
+                  const rawB = new Date(compareB.taken_at || compareB.created_at);
+                  const from = rawA <= rawB ? rawA : rawB;
+                  const to = rawA <= rawB ? rawB : rawA;
+                  const startMs = new Date(from.getFullYear(), from.getMonth(), from.getDate()).getTime();
+                  const endMs = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999).getTime();
+                  const days = Math.max(0, Math.round((endMs - startMs) / 86400000));
+                  const between = (value?: string | null) => {
+                    if (!value) return false;
+                    const t = new Date(value).getTime();
+                    return t >= startMs && t <= endMs;
+                  };
+
+                  const compareWorkouts = workouts.filter((w: any) => between(w.created_at));
+                  const compareVolume = compareWorkouts.reduce((sum: number, w: any) => sum + (Number(w.total_volume) || 0), 0);
+                  const compareWeights = bodyLogs
+                    .filter((b: any) => b.weight != null && between(b.created_at))
+                    .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                  const compareMeasures = measureLogs
+                    .filter((m: any) => between(m.created_at))
+                    .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+                  const weightChange = compareWeights.length >= 2
+                    ? Number(compareWeights[compareWeights.length - 1].weight) - Number(compareWeights[0].weight)
+                    : null;
+
+                  const measureNames: Record<string, string> = {
+                    chest_cm: 'poitrine', waist_cm: 'taille', hips_cm: 'hanches', arms_cm: 'bras', thighs_cm: 'cuisses',
+                  };
+                  const measureChanges: string[] = [];
+                  if (compareMeasures.length >= 2) {
+                    const first = compareMeasures[0];
+                    const last = compareMeasures[compareMeasures.length - 1];
+                    Object.entries(measureNames).forEach(([key, label]) => {
+                      if (first[key] == null || last[key] == null) return;
+                      const delta = Number(last[key]) - Number(first[key]);
+                      if (!Number.isFinite(delta) || Math.abs(delta) < 0.05) return;
+                      measureChanges.push(`${label} ${delta > 0 ? '+' : ''}${delta.toFixed(1)} cm`);
+                    });
+                  }
+
+                  const hasContext = compareWorkouts.length > 0 || weightChange != null || measureChanges.length > 0;
+                  const facts: string[] = [];
+                  if (weightChange != null) facts.push(`poids ${weightChange > 0 ? '+' : ''}${weightChange.toFixed(1)} kg`);
+                  if (measureChanges.length) facts.push(measureChanges.slice(0, 2).join(' · '));
+                  if (compareWorkouts.length) facts.push(`${compareWorkouts.length} séance${compareWorkouts.length > 1 ? 's' : ''}`);
+                  if (compareVolume > 0) facts.push(`${compareVolume >= 1000 ? (compareVolume / 1000).toFixed(1) + ' t' : Math.round(compareVolume) + ' kg'} de volume`);
+
+                  return (
+                    <div style={{ marginTop: 12, background: '#F0FFD0', border: '1px solid #E1F5A5', borderRadius: 18, padding: '14px 15px' }}>
+                      <div style={{ fontSize: 10, fontWeight: 950, letterSpacing: '.09em', marginBottom: 6 }}>INTERPRÉTATION NOX</div>
+                      <div style={{ fontSize: 13, fontWeight: 900, marginBottom: 5 }}>
+                        {days === 0 ? 'Deux repères le même jour.' : `${days} jour${days > 1 ? 's' : ''} entre tes deux repères.`}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#59604F', lineHeight: 1.55 }}>
+                        {hasContext
+                          ? `Sur cette période : ${facts.join(' · ')}. Les photos servent de repère visuel ; NOX s'appuie sur tes données enregistrées pour contextualiser l'évolution.`
+                          : `Tes deux photos sont bien enregistrées, mais NOX n'a pas encore assez de données entre ces dates pour interpréter l'évolution. Ajoute ton poids, tes mensurations ou tes séances pour obtenir un contexte fiable.`}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
