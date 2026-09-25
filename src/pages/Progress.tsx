@@ -98,7 +98,7 @@ export default function Progress() {
       supabase.from('body_photos').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }),
       supabase.from('workouts').select('*').eq('user_id', user!.id).eq('status', 'completed').order('created_at'),
       supabase.from('personal_records').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }),
-      supabase.from('food_entries').select('calories, protein, created_at').eq('user_id', user!.id).order('created_at'),
+      supabase.from('food_entries').select('calories, protein, carbs, fat, created_at').eq('user_id', user!.id).order('created_at'),
     ]);
 
     setProfile(prof);
@@ -139,15 +139,17 @@ export default function Progress() {
     setVolumeData(volData);
 
     // Nutrition par semaine — moyenne sur les jours réellement renseignés
-    const weekNutrition: Record<string, { kcal: number; protein: number; loggedDays: Set<string> }> = {};
+    const weekNutrition: Record<string, { kcal: number; protein: number; carbs: number; fat: number; loggedDays: Set<string> }> = {};
     (foodData || []).forEach((f: any) => {
       if (!f.created_at) return;
       const date = new Date(f.created_at);
       const week = getWeekKey(date);
-      const day = date.toISOString().slice(0, 10);
-      if (!weekNutrition[week]) weekNutrition[week] = { kcal: 0, protein: 0, loggedDays: new Set<string>() };
+      const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      if (!weekNutrition[week]) weekNutrition[week] = { kcal: 0, protein: 0, carbs: 0, fat: 0, loggedDays: new Set<string>() };
       weekNutrition[week].kcal += Number(f.calories) || 0;
       weekNutrition[week].protein += Number(f.protein) || 0;
+      weekNutrition[week].carbs += Number(f.carbs) || 0;
+      weekNutrition[week].fat += Number(f.fat) || 0;
       weekNutrition[week].loggedDays.add(day);
     });
     const nutWeeks = Object.entries(weekNutrition).slice(-8).map(([week, data]) => {
@@ -156,6 +158,8 @@ export default function Progress() {
         week,
         avgKcal: daysLogged > 0 ? Math.round(data.kcal / daysLogged) : 0,
         avgProtein: daysLogged > 0 ? Math.round(data.protein / daysLogged) : 0,
+        avgCarbs: daysLogged > 0 ? Math.round(data.carbs / daysLogged) : 0,
+        avgFat: daysLogged > 0 ? Math.round(data.fat / daysLogged) : 0,
         daysLogged,
       };
     });
@@ -295,8 +299,9 @@ export default function Progress() {
 
   const getWeekKey = (date: Date) => {
     const d = new Date(date);
-    d.setDate(d.getDate() - d.getDay());
-    return d.toISOString().slice(0, 10);
+    const mondayOffset = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - mondayOffset);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
   const generateMonthlyReport = async () => {
@@ -322,10 +327,13 @@ DONNÉES DU MOIS :
 - Évolution : ${startW && endW ? ((endW - startW) > 0 ? '+' : '') + (endW - startW).toFixed(1) + 'kg' : 'N/A'}
 - Objectif : ${profile?.goal_type || 'non renseigné'}
 - Volume total : ${workouts.filter(w => w.created_at >= monthStart).reduce((s, w) => s + (w.total_volume || 0), 0).toFixed(0)}kg
+- Jours de nutrition renseignés : ${nutritionWeeks.reduce((sum, w) => sum + (w.daysLogged || 0), 0)}
+- Photos de progression : ${photos.length}
+- Relevés de mensurations : ${measureLogs.length}
 
-Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois prochain. Pas de markdown.`;
+Réponds en 3-4 phrases : bilan factuel, tendance principale et prochaine action concrète. Pas de markdown.`;
 
-      const resp = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/generate-program', {
+      const resp = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/nox-coach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ prompt }),
@@ -336,14 +344,59 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
     setReportLoading(false);
   };
 
-  // Stats clés
-  const totalWorkouts = workouts.length;
-  const totalVolume = workouts.reduce((s, w) => s + (w.total_volume || 0), 0);
-  const weightLogs = bodyLogs.filter((b: any) => b.weight != null);
+  // Période active — toutes les synthèses principales utilisent la même fenêtre.
+  const periodStart = (() => {
+    if (period === 'Tout') return null;
+    const d = new Date();
+    if (period === '30 jours') d.setDate(d.getDate() - 30);
+    if (period === '3 mois') d.setMonth(d.getMonth() - 3);
+    if (period === '6 mois') d.setMonth(d.getMonth() - 6);
+    return d;
+  })();
+
+  const inPeriod = (value?: string | null) =>
+    !!value && (!periodStart || new Date(value).getTime() >= periodStart.getTime());
+
+  const periodWorkouts = workouts.filter((w: any) => inPeriod(w.created_at));
+  const periodPrs = prs.filter((p: any) => inPeriod(p.created_at));
+  const allWeightLogs = bodyLogs.filter((b: any) => b.weight != null);
+  const weightLogs = allWeightLogs.filter((b: any) => inPeriod(b.created_at));
+  const periodEvents = events.filter((e: any) => inPeriod(e.date));
+
+  const totalWorkouts = periodWorkouts.length;
+  const totalVolume = periodWorkouts.reduce((sum: number, w: any) => sum + (Number(w.total_volume) || 0), 0);
   const startWeight = weightLogs[0]?.weight;
   const currentWeight = weightLogs[weightLogs.length - 1]?.weight;
-  const weightDelta = startWeight != null && currentWeight != null ? (Number(currentWeight) - Number(startWeight)).toFixed(1) : null;
-  const weekWorkouts = workouts.filter(w => new Date(w.created_at) > new Date(Date.now() - 7 * 86400000)).length;
+  const weightDelta =
+    startWeight != null && currentWeight != null && weightLogs.length > 1
+      ? (Number(currentWeight) - Number(startWeight)).toFixed(1)
+      : null;
+  const weekWorkouts = workouts.filter(
+    (w: any) => new Date(w.created_at).getTime() > Date.now() - 7 * 86400000,
+  ).length;
+
+  // Un record = un exercice distinct sur la période, pas une ligne brute de la table.
+  const uniquePeriodRecords = new Set(
+    periodPrs.map((p: any) => String(p.exercise_name || '').trim()).filter(Boolean),
+  ).size;
+
+  // Interprétation déterministe immédiate : pas d'attente IA pour comprendre la page.
+  const progressInsight = (() => {
+    if (!periodWorkouts.length && weightLogs.length < 2 && !periodPrs.length) {
+      return {
+        title: 'Ta progression commence maintenant.',
+        body: 'Enregistre tes séances, ton poids et ta nutrition. NOX fera ressortir les tendances au fil du temps.',
+      };
+    }
+    const parts: string[] = [];
+    if (periodWorkouts.length) parts.push(`${periodWorkouts.length} séance${periodWorkouts.length > 1 ? 's' : ''}`);
+    if (totalVolume > 0) parts.push(`${totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) + ' t' : Math.round(totalVolume) + ' kg'} de volume`);
+    if (uniquePeriodRecords) parts.push(`${uniquePeriodRecords} exercice${uniquePeriodRecords > 1 ? 's' : ''} avec record`);
+    return {
+      title: 'Ta progression prend forme.',
+      body: `${parts.join(' · ')} sur la période sélectionnée.${weightDelta != null ? ` Poids : ${Number(weightDelta) > 0 ? '+' : ''}${weightDelta} kg.` : ''}`,
+    };
+  })();
 
   type MainTab = 'timeline' | 'body' | 'training' | 'nutrition' | 'prs' | 'exercices';
 
@@ -410,21 +463,17 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
             </div>
             <div>
               <div style={{ fontSize: 16, fontWeight: 950, letterSpacing: '-.025em', marginBottom: 5 }}>
-                {totalWorkouts === 0
-                  ? 'Ta progression commence maintenant.'
-                  : 'Ta progression prend forme.'}
+{progressInsight.title}
               </div>
               <div style={{ fontSize: 12, color: '#59604F', lineHeight: 1.5 }}>
-                {totalWorkouts === 0
-                  ? 'Enregistre tes séances, ton poids et ta nutrition. NOX fera ressortir les tendances au fil du temps.'
-                  : `${totalWorkouts} séance${totalWorkouts > 1 ? 's' : ''} enregistrée${totalWorkouts > 1 ? 's' : ''}. Explore tes tendances pour comprendre ce qui évolue.`}
+{progressInsight.body}
               </div>
             </div>
           </div>
 
           {totalWorkouts === 0 ? (
             <button
-              onClick={() => navigate('/training')}
+              onClick={() => navigate('/training-calendar')}
               style={{
                 width: '100%', height: 50, marginTop: 16, border: 0, borderRadius: 17,
                 background: BLACK, color: WHITE, fontSize: 12, fontWeight: 950,
@@ -464,7 +513,7 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
             { icon: '🏋', label: 'Séances', value: totalWorkouts, help: "Nombre d'entraînements enregistrés." },
             { icon: '●', label: 'Poids', value: currentWeight != null ? `${currentWeight} kg` : '—', help: 'Évolution de ton poids dans le temps.' },
             { icon: '▥', label: "Volume d'entraînement", value: totalVolume > 1000 ? `${(totalVolume / 1000).toFixed(1)} t` : `${Math.round(totalVolume)} kg`, help: 'Charge totale soulevée.' },
-            { icon: '🏆', label: 'Records personnels', value: prs.length, help: 'Meilleures performances enregistrées.' },
+            { icon: '🏆', label: 'Records personnels', value: uniquePeriodRecords, help: 'Exercices avec un record sur la période.' },
           ].map(item => (
             <div key={item.label} style={{
               minHeight: 126,
@@ -524,7 +573,7 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
         {/* ── TIMELINE ── */}
         {tab === 'timeline' && (
           <div>
-            {events.length === 0 ? (
+            {periodEvents.length === 0 ? (
               <div>
                 <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 18, marginBottom: 12 }}>
                   <div style={{ fontSize: 18, fontWeight: 950, letterSpacing: '-.035em', marginBottom: 6 }}>Évolution sur 30 jours</div>
@@ -550,7 +599,7 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
             ) : (
               <div style={{ position: 'relative' }}>
                 <div style={{ position: 'absolute', left: 19, top: 0, bottom: 0, width: 1, background: BORDER }} />
-                {events.map((e, i) => (
+                {periodEvents.map((e, i) => (
                   <div key={i} style={{ display: 'flex', gap: 16, marginBottom: 16, position: 'relative' }}>
                     <div style={{ width: 38, height: 38, borderRadius: '50%', background: SURFACE, border: '1px solid ' + e.color + '44', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16, zIndex: 1 }}>
                       {e.icon}
@@ -674,7 +723,9 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
                 </>
               ) : (
                 <div style={{ textAlign: 'center', color: '#8B8F86', padding: '20px 0', fontSize: 13 }}>
-                  Enregistre ton poids dans Body pour voir l'évolution
+                  {weightLogs.length === 1
+                    ? 'Ajoute une deuxième pesée pour créer une courbe sur cette période.'
+                    : "Enregistre ton poids dans Body pour voir l'évolution."}
                   <br />
                   <button onClick={() => navigate('/body')} style={{ marginTop: 12, padding: '8px 16px', background: ACCENT + '22', border: '1px solid ' + ACCENT + '44', borderRadius: 16, color: ACCENT, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                     Aller dans Body
@@ -682,6 +733,30 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
                 </div>
               )}
             </div>
+
+            {photos.length >= 2 && weightLogs.length <= 1 && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 11, color: MUTED, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
+                  COMPARATEUR AVANT / APRÈS
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {[['AVANT', compareA, setCompareA], ['APRÈS', compareB, setCompareB]].map(([label, value, setter]: any) => (
+                    <div key={label}>
+                      <div style={{ fontSize: 10, color: MUTED, marginBottom: 4 }}>{label}</div>
+                      <select
+                        value={value?.id || ''}
+                        onChange={e => setter(photos.find((p: any) => p.id === e.target.value))}
+                        style={{ width: '100%', padding: 8, background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, color: BLACK, fontSize: 12, marginBottom: 6 }}
+                      >
+                        <option value="">Choisir...</option>
+                        {photos.map((p: any) => <option key={p.id} value={p.id}>{new Date(p.created_at).toLocaleDateString('fr-FR')}</option>)}
+                      </select>
+                      {value?.photo_url && <img src={value.display_url || value.photo_url} style={{ width: '100%', borderRadius: 16, objectFit: 'cover', aspectRatio: '3/4' }} alt={label} />}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* ── MENSURATIONS ── */}
             {measureLogs.length > 0 && (
@@ -838,7 +913,7 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: ghostMode ? 14 : 0 }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 900, color: ghostMode ? '#fff' : '#090909' }}>GHOST MODE</div>
-                      <div style={{ fontSize: 11, color: '#8B8F86', marginTop: 2 }}>Bats ta version d'il y a 4 semaines</div>
+                      <div style={{ fontSize: 11, color: '#8B8F86', marginTop: 2 }}>Compare-toi à un ancien repère (≥ 4 semaines)</div>
                     </div>
                     <button onClick={() => setGhostMode(g => !g)}
                       style={{ padding: '8px 16px', background: ghostMode ? ACCENT : '#090909', border: 'none', borderRadius: 20, color: ghostMode ? '#000' : '#fff', fontWeight: 800, fontSize: 12, cursor: 'pointer', touchAction: 'manipulation' }}>
@@ -849,7 +924,7 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
                   {ghostMode && ghostSession && (
                     <div>
                       <div style={{ fontSize: 11, color: '#8B8F86', marginBottom: 10 }}>
-                        Séance du {new Date(ghostSession.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                        Repère du {new Date(ghostSession.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                         <div style={{ background: '#1a1a1a', borderRadius: 14, padding: '14px 16px', textAlign: 'center' }}>
@@ -882,7 +957,7 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
                   )}
                   {ghostMode && !ghostSession && (
                     <div style={{ marginTop: 12, fontSize: 12, color: '#8B8F86', textAlign: 'center' }}>
-                      Pas de donnees il y a 4 semaines pour cet exercice.
+                      Pas de record assez ancien (4 semaines ou plus) pour cet exercice.
                     </div>
                   )}
                 </div>
