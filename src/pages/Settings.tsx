@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-import BottomNav from '../components/BottomNav';
+import { BottomNav } from './Home';
 import { ArrowLeft, ChevronDown, ChevronRight, ChevronUp, UserRound } from 'lucide-react';
 
 const BG = '#F7F8F4';
@@ -685,7 +685,7 @@ export default function Settings() {
         </section>
       </main>
 
-      <BottomNav />
+      <BottomNav active="moi" />
     </div>
   );
 }
