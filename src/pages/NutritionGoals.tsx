@@ -1014,7 +1014,7 @@ export default function NutritionGoals() {
   ========================================================= */
 
   const completeProfile = () => {
-    navigate('/profile');
+    navigate('/profile?edit=personal');
   };
 
   /* =========================================================
