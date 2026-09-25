@@ -41,11 +41,6 @@ export default function NoxFuture() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  /*
-   * IMPORTANT :
-   * onboardingFlow = true uniquement lorsque l'utilisateur
-   * arrive ici depuis l'onboarding initial.
-   */
   const onboardingFlow = Boolean(
     (location.state as any)?.onboarding
   );
@@ -66,9 +61,7 @@ export default function NoxFuture() {
     useState<'face' | 'side' | 'back'>('face');
 
   const [goal, setGoal] = useState('');
-  const [projection, setProjection] =
-    useState<any>(null);
-
+  const [projection, setProjection] = useState<any>(null);
   const [error, setError] = useState('');
 
   const [credits, setCredits] = useState({
@@ -77,24 +70,15 @@ export default function NoxFuture() {
     canGenerate: true,
   });
 
-  const [historyLoaded, setHistoryLoaded] =
-    useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
-  const inputRef =
-    useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  const videoRef =
-    useRef<HTMLVideoElement>(null);
-
-  const streamRef =
-    useRef<MediaStream | null>(null);
-
-  const [cameraOpen, setCameraOpen] =
-    useState(false);
-
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [timerSeconds, setTimerSeconds] =
     useState<0 | 5 | 10>(0);
-
   const [countdown, setCountdown] =
     useState<number | null>(null);
 
@@ -102,7 +86,7 @@ export default function NoxFuture() {
     useRef<number | null>(null);
 
   /* =========================================================
-     CHARGEMENT PROFIL + HISTORIQUE NOX FUTURE
+     CHARGEMENT PROFIL + HISTORIQUE
   ========================================================= */
 
   useEffect(() => {
@@ -131,13 +115,10 @@ export default function NoxFuture() {
 
       setProfile(profileData || null);
 
-      /* =====================================================
-         CRÉDITS
-      ===================================================== */
+      /* CRÉDITS */
 
       const plan =
-        profileData?.subscription_plan ||
-        'free';
+        profileData?.subscription_plan || 'free';
 
       const max =
         (
@@ -172,8 +153,7 @@ export default function NoxFuture() {
           );
         }
 
-        const used =
-          monthRows?.length || 0;
+        const used = monthRows?.length || 0;
 
         setCredits({
           used,
@@ -183,9 +163,7 @@ export default function NoxFuture() {
         });
       }
 
-      /* =====================================================
-         DERNIÈRE PROJECTION
-      ===================================================== */
+      /* DERNIÈRE PROJECTION */
 
       const {
         data: latest,
@@ -219,8 +197,7 @@ export default function NoxFuture() {
         let restored: any = {};
 
         if (
-          typeof latest.projection_text ===
-            'string' &&
+          typeof latest.projection_text === 'string' &&
           latest.projection_text.trim()
         ) {
           try {
@@ -261,18 +238,10 @@ export default function NoxFuture() {
 
         if (latest.source_photo_url) {
           setPhotos({
-            face:
-              latest.source_photo_url,
+            face: latest.source_photo_url,
           });
         }
 
-        /*
-         * Depuis l'application normale :
-         * on affiche directement la dernière projection.
-         *
-         * Pendant l'onboarding :
-         * on continue le parcours de création.
-         */
         if (!onboardingFlow) {
           setStep('result');
         }
@@ -296,14 +265,9 @@ export default function NoxFuture() {
     () => () => {
       streamRef.current
         ?.getTracks()
-        .forEach((track) =>
-          track.stop()
-        );
+        .forEach((track) => track.stop());
 
-      if (
-        countdownIntervalRef.current !==
-        null
-      ) {
+      if (countdownIntervalRef.current !== null) {
         window.clearInterval(
           countdownIntervalRef.current
         );
@@ -317,65 +281,51 @@ export default function NoxFuture() {
   ========================================================= */
 
   const stopCamera = () => {
-    if (
-      countdownIntervalRef.current !==
-      null
-    ) {
+    if (countdownIntervalRef.current !== null) {
       window.clearInterval(
         countdownIntervalRef.current
       );
 
-      countdownIntervalRef.current =
-        null;
+      countdownIntervalRef.current = null;
     }
 
     setCountdown(null);
 
     streamRef.current
       ?.getTracks()
-      .forEach((track) =>
-        track.stop()
-      );
+      .forEach((track) => track.stop());
 
     streamRef.current = null;
-
     setCameraOpen(false);
   };
 
   const openCamera = async (
-    selectedAngle:
-      | 'face'
-      | 'side'
-      | 'back'
+    selectedAngle: 'face' | 'side' | 'back'
   ) => {
     setAngle(selectedAngle);
     setError('');
 
     try {
       const stream =
-        await navigator.mediaDevices.getUserMedia(
-          {
-            video: {
-              facingMode: 'user',
-              width: {
-                ideal: 1080,
-              },
-              height: {
-                ideal: 1440,
-              },
+        await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: {
+              ideal: 1080,
             },
-            audio: false,
-          }
-        );
+            height: {
+              ideal: 1440,
+            },
+          },
+          audio: false,
+        });
 
       streamRef.current = stream;
-
       setCameraOpen(true);
 
       setTimeout(() => {
         if (videoRef.current) {
-          videoRef.current.srcObject =
-            stream;
+          videoRef.current.srcObject = stream;
 
           videoRef.current
             .play()
@@ -388,21 +338,15 @@ export default function NoxFuture() {
   };
 
   const capture = () => {
-    const video =
-      videoRef.current;
+    const video = videoRef.current;
 
     if (!video?.videoWidth) return;
 
     const canvas =
-      document.createElement(
-        'canvas'
-      );
+      document.createElement('canvas');
 
-    canvas.width =
-      video.videoWidth;
-
-    canvas.height =
-      video.videoHeight;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
     canvas
       .getContext('2d')
@@ -416,11 +360,10 @@ export default function NoxFuture() {
 
     setPhotos((current) => ({
       ...current,
-      [angle]:
-        canvas.toDataURL(
-          'image/jpeg',
-          0.86
-        ),
+      [angle]: canvas.toDataURL(
+        'image/jpeg',
+        0.86
+      ),
     }));
 
     stopCamera();
@@ -434,8 +377,7 @@ export default function NoxFuture() {
       return;
     }
 
-    let remaining =
-      timerSeconds;
+    let remaining = timerSeconds;
 
     setCountdown(remaining);
 
@@ -445,19 +387,15 @@ export default function NoxFuture() {
 
         if (remaining <= 0) {
           if (
-            countdownIntervalRef.current !==
-            null
+            countdownIntervalRef.current !== null
           ) {
             window.clearInterval(
               countdownIntervalRef.current
             );
           }
 
-          countdownIntervalRef.current =
-            null;
-
+          countdownIntervalRef.current = null;
           setCountdown(null);
-
           capture();
         } else {
           setCountdown(remaining);
@@ -468,92 +406,261 @@ export default function NoxFuture() {
   const importPhoto = (
     event: ChangeEvent<HTMLInputElement>
   ) => {
-    const file =
-      event.target.files?.[0];
+    const file = event.target.files?.[0];
 
     if (!file) return;
 
-    const reader =
-      new FileReader();
+    const reader = new FileReader();
 
     reader.onload = () =>
       setPhotos((current) => ({
         ...current,
-        [angle]: String(
-          reader.result
-        ),
+        [angle]: String(reader.result),
       }));
 
     reader.readAsDataURL(file);
-
     event.target.value = '';
   };
 
   /* =========================================================
-     GÉNÉRATION NOX FUTURE
+     GÉNÉRATION NOX FUTURE PERSONNALISÉE
   ========================================================= */
 
   const generate = async () => {
-    if (
-      !user ||
-      !goal.trim()
-    ) {
-      return;
-    }
+    if (!user || !goal.trim()) return;
 
     setError('');
     setStep('generating');
 
     try {
+      /*
+       * On transmet uniquement des données réellement
+       * présentes dans le profil.
+       *
+       * L'IA reçoit ainsi le contexte personnel au lieu
+       * d'avoir uniquement "perdre du gras", par exemple.
+       */
+      const profileContext = {
+        objectif_principal:
+          profile?.goal_type || null,
+
+        poids_depart_kg:
+          profile?.starting_weight_kg || null,
+
+        taille_cm:
+          profile?.height_cm || null,
+
+        date_naissance:
+          profile?.date_of_birth || null,
+
+        sexe:
+          profile?.sex || null,
+
+        niveau_sportif:
+          profile?.experience_level || null,
+
+        lieu_entrainement:
+          profile?.training_location || null,
+
+        jours_disponibles:
+          profile?.available_days || null,
+
+        duree_seance_minutes:
+          profile?.session_length_min || null,
+
+        niveau_activite:
+          profile?.activity_level || null,
+
+        equipement:
+          profile?.equipment || null,
+
+        preferences_alimentaires:
+          profile?.diet_preferences || null,
+
+        motivation:
+          profile?.motivation || null,
+
+        objectif_visuel_utilisateur:
+          goal.trim(),
+      };
+
       const prompt = `
-Tu es NOX. Crée une projection visuelle illustrative cohérente avec l'objectif déclaré.
-Conserve l'identité, le visage, la carnation, les cheveux, la pose et les proportions générales de la personne.
-Les changements corporels doivent rester modérés et plausibles. Ne garantis aucun résultat ni délai.
+Tu es NOX, le système personnel de transformation de cet utilisateur.
 
-Objectif principal : ${
-        profile?.goal_type ||
-        'transformation physique'
-      }
+Ta mission comporte deux parties :
 
-Description de l'utilisateur : ${goal}
+1. créer une projection visuelle illustrative cohérente avec son objectif ;
+2. produire un MESSAGE NOX réellement personnalisé à CET utilisateur.
 
-Réponds avec un JSON court contenant titre, tagline et message_coach.
+========================
+PROFIL RÉEL
+========================
+
+${JSON.stringify(profileContext, null, 2)}
+
+========================
+OBJECTIF VISUEL PERSONNEL
+========================
+
+"${goal.trim()}"
+
+========================
+PROJECTION VISUELLE
+========================
+
+Crée une évolution physique illustrative cohérente avec l'objectif déclaré.
+
+Conserve impérativement :
+- l'identité de la personne ;
+- son visage ;
+- sa carnation ;
+- ses cheveux ;
+- sa pose ;
+- ses caractéristiques reconnaissables ;
+- ses proportions générales.
+
+Les changements corporels doivent rester modérés et plausibles.
+
+La projection n'est PAS une prédiction.
+
+Elle ne garantit :
+- aucun résultat ;
+- aucun délai ;
+- aucun poids futur précis ;
+- aucun taux de masse grasse futur précis.
+
+========================
+MESSAGE NOX
+========================
+
+Le message doit donner l'impression que NOX connaît réellement CET utilisateur.
+
+Il ne doit PAS ressembler à une réponse générique de coach fitness.
+
+INTERDIT :
+
+- "patience et régularité sont les clés" ;
+- "reste constant" ;
+- "mange sainement" ;
+- donner automatiquement un déficit de 300-500 kcal ;
+- donner automatiquement 1,8-2 g/kg de protéines ;
+- donner automatiquement une fréquence de musculation ;
+- inventer un poids cible ;
+- inventer un délai ;
+- inventer une donnée absente du profil ;
+- garantir le résultat représenté sur l'image ;
+- simplement reformuler son objectif ;
+- produire un conseil applicable de la même manière à n'importe quel utilisateur.
+
+OBLIGATOIRE :
+
+1. Utilise plusieurs informations concrètes du profil lorsqu'elles sont réellement disponibles.
+
+Tu peux notamment utiliser :
+- l'objectif principal ;
+- le poids actuel ;
+- la taille ;
+- le niveau sportif ;
+- le lieu d'entraînement ;
+- le nombre de jours disponibles ;
+- la durée des séances ;
+- le niveau d'activité ;
+- l'équipement disponible ;
+- les préférences alimentaires ;
+- la motivation personnelle ;
+- la description du physique souhaité.
+
+2. Ne cite pas mécaniquement toutes les données.
+
+Transforme-les en compréhension utile.
+
+3. Explique ce que CETTE projection signifie pour CETTE personne.
+
+4. Identifie la priorité principale de son parcours.
+
+5. Explique brièvement comment NOX devra construire ou adapter son chemin autour de son profil.
+
+6. Si une information est absente ou null :
+ignore-la totalement.
+Ne l'invente jamais.
+
+7. Adresse-toi directement à l'utilisateur avec "tu".
+
+8. Utilise un ton direct, précis, humain et premium.
+
+9. Ne fais pas de diagnostic médical.
+
+10. Ne promets jamais que l'utilisateur ressemblera exactement à la projection.
+
+11. Le message doit faire environ 70 à 120 mots maximum.
+
+========================
+EXEMPLE DU NIVEAU ATTENDU
+========================
+
+MAUVAIS :
+
+"Pour perdre du gras, maintiens un déficit calorique, mange suffisamment de protéines et entraîne-toi régulièrement."
+
+BON NIVEAU DE PERSONNALISATION :
+
+"Avec ton rythme actuel et tes séances en salle, l'enjeu n'est pas simplement de faire baisser ton poids. Ta direction demande surtout de réduire progressivement la masse grasse tout en conservant le physique que tu veux mettre en valeur. Ton entraînement peut déjà servir cette transformation ; NOX devra surtout organiser nutrition, récupération et progression autour de tes vraies semaines pour que tes efforts aillent tous dans la même direction."
+
+Ne copie PAS cet exemple.
+
+Le message final doit être construit uniquement à partir du profil fourni.
+
+========================
+FORMAT DE RÉPONSE
+========================
+
+Réponds uniquement avec un JSON valide :
+
+{
+  "titre": "titre très court",
+  "tagline": "phrase courte personnalisée",
+  "message_coach": "message NOX réellement personnalisé"
+}
       `.trim();
 
       const {
         data,
         error: functionError,
-      } =
-        await supabase.functions.invoke(
-          'nox-future',
-          {
-            body: {
-              prompt,
+      } = await supabase.functions.invoke(
+        'nox-future',
+        {
+          body: {
+            prompt,
 
-              photos,
+            photos,
 
-              source_image:
-                photos.face ||
+            source_image:
+              photos.face ||
+              photos.side ||
+              photos.back ||
+              null,
+
+            goal_description: goal.trim(),
+
+            objective:
+              profile?.goal_type ||
+              'transformation physique',
+
+            /*
+             * Également envoyé séparément.
+             * Cela permettra à l'Edge Function de l'exploiter
+             * directement plus tard si nécessaire.
+             */
+            profile_context: profileContext,
+
+            request_visual_projection: Boolean(
+              photos.face ||
                 photos.side ||
-                photos.back ||
-                null,
-
-              goal_description:
-                goal,
-
-              objective:
-                profile?.goal_type ||
-                'transformation physique',
-
-              request_visual_projection:
-                Boolean(
-                  photos.face ||
-                    photos.side ||
-                    photos.back
-                ),
-            },
-          }
-        );
+                photos.back
+            ),
+          },
+        }
+      );
 
       if (functionError) {
         console.error(
@@ -576,20 +683,18 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
       if (data?.error) {
         throw new Error(
           data?.error?.message ||
-            (typeof data.error ===
-            'string'
+            (typeof data.error === 'string'
               ? data.error
               : 'La génération NOX Future a échoué.')
         );
       }
 
       /* =====================================================
-         PARSING RÉPONSE
+         PARSING DU MESSAGE NOX
       ===================================================== */
 
       const text =
-        data?.data?.content?.[0]
-          ?.text ||
+        data?.data?.content?.[0]?.text ||
         data?.content?.[0]?.text ||
         data?.text ||
         '';
@@ -598,9 +703,7 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
 
       try {
         const match =
-          text.match(
-            /\{[\s\S]*\}/
-          );
+          text.match(/\{[\s\S]*\}/);
 
         parsed = match
           ? JSON.parse(match[0])
@@ -609,14 +712,17 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
         parsed = {};
       }
 
+      /* IMAGE GÉNÉRÉE */
+
       parsed.projected_image =
         data?.projected_image ||
         data?.image_url ||
         data?.output_image ||
-        data?.data
-          ?.projected_image ||
+        data?.data?.projected_image ||
         data?.data?.image_url ||
         null;
+
+      /* FALLBACKS */
 
       parsed.titre =
         parsed.titre ||
@@ -624,16 +730,16 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
 
       parsed.tagline =
         parsed.tagline ||
-        'Une vision possible de ton objectif.';
+        'Une direction construite autour de ton objectif.';
 
       parsed.message_coach =
         parsed.message_coach ||
-        'Cette projection est un repère visuel. Le programme NOX sera construit autour de ton profil, de tes contraintes et de ton objectif.';
+        'Cette projection représente la direction que tu as donnée à NOX. Ton chemin sera adapté à ton profil, à ton rythme et à ton objectif réel.';
 
       setProjection(parsed);
 
       /* =====================================================
-         SAUVEGARDE HISTORIQUE
+         SAUVEGARDE
       ===================================================== */
 
       const sourcePhoto =
@@ -642,39 +748,30 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
         photos.back ||
         null;
 
-      const {
-        error: saveError,
-      } = await supabase
-        .from(
-          'future_you_generations'
-        )
-        .insert({
-          user_id: user.id,
+      const { error: saveError } =
+        await supabase
+          .from('future_you_generations')
+          .insert({
+            user_id: user.id,
 
-          source_photo_url:
-            sourcePhoto || null,
+            source_photo_url:
+              sourcePhoto || null,
 
-          generated_image_url:
-            parsed.projected_image ||
-            null,
+            generated_image_url:
+              parsed.projected_image || null,
 
-          projection_months: 3,
+            projection_months: 3,
 
-          prompt: goal,
+            prompt: goal.trim(),
 
-          projection_text:
-            typeof parsed ===
-            'string'
-              ? parsed
-              : JSON.stringify(
-                  parsed
-                ),
+            projection_text:
+              JSON.stringify(parsed),
 
-          status: 'completed',
+            status: 'completed',
 
-          created_at:
-            new Date().toISOString(),
-        });
+            created_at:
+              new Date().toISOString(),
+          });
 
       if (saveError) {
         console.warn(
@@ -686,13 +783,11 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
       setCredits((current) => ({
         ...current,
 
-        used:
-          current.used + 1,
+        used: current.used + 1,
 
         canGenerate:
           current.max >= 999 ||
-          current.used + 1 <
-            current.max,
+          current.used + 1 < current.max,
       }));
 
       setStep('result');
@@ -712,29 +807,30 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
   };
 
   /* =========================================================
-     CONTINUER APRÈS NOX FUTURE
-
-     IMPORTANT :
-     - onboarding -> génération du premier programme
-     - utilisation normale -> retour accueil
+     SUITE DU PARCOURS
   ========================================================= */
 
   const continueFlow = () => {
+    /*
+     * PREMIÈRE INSCRIPTION :
+     * NOX Future -> premier programme.
+     */
     if (onboardingFlow) {
-      navigate(
-        '/generate-program',
-        {
-          state: {
-            fromFuture: true,
-            goalDescription:
-              goal,
-          },
-        }
-      );
+      navigate('/generate-program', {
+        state: {
+          fromFuture: true,
+          goalDescription: goal,
+        },
+      });
 
       return;
     }
 
+    /*
+     * UTILISATION NORMALE :
+     * NOX Future ne doit jamais recréer automatiquement
+     * le programme.
+     */
     navigate('/home');
   };
 
@@ -742,10 +838,7 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
      CHARGEMENT
   ========================================================= */
 
-  if (
-    !historyLoaded &&
-    !onboardingFlow
-  ) {
+  if (!historyLoaded && !onboardingFlow) {
     return (
       <div
         style={{
@@ -757,28 +850,17 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
           padding: 24,
         }}
       >
-        <div
-          style={{
-            textAlign: 'center',
-          }}
-        >
+        <div style={{ textAlign: 'center' }}>
           <div
             style={{
               fontSize: 13,
               fontWeight: 950,
-              letterSpacing:
-                '.16em',
+              letterSpacing: '.16em',
               marginBottom: 12,
             }}
           >
             NOX
-            <span
-              style={{
-                color: ACCENT,
-              }}
-            >
-              .
-            </span>
+            <span style={{ color: ACCENT }}>.</span>
           </div>
 
           <div
@@ -788,8 +870,7 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
               fontWeight: 800,
             }}
           >
-            CHARGEMENT DE TA
-            DIRECTION...
+            CHARGEMENT DE TA DIRECTION...
           </div>
         </div>
       </div>
@@ -806,10 +887,7 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
         minHeight: '100dvh',
         background: BG,
         color: BLACK,
-        paddingBottom:
-          onboardingFlow
-            ? 24
-            : 86,
+        paddingBottom: onboardingFlow ? 24 : 86,
       }}
     >
       <input
@@ -817,14 +895,10 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
         type="file"
         accept="image/*"
         hidden
-        onChange={
-          importPhoto
-        }
+        onChange={importPhoto}
       />
 
-      {/* =====================================================
-          CAMÉRA
-      ===================================================== */}
+      {/* CAMÉRA */}
 
       {cameraOpen && (
         <div
@@ -834,16 +908,14 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
             zIndex: 999,
             background: '#000',
             display: 'flex',
-            flexDirection:
-              'column',
+            flexDirection: 'column',
           }}
         >
           <div
             style={{
               padding: 18,
               display: 'flex',
-              justifyContent:
-                'space-between',
+              justifyContent: 'space-between',
               color: '#fff',
             }}
           >
@@ -851,16 +923,13 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
               PHOTO{' '}
               {angle === 'face'
                 ? 'DE FACE'
-                : angle ===
-                    'side'
+                : angle === 'side'
                   ? 'DE PROFIL'
                   : 'DE DOS'}
             </b>
 
             <button
-              onClick={
-                stopCamera
-              }
+              onClick={stopCamera}
               style={closeBtn}
             >
               ×
@@ -872,10 +941,8 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
               flex: 1,
               margin: '0 14px',
               borderRadius: 24,
-              overflow:
-                'hidden',
-              position:
-                'relative',
+              overflow: 'hidden',
+              position: 'relative',
             }}
           >
             <video
@@ -885,45 +952,34 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
               style={{
                 width: '100%',
                 height: '100%',
-                objectFit:
-                  'cover',
-                transform:
-                  'scaleX(-1)',
+                objectFit: 'cover',
+                transform: 'scaleX(-1)',
               }}
             />
 
             <div
               style={{
-                position:
-                  'absolute',
-                inset:
-                  '7% 17%',
+                position: 'absolute',
+                inset: '7% 17%',
                 border:
                   '1px solid rgba(255,255,255,.4)',
-                borderRadius:
-                  80,
+                borderRadius: 80,
               }}
             />
 
-            {countdown !==
-              null && (
+            {countdown !== null && (
               <div
                 style={{
-                  position:
-                    'absolute',
+                  position: 'absolute',
                   inset: 0,
-                  display:
-                    'grid',
-                  placeItems:
-                    'center',
+                  display: 'grid',
+                  placeItems: 'center',
                   background:
                     'rgba(0,0,0,.22)',
-                  color:
-                    '#fff',
+                  color: '#fff',
                   fontSize:
                     'clamp(90px,30vw,160px)',
-                  fontWeight:
-                    950,
+                  fontWeight: 950,
                   textShadow:
                     '0 4px 30px rgba(0,0,0,.35)',
                 }}
@@ -933,74 +989,45 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
             )}
           </div>
 
-          <div
-            style={{
-              padding: 18,
-            }}
-          >
+          <div style={{ padding: 18 }}>
             <div
               style={{
-                display:
-                  'grid',
+                display: 'grid',
                 gridTemplateColumns:
                   'repeat(3,1fr)',
                 gap: 8,
-                marginBottom:
-                  12,
+                marginBottom: 12,
               }}
             >
-              {(
-                [
-                  0,
-                  5,
-                  10,
-                ] as const
-              ).map(
-                (
-                  seconds
-                ) => (
+              {([0, 5, 10] as const).map(
+                (seconds) => (
                   <button
-                    key={
-                      seconds
-                    }
+                    key={seconds}
                     onClick={() =>
-                      setTimerSeconds(
-                        seconds
-                      )
+                      setTimerSeconds(seconds)
                     }
-                    disabled={
-                      countdown !==
-                      null
-                    }
+                    disabled={countdown !== null}
                     style={{
-                      minHeight:
-                        42,
-                      borderRadius:
-                        13,
+                      minHeight: 42,
+                      borderRadius: 13,
                       border: `1px solid ${
-                        timerSeconds ===
-                        seconds
+                        timerSeconds === seconds
                           ? ACCENT
                           : '#333'
                       }`,
                       background:
-                        timerSeconds ===
-                        seconds
+                        timerSeconds === seconds
                           ? ACCENT
                           : '#171717',
                       color:
-                        timerSeconds ===
-                        seconds
+                        timerSeconds === seconds
                           ? BLACK
                           : '#fff',
-                      fontSize:
-                        11,
-                      fontWeight:
-                        900,
+                      fontSize: 11,
+                      fontWeight: 900,
                     }}
                   >
-                    {seconds ===
-                    0
+                    {seconds === 0
                       ? 'DIRECT'
                       : `${seconds} SEC`}
                   </button>
@@ -1009,34 +1036,19 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
             </div>
 
             <button
-              onClick={
-                triggerCapture
-              }
-              disabled={
-                countdown !==
-                null
-              }
-              style={primary(
-                countdown ===
-                  null
-              )}
+              onClick={triggerCapture}
+              disabled={countdown !== null}
+              style={primary(countdown === null)}
             >
-              {countdown !==
-              null
+              {countdown !== null
                 ? `PHOTO DANS ${countdown}...`
                 : 'PRENDRE LA PHOTO'}
 
-              <Camera
-                size={18}
-              />
+              <Camera size={18} />
             </button>
           </div>
         </div>
       )}
-
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
 
       <Top
         step={step}
@@ -1044,79 +1056,55 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
           setStep(
             step === 'photo'
               ? 'consent'
-              : step ===
-                  'goal'
+              : step === 'goal'
                 ? 'photo'
                 : 'intro'
           )
         }
       />
 
-      {/* =====================================================
-          CONTENU
-      ===================================================== */}
-
       <main
         style={{
           maxWidth: 560,
           margin: '0 auto',
-          padding:
-            '28px 20px',
+          padding: '28px 20px',
         }}
       >
         {/* INTRO */}
 
-        {step ===
-          'intro' && (
+        {step === 'intro' && (
           <>
-            <Eyebrow>
-              NOX FUTURE
-            </Eyebrow>
+            <Eyebrow>NOX FUTURE</Eyebrow>
 
             <Title>
-              Vois où tu
-              veux aller.
+              Vois où tu veux aller.
             </Title>
 
             <Text>
-              Une photo
-              actuelle, ton
-              objectif, puis
-              une projection
-              IA illustrative.
-              NOX construit
-              ensuite le
-              chemin autour de
-              ton profil.
+              Une photo actuelle, ton objectif, puis une
+              projection IA illustrative. NOX construit ensuite
+              le chemin autour de ton profil.
             </Text>
 
             <div
               style={{
-                background:
-                  BLACK,
-                borderRadius:
-                  30,
+                background: BLACK,
+                borderRadius: 30,
                 padding: 24,
                 color: '#fff',
-                margin:
-                  '30px 0',
+                margin: '30px 0',
               }}
             >
               <Sparkles
                 size={28}
-                color={
-                  ACCENT
-                }
+                color={ACCENT}
               />
 
               <h2
                 style={{
-                  fontSize:
-                    24,
-                  lineHeight:
-                    1.05,
-                  margin:
-                    '18px 0 10px',
+                  fontSize: 24,
+                  lineHeight: 1.05,
+                  margin: '18px 0 10px',
                 }}
               >
                 TON OBJECTIF.
@@ -1126,340 +1114,199 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
 
               <p
                 style={{
-                  color:
-                    '#999',
-                  fontSize:
-                    13,
-                  lineHeight:
-                    1.6,
+                  color: '#999',
+                  fontSize: 13,
+                  lineHeight: 1.6,
                   margin: 0,
                 }}
               >
-                La projection
-                n’est pas une
-                prédiction.
-                Elle représente
-                une possibilité
-                visuelle liée à
-                l’objectif que
-                tu décris.
+                La projection n’est pas une prédiction. Elle
+                représente une possibilité visuelle liée à
+                l’objectif que tu décris.
               </p>
             </div>
 
             {!credits.canGenerate ? (
-              <div
-                style={
-                  notice
-                }
-              >
-                Tu as utilisé
-                ta projection
-                disponible ce
+              <div style={notice}>
+                Tu as utilisé ta projection disponible ce
                 mois-ci.
               </div>
             ) : (
               <button
-                onClick={() =>
-                  setStep(
-                    'consent'
-                  )
-                }
-                style={primary(
-                  true
-                )}
+                onClick={() => setStep('consent')}
+                style={primary(true)}
               >
-                CRÉER MON NOX
-                FUTURE
-                <ChevronRight
-                  size={18}
-                />
+                CRÉER MON NOX FUTURE
+                <ChevronRight size={18} />
               </button>
             )}
           </>
         )}
 
-        {/* CONSENTEMENT */}
+        {/* CONFIDENTIALITÉ */}
 
-        {step ===
-          'consent' && (
+        {step === 'consent' && (
           <>
-            <Eyebrow>
-              CONFIDENTIALITÉ
-            </Eyebrow>
+            <Eyebrow>CONFIDENTIALITÉ</Eyebrow>
 
             <Title>
-              Ta photo. Ton
-              choix.
+              Ta photo. Ton choix.
             </Title>
 
             <Text>
-              La photo est
-              utilisée pour
-              générer ta
-              projection NOX
-              Future. La
-              projection reste
-              illustrative et
-              ne garantit pas
-              ton apparence
-              future.
+              La photo est utilisée pour générer ta projection
+              NOX Future. La projection reste illustrative et ne
+              garantit pas ton apparence future.
             </Text>
 
             <div
               style={{
-                display:
-                  'grid',
+                display: 'grid',
                 gap: 10,
-                margin:
-                  '26px 0',
+                margin: '26px 0',
               }}
             >
               <Info
-                icon={
-                  <Lock
-                    size={17}
-                  />
-                }
+                icon={<Lock size={17} />}
                 title="Utilisation ciblée"
               >
-                Ta photo peut
-                être envoyée au
-                service NOX
-                Future pour
-                produire la
-                projection.
+                Ta photo peut être envoyée au service NOX Future
+                pour produire la projection.
               </Info>
 
               <Info
-                icon={
-                  <Sparkles
-                    size={17}
-                  />
-                }
+                icon={<Sparkles size={17} />}
                 title="Projection illustrative"
               >
-                Le résultat
-                réel dépend de
-                nombreux
-                facteurs et
-                peut être
-                différent.
+                Le résultat réel dépend de nombreux facteurs et
+                peut être différent.
               </Info>
             </div>
 
             <button
-              onClick={() =>
-                setStep(
-                  'photo'
-                )
-              }
-              style={primary(
-                true
-              )}
+              onClick={() => setStep('photo')}
+              style={primary(true)}
             >
-              J’ACCEPTE —
-              CONTINUER
-              <ChevronRight
-                size={18}
-              />
+              J’ACCEPTE — CONTINUER
+              <ChevronRight size={18} />
             </button>
           </>
         )}
 
         {/* PHOTO */}
 
-        {step ===
-          'photo' && (
+        {step === 'photo' && (
           <>
             <Eyebrow>
               TA PHOTO ACTUELLE
             </Eyebrow>
 
             <Title>
-              Ton point de
-              départ.
+              Ton point de départ.
             </Title>
 
             <Text>
-              Pour la
-              projection
-              visuelle, ajoute
-              au minimum une
-              photo de face, en
-              pied, nette et
-              bien éclairée.
+              Pour la projection visuelle, ajoute au minimum une
+              photo de face, en pied, nette et bien éclairée.
             </Text>
 
             <div
               style={{
-                display:
-                  'grid',
+                display: 'grid',
                 gridTemplateColumns:
                   'repeat(3,1fr)',
                 gap: 9,
-                margin:
-                  '26px 0 14px',
+                margin: '26px 0 14px',
               }}
             >
               {(
-                [
-                  'face',
-                  'side',
-                  'back',
-                ] as const
-              ).map(
-                (
-                  currentAngle,
-                  index
-                ) => (
-                  <PhotoCard
-                    key={
-                      currentAngle
-                    }
-                    label={
-                      [
-                        'FACE',
-                        'PROFIL',
-                        'DOS',
-                      ][
-                        index
-                      ]
-                    }
-                    src={
-                      photos[
-                        currentAngle
-                      ]
-                    }
-                    onClick={() =>
-                      openCamera(
-                        currentAngle
-                      )
-                    }
-                  />
-                )
-              )}
+                ['face', 'side', 'back'] as const
+              ).map((currentAngle, index) => (
+                <PhotoCard
+                  key={currentAngle}
+                  label={
+                    ['FACE', 'PROFIL', 'DOS'][
+                      index
+                    ]
+                  }
+                  src={photos[currentAngle]}
+                  onClick={() =>
+                    openCamera(currentAngle)
+                  }
+                />
+              ))}
             </div>
 
             <button
               onClick={() => {
-                setAngle(
-                  'face'
-                );
-
+                setAngle('face');
                 inputRef.current?.click();
               }}
-              style={
-                secondary
-              }
+              style={secondary}
             >
-              <ImagePlus
-                size={16}
-              />
-              IMPORTER DEPUIS
-              LE TÉLÉPHONE
+              <ImagePlus size={16} />
+              IMPORTER DEPUIS LE TÉLÉPHONE
             </button>
 
-            <div
-              style={{
-                height: 12,
-              }}
-            />
+            <div style={{ height: 12 }} />
 
             <button
-              onClick={() =>
-                setStep(
-                  'goal'
-                )
-              }
-              disabled={
-                !photos.face
-              }
-              style={primary(
-                Boolean(
-                  photos.face
-                )
-              )}
+              onClick={() => setStep('goal')}
+              disabled={!photos.face}
+              style={primary(Boolean(photos.face))}
             >
               CONTINUER
-              <ChevronRight
-                size={18}
-              />
+              <ChevronRight size={18} />
             </button>
           </>
         )}
 
         {/* OBJECTIF */}
 
-        {step ===
-          'goal' && (
+        {step === 'goal' && (
           <>
             <Eyebrow>
-              TON PHYSIQUE
-              IDÉAL
+              TON PHYSIQUE IDÉAL
             </Eyebrow>
 
             <Title>
-              Décris la
-              direction.
+              Décris la direction.
             </Title>
 
             <Text>
-              Décris ce que tu
-              souhaites
-              améliorer. NOX
-              utilisera ce
-              texte comme
-              direction
-              visuelle, pas
-              comme une
-              promesse de
-              résultat.
+              Décris ce que tu souhaites améliorer. NOX utilisera
+              ce texte comme direction visuelle, pas comme une
+              promesse de résultat.
             </Text>
 
             <textarea
               value={goal}
-              onChange={(
-                event
-              ) =>
-                setGoal(
-                  event.target
-                    .value
-                )
+              onChange={(event) =>
+                setGoal(event.target.value)
               }
               placeholder="Ex. Je souhaite une silhouette plus athlétique, davantage de définition au niveau du haut du corps et une taille plus affinée..."
               style={{
                 width: '100%',
-                minHeight:
-                  170,
-                boxSizing:
-                  'border-box',
+                minHeight: 170,
+                boxSizing: 'border-box',
                 border: `1.5px solid ${BORDER}`,
-                borderRadius:
-                  22,
-                background:
-                  WHITE,
+                borderRadius: 22,
+                background: WHITE,
                 padding: 18,
-                font:
-                  'inherit',
+                font: 'inherit',
                 fontSize: 15,
-                lineHeight:
-                  1.55,
-                outline:
-                  'none',
-                resize:
-                  'vertical',
+                lineHeight: 1.55,
+                outline: 'none',
+                resize: 'vertical',
               }}
             />
 
             <div
               style={{
-                display:
-                  'flex',
+                display: 'flex',
                 gap: 7,
-                flexWrap:
-                  'wrap',
-                margin:
-                  '12px 0 24px',
+                flexWrap: 'wrap',
+                margin: '12px 0 24px',
               }}
             >
               {[
@@ -1467,47 +1314,30 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
                 'Plus musclé',
                 'Plus défini',
                 'Taille plus affinée',
-              ].map(
-                (
-                  suggestion
-                ) => (
-                  <button
-                    key={
-                      suggestion
-                    }
-                    onClick={() =>
-                      setGoal(
-                        (
-                          current
-                        ) =>
-                          current
-                            ? `${current}, ${suggestion.toLowerCase()}`
-                            : suggestion
-                      )
-                    }
-                    style={
-                      chip
-                    }
-                  >
-                    +{' '}
-                    {
-                      suggestion
-                    }
-                  </button>
-                )
-              )}
+              ].map((suggestion) => (
+                <button
+                  key={suggestion}
+                  onClick={() =>
+                    setGoal((current) =>
+                      current
+                        ? `${current}, ${suggestion.toLowerCase()}`
+                        : suggestion
+                    )
+                  }
+                  style={chip}
+                >
+                  + {suggestion}
+                </button>
+              ))}
             </div>
 
             {error && (
               <div
                 style={{
                   ...notice,
-                  color:
-                    '#A52116',
-                  background:
-                    '#FFF1EF',
-                  borderColor:
-                    '#FFD4CE',
+                  color: '#A52116',
+                  background: '#FFF1EF',
+                  borderColor: '#FFD4CE',
                 }}
               >
                 {error}
@@ -1515,59 +1345,38 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
             )}
 
             <button
-              onClick={
-                generate
-              }
-              disabled={
-                !goal.trim()
-              }
-              style={primary(
-                Boolean(
-                  goal.trim()
-                )
-              )}
+              onClick={generate}
+              disabled={!goal.trim()}
+              style={primary(Boolean(goal.trim()))}
             >
-              GÉNÉRER MON NOX
-              FUTURE
-              <Sparkles
-                size={18}
-              />
+              GÉNÉRER MON NOX FUTURE
+              <Sparkles size={18} />
             </button>
           </>
         )}
 
         {/* GÉNÉRATION */}
 
-        {step ===
-          'generating' && (
+        {step === 'generating' && (
           <div
             style={{
               paddingTop: 70,
-              textAlign:
-                'center',
+              textAlign: 'center',
             }}
           >
             <div
               style={{
                 width: 72,
                 height: 72,
-                borderRadius:
-                  24,
-                background:
-                  BLACK,
-                color:
-                  ACCENT,
-                display:
-                  'grid',
-                placeItems:
-                  'center',
-                margin:
-                  '0 auto 24px',
+                borderRadius: 24,
+                background: BLACK,
+                color: ACCENT,
+                display: 'grid',
+                placeItems: 'center',
+                margin: '0 auto 24px',
               }}
             >
-              <Sparkles
-                size={30}
-              />
+              <Sparkles size={30} />
             </div>
 
             <Eyebrow>
@@ -1575,232 +1384,154 @@ Réponds avec un JSON court contenant titre, tagline et message_coach.
             </Eyebrow>
 
             <Title>
-              Création en
-              cours.
+              Création en cours.
             </Title>
 
             <Text>
-              Analyse de ta
-              photo,
-              compréhension de
-              ton objectif et
-              génération de ta
-              projection.
+              Analyse de ta photo, compréhension de ton objectif
+              et génération de ta projection.
             </Text>
 
             {[
               'Analyse de la photo',
               'Compréhension de ton objectif',
               'Création de la projection',
-            ].map(
-              (
-                item,
-                index
-              ) => (
-                <div
-                  key={item}
-                  style={{
-                    display:
-                      'flex',
-                    alignItems:
-                      'center',
-                    gap: 10,
-                    padding:
-                      '12px 0',
-                    borderBottom: `1px solid ${BORDER}`,
-                    fontSize:
-                      13,
-                    fontWeight:
-                      750,
-                  }}
-                >
-                  <Check
-                    size={16}
-                    color={
-                      index ===
-                      0
-                        ? '#78A000'
-                        : '#B8BDB4'
-                    }
-                  />
+            ].map((item, index) => (
+              <div
+                key={item}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '12px 0',
+                  borderBottom:
+                    `1px solid ${BORDER}`,
+                  fontSize: 13,
+                  fontWeight: 750,
+                }}
+              >
+                <Check
+                  size={16}
+                  color={
+                    index === 0
+                      ? '#78A000'
+                      : '#B8BDB4'
+                  }
+                />
 
-                  {item}
-                </div>
-              )
-            )}
+                {item}
+              </div>
+            ))}
           </div>
         )}
 
         {/* RÉSULTAT */}
 
-        {step ===
-          'result' &&
-          projection && (
-            <>
+        {step === 'result' && projection && (
+          <>
+            <Eyebrow>
+              TON NOX FUTURE
+            </Eyebrow>
+
+            <Title>
+              La destination.
+            </Title>
+
+            <Text>
+              {projection.tagline}
+            </Text>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns:
+                  '1fr 1fr',
+                gap: 10,
+                margin: '25px 0',
+              }}
+            >
+              <ResultImage
+                src={photos.face}
+                label="AUJOURD’HUI"
+              />
+
+              <ResultImage
+                src={projection.projected_image}
+                label="PROJECTION IA"
+                accent
+              />
+            </div>
+
+            <div
+              style={{
+                background: WHITE,
+                border:
+                  `1px solid ${BORDER}`,
+                borderRadius: 22,
+                padding: 18,
+                marginBottom: 12,
+              }}
+            >
               <Eyebrow>
-                TON NOX FUTURE
+                MESSAGE NOX
               </Eyebrow>
 
-              <Title>
-                La destination.
-              </Title>
-
-              <Text>
-                {
-                  projection.tagline
-                }
-              </Text>
-
               <div
                 style={{
-                  display:
-                    'grid',
-                  gridTemplateColumns:
-                    '1fr 1fr',
-                  gap: 10,
-                  margin:
-                    '25px 0',
+                  fontSize: 14,
+                  lineHeight: 1.65,
+                  fontWeight: 650,
                 }}
               >
-                <ResultImage
-                  src={
-                    photos.face
-                  }
-                  label="AUJOURD’HUI"
-                />
-
-                <ResultImage
-                  src={
-                    projection.projected_image
-                  }
-                  label="PROJECTION IA"
-                  accent
-                />
+                {projection.message_coach}
               </div>
+            </div>
 
-              <div
-                style={{
-                  background:
-                    WHITE,
-                  border: `1px solid ${BORDER}`,
-                  borderRadius:
-                    22,
-                  padding: 18,
-                  marginBottom:
-                    12,
-                }}
-              >
-                <Eyebrow>
-                  MESSAGE NOX
-                </Eyebrow>
+            <div style={notice}>
+              Projection IA illustrative et non garantie. Elle
+              représente un scénario visuel possible ; ton
+              évolution réelle peut être différente.
+            </div>
 
-                <div
-                  style={{
-                    fontSize:
-                      14,
-                    lineHeight:
-                      1.65,
-                    fontWeight:
-                      650,
-                  }}
-                >
-                  {
-                    projection.message_coach
-                  }
-                </div>
-              </div>
+            <button
+              onClick={continueFlow}
+              style={{
+                ...primary(true),
+                marginTop: 18,
+              }}
+            >
+              {onboardingFlow
+                ? 'CONSTRUIRE LE CHEMIN'
+                : 'RETOUR À AUJOURD’HUI'}
 
-              <div
-                style={
-                  notice
-                }
-              >
-                Projection IA
-                illustrative
-                et non
-                garantie. Elle
-                représente un
-                scénario
-                visuel
-                possible ; ton
-                évolution
-                réelle peut
-                être
-                différente.
-              </div>
+              <ChevronRight size={18} />
+            </button>
 
-              {/* =============================================
-                  BOUTON CONTEXTUEL
-                  
-                  ONBOARDING :
-                  construit le premier programme.
-                  
-                  APP NORMALE :
-                  retourne simplement à Aujourd'hui.
-              ============================================= */}
-
+            {!onboardingFlow && (
               <button
-                onClick={
-                  continueFlow
-                }
+                onClick={() => {
+                  setProjection(null);
+                  setGoal('');
+                  setPhotos({});
+                  setError('');
+                  setStep('consent');
+                }}
                 style={{
-                  ...primary(
-                    true
-                  ),
-                  marginTop:
-                    18,
+                  ...secondary,
+                  marginTop: 10,
                 }}
               >
-                {onboardingFlow
-                  ? 'CONSTRUIRE LE CHEMIN'
-                  : 'RETOUR À AUJOURD’HUI'}
-
-                <ChevronRight
-                  size={18}
-                />
+                <RotateCcw size={16} />
+                NOUVELLE PROJECTION
               </button>
-
-              {!onboardingFlow && (
-                <button
-                  onClick={() => {
-                    setProjection(
-                      null
-                    );
-
-                    setGoal('');
-
-                    setPhotos({});
-
-                    setError('');
-
-                    setStep(
-                      'consent'
-                    );
-                  }}
-                  style={{
-                    ...secondary,
-                    marginTop:
-                      10,
-                  }}
-                >
-                  <RotateCcw
-                    size={16}
-                  />
-
-                  NOUVELLE
-                  PROJECTION
-                </button>
-              )}
-            </>
-          )}
+            )}
+          </>
+        )}
       </main>
 
       {!onboardingFlow &&
-        step !==
-          'generating' && (
-          <BottomNav
-            active="future"
-          />
+        step !== 'generating' && (
+          <BottomNav active="future" />
         )}
     </div>
   );
@@ -1822,13 +1553,7 @@ function Top({
     step === 'result' ||
     step === 'intro'
   ) {
-    return (
-      <div
-        style={{
-          height: 20,
-        }}
-      />
-    );
+    return <div style={{ height: 20 }} />;
   }
 
   return (
@@ -1836,8 +1561,7 @@ function Top({
       style={{
         maxWidth: 560,
         margin: '0 auto',
-        padding:
-          '20px 20px 0',
+        padding: '20px 20px 0',
       }}
     >
       <button
@@ -1846,16 +1570,14 @@ function Top({
           width: 42,
           height: 42,
           borderRadius: 14,
-          border: `1px solid ${BORDER}`,
+          border:
+            `1px solid ${BORDER}`,
           background: WHITE,
           display: 'grid',
-          placeItems:
-            'center',
+          placeItems: 'center',
         }}
       >
-        <ArrowLeft
-          size={18}
-        />
+        <ArrowLeft size={18} />
       </button>
     </header>
   );
@@ -1871,8 +1593,7 @@ function Eyebrow({
       style={{
         fontSize: 10,
         fontWeight: 950,
-        letterSpacing:
-          '.13em',
+        letterSpacing: '.13em',
         color: '#949A90',
         marginBottom: 10,
       }}
@@ -1893,8 +1614,7 @@ function Title({
         fontSize:
           'clamp(36px,10vw,48px)',
         lineHeight: 0.94,
-        letterSpacing:
-          '-.06em',
+        letterSpacing: '-.06em',
         margin: 0,
         fontWeight: 950,
       }}
@@ -1915,8 +1635,7 @@ function Text({
         color: MUTED,
         fontSize: 14,
         lineHeight: 1.65,
-        margin:
-          '16px 0 0',
+        margin: '16px 0 0',
       }}
     >
       {children}
@@ -1939,7 +1658,8 @@ function Info({
         display: 'flex',
         gap: 13,
         background: WHITE,
-        border: `1px solid ${BORDER}`,
+        border:
+          `1px solid ${BORDER}`,
         borderRadius: 18,
         padding: 16,
       }}
@@ -1949,11 +1669,9 @@ function Info({
           width: 36,
           height: 36,
           borderRadius: 12,
-          background:
-            '#F0FFD0',
+          background: '#F0FFD0',
           display: 'grid',
-          placeItems:
-            'center',
+          placeItems: 'center',
           flexShrink: 0,
         }}
       >
@@ -1961,11 +1679,7 @@ function Info({
       </div>
 
       <div>
-        <b
-          style={{
-            fontSize: 13,
-          }}
-        >
+        <b style={{ fontSize: 13 }}>
           {title}
         </b>
 
@@ -1999,20 +1713,15 @@ function PhotoCard({
       style={{
         aspectRatio: '3/4',
         border: `1.5px ${
-          src
-            ? 'solid'
-            : 'dashed'
+          src ? 'solid' : 'dashed'
         } ${
-          src
-            ? BLACK
-            : '#CED2C9'
+          src ? BLACK : '#CED2C9'
         }`,
         borderRadius: 20,
         overflow: 'hidden',
         padding: 0,
         background: WHITE,
-        position:
-          'relative',
+        position: 'relative',
       }}
     >
       {src ? (
@@ -2022,8 +1731,7 @@ function PhotoCard({
           style={{
             width: '100%',
             height: '100%',
-            objectFit:
-              'cover',
+            objectFit: 'cover',
           }}
         />
       ) : (
@@ -2031,20 +1739,16 @@ function PhotoCard({
           style={{
             height: '100%',
             display: 'grid',
-            placeItems:
-              'center',
+            placeItems: 'center',
           }}
         >
           <div>
-            <Camera
-              size={22}
-            />
+            <Camera size={22} />
 
             <div
               style={{
                 fontSize: 9,
-                fontWeight:
-                  900,
+                fontWeight: 900,
                 marginTop: 8,
               }}
             >
@@ -2073,8 +1777,7 @@ function ResultImage({
           aspectRatio: '3/4',
           borderRadius: 22,
           overflow: 'hidden',
-          background:
-            '#ECEEE8',
+          background: '#ECEEE8',
           border: `2px solid ${
             accent
               ? ACCENT
@@ -2088,29 +1791,23 @@ function ResultImage({
             alt={label}
             style={{
               width: '100%',
-              height:
-                '100%',
-              objectFit:
-                'cover',
+              height: '100%',
+              objectFit: 'cover',
             }}
           />
         ) : (
           <div
             style={{
               height: '100%',
-              display:
-                'grid',
-              placeItems:
-                'center',
+              display: 'grid',
+              placeItems: 'center',
               padding: 14,
-              textAlign:
-                'center',
+              textAlign: 'center',
               fontSize: 11,
               color: MUTED,
             }}
           >
-            Image
-            indisponible
+            Image indisponible
           </div>
         )}
       </div>
@@ -2119,14 +1816,13 @@ function ResultImage({
         style={{
           fontSize: 9,
           fontWeight: 950,
-          letterSpacing:
-            '.08em',
-          textAlign:
-            'center',
+          letterSpacing: '.08em',
+          textAlign: 'center',
           marginTop: 8,
-          color: accent
-            ? '#779C00'
-            : MUTED,
+          color:
+            accent
+              ? '#779C00'
+              : MUTED,
         }}
       >
         {label}
@@ -2148,53 +1844,57 @@ const primary = (
   borderRadius: 18,
   padding: '0 18px',
 
-  background: enabled
-    ? ACCENT
-    : '#E1E4DD',
+  background:
+    enabled
+      ? ACCENT
+      : '#E1E4DD',
 
-  color: enabled
-    ? BLACK
-    : '#9EA39B',
+  color:
+    enabled
+      ? BLACK
+      : '#9EA39B',
 
   fontWeight: 950,
   fontSize: 13,
 
   display: 'flex',
   alignItems: 'center',
-  justifyContent:
-    'space-between',
+  justifyContent: 'space-between',
 
-  cursor: enabled
-    ? 'pointer'
-    : 'not-allowed',
+  cursor:
+    enabled
+      ? 'pointer'
+      : 'not-allowed',
 });
 
-const secondary: CSSProperties =
-  {
-    width: '100%',
-    minHeight: 52,
+const secondary: CSSProperties = {
+  width: '100%',
+  minHeight: 52,
 
-    border: `1px solid ${BORDER}`,
-    borderRadius: 16,
+  border:
+    `1px solid ${BORDER}`,
 
-    padding: '0 16px',
+  borderRadius: 16,
 
-    background: WHITE,
-    color: BLACK,
+  padding: '0 16px',
 
-    fontWeight: 850,
-    fontSize: 12,
+  background: WHITE,
+  color: BLACK,
 
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent:
-      'center',
+  fontWeight: 850,
+  fontSize: 12,
 
-    gap: 8,
-  };
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+
+  gap: 8,
+};
 
 const chip: CSSProperties = {
-  border: `1px solid ${BORDER}`,
+  border:
+    `1px solid ${BORDER}`,
+
   borderRadius: 999,
 
   background: WHITE,
