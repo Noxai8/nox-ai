@@ -664,8 +664,8 @@ const photoInputRef = useRef<HTMLInputElement>(null);
       </main>
 
       {showAdd && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.48)', backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: 560, background: '#FFFFFF', border: `1px solid ${BORDER}`, borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px max(24px, env(safe-area-inset-bottom))', maxHeight: '88vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.48)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 560, background: '#FFFFFF', border: `1px solid ${BORDER}`, borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px calc(24px + env(safe-area-inset-bottom))', maxHeight: 'calc(100dvh - 16px)', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', boxSizing: 'border-box' }}>
             <div style={{ width: 38, height: 4, background: '#2b2b2b', borderRadius: 999, margin: '2px auto 17px' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div>
@@ -701,7 +701,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
 
             {saveError && <div role="alert" style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(255,95,95,.08)', border: '1px solid rgba(255,95,95,.22)', color: '#ff8a8a', fontSize: 11.5, lineHeight: 1.45 }}>{saveError}</div>}
             {saveSuccess && <div style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.22)', color: ACCENT, fontSize: 11.5, fontWeight: 850 }}>Check-in enregistré ✓</div>}
-            <button onClick={save} disabled={saving} style={{ width: '100%', border: 0, borderRadius: 14, background: saving ? '#2a2a2a' : ACCENT, color: saving ? '#777' : '#050505', padding: 15, marginTop: 16, fontSize: 12, fontWeight: 950, letterSpacing: '.04em', cursor: saving ? 'wait' : 'pointer' }}>{saving ? 'ENREGISTREMENT...' : 'ENREGISTRER LE CHECK-IN'}</button>
+            <button onClick={save} disabled={saving} style={{ position: 'sticky', bottom: 0, zIndex: 2, width: '100%', border: 0, borderRadius: 14, background: saving ? '#2a2a2a' : ACCENT, color: saving ? '#777' : '#050505', padding: 15, marginTop: 16, fontSize: 12, fontWeight: 950, letterSpacing: '.04em', cursor: saving ? 'wait' : 'pointer', boxShadow: '0 -10px 24px rgba(255,255,255,.92)' }}>{saving ? 'ENREGISTREMENT...' : 'ENREGISTRER LE CHECK-IN'}</button>
           </div>
         </div>
       )}
