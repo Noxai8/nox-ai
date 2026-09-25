@@ -463,11 +463,16 @@ export default function Fuel() {
           }],
         }),
       });
-      const data = await resp.json();
-      if (!resp.ok || data?.error) {
-        setIdeasError(data?.error === 'PRO_REQUIRED' ? 'Idées IA disponibles avec NOX Pro.' : data?.error || `Erreur ${resp.status}`);
-        return;
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => null);
+        const msg =
+          typeof errData?.error === 'string' ? errData.error :
+          errData?.error?.message ? String(errData.error.message) :
+          errData?.message ? String(errData.message) :
+          'Erreur NOX (' + resp.status + ')';
+        throw new Error(msg);
       }
+      const data = await resp.json();
       const text = data?.content?.[0]?.text || '';
       // Parser le JSON retourné
       const clean = text.replace(/\`\`\`json/gi,'').replace(/\`\`\`/g,'').trim();
@@ -484,9 +489,12 @@ export default function Fuel() {
           return;
         }
       }
-      setIdeasError('Réponse IA invalide. Réessaie.');
-    } catch (e: any) {
-      setIdeasError(e?.message || 'Erreur réseau.');
+      throw new Error('Réponse IA invalide. Réessaie.');
+    } catch (err: unknown) {
+      console.error('fetchIdeas:', err);
+      setIdeasError(
+        err instanceof Error ? err.message : 'Impossible de générer des idées de repas.'
+      );
     } finally {
       setLoadIdeas(false);
     }
@@ -701,7 +709,7 @@ export default function Fuel() {
 
             {ideasError && (
               <div style={{ marginTop: 10, padding: '10px 12px', background: 'rgba(255,92,92,.08)', border: '1px solid rgba(255,92,92,.2)', borderRadius: 10, fontSize: 12, color: '#c03' }}>
-                {ideasError}
+                {typeof ideasError === 'string' ? ideasError : 'Impossible de générer des idées de repas.'}
               </div>
             )}
             {ideas.length > 0 && (
