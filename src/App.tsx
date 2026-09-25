@@ -109,23 +109,39 @@ function AppRoutes() {
   return (
     <Suspense fallback={<Loader />}>
       <Routes>
-        {/* PUBLIC */}
+
+        {/* =====================================================
+            PUBLIC
+        ===================================================== */}
+
         <Route
           path="/"
-          element={user ? <Navigate to="/home" replace /> : <Landing />}
+          element={
+            user
+              ? <Navigate to="/home" replace />
+              : <Landing />
+          }
         />
 
         <Route
           path="/register"
-          element={user ? <Navigate to="/home" replace /> : <Register />}
+          element={
+            user
+              ? <Navigate to="/home" replace />
+              : <Register />
+          }
         />
 
         <Route
           path="/login"
-          element={user ? <Navigate to="/home" replace /> : <Login />}
+          element={
+            user
+              ? <Navigate to="/home" replace />
+              : <Login />
+          }
         />
 
-        {/* =================================================
+        {/* =====================================================
             NOUVEAU PARCOURS NOX
 
             Register
@@ -137,7 +153,7 @@ function AppRoutes() {
             Generate Program
                ↓
             Home
-        ================================================= */}
+        ===================================================== */}
 
         <Route
           path="/onboarding"
@@ -166,7 +182,10 @@ function AppRoutes() {
           }
         />
 
-        {/* HOME */}
+        {/* =====================================================
+            HOME
+        ===================================================== */}
+
         <Route
           path="/home"
           element={
@@ -176,7 +195,10 @@ function AppRoutes() {
           }
         />
 
-        {/* TRAINING */}
+        {/* =====================================================
+            TRAINING
+        ===================================================== */}
+
         <Route
           path="/training/:sessionId"
           element={
@@ -213,7 +235,10 @@ function AppRoutes() {
           }
         />
 
-        {/* BODY / PROGRESS */}
+        {/* =====================================================
+            BODY / PROGRESS
+        ===================================================== */}
+
         <Route
           path="/body"
           element={
@@ -232,7 +257,10 @@ function AppRoutes() {
           }
         />
 
-        {/* COACH */}
+        {/* =====================================================
+            COACH
+        ===================================================== */}
+
         <Route
           path="/coach"
           element={
@@ -251,7 +279,10 @@ function AppRoutes() {
           }
         />
 
-        {/* NUTRITION */}
+        {/* =====================================================
+            NUTRITION
+        ===================================================== */}
+
         <Route
           path="/fuel"
           element={
@@ -315,6 +346,20 @@ function AppRoutes() {
           }
         />
 
+        {/* CORRECTION :
+            NutritionGoals est maintenant une vraie route
+            indépendante et protégée.
+        */}
+
+        <Route
+          path="/nutrition-goals"
+          element={
+            <ProtectedRoute>
+              <NutritionGoals />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/fasting"
           element={
@@ -324,7 +369,10 @@ function AppRoutes() {
           }
         />
 
-        {/* HABITS */}
+        {/* =====================================================
+            HABITS
+        ===================================================== */}
+
         <Route
           path="/habits"
           element={
@@ -334,7 +382,10 @@ function AppRoutes() {
           }
         />
 
-        {/* HEALTH / RECOVERY */}
+        {/* =====================================================
+            HEALTH / RECOVERY
+        ===================================================== */}
+
         <Route
           path="/recovery"
           element={
@@ -371,7 +422,10 @@ function AppRoutes() {
           }
         />
 
-        {/* NOX FEATURES */}
+        {/* =====================================================
+            NOX FEATURES
+        ===================================================== */}
+
         <Route
           path="/play"
           element={
@@ -408,7 +462,10 @@ function AppRoutes() {
           }
         />
 
-        {/* SOCIAL */}
+        {/* =====================================================
+            SOCIAL
+        ===================================================== */}
+
         <Route
           path="/leaderboard"
           element={
@@ -454,13 +511,15 @@ function AppRoutes() {
           }
         />
 
-        {/* SETTINGS */}
+        {/* =====================================================
+            SETTINGS
+        ===================================================== */}
+
         <Route
           path="/settings"
           element={
             <ProtectedRoute>
               <Settings />
-        <Route path="/nutrition-goals" element={<ProtectedRoute><NutritionGoals /></ProtectedRoute>} />
             </ProtectedRoute>
           }
         />
@@ -483,7 +542,10 @@ function AppRoutes() {
           }
         />
 
-        {/* FALLBACK */}
+        {/* =====================================================
+            FALLBACK
+        ===================================================== */}
+
         <Route
           path="*"
           element={
@@ -493,6 +555,7 @@ function AppRoutes() {
             />
           }
         />
+
       </Routes>
     </Suspense>
   );
