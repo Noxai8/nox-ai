@@ -549,7 +549,7 @@ export default function Fuel() {
         }}
       >
         {/* HEADER */}
-        <header style={{ padding: '24px 20px 0' }}>
+        <header style={{ padding: '20px 20px 0' }}>
           <div
             style={{
               display: 'flex',
@@ -574,7 +574,7 @@ export default function Fuel() {
               <h1
                 style={{
                   margin: 0,
-                  fontSize: 34,
+                  fontSize: 32,
                   lineHeight: 1,
                   fontWeight: 950,
                   letterSpacing: '-.05em',
@@ -600,8 +600,8 @@ export default function Fuel() {
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(7, 1fr)',
-              gap: 6,
-              marginBottom: 18,
+              gap: 5,
+              marginBottom: 12,
             }}
           >
             {weekDays.map(day => (
@@ -609,8 +609,8 @@ export default function Fuel() {
                 key={day.key}
                 style={{
                   minWidth: 0,
-                  padding: '9px 0 8px',
-                  borderRadius: 14,
+                  padding: '7px 0 6px',
+                  borderRadius: 12,
                   textAlign: 'center',
                   background: day.isToday ? BLACK : WHITE,
                   border: `1px solid ${day.isToday ? BLACK : BORDER}`,
@@ -645,9 +645,9 @@ export default function Fuel() {
             style={{
               background: LIME,
               border: '1px solid #DDF59C',
-              borderRadius: 24,
-              padding: 20,
-              marginBottom: 10,
+              borderRadius: 20,
+              padding: 16,
+              marginBottom: 14,
             }}
           >
             <div
@@ -937,55 +937,7 @@ export default function Fuel() {
                 })}
               </div>
             </div>
-          ) : (
-            <div
-              style={{
-                ...card,
-                marginBottom: 10,
-                display: 'grid',
-                gridTemplateColumns: '128px 1fr',
-                gap: 16,
-                alignItems: 'center',
-                padding: 18,
-                textAlign: 'center',
-                padding: '28px 20px',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 900,
-                  color: MUTED,
-                  letterSpacing: '.1em',
-                  marginBottom: 8,
-                }}
-              >
-                OBJECTIFS NUTRITIONNELS
-              </div>
-
-              <div
-                style={{
-                  fontSize: 21,
-                  fontWeight: 950,
-                  letterSpacing: '-.03em',
-                  marginBottom: 7,
-                }}
-              >
-                Configure tes objectifs nutritionnels
-              </div>
-
-              <div
-                style={{
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                  color: MUTED,
-                }}
-              >
-                Tes calories et macros apparaîtront ici dès que tes objectifs
-                seront définis.
-              </div>
-            </div>
-          )}
+          ) : null}
         </header>
 
         <main style={{ padding: '0 20px' }}>
@@ -1013,7 +965,7 @@ export default function Fuel() {
 
               <div
                 style={{
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: 950,
                   letterSpacing: '-.04em',
                 }}
@@ -1044,8 +996,8 @@ export default function Fuel() {
           <div
             style={{
               display: 'grid',
-              gap: 10,
-              marginBottom: 20,
+              gap: 7,
+              marginBottom: 16,
             }}
           >
             {MEALS.map(meal => {
@@ -1083,10 +1035,10 @@ export default function Fuel() {
                         {mealIcon(meal)}
                       </div>
                       <div>
-                        <div style={{ fontSize: 15, fontWeight: 900, color: BLACK }}>
+                        <div style={{ fontSize: 14, fontWeight: 900, color: BLACK }}>
                           {mealLabel(meal)}
                         </div>
-                        <div style={{ fontSize: 10.5, color: MUTED, marginTop: 3 }}>
+                        <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>
                           {mealEntries.length
                             ? `${Math.round(mealKcal)} kcal`
                             : 'Rien enregistré'}
@@ -1103,7 +1055,7 @@ export default function Fuel() {
                       style={{
                         width: 32,
                         height: 32,
-                        borderRadius: 11,
+                        borderRadius: 10,
                         background: BG,
                         border: `1px solid ${BORDER}`,
                         color: BLACK,
