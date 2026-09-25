@@ -1,89 +1,56 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-function dataUrlParts(dataUrl: string) {
-  const match = dataUrl.match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/i)
-  if (!match) throw new Error('Format image invalide.')
-  return { mime: match[1] === 'image/jpg' ? 'image/jpeg' : match[1], base64: match[2] }
-}
+import { requirePlan, corsHeaders } from '../_shared/requirePlan.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
+  // Verrou serveur — Pro requis
+  const check = await requirePlan(req, 'pro')
+  if (check instanceof Response) return check
+
   try {
     const { image } = await req.json()
-    if (!image || typeof image !== 'string') throw new Error('Image manquante.')
+    if (!image || typeof image !== 'string') {
+      return new Response(JSON.stringify({ error: 'Image manquante.' }), { status: 400, headers: corsHeaders })
+    }
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY') ?? ''
-    if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY manquante.')
+    const match = image.match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/i)
+    if (!match) {
+      return new Response(JSON.stringify({ error: 'Format image invalide.' }), { status: 400, headers: corsHeaders })
+    }
+    const mime   = match[1] === 'image/jpg' ? 'image/jpeg' : match[1]
+    const base64 = match[2]
 
-    const parsed = dataUrlParts(image)
+    const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY')
+    if (!ANTHROPIC_KEY) return new Response(JSON.stringify({ error: 'No API key' }), { status: 500, headers: corsHeaders })
 
-    const response = await fetch('https://api.openai.com/v1/responses', {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'gpt-5.4-mini',
-        input: [{
+        model: 'claude-sonnet-4-6',
+        max_tokens: 600,
+        messages: [{
           role: 'user',
           content: [
-            {
-              type: 'input_text',
-              text: `Analyse uniquement l'écran de cette machine cardio.
-Retourne UNIQUEMENT un objet JSON valide, sans markdown :
-{
-  "activity_type": "tapis|vélo|elliptique|rameur|stepper|autre",
-  "duration_minutes": number|null,
-  "calories_burned": number|null,
-  "distance_km": number|null,
-  "notes": ""
-}
-Règles :
-- Recopie seulement les valeurs réellement visibles.
-- N'invente jamais une donnée absente ou illisible : utilise null.
-- Convertis la durée en minutes.
-- Convertis la distance en kilomètres si l'unité affichée permet de le faire.
-- Les calories sont celles affichées par la machine, pas une estimation recalculée.`,
-            },
-            {
-              type: 'input_image',
-              image_url: `data:${parsed.mime};base64,${parsed.base64}`,
-            },
-          ],
-        }],
-        max_output_tokens: 300,
+            { type: 'image', source: { type: 'base64', media_type: mime, data: base64 } },
+            { type: 'text', text: 'Analyse cette image d\'activité physique. Retourne un JSON : {"activity":"...","duration_min":0,"intensity":"faible|modérée|intense","calories_burned":0,"notes":"..."}' }
+          ]
+        }]
       }),
     })
 
     const data = await response.json()
-    if (!response.ok) {
-      throw new Error(data?.error?.message || `OpenAI API ${response.status}`)
-    }
-
-    const text =
-      data?.output_text ||
-      data?.output?.flatMap((item: any) => item?.content || [])
-        ?.find((item: any) => item?.type === 'output_text')?.text ||
-      ''
-
-    const cleaned = String(text).replace(/```json/gi, '').replace(/```/g, '').trim()
-    const activity = JSON.parse(cleaned)
-
-    return new Response(JSON.stringify({ activity }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify(data), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   } catch (err: any) {
-    console.error('ANALYZE_ACTIVITY_ERROR', err)
-    return new Response(JSON.stringify({ error: err?.message || 'Analyse impossible.' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: corsHeaders
     })
   }
 })

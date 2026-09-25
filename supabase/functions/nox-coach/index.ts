@@ -1,15 +1,19 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { requirePlan, corsHeaders } from '../_shared/requirePlan.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
+  // Verrou serveur — Pro requis
+  const check = await requirePlan(req, 'pro')
+  if (check instanceof Response) return check
+
   try {
     const { messages, system } = await req.json()
+    if (!messages || !Array.isArray(messages)) {
+      return new Response(JSON.stringify({ error: 'Messages invalides.' }), { status: 400, headers: corsHeaders })
+    }
+
     const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY')
     if (!ANTHROPIC_KEY) return new Response(JSON.stringify({ error: 'No API key' }), { status: 500, headers: corsHeaders })
 
@@ -20,7 +24,12 @@ serve(async (req) => {
         'x-api-key': ANTHROPIC_KEY,
         'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1000, system, messages }),
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: system || '',
+        messages,
+      }),
     })
 
     const data = await response.json()
