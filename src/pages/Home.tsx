@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import {
-  Apple, Camera, ChevronRight, CircleUserRound,
-  Droplets, Dumbbell, Moon, Plus, Ruler, Scale,
-  ScanLine, Sparkles, Utensils, X,
+  Camera, ChevronRight, CircleUserRound,
+  Droplets, Dumbbell, Plus, Ruler, Scale,
+  ScanLine, Utensils, X,
 } from 'lucide-react';
+import { usePlan } from '../lib/usePlan';
 
 const ACCENT = '#C8FF00';
 const BG     = '#F7F8F4';
@@ -157,6 +158,10 @@ export default function Home() {
   const [todayFood, setTodayFood]   = useState<any[]>([]);
   const [noxMsg, setNoxMsg]         = useState<string | null>(null);
   const [loadingMsg, setLoadingMsg] = useState(false);
+  const [sleepData, setSleepData]   = useState<any>(null);
+  const [habitDone, setHabitDone]   = useState(0);
+  const [habitTotal, setHabitTotal] = useState(4);
+  const { isPro } = usePlan();
 
   useEffect(() => { if (user) loadAll(); }, [user]);
 
@@ -165,13 +170,23 @@ export default function Home() {
     const now   = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const end   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
-    const [{ data: prof }, { data: prog }, { data: tgts }, { data: food }] = await Promise.all([
+    const [{ data: prof }, { data: prog }, { data: tgts }, { data: food }, { data: sleep }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
       supabase.from('workout_programs').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
       supabase.from('nutrition_targets').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('food_entries').select('calories, protein').eq('user_id', user.id).gte('created_at', start).lte('created_at', end),
+      supabase.from('sleep_logs').select('duration_hours, quality').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
     setProfile(prof); setProgram(prog); setTargets(tgts); setTodayFood(food || []);
+    setSleepData(sleep || null);
+    // Habitudes du jour depuis localStorage
+    try {
+      const d = new Date();
+      const key = `nox-habits-${user.id}-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const saved = localStorage.getItem(key);
+      const done = saved ? JSON.parse(saved) : [];
+      setHabitDone(done.length);
+    } catch {}
   };
 
   const firstName        = profile?.first_name || profile?.display_name?.split(' ')[0] || '';
@@ -187,23 +202,43 @@ export default function Home() {
   const todaySession     = sessions.find((s: any) =>
     String(s?.day || '').toLowerCase().includes(dayNames[new Date().getDay()].toLowerCase().slice(0,3))
   ) || null;
-  const noxPct  = Math.min(100, Math.round((kcalPct * 0.5) + (protPct * 0.3) + (todaySession ? 0 : 20)));
+  // NOX Core — score explicable : nutrition 50% + protéines 30% + séance 20%
+  const sessionDone  = false; // sera mis à jour quand Training sauvegarde
+  const sessionScore = todaySession ? (sessionDone ? 20 : 10) : 20; // repos = plein score
+  const noxPct = Math.min(100, Math.round((kcalPct * 0.5) + (protPct * 0.3) + sessionScore));
   const dateLabel = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()).toUpperCase();
 
   const fetchNoxMsg = async () => {
+    // Version déterministe pour Free — pas d'appel IA
+    if (!isPro) {
+      const h = new Date().getHours();
+      const protLeft = Math.max(0, proteinTarget - Math.round(todayProt));
+      if (kcalLeft > 300) {
+        setNoxMsg(`Il te reste ${kcalLeft} kcal et ${protLeft}g de protéines aujourd'hui. Ajoute un repas riche en protéines pour rester sur ta trajectoire.`);
+      } else if (todaySession) {
+        setNoxMsg(`Ta séance "${todaySession.name}" t'attend. Lance-toi maintenant pendant que tu as l'énergie.`);
+      } else if (h >= 20) {
+        setNoxMsg(`Bonne récupération ce soir. Dors tôt pour optimiser ta progression de demain.`);
+      } else {
+        setNoxMsg(`Tu es sur la bonne voie aujourd'hui. Continue à suivre ton plan.`);
+      }
+      return;
+    }
+    // Version IA pour Pro
     setLoadingMsg(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const h = new Date().getHours();
       const prompt = `Tu es NOX. Reponds en 2 phrases max, sans markdown. Heure: ${h}h. Objectif: ${profile?.goal_type || 'transformation'}. Calories: ${Math.round(todayKcal)}/${caloriesTarget}. Proteines: ${Math.round(todayProt)}/${proteinTarget}g. Seance: ${todaySession?.name || 'aucune'}. Question: ET MAINTENANT ? Donne une seule recommandation concrete.`;
-      const resp = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/generate-program', {
+      const resp = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/nox-coach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ system: 'Tu es NOX, assistant de transformation. 2 phrases max, pas de markdown.', messages: [{ role: 'user', content: prompt }] }),
       });
       const data = await resp.json();
-      const text = data?.content?.[0]?.text || data?.data?.content?.[0]?.text || '';
+      const text = data?.content?.[0]?.text || '';
       if (text) setNoxMsg(text.trim());
+      else if (data?.error === 'PRO_REQUIRED') setNoxMsg('Passe à NOX Pro pour des recommandations personnalisées par IA.');
     } catch {}
     setLoadingMsg(false);
   };
@@ -331,8 +366,22 @@ export default function Home() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.1em', marginBottom: 4 }}>RECUPERER</div>
-                <div style={{ fontSize: 18, fontWeight: 950, letterSpacing: '-.03em' }}>SOMMEIL & ENERGIE</div>
-                <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>Prepare une bonne nuit.</div>
+                {sleepData ? (
+                  <>
+                    <div style={{ fontSize: 22, fontWeight: 950, letterSpacing: '-.03em' }}>
+                      {sleepData.duration_hours}h
+                      <span style={{ fontSize: 12, color: MUTED, fontWeight: 500, marginLeft: 6 }}>de sommeil</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: sleepData.duration_hours >= 7 ? '#69B578' : '#FF8C42', marginTop: 4 }}>
+                      {sleepData.duration_hours >= 8 ? 'Excellente nuit' : sleepData.duration_hours >= 7 ? 'Bonne nuit' : sleepData.duration_hours >= 6 ? 'Nuit correcte' : 'Nuit trop courte'}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 18, fontWeight: 950, letterSpacing: '-.03em' }}>SOMMEIL & ENERGIE</div>
+                    <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>Enregistre ta nuit.</div>
+                  </>
+                )}
               </div>
               <ChevronRight size={18} color={MUTED} />
             </div>
@@ -341,12 +390,19 @@ export default function Home() {
           {/* HABITUDE CLE */}
           <button onClick={() => navigate('/habits')} style={{ width: '100%', background: LIME, border: '1px solid #DDF59C', borderRadius: 24, padding: 20, textAlign: 'left', cursor: 'pointer', marginBottom: 14, boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 900, color: '#687600', letterSpacing: '.1em', marginBottom: 4 }}>HABITUDE CLE</div>
-                <div style={{ fontSize: 18, fontWeight: 950, letterSpacing: '-.03em', color: BLACK }}>UNE ACTION SIMPLE.</div>
-                <div style={{ fontSize: 12, color: '#69715F', marginTop: 4 }}>La regularite fait la difference.</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, fontWeight: 900, color: '#687600', letterSpacing: '.1em', marginBottom: 4 }}>HABITUDES DU JOUR</div>
+                <div style={{ fontSize: 22, fontWeight: 950, letterSpacing: '-.03em', color: BLACK }}>
+                  {habitDone}/{habitTotal}
+                  <span style={{ fontSize: 13, color: '#69715F', fontWeight: 500, marginLeft: 8 }}>
+                    {habitDone === habitTotal ? 'Toutes faites' : 'complétées'}
+                  </span>
+                </div>
+                <div style={{ height: 4, background: '#DDF59C', borderRadius: 99, overflow: 'hidden', marginTop: 10 }}>
+                  <div style={{ height: '100%', width: `${habitTotal > 0 ? (habitDone/habitTotal)*100 : 0}%`, background: '#687600', borderRadius: 99, transition: 'width .4s' }} />
+                </div>
               </div>
-              <ChevronRight size={18} color="#687600" />
+              <ChevronRight size={18} color="#687600" style={{ flexShrink: 0, marginLeft: 12 }} />
             </div>
           </button>
 
