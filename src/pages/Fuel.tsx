@@ -640,143 +640,151 @@ export default function Fuel() {
             ))}
           </div>
 
-          {/* INTERPRÉTATION NOX — AVANT LES CHIFFRES */}
+          {/* INTERPRÉTATION NOX */}
           <div
             style={{
-              background: LIME,
-              border: '1px solid #DDF59C',
-              borderRadius: 20,
+              background: 'linear-gradient(135deg, #F3FFD5 0%, #FBFFE9 100%)',
+              border: '1px solid #E1F5A5',
+              borderRadius: 22,
               padding: 16,
-              marginBottom: 14,
+              marginBottom: 12,
             }}
           >
             <div
               style={{
-                fontSize: 10,
-                fontWeight: 900,
-                color: '#687600',
-                letterSpacing: '.1em',
-                marginBottom: 8,
-              }}
-            >
-              INTERPRÉTATION NOX
-            </div>
-
-            <div
-              style={{
-                fontSize: 19,
-                fontWeight: 950,
-                color: BLACK,
-                marginBottom: 6,
-              }}
-            >
-              {noxMessage.title}
-            </div>
-
-            <div
-              style={{
-                fontSize: 13,
-                color: '#69715F',
-                lineHeight: 1.5,
-                marginBottom: 14,
-              }}
-            >
-              {noxMessage.body}
-            </div>
-
-            {targets && (
-              <>
-                <button
-                  onClick={() =>
-                    isPro ? fetchIdeas() : navigate('/subscribe')
-                  }
-                  disabled={loadIdeas}
-                  style={{
-                    padding: '10px 15px',
-                    background: BLACK,
-                    border: 0,
-                    borderRadius: 13,
-                    color: ACCENT,
-                    fontSize: 11,
-                    fontWeight: 900,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  {!isPro && (
-                    <span
-                      style={{
-                        background: ACCENT,
-                        color: BLACK,
-                        borderRadius: 6,
-                        padding: '1px 5px',
-                        fontSize: 8,
-                        fontWeight: 900,
-                      }}
-                    >
-                      PRO
-                    </span>
-                  )}
-
-                  {loadIdeas ? 'NOX réfléchit...' : 'IDÉES DE REPAS'}
-                </button>
-
-                {ideas && (
-                  <div
-                    style={{
-                      marginTop: 14,
-                      paddingTop: 14,
-                      borderTop: '1px solid #DDF59C',
-                    }}
-                  >
-                    {ideas
-                      .split('\n')
-                      .filter(line => line.trim())
-                      .map((line, index) => (
-                        <div
-                          key={index}
-                          style={{
-                            fontSize: 13,
-                            color: '#444',
-                            padding: '8px 0',
-                            lineHeight: 1.5,
-                          }}
-                        >
-                          {line}
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* CALORIES + MACROS */}
-          {hasTargets && targets ? (
-            <div
-              style={{
-                ...card,
-                marginBottom: 10,
                 display: 'grid',
-                gridTemplateColumns: '128px 1fr',
-                gap: 16,
-                alignItems: 'center',
-                padding: 18,
+                gridTemplateColumns: '48px 1fr 20px',
+                gap: 12,
+                alignItems: 'start',
               }}
             >
               <div
                 style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: '#E4FF72',
                   display: 'grid',
                   placeItems: 'center',
-                  padding: '4px 0 20px',
+                  fontSize: 24,
                 }}
               >
+                🧠
+              </div>
+
+              <div>
                 <div
                   style={{
-                    width: 124,
-                    height: 124,
+                    fontSize: 10,
+                    fontWeight: 900,
+                    color: '#7A9800',
+                    marginBottom: 5,
+                  }}
+                >
+                  INTERPRÉTATION NOX
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 900,
+                    lineHeight: 1.1,
+                    marginBottom: 6,
+                  }}
+                >
+                  {noxMessage.title}
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 13,
+                    lineHeight: 1.35,
+                    color: '#30342E',
+                  }}
+                >
+                  {noxMessage.body}
+                </div>
+              </div>
+
+              <ChevronRight
+                size={22}
+                color="#83A000"
+                style={{ marginTop: 8 }}
+              />
+            </div>
+
+            <button
+              onClick={() =>
+                isPro ? fetchIdeas() : navigate('/subscribe')
+              }
+              style={{
+                width: '100%',
+                height: 46,
+                marginTop: 14,
+                border: 0,
+                borderRadius: 13,
+                background: BLACK,
+                color: WHITE,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0 10px 0 18px',
+                fontWeight: 900,
+                cursor: 'pointer',
+                boxSizing: 'border-box',
+              }}
+            >
+              <span>
+                <span style={{ color: ACCENT }}>✨</span>
+                {'  '}IDÉES DE REPAS
+              </span>
+
+              {!isPro && (
+                <span
+                  style={{
+                    background: ACCENT,
+                    color: BLACK,
+                    padding: '5px 9px',
+                    borderRadius: 8,
+                    fontSize: 10,
+                    fontWeight: 950,
+                  }}
+                >
+                  PRO
+                </span>
+              )}
+            </button>
+
+            {ideas && (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #E1F5A5' }}>
+                {ideas.split('\n').filter(l => l.trim()).map((line, i) => (
+                  <div key={i} style={{ fontSize: 13, color: '#30342E', padding: '6px 0', lineHeight: 1.4 }}>{line}</div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* CALORIES + MACROS */}
+          {targets && (
+            <div
+              style={{
+                background: WHITE,
+                border: `1px solid ${BORDER}`,
+                borderRadius: 22,
+                padding: 16,
+                display: 'grid',
+                gridTemplateColumns: '135px 1fr',
+                gap: 16,
+                alignItems: 'center',
+                marginBottom: 16,
+              }}
+            >
+              {/* ANNEAU CALORIES */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <div
+                  style={{
+                    width: 128,
+                    height: 128,
                     borderRadius: '50%',
                     display: 'grid',
                     placeItems: 'center',
@@ -787,8 +795,8 @@ export default function Fuel() {
                 >
                   <div
                     style={{
-                      width: 100,
-                      height: 100,
+                      width: 104,
+                      height: 104,
                       borderRadius: '50%',
                       background: WHITE,
                       display: 'grid',
@@ -797,147 +805,46 @@ export default function Fuel() {
                     }}
                   >
                     <div>
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: MUTED,
-                          fontWeight: 900,
-                          letterSpacing: '.1em',
-                          marginBottom: 5,
-                        }}
-                      >
+                      <div style={{ fontSize: 9, color: MUTED, fontWeight: 900, letterSpacing: '.08em', marginBottom: 3 }}>
                         RESTANT
                       </div>
-
-                      <div
-                        style={{
-                          fontSize: 28,
-                          lineHeight: 0.95,
-                          fontWeight: 950,
-                          letterSpacing: '-.05em',
-                        }}
-                      >
+                      <div style={{ fontSize: 26, lineHeight: 1, fontWeight: 950, letterSpacing: '-.04em' }}>
                         {kcalLeft}
                       </div>
-
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: MUTED,
-                          marginTop: 5,
-                        }}
-                      >
-                        kcal
-                      </div>
+                      <div style={{ fontSize: 10, color: MUTED, marginTop: 3 }}>kcal</div>
                     </div>
                   </div>
                 </div>
-
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: MUTED,
-                    marginTop: 12,
-                  }}
-                >
-                  {Math.round(totals.kcal)} consommées · objectif{' '}
-                  {targets.kcal}
+                <div style={{ fontSize: 10, color: MUTED, textAlign: 'center', lineHeight: 1.3 }}>
+                  {Math.round(totals.kcal)} / {targets.kcal} kcal
                 </div>
               </div>
 
-              {/* MACROS */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: 8,
-                }}
-              >
+              {/* MACROS EN COLONNE */}
+              <div style={{ display: 'grid', gap: 10 }}>
                 {[
-                  {
-                    label: 'PROTÉINES',
-                    value: Math.round(totals.protein),
-                    target: targets.protein,
-                  },
-                  {
-                    label: 'GLUCIDES',
-                    value: Math.round(totals.carbs),
-                    target: targets.carbs,
-                  },
-                  {
-                    label: 'LIPIDES',
-                    value: Math.round(totals.fat),
-                    target: targets.fat,
-                  },
+                  { label: 'Protéines', value: Math.round(totals.protein), target: targets.protein, color: '#4488FF' },
+                  { label: 'Glucides',  value: Math.round(totals.carbs),   target: targets.carbs,   color: '#FFAA00' },
+                  { label: 'Lipides',   value: Math.round(totals.fat),     target: targets.fat,     color: '#FF6B6B' },
                 ].map(macro => {
-                  const pct =
-                    macro.target > 0
-                      ? Math.min(100, (macro.value / macro.target) * 100)
-                      : 0;
-
+                  const pct = macro.target > 0 ? Math.min(100, (macro.value / macro.target) * 100) : 0;
                   return (
-                    <div
-                      key={macro.label}
-                      style={{
-                        background: BG,
-                        borderRadius: 16,
-                        padding: '13px 12px',
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 9,
-                          color: MUTED,
-                          fontWeight: 900,
-                          letterSpacing: '.06em',
-                          marginBottom: 7,
-                        }}
-                      >
-                        {macro.label}
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: 19,
-                          fontWeight: 950,
-                        }}
-                      >
-                        {macro.value}
-
-                        <span
-                          style={{
-                            fontSize: 10,
-                            color: MUTED,
-                          }}
-                        >
-                          /{macro.target}g
+                    <div key={macro.label}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                        <span style={{ fontSize: 11, color: MUTED }}>{macro.label}</span>
+                        <span style={{ fontSize: 13, fontWeight: 900, color: BLACK }}>
+                          {macro.value}<span style={{ fontSize: 9, color: MUTED, fontWeight: 400 }}>/{macro.target}g</span>
                         </span>
                       </div>
-
-                      <div
-                        style={{
-                          height: 4,
-                          background: BORDER,
-                          borderRadius: 99,
-                          overflow: 'hidden',
-                          marginTop: 8,
-                        }}
-                      >
-                        <div
-                          style={{
-                            height: '100%',
-                            width: `${pct}%`,
-                            background: BLACK,
-                            borderRadius: 99,
-                          }}
-                        />
+                      <div style={{ height: 4, background: BG, borderRadius: 99, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: macro.color, borderRadius: 99 }} />
                       </div>
                     </div>
                   );
                 })}
               </div>
             </div>
-          ) : null}
+          )}
         </header>
 
         <main style={{ padding: '0 20px' }}>
