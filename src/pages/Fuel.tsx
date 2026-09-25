@@ -452,17 +452,29 @@ export default function Fuel() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const mealType = currentMeal();
+
+      const userMsg = [
+        'Contexte nutrition :',
+        'Heure : ' + new Date().getHours() + 'h. Repas : ' + mealType + '.',
+        'Calories restantes : ' + kcalLeft + ' kcal.',
+        'Proteines restantes : ' + protLeft + ' g.',
+        targets ? 'Glucides restants : ' + Math.max(0, targets.carbs - Math.round(totals.carbs)) + ' g.' : '',
+        targets ? 'Lipides restants : ' + Math.max(0, targets.fat - Math.round(totals.fat)) + ' g.' : '',
+        '',
+        'Propose exactement 3 idees de repas adaptees.',
+        'Reponds UNIQUEMENT avec cet objet JSON, sans texte avant ni apres :',
+        '{"ideas":[{"name":"...","kcal":0,"protein":0,"desc":"..."}]}',
+      ].filter(Boolean).join('\n');
+
       const resp = await fetch(`${FN}/nox-coach`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
         body: JSON.stringify({
-          system: `Tu es NOX, assistant nutritionnel. Réponds UNIQUEMENT avec un tableau JSON valide, sans markdown, sans explication. Format strict : [{"name":"...","kcal":0,"protein":0,"desc":"..."}]. 3 éléments maximum.`,
-          messages: [{
-            role: 'user',
-            content: `Calories restantes : ${kcalLeft} kcal. Protéines restantes : ${protLeft}g. Glucides restants : ${targets ? Math.max(0, targets.carbs - Math.round(totals.carbs)) : '?'}g. Repas : ${mealType}. Propose 3 idées de repas adaptées. JSON uniquement.`
-          }],
+          system: 'Tu es NOX, assistant nutritionnel. Reponds UNIQUEMENT avec un objet JSON valide selon le format demande. Aucun texte en dehors du JSON.',
+          messages: [{ role: 'user', content: userMsg }],
         }),
       });
+
       if (!resp.ok) {
         const errData = await resp.json().catch(() => null);
         const msg =
@@ -472,36 +484,56 @@ export default function Fuel() {
           'Erreur NOX (' + resp.status + ')';
         throw new Error(msg);
       }
+
       const data = await resp.json();
-      console.log('🍽️ NOX MEAL IDEAS RAW:', data);
-      const text = data?.content?.[0]?.text || '';
-      // Parser le JSON retourné
-      const clean = text.replace(/\`\`\`json/gi,'').replace(/\`\`\`/g,'').trim();
-      const start = clean.indexOf('['), end = clean.lastIndexOf(']');
-      if (start >= 0 && end > start) {
-        const parsed = JSON.parse(clean.slice(start, end + 1));
-        if (Array.isArray(parsed) && parsed.length) {
-          setIdeas(parsed.slice(0, 3).map((x: any) => ({
-            name: String(x.name || 'Repas'),
-            kcal: Number(x.kcal || 0),
-            protein: Number(x.protein || 0),
-            desc: String(x.desc || ''),
-          })));
-          return;
+      const rawText = data?.content?.[0]?.text || '';
+      console.log('fetchIdeas raw:', rawText.slice(0, 300));
+
+      const clean = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+      // Essai 1 : JSON direct
+      let parsed: any = null;
+      try { parsed = JSON.parse(clean); } catch (_) {}
+
+      // Essai 2 : extraire { ... }
+      if (!parsed) {
+        const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
+        if (s >= 0 && e > s) {
+          try { parsed = JSON.parse(clean.slice(s, e + 1)); } catch (_) {}
         }
       }
-      throw new Error('Réponse IA invalide. Réessaie.');
+
+      const ideaList = Array.isArray(parsed?.ideas) ? parsed.ideas
+                     : Array.isArray(parsed)          ? parsed
+                     : null;
+
+      if (!ideaList || ideaList.length === 0) {
+        console.error('fetchIdeas — texte brut:', rawText);
+        throw new Error('Reponse IA invalide. Reessaie.');
+      }
+
+      setIdeas(
+        ideaList
+          .filter((x: any) => x && typeof x.name === 'string')
+          .slice(0, 3)
+          .map((x: any) => ({
+            name: x.name,
+            kcal: Number(x.kcal) || 0,
+            protein: Number(x.protein) || 0,
+            desc: typeof x.desc === 'string' ? x.desc : '',
+          }))
+      );
     } catch (err: unknown) {
-      console.error('fetchIdeas:', err);
+      console.error('fetchIdeas error:', err);
       setIdeasError(
-        err instanceof Error ? err.message : 'Impossible de générer des idées de repas.'
+        err instanceof Error ? err.message : 'Impossible de generer des idees de repas.'
       );
     } finally {
       setLoadIdeas(false);
     }
   };
 
-  const filtered =
+    const filtered =
     search.length > 1
       ? FOOD_DB.filter(food =>
           food.name.toLowerCase().includes(search.toLowerCase())
@@ -713,6 +745,32 @@ export default function Fuel() {
                 {typeof ideasError === 'string' ? ideasError : 'Impossible de générer des idées de repas.'}
               </div>
             )}
+            {/* FRIGO AI */}
+            <button
+              type="button"
+              onClick={() => navigate('/fuel-ai')}
+              style={{
+                width: '100%',
+                height: 40,
+                marginTop: 8,
+                padding: '0 10px 0 14px',
+                border: '1px solid #C8E87A',
+                borderRadius: 11,
+                background: 'transparent',
+                color: BLACK,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                boxSizing: 'border-box',
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, fontWeight: 900 }}>
+                🧊 FRIGO AI
+              </span>
+              <ChevronRight size={14} color={MUTED} />
+            </button>
+
             {ideas.length > 0 && (
               <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #E1F5A5', display: 'grid', gap: 8 }}>
                 {ideas.map((idea, i) => (
