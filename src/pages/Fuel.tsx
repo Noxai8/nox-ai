@@ -68,7 +68,18 @@ export default function Fuel() {
   } | null>(null);
 
   const [water, setWater] = useState(0);
-  const [ideas, setIdeas] = useState<{ name: string; kcal: number; protein: number; desc: string }[]>([]);
+  type MealIdea = {
+    name: string;
+    kcal: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    desc: string;
+    ingredients?: { name: string; grams?: number; unit?: string }[];
+    instructions?: string[];
+  };
+
+  const [ideas, setIdeas] = useState<MealIdea[]>([]);
   const [ideasError, setIdeasError] = useState<string | null>(null);
   const [loadIdeas, setLoadIdeas] = useState(false);
 
@@ -446,90 +457,102 @@ export default function Fuel() {
   };
 
   const fetchIdeas = async () => {
+    if (!isPro) { navigate('/subscribe'); return; }
+    if (!targets) { setIdeasError('Configure d’abord ton cap nutritionnel.'); return; }
+
     setLoadIdeas(true);
     setIdeasError(null);
     setIdeas([]);
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const mealType = currentMeal();
+      if (!session?.access_token) throw new Error('Session expirée. Reconnecte-toi.');
 
-      const userMsg = [
-        'Contexte nutrition :',
-        'Heure : ' + new Date().getHours() + 'h. Repas : ' + mealType + '.',
-        'Calories restantes : ' + kcalLeft + ' kcal.',
-        'Proteines restantes : ' + protLeft + ' g.',
-        targets ? 'Glucides restants : ' + Math.max(0, targets.carbs - Math.round(totals.carbs)) + ' g.' : '',
-        targets ? 'Lipides restants : ' + Math.max(0, targets.fat - Math.round(totals.fat)) + ' g.' : '',
-        '',
-        'Propose exactement 3 idees de repas adaptees.',
-        'Reponds UNIQUEMENT avec cet objet JSON, sans texte avant ni apres :',
-        '{"ideas":[{"name":"...","kcal":0,"protein":0,"desc":"..."}]}',
-      ].filter(Boolean).join('\n');
-
-      const resp = await fetch(`${FN}/nox-coach`, {
+      const resp = await fetch(`${FN}/generate-meal-plan`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
-          system: 'Tu es NOX, assistant nutritionnel. Reponds UNIQUEMENT avec un objet JSON valide selon le format demande. Aucun texte en dehors du JSON.',
-          messages: [{ role: 'user', content: userMsg }],
+          mode: 'ideas',
+          mealType: currentMeal(),
+          target: {
+            calories: targets.kcal,
+            protein: targets.protein,
+            carbs: targets.carbs,
+            fat: targets.fat,
+          },
+          remaining: {
+            kcal: Math.max(0, targets.kcal - Math.round(totals.kcal)),
+            protein: Math.max(0, targets.protein - Math.round(totals.protein)),
+            carbs: Math.max(0, targets.carbs - Math.round(totals.carbs)),
+            fat: Math.max(0, targets.fat - Math.round(totals.fat)),
+          },
         }),
       });
 
+      const data = await resp.json().catch(() => null);
       if (!resp.ok) {
-        const errData = await resp.json().catch(() => null);
-        const msg =
-          typeof errData?.error === 'string' ? errData.error :
-          errData?.error?.message ? String(errData.error.message) :
-          errData?.message ? String(errData.message) :
-          'Erreur NOX (' + resp.status + ')';
+        const msg = typeof data?.error === 'string' ? data.error
+          : data?.error?.message ? String(data.error.message)
+          : data?.message ? String(data.message)
+          : `Erreur NOX (${resp.status})`;
+        if (msg === 'PRO_REQUIRED') { navigate('/subscribe'); return; }
         throw new Error(msg);
       }
 
-      const data = await resp.json();
-      const rawText = data?.content?.[0]?.text || '';
-      console.log('fetchIdeas raw:', rawText.slice(0, 300));
-
-      const clean = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-
-      // Essai 1 : JSON direct
-      let parsed: any = null;
-      try { parsed = JSON.parse(clean); } catch (_) {}
-
-      // Essai 2 : extraire { ... }
-      if (!parsed) {
-        const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
-        if (s >= 0 && e > s) {
-          try { parsed = JSON.parse(clean.slice(s, e + 1)); } catch (_) {}
-        }
+      if (!Array.isArray(data?.ideas) || data.ideas.length === 0) {
+        throw new Error('Aucune idée de repas générée. Réessaie.');
       }
 
-      const ideaList = Array.isArray(parsed?.ideas) ? parsed.ideas
-                     : Array.isArray(parsed)          ? parsed
-                     : null;
+      const cleanIdeas: MealIdea[] = data.ideas
+        .filter((x: any) => x && typeof x.name === 'string')
+        .slice(0, 3)
+        .map((x: any) => ({
+          name: String(x.name),
+          kcal: Math.max(0, Math.round(Number(x.kcal) || 0)),
+          protein: Math.max(0, Math.round(Number(x.protein) || 0)),
+          carbs: Math.max(0, Math.round(Number(x.carbs) || 0)),
+          fat: Math.max(0, Math.round(Number(x.fat) || 0)),
+          desc: typeof x.desc === 'string' ? x.desc : '',
+          ingredients: Array.isArray(x.ingredients) ? x.ingredients : [],
+          instructions: Array.isArray(x.instructions) ? x.instructions : [],
+        }));
 
-      if (!ideaList || ideaList.length === 0) {
-        console.error('fetchIdeas — texte brut:', rawText);
-        throw new Error('Reponse IA invalide. Reessaie.');
-      }
-
-      setIdeas(
-        ideaList
-          .filter((x: any) => x && typeof x.name === 'string')
-          .slice(0, 3)
-          .map((x: any) => ({
-            name: x.name,
-            kcal: Number(x.kcal) || 0,
-            protein: Number(x.protein) || 0,
-            desc: typeof x.desc === 'string' ? x.desc : '',
-          }))
-      );
+      if (!cleanIdeas.length) throw new Error('Aucune idée exploitable générée. Réessaie.');
+      setIdeas(cleanIdeas);
     } catch (err: unknown) {
       console.error('fetchIdeas error:', err);
-      setIdeasError(
-        err instanceof Error ? err.message : 'Impossible de generer des idees de repas.'
-      );
+      setIdeasError(err instanceof Error ? err.message : 'Impossible de générer des idées de repas.');
     } finally {
       setLoadIdeas(false);
+    }
+  };
+
+  const addIdeaToDay = async (idea: MealIdea) => {
+    if (!user) return;
+    setSaving(true);
+    setIdeasError(null);
+    try {
+      const { error } = await supabase.from('food_entries').insert({
+        user_id: user.id,
+        meal_type: currentMeal(),
+        food_name: idea.name,
+        calories: idea.kcal,
+        protein: idea.protein,
+        carbs: idea.carbs,
+        fat: idea.fat,
+        created_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      await load();
+      setIdeas(current => current.filter(item => item !== idea));
+    } catch (err) {
+      console.error('addIdeaToDay error:', err);
+      setIdeasError('Impossible d’ajouter ce repas à ta journée.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -778,15 +801,20 @@ export default function Fuel() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 800, color: BLACK }}>{idea.name}</div>
                       <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
-                        ~{idea.kcal} kcal{idea.protein > 0 ? ` · ${idea.protein}g prot.` : ''}
-                        {idea.desc ? ` · ${idea.desc}` : ''}
+                        ~{idea.kcal} kcal · {idea.protein}g prot. · {idea.carbs}g gluc. · {idea.fat}g lip.
                       </div>
+                      {idea.desc && (
+                        <div style={{ fontSize: 10, color: '#555B52', marginTop: 4, lineHeight: 1.4 }}>
+                          {idea.desc}
+                        </div>
+                      )}
                     </div>
                     <button
-                      onClick={() => addEntry({ food_name: idea.name, calories: idea.kcal, protein: idea.protein, carbs: 0, fat: 0 })}
-                      style={{ flexShrink: 0, padding: '6px 12px', background: BLACK, border: 0, borderRadius: 10, color: ACCENT, fontSize: 10, fontWeight: 900, cursor: 'pointer' }}
+                      onClick={() => addIdeaToDay(idea)}
+                      disabled={saving}
+                      style={{ flexShrink: 0, padding: '6px 12px', background: BLACK, border: 0, borderRadius: 10, color: ACCENT, fontSize: 10, fontWeight: 900, cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1 }}
                     >
-                      + AJOUTER
+                      {saving ? 'AJOUT...' : '+ AJOUTER'}
                     </button>
                   </div>
                 ))}
