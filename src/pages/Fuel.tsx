@@ -157,7 +157,7 @@ export default function Fuel() {
 
         supabase
           .from('nutrition_targets')
-          .select('*')
+          .select('calories, protein_g, carbs_g, fat_g')
           .eq('user_id', user!.id)
           .maybeSingle(),
 
@@ -173,10 +173,10 @@ export default function Fuel() {
 
     if (tgts?.calories) {
       setTargets({
-        kcal: tgts.calories,
-        protein: tgts.protein ?? 0,
-        carbs: tgts.carbs ?? 0,
-        fat: tgts.fat ?? 0,
+        kcal: Number(tgts.calories) || 0,
+        protein: Number(tgts.protein_g) || 0,
+        carbs: Number(tgts.carbs_g) || 0,
+        fat: Number(tgts.fat_g) || 0,
       });
     } else {
       setTargets(null);
