@@ -17,6 +17,14 @@ const FN = 'https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1';
 
 const MEALS = ['Petit-dejeuner', 'Dejeuner', 'Diner', 'Snacks'];
 
+const localDateKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+const dateFromKey = (key: string) => {
+  const [year, month, day] = key.split('-').map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0, 0);
+};
+
 const FOOD_DB = [
   { name: 'Poulet grille', kcal: 165, protein: 31, carbs: 0, fat: 4 },
   { name: 'Riz blanc cuit', kcal: 130, protein: 2.7, carbs: 28, fat: 0.3 },
@@ -59,6 +67,7 @@ export default function Fuel() {
   const { isPro } = usePlan();
 
   const [entries, setEntries] = useState<any[]>([]);
+  const [selectedDateKey, setSelectedDateKey] = useState(() => localDateKey(new Date()));
 
   const [targets, setTargets] = useState<{
     kcal: number;
@@ -102,10 +111,10 @@ export default function Fuel() {
 
   useEffect(() => {
     if (user) load();
-  }, [user]);
+  }, [user, selectedDateKey]);
 
-  const todayBounds = () => {
-    const d = new Date();
+  const selectedDayBounds = () => {
+    const d = dateFromKey(selectedDateKey);
 
     return {
       start: new Date(
@@ -129,7 +138,7 @@ export default function Fuel() {
   };
 
   const load = async () => {
-    const { start, end } = todayBounds();
+    const { start, end } = selectedDayBounds();
 
     const [{ data: ents }, { data: tgts }, { data: wlog }] =
       await Promise.all([
@@ -212,12 +221,30 @@ export default function Fuel() {
     d.setDate(d.getDate() - mondayOffset + i);
 
     return {
-      key: d.toISOString().slice(0, 10),
+      key: localDateKey(d),
       day: ['L', 'M', 'M', 'J', 'V', 'S', 'D'][i],
       date: d.getDate(),
       isToday: d.toDateString() === new Date().toDateString(),
     };
   });
+
+  const selectedDate = dateFromKey(selectedDateKey);
+  const isSelectedToday = selectedDateKey === localDateKey(new Date());
+
+  const selectedDateLabel = isSelectedToday
+    ? "AUJOURD'HUI"
+    : selectedDate.toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }).toUpperCase();
+
+  const selectedSubtitle = isSelectedToday
+    ? "Ton alimentation aujourd'hui"
+    : `Ton alimentation du ${selectedDate.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+      })}`;
 
   const mealIcon = (meal: string) =>
     ({
@@ -304,6 +331,13 @@ export default function Fuel() {
     });
   };
 
+  const entryDateForSelectedDay = () => {
+    const now = new Date();
+    const d = dateFromKey(selectedDateKey);
+    d.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+    return d.toISOString();
+  };
+
   const addEntry = async (data: {
     food_name: string;
     calories: number;
@@ -317,7 +351,7 @@ export default function Fuel() {
       user_id: user!.id,
       meal_type: selMeal,
       ...data,
-      created_at: new Date().toISOString(),
+      created_at: entryDateForSelectedDay(),
     });
 
     await load();
@@ -344,7 +378,7 @@ export default function Fuel() {
       carbs: 0,
       fat: 0,
       water_ml: ml,
-      created_at: new Date().toISOString(),
+      created_at: entryDateForSelectedDay(),
     });
     if (error) {
       // Rollback si erreur
@@ -539,7 +573,7 @@ export default function Fuel() {
                 Nutrition
               </h1>
               <div style={{ marginTop: 4, fontSize: 12, color: MUTED }}>
-                Ton alimentation aujourd'hui
+                {selectedSubtitle}
               </div>
             </div>
 
@@ -570,31 +604,42 @@ export default function Fuel() {
               marginBottom: 12,
             }}
           >
-            {weekDays.map(day => (
-              <div
-                key={day.key}
-                style={{
-                  minWidth: 0,
-                  height: 54,
-                  borderRadius: 14,
-                  display: 'grid',
-                  placeItems: 'center',
-                  textAlign: 'center',
-                  background: day.isToday ? BLACK : '#F3F4F1',
-                  border: 0,
-                }}
-              >
-                <div style={{ fontSize: 9, fontWeight: 700, color: day.isToday ? WHITE : MUTED }}>
-                  {day.day}
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: day.isToday ? WHITE : BLACK }}>
-                  {day.date}
-                </div>
-                {day.isToday && (
-                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: ACCENT, margin: '3px auto 0' }} />
-                )}
-              </div>
-            ))}
+            {weekDays.map(day => {
+              const isSelected = day.key === selectedDateKey;
+
+              return (
+                <button
+                  type="button"
+                  key={day.key}
+                  onClick={() => setSelectedDateKey(day.key)}
+                  style={{
+                    minWidth: 0,
+                    height: 54,
+                    borderRadius: 14,
+                    display: 'grid',
+                    placeItems: 'center',
+                    textAlign: 'center',
+                    background: isSelected ? BLACK : '#F3F4F1',
+                    border: 0,
+                    cursor: 'pointer',
+                    padding: 0,
+                    font: 'inherit',
+                  }}
+                >
+                  <div style={{ fontSize: 9, fontWeight: 700, color: isSelected ? WHITE : MUTED }}>
+                    {day.day}
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: isSelected ? WHITE : BLACK }}>
+                    {day.date}
+                  </div>
+                  {day.isToday ? (
+                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: ACCENT, margin: '3px auto 0' }} />
+                  ) : (
+                    <div style={{ width: 5, height: 5, margin: '3px auto 0' }} />
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* INTERPRÉTATION NOX */}
@@ -741,7 +786,7 @@ export default function Fuel() {
                   marginBottom: 3,
                 }}
               >
-                AUJOURD'HUI
+                {selectedDateLabel}
               </div>
 
               <div
@@ -968,7 +1013,7 @@ export default function Fuel() {
                   paddingTop: 4,
                 }}
               >
-                aujourd'hui
+                {isSelectedToday ? "aujourd'hui" : selectedDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
               </div>
             </div>
 
