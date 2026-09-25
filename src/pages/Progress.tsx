@@ -729,32 +729,6 @@ Pas de markdown.`,
                     </div>
                   </div>
 
-                  {/* Comparateur avant/après photos */}
-                  {photos.length >= 2 && (
-                    <div style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 11, color: '#8B8F86', fontWeight: 800, textTransform: 'uppercase', marginBottom: 10 }}>COMPARATEUR AVANT / APRÈS</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                        <div>
-                          <div style={{ fontSize: 10, color: '#8B8F86', marginBottom: 4 }}>AVANT</div>
-                          <select value={compareA?.id || ''} onChange={e => setCompareA(photos.find(p => p.id === e.target.value))}
-                            style={{ width: '100%', padding: '8px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 8, color: '#090909', fontSize: 12, marginBottom: 6 }}>
-                            <option value="">Choisir...</option>
-                            {photos.map(p => <option key={p.id} value={p.id}>{new Date(p.created_at).toLocaleDateString('fr-FR')}</option>)}
-                          </select>
-                          {compareA?.photo_url && <img src={compareA.display_url || compareA.photo_url} style={{ width: '100%', borderRadius: 16, objectFit: 'cover', aspectRatio: '3/4' }} alt="Avant" />}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: '#8B8F86', marginBottom: 4 }}>APRÈS</div>
-                          <select value={compareB?.id || ''} onChange={e => setCompareB(photos.find(p => p.id === e.target.value))}
-                            style={{ width: '100%', padding: '8px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 8, color: '#090909', fontSize: 12, marginBottom: 6 }}>
-                            <option value="">Choisir...</option>
-                            {photos.map(p => <option key={p.id} value={p.id}>{new Date(p.created_at).toLocaleDateString('fr-FR')}</option>)}
-                          </select>
-                          {compareB?.photo_url && <img src={compareB.display_url || compareB.photo_url} style={{ width: '100%', borderRadius: 16, objectFit: 'cover', aspectRatio: '3/4' }} alt="Après" />}
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </>
               ) : (
                 <div style={{ textAlign: 'center', color: '#8B8F86', padding: '20px 0', fontSize: 13 }}>
@@ -769,7 +743,7 @@ Pas de markdown.`,
               )}
             </div>
 
-            {photos.length >= 2 && weightLogs.length <= 1 && (
+            {photos.length >= 2 && (
               <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 11, color: MUTED, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
                   COMPARATEUR AVANT / APRÈS
