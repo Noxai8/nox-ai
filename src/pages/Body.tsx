@@ -377,22 +377,79 @@ const photoInputRef = useRef<HTMLInputElement>(null);
   const MiniChart = () => {
     if (weightLogs.length < 2) return null;
     const weights = weightLogs.map(l => l.weight);
-    const min = Math.min(...weights) - 1;
-    const max = Math.max(...weights) + 1;
-    const W = 300, H = 80;
-    const points = weightLogs.map((l, i) => {
-      const x = (i / (weightLogs.length - 1)) * W;
-      const y = H - ((l.weight - min) / (max - min)) * H;
-      return `${x},${y}`;
-    }).join(' ');
+    const minW = Math.min(...weights);
+    const maxW = Math.max(...weights);
+    const pad = Math.max((maxW - minW) * 0.2, 1);
+    const lo = minW - pad;
+    const hi = maxW + pad;
+    const W = 300, H = 100;
+    const LABEL_H = 28; // espace sous la grille pour les dates
+    const GRID_H = H - LABEL_H;
+
+    const px = (i: number) => weightLogs.length === 1 ? W / 2 : (i / (weightLogs.length - 1)) * W;
+    const py = (w: number) => GRID_H - ((w - lo) / (hi - lo)) * (GRID_H - 14);
+
+    const fmtDate = (iso: string) =>
+      new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+
+    const polyPoints = weightLogs.map((l, i) => `${px(i)},${py(l.weight)}`).join(' ');
 
     return (
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 80 }}>
-        <polyline points={points} fill="none" stroke={ACCENT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H, overflow: 'visible' }}>
+        {/* Grille horizontale discrète */}
+        {[0.25, 0.5, 0.75].map(t => {
+          const y = GRID_H - t * (GRID_H - 14);
+          const val = (lo + t * (hi - lo)).toFixed(1);
+          return (
+            <g key={t}>
+              <line x1={0} y1={y} x2={W} y2={y} stroke="#2a2a2a" strokeWidth="1" strokeDasharray="4 4" />
+              <text x={3} y={y - 3} fontSize="7" fill="#555" fontWeight="600">{val}</text>
+            </g>
+          );
+        })}
+
+        {/* Ligne de connexion */}
+        <polyline
+          points={polyPoints}
+          fill="none"
+          stroke={ACCENT}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {/* Points + valeurs */}
         {weightLogs.map((l, i) => {
-          const x = (i / (weightLogs.length - 1)) * W;
-          const y = H - ((l.weight - min) / (max - min)) * H;
-          return <circle key={i} cx={x} cy={y} r="3" fill={ACCENT} />;
+          const x = px(i);
+          const y = py(l.weight);
+          const isFirst = i === 0;
+          const isLast = i === weightLogs.length - 1;
+          const anchor = isFirst ? 'start' : isLast ? 'end' : 'middle';
+          return (
+            <g key={i}>
+              <circle cx={x} cy={y} r="4" fill={ACCENT} />
+              <text
+                x={x}
+                y={y - 9}
+                textAnchor={anchor}
+                fontSize="9"
+                fill={ACCENT}
+                fontWeight="800"
+              >
+                {l.weight} kg
+              </text>
+              {/* Date sous la grille */}
+              <text
+                x={x}
+                y={GRID_H + 18}
+                textAnchor={anchor}
+                fontSize="8"
+                fill="#666"
+              >
+                {fmtDate(l.created_at)}
+              </text>
+            </g>
+          );
         })}
       </svg>
     );
