@@ -17,6 +17,7 @@ export default function Progress() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState<MainTab>('timeline');
+  const [period, setPeriod] = useState('30 jours');
 
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
@@ -347,71 +348,205 @@ Réponds en 3-4 phrases : bilan factuel, point fort, conseil clé pour le mois p
   type MainTab = 'timeline' | 'body' | 'training' | 'nutrition' | 'prs' | 'exercices';
 
   const TABS: [MainTab, string][] = [
-    ['timeline', 'Timeline'],
+    ['timeline', "Vue d'ensemble"],
     ['body', 'Corps'],
     ['training', 'Training'],
-    ['exercices', 'Exercices'],
     ['nutrition', 'Nutrition'],
     ['prs', 'Records'],
+    ['exercices', 'Exercices'],
   ];
 
   return (
     <div style={{ minHeight: '100vh', background: BG, color: BLACK, paddingBottom: 110 }}>
-      {/* Header */}
-      <div style={{ padding: '22px 20px 0' }}>
-        <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.12em', marginBottom: 6 }}>PROGRÈS</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h1 style={{ margin: 0, fontSize: 36, lineHeight: .95, fontWeight: 950, letterSpacing: '-.05em', color: BLACK }}>
-            TA<br />TRANSFORMATION.
-          </h1>
-          <button onClick={generateMonthlyReport} disabled={reportLoading}
-            style={{ padding: '10px 16px', background: BLACK, border: 0, borderRadius: 14, color: ACCENT, fontSize: 11, fontWeight: 900, cursor: 'pointer', touchAction: 'manipulation', flexShrink: 0 }}>
-            {reportLoading ? '...' : 'Rapport'}
-          </button>
+      {/* HEADER — DA PROGRÈS NOX */}
+      <div style={{ padding: '24px 20px 0', maxWidth: 560, margin: '0 auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, marginBottom: 18 }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 38, lineHeight: 1, fontWeight: 950, letterSpacing: '-.055em', color: BLACK }}>
+              Progrès
+            </h1>
+            <div style={{ marginTop: 6, fontSize: 13, color: MUTED, lineHeight: 1.35 }}>
+              Suis ce qui change réellement avec le temps.
+            </div>
+          </div>
+
+          <select
+            value={period}
+            onChange={e => setPeriod(e.target.value)}
+            aria-label="Période"
+            style={{
+              height: 44,
+              padding: '0 14px',
+              borderRadius: 18,
+              border: `1px solid ${BORDER}`,
+              background: WHITE,
+              color: BLACK,
+              fontSize: 12,
+              fontWeight: 800,
+              outline: 'none',
+            }}
+          >
+            <option>30 jours</option>
+            <option>3 mois</option>
+            <option>6 mois</option>
+            <option>Tout</option>
+          </select>
         </div>
 
-        {/* Rapport mensuel */}
+        {/* INTERPRÉTATION / DÉMARRAGE */}
+        <div style={{
+          background: 'linear-gradient(135deg, #F0FFD0 0%, #FBFFE9 100%)',
+          border: '1px solid #E1F5A5',
+          borderRadius: 24,
+          padding: '18px 18px 16px',
+          marginBottom: 16,
+        }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr', gap: 13, alignItems: 'start' }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 15, background: ACCENT,
+              display: 'grid', placeItems: 'center', fontSize: 23, fontWeight: 950,
+            }}>
+              ↗
+            </div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 950, letterSpacing: '-.025em', marginBottom: 5 }}>
+                {totalWorkouts === 0
+                  ? 'Ta progression commence maintenant.'
+                  : 'Ta progression prend forme.'}
+              </div>
+              <div style={{ fontSize: 12, color: '#59604F', lineHeight: 1.5 }}>
+                {totalWorkouts === 0
+                  ? 'Enregistre tes séances, ton poids et ta nutrition. NOX fera ressortir les tendances au fil du temps.'
+                  : `${totalWorkouts} séance${totalWorkouts > 1 ? 's' : ''} enregistrée${totalWorkouts > 1 ? 's' : ''}. Explore tes tendances pour comprendre ce qui évolue.`}
+              </div>
+            </div>
+          </div>
+
+          {totalWorkouts === 0 ? (
+            <button
+              onClick={() => navigate('/training')}
+              style={{
+                width: '100%', height: 50, marginTop: 16, border: 0, borderRadius: 17,
+                background: BLACK, color: WHITE, fontSize: 12, fontWeight: 950,
+                cursor: 'pointer', letterSpacing: '.01em',
+              }}
+            >
+              DÉMARRER UNE SÉANCE →
+            </button>
+          ) : (
+            <button
+              onClick={generateMonthlyReport}
+              disabled={reportLoading}
+              style={{
+                width: '100%', height: 50, marginTop: 16, border: 0, borderRadius: 17,
+                background: BLACK, color: WHITE, fontSize: 12, fontWeight: 950,
+                cursor: 'pointer',
+              }}
+            >
+              {reportLoading ? 'ANALYSE EN COURS…' : 'VOIR MON RAPPORT NOX →'}
+            </button>
+          )}
+        </div>
+
         {report && (
-          <div style={{ background: '#F0FFD0', border: '1px solid #DDF59C', borderRadius: 20, padding: '16px 18px', marginBottom: 14 }}>
-            <div style={{ fontSize: 10, color: '#687600', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>RAPPORT DU MOIS</div>
-            <div style={{ fontSize: 14, color: BLACK, lineHeight: 1.6 }}>{report}</div>
-            <button onClick={() => setReport(null)} style={{ marginTop: 10, background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 12 }}>Fermer</button>
+          <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 20, padding: '16px 18px', marginBottom: 16 }}>
+            <div style={{ fontSize: 10, color: MUTED, fontWeight: 900, letterSpacing: '.1em', marginBottom: 8 }}>RAPPORT NOX</div>
+            <div style={{ fontSize: 13, color: BLACK, lineHeight: 1.55 }}>{report}</div>
+            <button onClick={() => setReport(null)} style={{ marginTop: 10, background: 'none', border: 0, padding: 0, color: MUTED, cursor: 'pointer', fontSize: 11 }}>
+              Fermer
+            </button>
           </div>
         )}
 
-        {/* Stats rapides */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
+        {/* 4 CARTES DE SYNTHÈSE */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
           {[
-            { label: 'Séances', value: totalWorkouts },
-            { label: 'PR', value: prs.length },
-            { label: 'Poids Δ', value: weightDelta ? (parseFloat(weightDelta) > 0 ? '+' : '') + weightDelta + 'kg' : '—' },
-            { label: 'Volume', value: totalVolume > 1000 ? Math.round(totalVolume / 1000) + 't' : Math.round(totalVolume) + 'kg' },
-          ].map(({ label, value }) => (
-            <div key={label} style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: '14px 0', textAlign: 'center' }}>
-              <div style={{ fontSize: 20, fontWeight: 950, color: BLACK }}>{value}</div>
-              <div style={{ fontSize: 9, color: MUTED, fontWeight: 700, textTransform: 'uppercase', marginTop: 3 }}>{label}</div>
+            { icon: '🏋', label: 'Séances', value: totalWorkouts, help: "Nombre d'entraînements enregistrés." },
+            { icon: '●', label: 'Poids', value: currentWeight != null ? `${currentWeight} kg` : '—', help: 'Évolution de ton poids dans le temps.' },
+            { icon: '▥', label: "Volume d'entraînement", value: totalVolume > 1000 ? `${(totalVolume / 1000).toFixed(1)} t` : `${Math.round(totalVolume)} kg`, help: 'Charge totale soulevée.' },
+            { icon: '🏆', label: 'Records personnels', value: prs.length, help: 'Meilleures performances enregistrées.' },
+          ].map(item => (
+            <div key={item.label} style={{
+              minHeight: 126,
+              background: WHITE,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 22,
+              padding: '16px 16px 15px',
+              boxSizing: 'border-box',
+              boxShadow: '0 8px 26px rgba(20,25,15,.025)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 11, background: '#F2F3EF', display: 'grid', placeItems: 'center', fontSize: 15 }}>
+                  {item.icon}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 850 }}>{item.label}</div>
+              </div>
+              <div style={{ fontSize: 27, fontWeight: 950, letterSpacing: '-.045em', lineHeight: 1 }}>{item.value}</div>
+              <div style={{ fontSize: 10, color: MUTED, lineHeight: 1.35, marginTop: 8 }}>{item.help}</div>
             </div>
           ))}
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, overflowX: 'auto', background: '#ECEEE8', borderRadius: 18, padding: 4, marginBottom: 0 }}>
+        {/* ONGLETS */}
+        <div style={{
+          display: 'flex',
+          gap: 6,
+          overflowX: 'auto',
+          paddingBottom: 4,
+          scrollbarWidth: 'none',
+        }}>
           {TABS.map(([id, label]) => (
-            <button key={id} onClick={() => setTab(id as any)}
-              style={{ padding: '10px 14px', background: tab === id ? BLACK : 'transparent', border: 'none', borderRadius: 14, color: tab === id ? ACCENT : MUTED, fontSize: 11, fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap', touchAction: 'manipulation' }}>
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              style={{
+                flexShrink: 0,
+                height: 40,
+                padding: '0 15px',
+                border: 0,
+                borderRadius: 18,
+                background: tab === id ? BLACK : '#ECEEE8',
+                color: tab === id ? WHITE : '#555B52',
+                fontSize: 11,
+                fontWeight: 800,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {label}
             </button>
           ))}
         </div>
       </div>
 
-      <div style={{ padding: '16px 20px 0' }}>
+      <div style={{ padding: '16px 20px 0', maxWidth: 560, margin: '0 auto' }}>
 
         {/* ── TIMELINE ── */}
         {tab === 'timeline' && (
           <div>
             {events.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: '#8B8F86' }}>Pas encore de données — commence à t'entraîner !</div>
+              <div>
+                <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 18, marginBottom: 12 }}>
+                  <div style={{ fontSize: 18, fontWeight: 950, letterSpacing: '-.035em', marginBottom: 6 }}>Évolution sur 30 jours</div>
+                  <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5, marginBottom: 18 }}>
+                    Tes courbes apparaîtront ici dès que NOX aura suffisamment de données sur tes séances, ton poids ou ta nutrition.
+                  </div>
+                  <div style={{ height: 120, borderRadius: 18, background: '#F6F7F3', display: 'grid', placeItems: 'center', color: MUTED, fontSize: 11 }}>
+                    Pas encore assez de données
+                  </div>
+                </div>
+                <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 22, padding: 17 }}>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 13, background: '#F2F3EF', display: 'grid', placeItems: 'center', flexShrink: 0 }}>💡</div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 4 }}>Astuces NOX</div>
+                      <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.5 }}>
+                        Plus tu enregistres de données, plus NOX peut identifier des tendances utiles.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div style={{ position: 'relative' }}>
                 <div style={{ position: 'absolute', left: 19, top: 0, bottom: 0, width: 1, background: BORDER }} />
