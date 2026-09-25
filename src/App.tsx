@@ -20,6 +20,7 @@ const NoxFuture = lazy(() => import('./pages/NoxFuture'));
 const WeeklyReview = lazy(() => import('./pages/WeeklyReview'));
 const Settings = lazy(() => import('./pages/Settings'));
 const BarcodeScanner = lazy(() => import('./pages/BarcodeScanner'));
+const NutritionGoals = lazy(() => import('./pages/NutritionGoals'));
 const Subscribe = lazy(() => import('./pages/Subscribe'));
 const RestDay = lazy(() => import('./pages/RestDay'));
 const Partner = lazy(() => import('./pages/Partner'));
@@ -459,6 +460,7 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <Settings />
+        <Route path="/nutrition-goals" element={<ProtectedRoute><NutritionGoals /></ProtectedRoute>} />
             </ProtectedRoute>
           }
         />

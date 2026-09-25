@@ -659,7 +659,7 @@ export default function Fuel() {
                 <div style={{ fontSize: 12, lineHeight: 1.3, color: '#30342E' }}>{noxMessage.body}</div>
               </div>
               <button
-                onClick={() => navigate(targets ? '/meal-planner' : '/onboarding')}
+                onClick={() => navigate('/nutrition-goals')}
                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', marginTop: 6 }}
               >
                 <ChevronRight size={18} color="#83A000" />
