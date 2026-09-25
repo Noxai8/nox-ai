@@ -461,7 +461,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ fontSize: 10, color: '#777', fontWeight: 850, letterSpacing: '.09em' }}>POIDS ACTUEL</div>
-                      <div style={{ fontSize: 42, fontWeight: 950, letterSpacing: '-.055em', lineHeight: 1.05, marginTop: 6 }}>
+                      <div style={{ fontSize: 42, fontWeight: 950, letterSpacing: '-.055em', lineHeight: 1.05, marginTop: 6, color: '#FFFFFF' }}>
                         {Number(latest.weight)}<span style={{ fontSize: 15, color: '#777', marginLeft: 5 }}>kg</span>
                       </div>
                     </div>
