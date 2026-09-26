@@ -107,6 +107,9 @@ const [overloadSuggestion, setOverloadSuggestion] = useState<any>(null);
 const [stagnation, setStagnation] = useState<any>(null);
 const [trainingError, setTrainingError] = useState('');
 const [done, setDone] = useState(false);
+const [sessionFeedback, setSessionFeedback] = useState<'hard' | 'good' | 'easy' | null>(null);
+const [feedbackSaving, setFeedbackSaving] = useState(false);
+const [feedbackError, setFeedbackError] = useState('');
 const [workoutId, setWorkoutId] = useState<string | null>(null);
 const [loading, setLoading] = useState(true);
 const [savingSet, setSavingSet] = useState(false);
@@ -555,6 +558,30 @@ try {
 }
 
 };
+const saveSessionFeedback = async (feedback: 'hard' | 'good' | 'easy') => {
+  if (!user || !workoutId || feedbackSaving) return;
+  setFeedbackSaving(true);
+  setFeedbackError('');
+  try {
+    const { data, error } = await supabase
+      .from('workouts')
+      .update({ session_feedback: feedback })
+      .eq('id', workoutId)
+      .eq('user_id', user.id)
+      .eq('status', 'completed')
+      .select('id, session_feedback')
+      .maybeSingle();
+    if (error) throw error;
+    if (!data?.id) throw new Error("Le ressenti n'a pas pu être associé à cette séance.");
+    setSessionFeedback(feedback);
+  } catch (err: any) {
+    console.error('Training saveSessionFeedback:', err);
+    setFeedbackError(err?.message || "Impossible d'enregistrer ton ressenti.");
+  } finally {
+    setFeedbackSaving(false);
+  }
+};
+
 const abandonWorkout = async () => {
 setTrainingError('');
 
@@ -651,12 +678,44 @@ if (done) {
           <div style={{ fontSize: 10, fontWeight: 1000, color: '#111', letterSpacing: '.08em', marginBottom: 6 }}>COMMENT TU TE SENS ?</div>
           <div style={{ fontSize: 12.5, color: '#77776F', lineHeight: 1.45 }}>Ton ressenti aidera NOX à adapter la récupération et tes prochaines séances.</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 15 }}>
-            {['DIFFICILE', 'BIEN', 'FACILE'].map((label, index) => (
-              <button key={label} type="button" style={{ height: 44, borderRadius: 13, border: index === 1 ? `1px solid ${ACCENT}` : '1px solid #E6E8E0', background: index === 1 ? '#F6FFDA' : '#F7F8F4', color: '#111', fontSize: 10, fontWeight: 950, cursor: 'pointer' }}>
-                {label}
-              </button>
-            ))}
+            {([
+              { label: 'DIFFICILE', value: 'hard' },
+              { label: 'BIEN', value: 'good' },
+              { label: 'FACILE', value: 'easy' },
+            ] as { label: string; value: 'hard' | 'good' | 'easy' }[]).map(option => {
+              const selected = sessionFeedback === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  disabled={feedbackSaving}
+                  onClick={() => void saveSessionFeedback(option.value)}
+                  style={{
+                    height: 44, borderRadius: 13,
+                    border: selected ? `2px solid ${ACCENT}` : '1px solid #E6E8E0',
+                    background: selected ? '#F2FFD0' : '#F7F8F4',
+                    color: '#111', fontSize: 10, fontWeight: 950,
+                    cursor: feedbackSaving ? 'wait' : 'pointer',
+                    opacity: feedbackSaving && !selected ? 0.55 : 1,
+                    transition: 'background .15s ease, border .15s ease, opacity .15s ease',
+                  }}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
+          {feedbackSaving && (
+            <div style={{ marginTop: 10, fontSize: 10.5, color: '#77776F', fontWeight: 750 }}>Enregistrement…</div>
+          )}
+          {!feedbackSaving && sessionFeedback && (
+            <div style={{ marginTop: 10, fontSize: 10.5, color: '#59604F', fontWeight: 850 }}>Ressenti enregistré ✓</div>
+          )}
+          {feedbackError && (
+            <div style={{ marginTop: 10, padding: '9px 11px', borderRadius: 11, background: '#FFF2F2', border: '1px solid #FFB8B8', color: '#9B1C1C', fontSize: 10.5, lineHeight: 1.4, fontWeight: 750 }}>
+              {feedbackError}
+            </div>
+          )}
         </section>
 
         <button onClick={() => navigate('/training-calendar')}
