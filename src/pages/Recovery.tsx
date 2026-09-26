@@ -32,42 +32,83 @@ export default function Recovery() {
   });
   const [saved, setSaved] = useState(false);
   const [todayCheckin, setTodayCheckin] = useState<any>(null);
+  const [lastWorkout, setLastWorkout] = useState<any>(null);
+  const [loadingRecovery, setLoadingRecovery] = useState(true);
+  const [recoveryError, setRecoveryError] = useState('');
   const [readiness, setReadiness] = useState<{ score: number; label: string; color: string; advice: string } | null>(null);
 
-  useEffect(() => { if (user) loadToday(); }, [user]);
+  useEffect(() => {
+    if (user) void loadRecovery();
+  }, [user]);
 
-  const loadToday = async () => {
-    const today = new Date().toISOString().split('T')[0];
-    const { data } = await supabase.from('recovery_checkins')
-      .select('*').eq('user_id', user!.id)
-      .gte('created_at', today + 'T00:00:00')
-      .maybeSingle();
-    if (data) {
-      setTodayCheckin(data);
-      computeReadiness(data);
+  const loadRecovery = async () => {
+    if (!user) return;
+    setLoadingRecovery(true);
+    setRecoveryError('');
+    try {
+      const dayStart = new Date();
+      dayStart.setHours(0, 0, 0, 0);
+      const [
+        { data: checkinData, error: checkinError },
+        { data: workoutData, error: workoutError },
+      ] = await Promise.all([
+        supabase.from('recovery_checkins').select('*').eq('user_id', user.id)
+          .gte('created_at', dayStart.toISOString())
+          .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('workouts').select('id, name, finished_at, duration_minutes, session_feedback')
+          .eq('user_id', user.id).eq('status', 'completed')
+          .order('finished_at', { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      if (checkinError) throw checkinError;
+      if (workoutError) throw workoutError;
+      setLastWorkout(workoutData || null);
+      if (checkinData) {
+        setTodayCheckin(checkinData);
+        computeReadiness(checkinData, workoutData || null);
+      }
+    } catch (err: any) {
+      console.error('Recovery loadRecovery:', err);
+      setRecoveryError(err?.message || 'Impossible de charger les données de récupération.');
+    } finally {
+      setLoadingRecovery(false);
     }
   };
 
-  const computeReadiness = (data: any) => {
+  const computeReadiness = (data: any, workout: any = lastWorkout) => {
     let score = 100;
     if (data.sleep_hours) score -= Math.max(0, (7 - parseFloat(data.sleep_hours)) * 10);
     if (data.fatigue) score -= (parseInt(data.fatigue) - 1) * 8;
     if (data.soreness) score -= (parseInt(data.soreness) - 1) * 6;
     if (data.stress) score -= (parseInt(data.stress) - 1) * 6;
-    if (data.sleep_quality) score -= (parseInt(data.sleep_quality) > 3 ? 0 : (4 - parseInt(data.sleep_quality)) * 8);
+    if (data.sleep_quality) score -= parseInt(data.sleep_quality) > 3 ? 0 : (4 - parseInt(data.sleep_quality)) * 8;
     score = Math.max(0, Math.min(100, Math.round(score)));
 
-    let label, color, advice;
+    const feedback = workout?.session_feedback || null;
+    let label = '', color = '', advice = '';
+
     if (score >= 75) {
       label = 'TU PEUX GARDER LE RYTHME.'; color = ACCENT;
-      advice = 'Tes signaux de récupération sont bons aujourd’hui. Tu peux maintenir la séance et le rythme prévus.';
+      advice = "Tes signaux de récupération sont bons aujourd'hui. Tu peux maintenir la séance et le rythme prévus.";
     } else if (score >= 50) {
       label = 'RALENTIS UN PEU.'; color = '#ffaa00';
-      advice = 'Ta récupération est moyenne aujourd’hui. Tu peux bouger, mais évite de forcer inutilement et reste attentif à tes sensations.';
+      advice = "Ta récupération est moyenne aujourd'hui. Tu peux bouger, mais évite de forcer inutilement et reste attentif à tes sensations.";
     } else {
       label = 'PRIORITÉ RÉCUPÉRATION.'; color = '#ff4444';
-      advice = 'Tes signaux indiquent une récupération faible aujourd’hui. Privilégie le repos actif ou une séance légère.';
+      advice = "Tes signaux indiquent une récupération faible aujourd'hui. Privilégie le repos actif ou une séance légère.";
     }
+
+    if (feedback === 'hard') {
+      if (score >= 75) advice = "Tes signaux de récupération sont bons aujourd'hui, mais ta dernière séance t'a semblé difficile. Garde le rythme prévu sans chercher à augmenter inutilement l'intensité et surveille tes sensations.";
+      else if (score >= 50) advice = "Ta récupération est moyenne et ta dernière séance t'a semblé difficile. Aujourd'hui, privilégie une intensité contrôlée et donne la priorité à une bonne récupération.";
+      else advice = "Ta récupération est faible et ta dernière séance t'a semblé difficile. Priorité au repos, à la récupération et à une reprise progressive.";
+    }
+    if (feedback === 'easy' && score >= 75) {
+      advice = "Tes signaux de récupération sont bons et ta dernière séance t'a semblé facile. Tu peux suivre le programme prévu ; NOX dispose maintenant de ce ressenti pour guider les prochaines adaptations.";
+    }
+    if (feedback === 'good' && score >= 75) {
+      advice = "Tes signaux de récupération sont bons et ta dernière séance s'est bien passée. Tu peux maintenir le rythme prévu.";
+    }
+
     setReadiness({ score, label, color, advice });
   };
 
@@ -83,10 +124,16 @@ export default function Recovery() {
       resting_hr: checkin.resting_hr ? parseInt(checkin.resting_hr) : null,
       created_at: new Date().toISOString(),
     };
-    await supabase.from('recovery_checkins').insert(entry);
+    const { data, error } = await supabase
+      .from('recovery_checkins').insert(entry).select().single();
+    if (error) {
+      console.error('Recovery saveCheckin:', error);
+      setRecoveryError(error.message || "Impossible d'enregistrer le check-in.");
+      return;
+    }
     setSaved(true);
-    setTodayCheckin(entry);
-    computeReadiness(entry);
+    setTodayCheckin(data);
+    computeReadiness(data, lastWorkout);
   };
 
   const ScaleSelector = ({ label, stateKey, emoji }: any) => (
@@ -125,6 +172,26 @@ export default function Recovery() {
             <div style={{ fontSize: 11, fontWeight: 900, color: BLACK, letterSpacing: '.1em', textTransform: 'uppercase' }}>RECOMMANDATION NOX</div>
             <div style={{ fontSize: 28, lineHeight: 1, fontWeight: 950, color: BLACK, marginTop: 12, letterSpacing: '-.03em' }}>{readiness.label}</div>
             <div style={{ fontSize: 14, color: '#4F534C', marginTop: 12, lineHeight: 1.55 }}>{readiness.advice}</div>
+          </div>
+        )}
+
+        {lastWorkout?.session_feedback && (
+          <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 22, padding: '16px 18px', marginBottom: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 950, color: MUTED, letterSpacing: '.09em', textTransform: 'uppercase' }}>DERNIÈRE SÉANCE</div>
+            <div style={{ marginTop: 7, fontSize: 15, fontWeight: 900, color: BLACK }}>{lastWorkout.name || 'Séance'}</div>
+            <div style={{ marginTop: 6, fontSize: 12.5, color: MUTED, lineHeight: 1.45 }}>
+              Ressenti :{' '}
+              <strong style={{ color: BLACK }}>
+                {lastWorkout.session_feedback === 'hard' ? 'Difficile' : lastWorkout.session_feedback === 'easy' ? 'Facile' : 'Bien'}
+              </strong>
+              . NOX utilise ce signal pour contextualiser ta récupération.
+            </div>
+          </div>
+        )}
+
+        {recoveryError && (
+          <div style={{ background: '#FFF2F2', border: '1px solid #FFB8B8', color: '#9B1C1C', borderRadius: 16, padding: '11px 13px', marginBottom: 16, fontSize: 11.5, lineHeight: 1.45, fontWeight: 750 }}>
+            {recoveryError}
           </div>
         )}
 
