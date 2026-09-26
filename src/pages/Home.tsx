@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import {
-  Camera, ChevronRight, CircleUserRound,
-  Droplets, Dumbbell, Plus, Ruler, Scale,
+  Beef, Camera, Check, ChevronRight, CircleUserRound,
+  Droplets, Dumbbell, Flame, Moon, Plus, Ruler, Scale,
   ScanLine, Utensils, X,
 } from 'lucide-react';
 import { usePlan } from '../lib/usePlan';
@@ -217,8 +217,16 @@ export default function Home() {
   ) || null;
   // NOX Core — score explicable : nutrition 50% + protéines 30% + séance 20%
   const sessionDone  = Boolean(todayWorkout);
-  const sessionScore = todaySession ? (sessionDone ? 20 : 10) : 20; // repos = plein score
-  const noxPct = Math.min(100, Math.round((kcalPct * 0.5) + (protPct * 0.3) + sessionScore));
+  const sessionScore = todaySession ? (sessionDone ? 20 : 10) : 20;
+
+  const hasNutritionData   = todayFood.length > 0;
+  const hasSleepData       = Boolean(sleepData?.duration_hours);
+  const hasWorkoutData     = Boolean(todayWorkout);
+  const availableSignals   = [hasNutritionData, hasSleepData, hasWorkoutData, habitDone > 0].filter(Boolean).length;
+  const hasEnoughDataForScore = availableSignals >= 2;
+
+  const calculatedNoxPct = Math.min(100, Math.round((kcalPct * 0.5) + (protPct * 0.3) + sessionScore));
+  const noxPct = hasEnoughDataForScore ? calculatedNoxPct : null;
   const dateLabel = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()).toUpperCase();
 
   const fetchNoxMsg = async () => {
@@ -288,12 +296,21 @@ export default function Home() {
                 <svg width="112" height="112" style={{ transform: 'rotate(-90deg)' }}>
                   <circle cx="56" cy="56" r="44" fill="none" stroke="#EEF0EA" strokeWidth="9" />
                   <circle cx="56" cy="56" r="44" fill="none" stroke={ACCENT} strokeWidth="9" strokeLinecap="round"
-                    strokeDasharray={`${(noxPct / 100) * (2 * Math.PI * 44)} ${2 * Math.PI * 44}`} />
+                    strokeDasharray={`${((noxPct ?? 0) / 100) * (2 * Math.PI * 44)} ${2 * Math.PI * 44}`} />
                 </svg>
                 <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 30, fontWeight: 950, lineHeight: .9 }}>{noxPct}</div>
-                    <div style={{ fontSize: 9, color: MUTED, fontWeight: 800, marginTop: 5 }}>/100</div>
+                    {noxPct !== null ? (
+                      <>
+                        <div style={{ fontSize: 30, fontWeight: 950, lineHeight: .9 }}>{noxPct}</div>
+                        <div style={{ fontSize: 9, color: MUTED, fontWeight: 800, marginTop: 5 }}>/100</div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: 12, fontWeight: 950, lineHeight: 1 }}>EN COURS</div>
+                        <div style={{ fontSize: 8, color: MUTED, fontWeight: 800, marginTop: 5 }}>PLUS DE DONNÉES</div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -318,15 +335,17 @@ export default function Home() {
           <section style={{ background: LIME, border: '1px solid #DDF59C', borderRadius: 24, padding: 20, marginBottom: 12 }}>
             <div style={{ fontSize: 10, fontWeight: 950, color: '#667500', letterSpacing: '.1em', marginBottom: 8 }}>NOX A REMARQUÉ</div>
             <div style={{ fontSize: 14, lineHeight: 1.55, fontWeight: 650, color: BLACK }}>
-              {sleepData && Number(sleepData.duration_hours) < 7
-                ? `Ta nuit a été courte (${sleepData.duration_hours}h). Garde un œil sur ton énergie aujourd'hui.`
-                : sessionDone && todayWorkout?.session_feedback === 'hard'
-                  ? `Ta séance d'aujourd'hui t'a semblé difficile. NOX utilisera ce signal pour contextualiser ta récupération.`
-                  : kcalPct < 50 && new Date().getHours() >= 14
-                    ? `Ton apport nutritionnel est encore bas pour ce moment de la journée.`
-                    : protPct < kcalPct - 15
-                      ? `Tes protéines avancent moins vite que ton apport énergétique aujourd'hui.`
-                      : `Tes signaux du jour sont cohérents. Continue à suivre ton plan.`}
+              {!hasEnoughDataForScore
+                ? `Ta journée commence. NOX affinera son analyse à mesure que tu ajoutes tes données.`
+                : sleepData && Number(sleepData.duration_hours) < 7
+                  ? `Ta nuit a été courte (${sleepData.duration_hours}h). Garde un œil sur ton énergie aujourd'hui.`
+                  : sessionDone && todayWorkout?.session_feedback === 'hard'
+                    ? `Ta séance d'aujourd'hui t'a semblé difficile. NOX utilisera ce signal pour contextualiser ta récupération.`
+                    : kcalPct < 50 && new Date().getHours() >= 14
+                      ? `Ton apport nutritionnel est encore bas pour ce moment de la journée.`
+                      : protPct < kcalPct - 15
+                        ? `Tes protéines avancent moins vite que ton apport énergétique aujourd'hui.`
+                        : `Tes signaux disponibles sont cohérents avec ton plan aujourd'hui.`}
             </div>
           </section>
 
@@ -362,25 +381,30 @@ export default function Home() {
           {/* OBJECTIFS DU JOUR */}
           <div style={{ fontSize: 10, fontWeight: 950, color: MUTED, letterSpacing: '.11em', margin: '20px 2px 10px' }}>TES OBJECTIFS DU JOUR</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
-            {[
-              { icon: '🔥', value: `${Math.round(todayKcal)}`, label: `/ ${caloriesTarget} kcal`, click: () => navigate('/fuel') },
-              { icon: '🥩', value: `${Math.round(todayProt)}g`, label: `/ ${proteinTarget}g prot.`, click: () => navigate('/fuel') },
-              { icon: '🌙', value: sleepData ? `${sleepData.duration_hours}h` : '—', label: 'sommeil', click: () => navigate('/sleep') },
-              { icon: '✓', value: `${habitDone}/${habitTotal}`, label: 'habitudes', click: () => navigate('/habits') },
-            ].map((item, index) => (
-              <button key={index} onClick={item.click} style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: '14px 5px', minWidth: 0, cursor: 'pointer', textAlign: 'center' }}>
-                <div style={{ fontSize: 17, marginBottom: 7 }}>{item.icon}</div>
-                <div style={{ fontSize: 12, fontWeight: 950, color: BLACK, whiteSpace: 'nowrap' }}>{item.value}</div>
-                <div style={{ fontSize: 8, color: MUTED, fontWeight: 700, marginTop: 3, lineHeight: 1.25 }}>{item.label}</div>
-              </button>
-            ))}
+            {([
+              { icon: Flame, value: `${Math.round(todayKcal)}`, label: `/ ${caloriesTarget} kcal`, click: () => navigate('/fuel') },
+              { icon: Beef,  value: `${Math.round(todayProt)}g`, label: `/ ${proteinTarget}g prot.`, click: () => navigate('/fuel') },
+              { icon: Moon,  value: sleepData ? `${sleepData.duration_hours}h` : '—', label: 'sommeil', click: () => navigate('/sleep') },
+              { icon: Check, value: `${habitDone}/${habitTotal}`, label: 'habitudes', click: () => navigate('/habits') },
+            ] as { icon: any; value: string; label: string; click: () => void }[]).map((item, index) => {
+              const Icon = item.icon;
+              return (
+                <button key={index} onClick={item.click} style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: '14px 5px', minWidth: 0, cursor: 'pointer', textAlign: 'center' }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 10, background: LIME, display: 'grid', placeItems: 'center', margin: '0 auto 8px' }}>
+                    <Icon size={15} strokeWidth={2.5} color={BLACK} />
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 950, color: BLACK, whiteSpace: 'nowrap' }}>{item.value}</div>
+                  <div style={{ fontSize: 8, color: MUTED, fontWeight: 700, marginTop: 3, lineHeight: 1.25 }}>{item.label}</div>
+                </button>
+              );
+            })}
           </div>
 
           {/* ACCÈS NOX */}
           <button onClick={fetchNoxMsg} disabled={loadingMsg} style={{ width: '100%', border: 0, borderRadius: 20, background: BLACK, color: WHITE, padding: 18, marginTop: 4, cursor: 'pointer', textAlign: 'left' }}>
             <div style={{ fontSize: 10, fontWeight: 900, color: ACCENT, letterSpacing: '.1em', marginBottom: 5 }}>NOX</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 15 }}>
-              <span style={{ fontSize: 15, fontWeight: 900 }}>{loadingMsg ? 'NOX analyse ta journée…' : 'Demander conseil à NOX'}</span>
+              <span style={{ fontSize: 15, fontWeight: 900 }}>{loadingMsg ? 'NOX analyse ta journée…' : 'PARLER À NOX'}</span>
               <ChevronRight size={18} color={ACCENT} />
             </div>
           </button>
