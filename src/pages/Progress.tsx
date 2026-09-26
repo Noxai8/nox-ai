@@ -850,60 +850,6 @@ Pas de markdown.`,
               )}
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 11, color: '#8B8F86', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>ÉVOLUTION DU POIDS</div>
-              {weightLogs.length > 1 ? (
-                <>
-                  {/* Mini graphique SVG */}
-                  <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 20, padding: 16, marginBottom: 12 }}>
-                    <svg width="100%" height="80" viewBox={`0 0 ${weightLogs.length * 30} 80`} preserveAspectRatio="none">
-                      {weightLogs.map((log, i) => {
-                        const weights = weightLogs.map(l => l.weight).filter(Boolean);
-                        const minW = Math.min(...weights);
-                        const maxW = Math.max(...weights);
-                        const range = maxW - minW || 1;
-                        const x = i * 30 + 15;
-                        const y = 70 - ((log.weight - minW) / range) * 60;
-                        return i > 0 ? (
-                          <line key={i}
-                            x1={(i-1)*30+15} y1={70-((weightLogs[i-1].weight-minW)/range)*60}
-                            x2={x} y2={y}
-                            stroke={ACCENT} strokeWidth="2" />
-                        ) : null;
-                      })}
-                      {weightLogs.map((log, i) => {
-                        const weights = weightLogs.map(l => l.weight).filter(Boolean);
-                        const minW = Math.min(...weights);
-                        const maxW = Math.max(...weights);
-                        const range = maxW - minW || 1;
-                        const x = i * 30 + 15;
-                        const y = 70 - ((log.weight - minW) / range) * 60;
-                        return <circle key={i} cx={x} cy={y} r="3" fill={ACCENT} />;
-                      })}
-                    </svg>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                      <span style={{ fontSize: 10, color: '#8B8F86' }}>{new Date(weightLogs[0].created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
-                      <span style={{ fontSize: 12, fontWeight: 900, color: ACCENT }}>
-                        {weightDelta && (parseFloat(weightDelta) > 0 ? '+' : '')}{weightDelta}kg
-                      </span>
-                      <span style={{ fontSize: 10, color: '#8B8F86' }}>Aujourd'hui</span>
-                    </div>
-                  </div>
-
-                </>
-              ) : (
-                <div style={{ textAlign: 'center', color: '#8B8F86', padding: '20px 0', fontSize: 13 }}>
-                  {weightLogs.length === 1
-                    ? 'Ajoute une deuxième pesée pour créer une courbe sur cette période.'
-                    : "Enregistre ton poids dans Body pour voir l'évolution."}
-                  <br />
-                  <button onClick={() => navigate('/body')} style={{ marginTop: 12, padding: '8px 16px', background: ACCENT + '22', border: '1px solid ' + ACCENT + '44', borderRadius: 16, color: ACCENT, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                    Aller dans Body
-                  </button>
-                </div>
-              )}
-            </div>
-
             {photos.length >= 2 && (
               <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 11, color: MUTED, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
