@@ -2,6 +2,7 @@ import { calculateProgressiveOverload, detectStagnation } from '../lib/noxBrain'
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { getExerciseVisual } from '../lib/exerciseVisuals';
 import TutorialTooltip from '../components/TutorialTooltip';
 import { useAuth } from '../lib/AuthContext';
 import {
@@ -1074,11 +1075,23 @@ function NoxExerciseCover({ exercise, tags }: { exercise: any; tags: string[] })
             height={Math.min(390, typeof window !== 'undefined' ? window.innerWidth * 0.72 : 360)}
             fallbackLabel="DÉMO NOX"
           />
-        ) : (
-          <div style={{ width: '72%', maxWidth: 280, aspectRatio: '1.35 / 1', borderRadius: 28, background: 'linear-gradient(145deg,#FBFBF8,#F2F2ED)', border: '1px solid #ECECE7', display: 'grid', placeItems: 'center' }}>
-            <div style={{ width: 70, height: 70, borderRadius: '50%', background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 25, fontWeight: 1000 }}>▶</div>
-          </div>
-        )}
+        ) : (() => {
+          const v = getExerciseVisual(nox?.name || exercise?.name || '');
+          return v?.image_url ? (
+            <img src={v.image_url} alt={nox?.name || exercise?.name || 'Exercice'}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 16 }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          ) : (
+            <div style={{ display: 'grid', placeItems: 'center', gap: 12, textAlign: 'center', padding: 30 }}>
+              <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#F0F1EC', display: 'grid', placeItems: 'center' }}>
+                <span style={{ fontSize: 28 }}>💪</span>
+              </div>
+              <div style={{ fontSize: 11, color: '#A0A49B', fontWeight: 600, lineHeight: 1.4 }}>
+                {v?.muscles || 'Illustration bientôt disponible'}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
