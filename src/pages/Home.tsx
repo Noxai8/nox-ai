@@ -159,6 +159,7 @@ export default function Home() {
   const [noxMsg, setNoxMsg]         = useState<string | null>(null);
   const [loadingMsg, setLoadingMsg] = useState(false);
   const [sleepData, setSleepData]   = useState<any>(null);
+  const [todayWorkout, setTodayWorkout] = useState<any>(null);
   const [habitDone, setHabitDone]   = useState(0);
   const [habitTotal, setHabitTotal] = useState(4);
   const { isPro } = usePlan();
@@ -179,6 +180,18 @@ export default function Home() {
     ]);
     setProfile(prof); setProgram(prog); setTargets(tgts); setTodayFood(food || []);
     setSleepData(sleep || null);
+    // Séance terminée aujourd'hui
+    const { data: workout } = await supabase
+      .from('workouts')
+      .select('id, name, status, finished_at, duration_minutes, session_feedback')
+      .eq('user_id', user.id)
+      .eq('status', 'completed')
+      .gte('finished_at', start)
+      .lte('finished_at', end)
+      .order('finished_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setTodayWorkout(workout || null);
     // Habitudes du jour depuis localStorage
     try {
       const d = new Date();
@@ -191,7 +204,7 @@ export default function Home() {
 
   const firstName        = profile?.first_name || profile?.display_name?.split(' ')[0] || '';
   const caloriesTarget   = Number(targets?.calories || 2200);
-  const proteinTarget    = Number(targets?.protein  || 160);
+  const proteinTarget    = Number(targets?.protein_g || targets?.protein || 160);
   const todayKcal        = todayFood.reduce((s, e) => s + (e.calories || 0), 0);
   const todayProt        = todayFood.reduce((s, e) => s + (e.protein  || 0), 0);
   const kcalLeft         = Math.max(0, caloriesTarget - Math.round(todayKcal));
@@ -203,7 +216,7 @@ export default function Home() {
     String(s?.day || '').toLowerCase().includes(dayNames[new Date().getDay()].toLowerCase().slice(0,3))
   ) || null;
   // NOX Core — score explicable : nutrition 50% + protéines 30% + séance 20%
-  const sessionDone  = false; // sera mis à jour quand Training sauvegarde
+  const sessionDone  = Boolean(todayWorkout);
   const sessionScore = todaySession ? (sessionDone ? 20 : 10) : 20; // repos = plein score
   const noxPct = Math.min(100, Math.round((kcalPct * 0.5) + (protPct * 0.3) + sessionScore));
   const dateLabel = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()).toUpperCase();
@@ -254,172 +267,134 @@ export default function Home() {
           </button>
         </header>
 
-        <main style={{ padding: '24px 20px 0' }}>
-          <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.12em', marginBottom: 6 }}>{dateLabel}</div>
-          <h1 style={{ margin: '0 0 28px', fontSize: 36, lineHeight: .95, fontWeight: 950, letterSpacing: '-.05em' }}>
-            {firstName ? `BONJOUR ${firstName.toUpperCase()}.` : 'TON CORPS A BESOIN'}<br />
-            {firstName ? 'ON Y VA.' : 'DE CA AUJOURD\'HUI.'}
-          </h1>
+        <main style={{ padding: '22px 20px 0' }}>
 
-          {/* NOX CORE + PRIORITE */}
-          <div style={{ background: BLACK, borderRadius: 28, padding: 22, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 20 }}>
-            <NoxCore pct={noxPct} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.12em', marginBottom: 8 }}>PRIORITE NOX</div>
-              {kcalLeft > 200
-                ? <>
-                    <div style={{ fontSize: 20, fontWeight: 950, color: WHITE, lineHeight: 1.1, marginBottom: 6 }}>NOURRIS TA<br />JOURNEE.</div>
-                    <div style={{ fontSize: 12, color: '#888', lineHeight: 1.5 }}>{kcalLeft} kcal et {Math.round(Math.max(0, proteinTarget - todayProt))}g de proteines restants.</div>
-                    <button onClick={() => navigate('/fuel')} style={{ marginTop: 12, padding: '8px 14px', background: ACCENT, border: 0, borderRadius: 12, color: BLACK, fontSize: 11, fontWeight: 900, cursor: 'pointer' }}>
-                      VOIR QUOI MANGER
-                    </button>
-                  </>
-                : todaySession
-                ? <>
-                    <div style={{ fontSize: 20, fontWeight: 950, color: WHITE, lineHeight: 1.1, marginBottom: 6 }}>BOUGE<br />AUJOURD'HUI.</div>
-                    <div style={{ fontSize: 12, color: '#888', lineHeight: 1.5 }}>{todaySession.name} · {todaySession.exercises?.length || 0} exercices</div>
-                    <button onClick={() => navigate('/program')} style={{ marginTop: 12, padding: '8px 14px', background: ACCENT, border: 0, borderRadius: 12, color: BLACK, fontSize: 11, fontWeight: 900, cursor: 'pointer' }}>
-                      COMMENCER
-                    </button>
-                  </>
-                : <>
-                    <div style={{ fontSize: 20, fontWeight: 950, color: WHITE, lineHeight: 1.1, marginBottom: 6 }}>SUR LA<br />BONNE VOIE.</div>
-                    <div style={{ fontSize: 12, color: '#888' }}>Journee bien engagee. Continue.</div>
-                  </>
-              }
+          {/* HEADER */}
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: MUTED, marginBottom: 4 }}>
+              {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
             </div>
+            <h1 style={{ margin: 0, fontSize: 38, lineHeight: .95, fontWeight: 950, letterSpacing: '-.055em' }}>
+              AUJOURD'HUI
+            </h1>
+            <div style={{ marginTop: 8, fontSize: 11, fontWeight: 700, color: MUTED }}>{dateLabel}</div>
           </div>
+
+          {/* NOX SCORE */}
+          <section style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 26, padding: 20, marginBottom: 12 }}>
+            <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.11em', marginBottom: 16 }}>NOX SCORE</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ position: 'relative', width: 112, height: 112, flexShrink: 0 }}>
+                <svg width="112" height="112" style={{ transform: 'rotate(-90deg)' }}>
+                  <circle cx="56" cy="56" r="44" fill="none" stroke="#EEF0EA" strokeWidth="9" />
+                  <circle cx="56" cy="56" r="44" fill="none" stroke={ACCENT} strokeWidth="9" strokeLinecap="round"
+                    strokeDasharray={`${(noxPct / 100) * (2 * Math.PI * 44)} ${2 * Math.PI * 44}`} />
+                </svg>
+                <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 30, fontWeight: 950, lineHeight: .9 }}>{noxPct}</div>
+                    <div style={{ fontSize: 9, color: MUTED, fontWeight: 800, marginTop: 5 }}>/100</div>
+                  </div>
+                </div>
+              </div>
+              <div style={{ flex: 1, display: 'grid', gap: 9 }}>
+                {[
+                  { label: 'Sommeil',      value: sleepData ? `${sleepData.duration_hours}h` : '—' },
+                  { label: 'Nutrition',    value: `${kcalPct}%` },
+                  { label: 'Protéines',    value: `${protPct}%` },
+                  { label: 'Entraînement', value: sessionDone ? 'Fait' : todaySession ? 'Prévu' : 'Repos' },
+                  { label: 'Régularité',   value: `${habitDone}/${habitTotal}` },
+                ].map(item => (
+                  <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, color: MUTED, fontWeight: 700 }}>{item.label}</span>
+                    <span style={{ fontSize: 11, color: BLACK, fontWeight: 900 }}>{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* NOX A REMARQUÉ */}
+          <section style={{ background: LIME, border: '1px solid #DDF59C', borderRadius: 24, padding: 20, marginBottom: 12 }}>
+            <div style={{ fontSize: 10, fontWeight: 950, color: '#667500', letterSpacing: '.1em', marginBottom: 8 }}>NOX A REMARQUÉ</div>
+            <div style={{ fontSize: 14, lineHeight: 1.55, fontWeight: 650, color: BLACK }}>
+              {sleepData && Number(sleepData.duration_hours) < 7
+                ? `Ta nuit a été courte (${sleepData.duration_hours}h). Garde un œil sur ton énergie aujourd'hui.`
+                : sessionDone && todayWorkout?.session_feedback === 'hard'
+                  ? `Ta séance d'aujourd'hui t'a semblé difficile. NOX utilisera ce signal pour contextualiser ta récupération.`
+                  : kcalPct < 50 && new Date().getHours() >= 14
+                    ? `Ton apport nutritionnel est encore bas pour ce moment de la journée.`
+                    : protPct < kcalPct - 15
+                      ? `Tes protéines avancent moins vite que ton apport énergétique aujourd'hui.`
+                      : `Tes signaux du jour sont cohérents. Continue à suivre ton plan.`}
+            </div>
+          </section>
 
           {/* ET MAINTENANT */}
-          <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 20, marginBottom: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: noxMsg ? 14 : 0 }}>
-              <div style={{ fontSize: 18, fontWeight: 950, letterSpacing: '-.03em' }}>ET MAINTENANT ?</div>
-              {!noxMsg && (
-                <button onClick={fetchNoxMsg} disabled={loadingMsg} style={{ padding: '10px 16px', background: ACCENT, border: 0, borderRadius: 12, color: BLACK, fontSize: 11, fontWeight: 900, cursor: 'pointer' }}>
-                  {loadingMsg ? '...' : 'DEMANDER A NOX'}
-                </button>
-              )}
-            </div>
-            {noxMsg && (
+          <section style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 26, padding: 20, marginBottom: 12 }}>
+            <div style={{ fontSize: 10, fontWeight: 950, color: MUTED, letterSpacing: '.11em', marginBottom: 8 }}>ET MAINTENANT</div>
+            {todaySession && !sessionDone ? (
               <>
-                <div style={{ fontSize: 14, color: BLACK, lineHeight: 1.6 }}>{noxMsg}</div>
-                <button onClick={() => setNoxMsg(null)} style={{ marginTop: 12, background: 'none', border: 'none', color: MUTED, fontSize: 11, cursor: 'pointer', padding: 0 }}>Nouvelle question</button>
+                <div style={{ fontSize: 24, fontWeight: 950, letterSpacing: '-.04em', marginBottom: 5 }}>{todaySession.name}</div>
+                <div style={{ fontSize: 12, color: MUTED, marginBottom: 18 }}>{todaySession.exercises?.length || 0} exercices</div>
+                <button onClick={() => navigate('/program')} style={{ width: '100%', height: 52, border: 0, borderRadius: 16, background: BLACK, color: WHITE, fontSize: 12, fontWeight: 950, cursor: 'pointer' }}>
+                  COMMENCER MA SÉANCE →
+                </button>
+              </>
+            ) : kcalLeft > 300 ? (
+              <>
+                <div style={{ fontSize: 23, fontWeight: 950, letterSpacing: '-.04em', marginBottom: 6 }}>TON PROCHAIN REPAS</div>
+                <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.5, marginBottom: 18 }}>
+                  Il te reste {kcalLeft} kcal et environ {Math.max(0, proteinTarget - Math.round(todayProt))} g de protéines aujourd'hui.
+                </div>
+                <button onClick={() => navigate('/fuel')} style={{ width: '100%', height: 52, border: 0, borderRadius: 16, background: BLACK, color: WHITE, fontSize: 12, fontWeight: 950, cursor: 'pointer' }}>
+                  TROUVER MON PROCHAIN REPAS →
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 23, fontWeight: 950, letterSpacing: '-.04em', marginBottom: 6 }}>CONTINUE COMME ÇA.</div>
+                <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.5 }}>Tes principales actions du jour sont bien engagées.</div>
               </>
             )}
+          </section>
+
+          {/* OBJECTIFS DU JOUR */}
+          <div style={{ fontSize: 10, fontWeight: 950, color: MUTED, letterSpacing: '.11em', margin: '20px 2px 10px' }}>TES OBJECTIFS DU JOUR</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
+            {[
+              { icon: '🔥', value: `${Math.round(todayKcal)}`, label: `/ ${caloriesTarget} kcal`, click: () => navigate('/fuel') },
+              { icon: '🥩', value: `${Math.round(todayProt)}g`, label: `/ ${proteinTarget}g prot.`, click: () => navigate('/fuel') },
+              { icon: '🌙', value: sleepData ? `${sleepData.duration_hours}h` : '—', label: 'sommeil', click: () => navigate('/sleep') },
+              { icon: '✓', value: `${habitDone}/${habitTotal}`, label: 'habitudes', click: () => navigate('/habits') },
+            ].map((item, index) => (
+              <button key={index} onClick={item.click} style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: '14px 5px', minWidth: 0, cursor: 'pointer', textAlign: 'center' }}>
+                <div style={{ fontSize: 17, marginBottom: 7 }}>{item.icon}</div>
+                <div style={{ fontSize: 12, fontWeight: 950, color: BLACK, whiteSpace: 'nowrap' }}>{item.value}</div>
+                <div style={{ fontSize: 8, color: MUTED, fontWeight: 700, marginTop: 3, lineHeight: 1.25 }}>{item.label}</div>
+              </button>
+            ))}
           </div>
 
-          {/* NOURRIR */}
-          <button onClick={() => navigate('/fuel')} style={{ width: '100%', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 20, textAlign: 'left', cursor: 'pointer', marginBottom: 10, boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.1em', marginBottom: 4 }}>NOURRIR</div>
-                <div style={{ fontSize: 22, fontWeight: 950, letterSpacing: '-.03em' }}>
-                  {Math.round(todayKcal)}<span style={{ fontSize: 12, color: MUTED, fontWeight: 500 }}> / {caloriesTarget} kcal</span>
-                </div>
-              </div>
-              <ChevronRight size={18} color={MUTED} />
-            </div>
-            <div style={{ height: 6, background: BG, borderRadius: 99, overflow: 'hidden', marginBottom: 10 }}>
-              <div style={{ height: '100%', width: `${kcalPct}%`, background: ACCENT, borderRadius: 99, transition: 'width .4s' }} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-              {[
-                { label: 'PROTEINES', v: `${Math.round(todayProt)}/${proteinTarget}g` },
-                { label: 'RESTANTES', v: `${kcalLeft} kcal` },
-                { label: 'REPAS', v: `${todayFood.length}` },
-              ].map(({ label, v }) => (
-                <div key={label}>
-                  <div style={{ fontSize: 15, fontWeight: 950, color: BLACK }}>{v}</div>
-                  <div style={{ fontSize: 9, color: MUTED, fontWeight: 700, marginTop: 2 }}>{label}</div>
-                </div>
-              ))}
+          {/* ACCÈS NOX */}
+          <button onClick={fetchNoxMsg} disabled={loadingMsg} style={{ width: '100%', border: 0, borderRadius: 20, background: BLACK, color: WHITE, padding: 18, marginTop: 4, cursor: 'pointer', textAlign: 'left' }}>
+            <div style={{ fontSize: 10, fontWeight: 900, color: ACCENT, letterSpacing: '.1em', marginBottom: 5 }}>NOX</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 15 }}>
+              <span style={{ fontSize: 15, fontWeight: 900 }}>{loadingMsg ? 'NOX analyse ta journée…' : 'Demander conseil à NOX'}</span>
+              <ChevronRight size={18} color={ACCENT} />
             </div>
           </button>
 
-          {/* BOUGER */}
-          <button onClick={() => navigate('/program')} style={{ width: '100%', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 20, textAlign: 'left', cursor: 'pointer', marginBottom: 10, boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.1em', marginBottom: 4 }}>BOUGER</div>
-                {todaySession
-                  ? <>
-                      <div style={{ fontSize: 20, fontWeight: 950, letterSpacing: '-.03em' }}>{todaySession.name}</div>
-                      <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>{todaySession.exercises?.length || 0} exercices</div>
-                    </>
-                  : <>
-                      <div style={{ fontSize: 18, fontWeight: 950, letterSpacing: '-.03em' }}>JOUR DE REPOS</div>
-                      <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>Le muscle se construit au repos.</div>
-                    </>
-                }
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                <ChevronRight size={18} color={MUTED} />
-                {todaySession && (
-                  <div style={{ padding: '6px 12px', background: ACCENT, borderRadius: 20, fontSize: 10, fontWeight: 900, color: BLACK }}>COMMENCER</div>
-                )}
-              </div>
+          {noxMsg && (
+            <div style={{ background: LIME, borderRadius: 20, padding: 18, marginTop: 8, fontSize: 13, lineHeight: 1.55, color: BLACK }}>
+              {noxMsg}
             </div>
-          </button>
+          )}
 
-          {/* RECUPERER */}
-          <button onClick={() => navigate('/sleep')} style={{ width: '100%', background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 20, textAlign: 'left', cursor: 'pointer', marginBottom: 10, boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.1em', marginBottom: 4 }}>RECUPERER</div>
-                {sleepData ? (
-                  <>
-                    <div style={{ fontSize: 22, fontWeight: 950, letterSpacing: '-.03em' }}>
-                      {sleepData.duration_hours}h
-                      <span style={{ fontSize: 12, color: MUTED, fontWeight: 500, marginLeft: 6 }}>de sommeil</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: sleepData.duration_hours >= 7 ? '#69B578' : '#FF8C42', marginTop: 4 }}>
-                      {sleepData.duration_hours >= 8 ? 'Excellente nuit' : sleepData.duration_hours >= 7 ? 'Bonne nuit' : sleepData.duration_hours >= 6 ? 'Nuit correcte' : 'Nuit trop courte'}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div style={{ fontSize: 18, fontWeight: 950, letterSpacing: '-.03em' }}>SOMMEIL & ENERGIE</div>
-                    <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>Enregistre ta nuit.</div>
-                  </>
-                )}
-              </div>
-              <ChevronRight size={18} color={MUTED} />
-            </div>
-          </button>
-
-          {/* HABITUDE CLE */}
-          <button onClick={() => navigate('/habits')} style={{ width: '100%', background: LIME, border: '1px solid #DDF59C', borderRadius: 24, padding: 20, textAlign: 'left', cursor: 'pointer', marginBottom: 14, boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 10, fontWeight: 900, color: '#687600', letterSpacing: '.1em', marginBottom: 4 }}>HABITUDES DU JOUR</div>
-                <div style={{ fontSize: 22, fontWeight: 950, letterSpacing: '-.03em', color: BLACK }}>
-                  {habitDone}/{habitTotal}
-                  <span style={{ fontSize: 13, color: '#69715F', fontWeight: 500, marginLeft: 8 }}>
-                    {habitDone === habitTotal ? 'Toutes faites' : 'complétées'}
-                  </span>
-                </div>
-                <div style={{ height: 4, background: '#DDF59C', borderRadius: 99, overflow: 'hidden', marginTop: 10 }}>
-                  <div style={{ height: '100%', width: `${habitTotal > 0 ? (habitDone/habitTotal)*100 : 0}%`, background: '#687600', borderRadius: 99, transition: 'width .4s' }} />
-                </div>
-              </div>
-              <ChevronRight size={18} color="#687600" style={{ flexShrink: 0, marginLeft: 12 }} />
-            </div>
-          </button>
-
-          {/* NOX FUTURE */}
-          <button onClick={() => navigate('/future')} style={{ width: '100%', background: BLACK, borderRadius: 24, padding: 20, textAlign: 'left', cursor: 'pointer', marginBottom: 14, boxSizing: 'border-box' }}>
-            <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.12em', marginBottom: 8 }}>NOX FUTURE</div>
-            <div style={{ fontSize: 24, fontWeight: 950, color: WHITE, lineHeight: 1.05, letterSpacing: '-.03em', marginBottom: 8 }}>VOIS OU<br />TU VEUX ALLER.</div>
-            <div style={{ fontSize: 12, color: '#888', lineHeight: 1.5, marginBottom: 14 }}>Ta direction physique. NOX construit le chemin.</div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: ACCENT, borderRadius: 12 }}>
-              <span style={{ fontSize: 11, fontWeight: 900, color: BLACK }}>VOIR MA DIRECTION</span>
-              <ChevronRight size={14} color={BLACK} />
-            </div>
-          </button>
-
-          <div style={{ fontSize: 9, color: '#B0B4AB', textAlign: 'center', paddingBottom: 8, lineHeight: 1.5 }}>
-            NOX accompagne ton parcours. Les resultats varient selon ta regularite et ton contexte.
+          <div style={{ fontSize: 9, color: '#B0B4AB', textAlign: 'center', padding: '20px 10px 8px', lineHeight: 1.5 }}>
+            NOX adapte ses recommandations aux données disponibles.
           </div>
+
         </main>
       </div>
       <BottomNav active="home" />
