@@ -62,6 +62,7 @@ export default function Progress() {
   // Rapport
   const [reportLoading, setReportLoading] = useState(false);
   const [report, setReport] = useState<string | null>(null);
+  const [activeWeightIndex, setActiveWeightIndex] = useState<number | null>(null);
 
   useEffect(() => { if (user) loadAll(); }, [user]);
 
@@ -702,88 +703,193 @@ Pas de markdown.`,
             {/* Évolution poids */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 11, color: '#8B8F86', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>ÉVOLUTION DU POIDS</div>
+              {weightLogs.length > 1 ? (() => {
+                const weights = weightLogs.map((l: any) => Number(l.weight)).filter((v: number) => Number.isFinite(v));
+                const minW = Math.min(...weights);
+                const maxW = Math.max(...weights);
+                const spread = Math.max(maxW - minW, 1);
+                const pad = Math.max(spread * 0.2, 1);
+                const chartMin = minW - pad;
+                const chartMax = maxW + pad;
+
+                const W = 360;
+                const H = 150;
+                const left = 18;
+                const right = 18;
+                const top = 28;
+                const bottom = 30;
+                const plotW = W - left - right;
+                const plotH = H - top - bottom;
+
+                const pointAt = (log: any, i: number) => ({
+                  x: left + (i / Math.max(weightLogs.length - 1, 1)) * plotW,
+                  y: top + (1 - ((Number(log.weight) - chartMin) / (chartMax - chartMin))) * plotH,
+                });
+
+                const points = weightLogs.map((log: any, i: number) => {
+                  const p = pointAt(log, i);
+                  return `${p.x},${p.y}`;
+                }).join(' ');
+
+                const selectedIndex = activeWeightIndex != null && activeWeightIndex < weightLogs.length
+                  ? activeWeightIndex
+                  : weightLogs.length - 1;
+                const selected = weightLogs[selectedIndex];
+                const selectedPoint = pointAt(selected, selectedIndex);
+
+                const selectNearest = (clientX: number, svg: SVGSVGElement) => {
+                  const rect = svg.getBoundingClientRect();
+                  if (!rect.width) return;
+                  const localX = ((clientX - rect.left) / rect.width) * W;
+                  const ratio = Math.max(0, Math.min(1, (localX - left) / plotW));
+                  const index = Math.round(ratio * (weightLogs.length - 1));
+                  setActiveWeightIndex(index);
+                };
+
+                return (
+                  <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 20, padding: '14px 14px 12px', marginBottom: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
+                      <div>
+                        <span style={{ fontSize: 22, fontWeight: 950, color: '#090909' }}>{Number(selected.weight)}</span>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: '#8B8F86', marginLeft: 4 }}>kg</span>
+                      </div>
+                      <div style={{ fontSize: 10.5, fontWeight: 800, color: '#8B8F86' }}>
+                        {new Date(selected.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                    </div>
+
+                    <svg
+                      width="100%"
+                      viewBox={`0 0 ${W} ${H}`}
+                      style={{ display: 'block', touchAction: 'pan-y', userSelect: 'none', cursor: 'crosshair' }}
+                      onPointerDown={e => {
+                        e.currentTarget.setPointerCapture?.(e.pointerId);
+                        selectNearest(e.clientX, e.currentTarget);
+                      }}
+                      onPointerMove={e => {
+                        if (e.buttons === 1 || e.pointerType === 'touch') {
+                          selectNearest(e.clientX, e.currentTarget);
+                        }
+                      }}
+                    >
+                      {[0.25, 0.5, 0.75].map((ratio, i) => {
+                        const y = top + ratio * plotH;
+                        return (
+                          <line
+                            key={`grid-${i}`}
+                            x1={left}
+                            y1={y}
+                            x2={W - right}
+                            y2={y}
+                            stroke="#E4E6DF"
+                            strokeWidth="1"
+                            strokeDasharray="4 6"
+                          />
+                        );
+                      })}
+
+                      <polyline
+                        points={points}
+                        fill="none"
+                        stroke={ACCENT}
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+
+                      <line
+                        x1={selectedPoint.x}
+                        y1={top}
+                        x2={selectedPoint.x}
+                        y2={H - bottom}
+                        stroke="#B8BBB2"
+                        strokeWidth="1"
+                        strokeDasharray="3 5"
+                      />
+
+                      {weightLogs.map((log: any, i: number) => {
+                        const p = pointAt(log, i);
+                        const active = i === selectedIndex;
+                        return (
+                          <g key={log.id || i}>
+                            <circle
+                              cx={p.x}
+                              cy={p.y}
+                              r={active ? 6 : 4}
+                              fill={ACCENT}
+                              stroke={active ? '#090909' : ACCENT}
+                              strokeWidth={active ? 2 : 0}
+                            />
+                          </g>
+                        );
+                      })}
+
+                      <text x={left} y={H - 7} textAnchor="start" fill="#8B8F86" fontSize="9.5" fontWeight="700">
+                        {new Date(weightLogs[0].created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                      </text>
+                      <text x={W - right} y={H - 7} textAnchor="end" fill="#8B8F86" fontSize="9.5" fontWeight="700">
+                        {new Date(weightLogs[weightLogs.length - 1].created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                      </text>
+                    </svg>
+
+                    <div style={{ textAlign: 'center', fontSize: 10, color: '#A0A39B', marginTop: 2 }}>
+                      Glisse ton doigt sur la courbe pour parcourir tes pesées
+                    </div>
+                  </div>
+                );
+              })() : (
+                <div style={{ textAlign: 'center', color: '#8B8F86', padding: '20px 0', fontSize: 13 }}>
+                  {weightLogs.length === 1
+                    ? 'Ajoute une deuxième pesée pour créer une courbe sur cette période.'
+                    : "Enregistre ton poids dans Body pour voir l'évolution."}
+                  <br />
+                  <button onClick={() => navigate('/body')} style={{ marginTop: 12, padding: '8px 16px', background: ACCENT + '22', border: '1px solid ' + ACCENT + '44', borderRadius: 16, color: ACCENT, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    Aller dans Body
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 11, color: '#8B8F86', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>ÉVOLUTION DU POIDS</div>
               {weightLogs.length > 1 ? (
                 <>
-                  {(() => {
-                    const [activeIdx, setActiveIdx] = useState<number | null>(null);
-                    const svgRef = useRef<SVGSVGElement>(null);
-                    const logs = weightLogs;
-                    const weights = logs.map((l: any) => Number(l.weight));
-                    const minW = Math.min(...weights);
-                    const maxW = Math.max(...weights);
-                    const pad = Math.max((maxW - minW) * 0.25, 1);
-                    const lo = minW - pad, hi = maxW + pad;
-                    const W = 300, H = 160;
-                    const LEFT = 36, RIGHT = 8, TOP = 12, BOTTOM = 28;
-                    const CW = W - LEFT - RIGHT, CH = H - TOP - BOTTOM;
-                    const px = (i: number) => LEFT + (i / (logs.length - 1)) * CW;
-                    const py = (w: number) => TOP + CH - ((w - lo) / (hi - lo)) * CH;
-                    const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-                    const pathD = logs.reduce((d: string, l: any, i: number) => {
-                      const x = px(i), y = py(Number(l.weight));
-                      if (i === 0) return `M${x},${y}`;
-                      const px0 = px(i - 1), py0 = py(Number(logs[i - 1].weight));
-                      const cpx = (px0 + x) / 2;
-                      return `${d} C${cpx},${py0} ${cpx},${y} ${x},${y}`;
-                    }, '');
-                    const fillD = `${pathD} L${px(logs.length - 1)},${TOP + CH} L${px(0)},${TOP + CH} Z`;
-                    const yTicks = [0.25, 0.5, 0.75].map(t => ({ val: lo + t * (hi - lo), y: py(lo + t * (hi - lo)) }));
-                    const nearestIdx = (clientX: number) => {
-                      const svg = svgRef.current; if (!svg) return logs.length - 1;
-                      const rect = svg.getBoundingClientRect();
-                      const ratio = Math.max(0, Math.min(1, (clientX - rect.left - rect.width * LEFT / W) / (rect.width * CW / W)));
-                      let best = 0, bestDist = Infinity;
-                      logs.forEach((_: any, i: number) => { const dist = Math.abs((i / (logs.length - 1)) * CW - ratio * CW); if (dist < bestDist) { bestDist = dist; best = i; } });
-                      return best;
-                    };
-                    const handleTouch = (e: React.TouchEvent) => { e.preventDefault(); const t = e.touches[0] || e.changedTouches[0]; if (t) setActiveIdx(nearestIdx(t.clientX)); };
-                    const sel = activeIdx !== null ? activeIdx : logs.length - 1;
-                    const selLog = logs[sel], selX = px(sel), selY = py(Number(selLog.weight));
-                    const tooltipRight = sel < logs.length / 2;
-                    return (
-                      <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 20, padding: '14px 14px 10px', marginBottom: 12 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-                          <span style={{ fontSize: 20, fontWeight: 950, color: BLACK }}>{selLog.weight} <span style={{ fontSize: 11, color: MUTED, fontWeight: 500 }}>kg</span></span>
-                          <span style={{ fontSize: 11, color: MUTED }}>{fmtDate(selLog.created_at)}</span>
-                        </div>
-                        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
-                          style={{ width: '100%', height: H, display: 'block', touchAction: 'none', overflow: 'visible' }}
-                          onMouseMove={e => setActiveIdx(nearestIdx(e.clientX))}
-                          onMouseLeave={() => setActiveIdx(null)}
-                          onTouchStart={handleTouch} onTouchMove={handleTouch} onTouchEnd={handleTouch}
-                        >
-                          <defs>
-                            <linearGradient id="pgFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor={ACCENT} stopOpacity="0.18" />
-                              <stop offset="100%" stopColor={ACCENT} stopOpacity="0" />
-                            </linearGradient>
-                            <filter id="pgGlow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-                          </defs>
-                          {yTicks.map(({ val, y }) => (
-                            <g key={val}>
-                              <line x1={LEFT} y1={y} x2={W - RIGHT} y2={y} stroke="#E8EAE2" strokeWidth="1" />
-                              <text x={LEFT - 5} y={y + 3.5} textAnchor="end" fontSize="8.5" fill="#AAB0A8" fontWeight="600">{val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}</text>
-                            </g>
-                          ))}
-                          <line x1={LEFT} y1={TOP + CH} x2={W - RIGHT} y2={TOP + CH} stroke="#E8EAE2" strokeWidth="1" />
-                          <path d={fillD} fill="url(#pgFill)" />
-                          <path d={pathD} fill="none" stroke={ACCENT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                          {logs.map((_: any, i: number) => i !== sel && <circle key={i} cx={px(i)} cy={py(Number(logs[i].weight))} r="3" fill={ACCENT} opacity="0.4" />)}
-                          {activeIdx !== null && <line x1={selX} y1={TOP} x2={selX} y2={TOP + CH} stroke={ACCENT} strokeWidth="1" strokeDasharray="4 3" opacity="0.6" />}
-                          <circle cx={selX} cy={selY} r="9" fill={ACCENT} opacity="0.15" filter="url(#pgGlow)" />
-                          <circle cx={selX} cy={selY} r="5.5" fill={ACCENT} />
-                          <circle cx={selX} cy={selY} r="2.5" fill={BLACK} />
-                          <g transform={`translate(${tooltipRight ? selX + 10 : selX - 10}, ${Math.max(selY - 32, TOP + 4)})`}>
-                            <rect x={tooltipRight ? 0 : -88} y={0} width={88} height={28} rx="6" fill={BLACK} opacity="0.88" />
-                            <text x={tooltipRight ? 10 : -78} y={12} fontSize="11" fill={ACCENT} fontWeight="800">{Number(selLog.weight) % 1 === 0 ? Number(selLog.weight).toFixed(0) : Number(selLog.weight).toFixed(1)} kg</text>
-                            <text x={tooltipRight ? 10 : -78} y={23} fontSize="8.5" fill="#8B9080">{fmtDate(selLog.created_at)}</text>
-                          </g>
-                          <text x={LEFT} y={H - 6} fontSize="8.5" fill="#AAB0A8">{fmtDate(logs[0].created_at)}</text>
-                          <text x={W - RIGHT} y={H - 6} fontSize="8.5" fill="#AAB0A8" textAnchor="end">{fmtDate(logs[logs.length - 1].created_at)}</text>
-                        </svg>
-                      </div>
-                    );
-                  })()}
+                  {/* Mini graphique SVG */}
+                  <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 20, padding: 16, marginBottom: 12 }}>
+                    <svg width="100%" height="80" viewBox={`0 0 ${weightLogs.length * 30} 80`} preserveAspectRatio="none">
+                      {weightLogs.map((log, i) => {
+                        const weights = weightLogs.map(l => l.weight).filter(Boolean);
+                        const minW = Math.min(...weights);
+                        const maxW = Math.max(...weights);
+                        const range = maxW - minW || 1;
+                        const x = i * 30 + 15;
+                        const y = 70 - ((log.weight - minW) / range) * 60;
+                        return i > 0 ? (
+                          <line key={i}
+                            x1={(i-1)*30+15} y1={70-((weightLogs[i-1].weight-minW)/range)*60}
+                            x2={x} y2={y}
+                            stroke={ACCENT} strokeWidth="2" />
+                        ) : null;
+                      })}
+                      {weightLogs.map((log, i) => {
+                        const weights = weightLogs.map(l => l.weight).filter(Boolean);
+                        const minW = Math.min(...weights);
+                        const maxW = Math.max(...weights);
+                        const range = maxW - minW || 1;
+                        const x = i * 30 + 15;
+                        const y = 70 - ((log.weight - minW) / range) * 60;
+                        return <circle key={i} cx={x} cy={y} r="3" fill={ACCENT} />;
+                      })}
+                    </svg>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                      <span style={{ fontSize: 10, color: '#8B8F86' }}>{new Date(weightLogs[0].created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                      <span style={{ fontSize: 12, fontWeight: 900, color: ACCENT }}>
+                        {weightDelta && (parseFloat(weightDelta) > 0 ? '+' : '')}{weightDelta}kg
+                      </span>
+                      <span style={{ fontSize: 10, color: '#8B8F86' }}>Aujourd'hui</span>
+                    </div>
+                  </div>
+
                 </>
               ) : (
                 <div style={{ textAlign: 'center', color: '#8B8F86', padding: '20px 0', fontSize: 13 }}>
