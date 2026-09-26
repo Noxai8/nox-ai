@@ -164,9 +164,9 @@ export default function TrainingCalendar() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', background: '#0f0f0f', border: '1px solid #242424', borderRadius: 20, overflow: 'hidden', marginBottom: 22 }}>
           {[
-            { icon: '🏋', label: 'Séances totales', value: stats.total },
+            { icon: '⌁', label: 'Séances totales', value: stats.total },
             { icon: '▣', label: 'Ce mois', value: stats.thisMonth },
-            { icon: '🔥', label: 'Streak actuel', value: `${stats.streak}j` },
+            { icon: '↗', label: 'Streak actuel', value: `${stats.streak}j` },
             { icon: '◷', label: 'Durée moyenne', value: `${stats.avgDuration}min` },
           ].map(({ icon, label, value }, index) => (
             <div key={label} style={{ padding: '20px 18px', display: 'flex', alignItems: 'center', gap: 13, borderRight: index < 3 ? '1px solid #202020' : 'none' }}>
@@ -243,7 +243,7 @@ export default function TrainingCalendar() {
             <div style={{ fontSize: 17, fontWeight: 950, textTransform: 'capitalize' }}>{selectedDateLabel}</div>
             <div style={{ marginTop: 5, color: '#888', fontSize: 12 }}>{selectedDayWorkouts.length ? `${selectedDayWorkouts.length} séance${selectedDayWorkouts.length > 1 ? 's' : ''}` : 'Aucune séance terminée'}</div>
             {selectedDayWorkouts.length > 0 ? selectedDayWorkouts.map((workout: any) => <div key={workout.id} style={{ marginTop: 18, background: '#171717', borderRadius: 17, padding: 16, border: '1px solid #222' }}>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}><div style={{ width: 46, height: 46, borderRadius: 13, background: '#202020', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 20 }}>🏋</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 900 }}>{workout.name || workout.program_name || 'Séance'}</div><div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>Séance terminée</div></div></div>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}><div style={{ width: 46, height: 46, borderRadius: 13, background: '#202020', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 20 }}>⌁</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 900 }}>{workout.name || workout.program_name || 'Séance'}</div><div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>Séance terminée</div></div></div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 16 }}>
                 <div style={{ background: '#121212', borderRadius: 12, padding: 12, textAlign: 'center' }}><div style={{ color: ACCENT }}>◷</div><div style={{ marginTop: 5, fontWeight: 900 }}>{workout.duration_minutes || '—'}min</div><div style={{ color: '#666', fontSize: 9 }}>Durée</div></div>
                 <div style={{ background: '#121212', borderRadius: 12, padding: 12, textAlign: 'center' }}><div style={{ color: ACCENT }}>▰</div><div style={{ marginTop: 5, fontWeight: 900 }}>{workout.total_volume ? `${Math.round(workout.total_volume)} kg` : '—'}</div><div style={{ color: '#666', fontSize: 9 }}>Volume</div></div>
