@@ -318,65 +318,130 @@ export default function Progress() {
 
   const generateMonthlyReport = async () => {
     setReportLoading(true);
+    setReport(null);
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      if (!token) return;
+      if (!token) throw new Error('Session expirée. Reconnecte-toi puis réessaie.');
 
-      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-      const monthWorkouts = workouts.filter(w => w.created_at >= monthStart);
-      const monthPRs = prs.filter(p => p.created_at >= monthStart);
-      const monthBodyLogs = bodyLogs.filter((b: any) => b.created_at >= monthStart && b.weight != null);
-      const startW = monthBodyLogs[0]?.weight;
-      const endW = monthBodyLogs[monthBodyLogs.length - 1]?.weight;
+      // Le rapport suit exactement la période sélectionnée dans Progrès.
+      const reportStart = (() => {
+        if (period === 'Tout') return null;
+        const d = new Date();
+        if (period === '30 jours') d.setDate(d.getDate() - 30);
+        if (period === '3 mois') d.setMonth(d.getMonth() - 3);
+        if (period === '6 mois') d.setMonth(d.getMonth() - 6);
+        return d;
+      })();
 
-      const prompt = `Génère un rapport mensuel de progression fitness concis et motivant.
+      const isInReportPeriod = (value?: string | null) =>
+        !!value && (!reportStart || new Date(value).getTime() >= reportStart.getTime());
 
-DONNÉES DU MOIS :
-- Séances complétées : ${monthWorkouts.length}
-- Records personnels : ${monthPRs.length}
-- Poids début : ${startW || 'N/A'}kg → fin : ${endW || 'N/A'}kg
-- Évolution : ${startW && endW ? ((endW - startW) > 0 ? '+' : '') + (endW - startW).toFixed(1) + 'kg' : 'N/A'}
-- Objectif : ${profile?.goal_type || 'non renseigné'}
-- Volume total : ${workouts.filter(w => w.created_at >= monthStart).reduce((s, w) => s + (w.total_volume || 0), 0).toFixed(0)}kg
-- Jours de nutrition renseignés : ${nutritionWeeks.reduce((sum, w) => sum + (w.daysLogged || 0), 0)}
-- Photos de progression : ${photos.length}
-- Relevés de mensurations : ${measureLogs.length}
+      const reportWorkouts = workouts.filter((w: any) => isInReportPeriod(w.created_at));
+      const reportPRs = prs.filter((p: any) => isInReportPeriod(p.created_at));
+      const reportBodyLogs = bodyLogs
+        .filter((b: any) => b.weight != null && isInReportPeriod(b.created_at))
+        .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const reportPhotos = photos.filter((p: any) => isInReportPeriod(p.taken_at || p.created_at));
+      const reportMeasures = measureLogs.filter((m: any) => isInReportPeriod(m.created_at));
 
-Réponds en 3-4 phrases : bilan factuel, tendance principale et prochaine action concrète. Pas de markdown.`;
+      const startW = reportBodyLogs[0]?.weight;
+      const endW = reportBodyLogs[reportBodyLogs.length - 1]?.weight;
+      const weightEvolution =
+        startW != null && endW != null && reportBodyLogs.length > 1
+          ? `${Number(endW) - Number(startW) > 0 ? '+' : ''}${(Number(endW) - Number(startW)).toFixed(1)} kg`
+          : 'non calculable';
+
+      const reportVolume = reportWorkouts.reduce(
+        (sum: number, w: any) => sum + (Number(w.total_volume) || 0),
+        0,
+      );
+
+      // nutritionWeeks contient les 8 dernières semaines chargées par cette page.
+      // On ne prétend donc pas couvrir davantage si la période sélectionnée est plus longue.
+      const nutritionDays = nutritionWeeks.reduce(
+        (sum: number, w: any) => sum + (Number(w.daysLogged) || 0),
+        0,
+      );
+
+      const prompt = `Génère un rapport NOX de progression pour la période sélectionnée : ${period}.
+
+DONNÉES RÉELLEMENT ENREGISTRÉES :
+- Séances complétées : ${reportWorkouts.length}
+- Records personnels enregistrés : ${reportPRs.length}
+- Volume total enregistré : ${Math.round(reportVolume)} kg
+- Poids au premier relevé de la période : ${startW != null ? `${startW} kg` : 'non renseigné'}
+- Poids au dernier relevé de la période : ${endW != null ? `${endW} kg` : 'non renseigné'}
+- Évolution du poids : ${weightEvolution}
+- Objectif utilisateur : ${profile?.goal_type || 'non renseigné'}
+- Jours de nutrition disponibles dans les données chargées : ${nutritionDays}
+- Photos de progression sur la période : ${reportPhotos.length}
+- Relevés de mensurations sur la période : ${reportMeasures.length}
+
+Règles :
+- Utilise uniquement ces données.
+- Si une donnée est absente, dis simplement qu'elle n'est pas encore assez renseignée.
+- Ne transforme pas une absence de données en mauvaise performance.
+- Donne un bilan factuel, la tendance principale observable et UNE prochaine action concrète.
+- Réponds en français en 3 à 5 phrases courtes, sans markdown.`;
 
       const resp = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/nox-coach', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           system: `Tu es NOX, le coach de progression fitness de l'utilisateur.
-
-Ton rôle est d'analyser ses données de progression de manière factuelle, concise et actionnable.
-
-Ne crée aucune donnée absente.
-Ne fais aucune supposition sur des données non renseignées.
-Réponds en français.
-Pas de markdown.`,
+Analyse uniquement les données fournies.
+Ne crée aucune donnée absente et ne suppose rien.
+Distingue absence de données et absence de progrès.
+Sois factuel, concis et actionnable.
+Réponds en français, sans markdown.`,
           messages: [{ role: 'user', content: prompt }],
         }),
       });
 
-      const data = await resp.json();
+      const raw = await resp.text();
+      let data: any = null;
+      try {
+        data = raw ? JSON.parse(raw) : null;
+      } catch {
+        data = null;
+      }
 
       if (!resp.ok) {
         if (data?.error === 'PRO_REQUIRED') {
           setReport('Le rapport NOX est réservé aux abonnements Pro.');
           return;
         }
-        throw new Error(data?.error || 'Impossible de générer le rapport NOX.');
+
+        const apiError =
+          typeof data?.error === 'string'
+            ? data.error
+            : data?.error?.message || data?.message;
+
+        throw new Error(apiError || `Impossible de générer le rapport NOX (${resp.status}).`);
       }
 
-      const text = data?.content?.[0]?.text;
-      if (!text) throw new Error('Réponse NOX vide.');
-      setReport(text);
+      const reportText =
+        data?.content?.[0]?.text ||
+        data?.data?.content?.[0]?.text ||
+        data?.message?.content?.[0]?.text ||
+        data?.text ||
+        data?.response ||
+        data?.result ||
+        (!data && raw ? raw : '');
+
+      if (typeof reportText !== 'string' || !reportText.trim()) {
+        throw new Error("NOX n'a pas renvoyé de rapport exploitable. Réessaie dans quelques secondes.");
+      }
+
+      setReport(reportText.trim());
     } catch (err: unknown) {
       console.error('generateMonthlyReport:', err);
-      setReport(err instanceof Error ? err.message : 'Impossible de générer le rapport.');
+      setReport(err instanceof Error ? err.message : 'Impossible de générer le rapport NOX.');
     } finally {
       setReportLoading(false);
     }
