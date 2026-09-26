@@ -289,7 +289,7 @@ export default function Home() {
           </header>
 
           {/* NOX SCORE */}
-          <section style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 24, padding: '18px 18px 20px', marginBottom: 14 }}>
+          <section style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 24, padding: '16px 18px 17px', marginBottom: 14 }}>
             <div style={{ fontSize: 11, fontWeight: 950, letterSpacing: '.06em', marginBottom: 12 }}>NOX SCORE</div>
             <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', alignItems: 'center', gap: 14 }}>
               {/* GRAND CERCLE */}
@@ -314,7 +314,7 @@ export default function Home() {
                 </div>
               </div>
               {/* SIGNAUX */}
-              <div style={{ display: 'grid', gap: 13, minWidth: 0 }}>
+              <div style={{ display: 'grid', gap: 11, minWidth: 0 }}>
                 {[
                   { label: 'Sommeil',      value: sleepData?.duration_hours ? `${sleepData.duration_hours}h` : '—', i: 0 },
                   { label: 'Nutrition',    value: hasNutritionData ? `${kcalPct}%` : '—', i: 1 },
@@ -362,7 +362,7 @@ export default function Home() {
                     <Dumbbell size={24} strokeWidth={2.5} color={BLACK} />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 19, lineHeight: 1.1, fontWeight: 1000, letterSpacing: '-.025em', color: BLACK }}>{todaySession.name}</div>
+                    <div style={{ fontSize: 17, lineHeight: 1.1, fontWeight: 1000, letterSpacing: '-.025em', color: BLACK }}>{todaySession.name}</div>
                     <div style={{ marginTop: 4, fontSize: 12, color: '#73786E', fontWeight: 650 }}>
                       {todaySession.duration_minutes ? `${todaySession.duration_minutes} min • ` : ''}
                       {todaySession.exercises?.length || 0} exercices
