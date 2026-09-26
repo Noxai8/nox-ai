@@ -316,6 +316,30 @@ export default function Progress() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
+  // Poids fiable : un seul relevé par jour, le dernier enregistré ce jour-là.
+  // Cela évite d'interpréter plusieurs corrections/pesées le même jour comme une évolution dans le temps.
+  const getDailyWeightLogs = (logs: any[]) => {
+    const latestByDay = new Map<string, any>();
+
+    logs
+      .filter((log: any) => log?.weight != null && log?.created_at)
+      .forEach((log: any) => {
+        const date = new Date(log.created_at);
+        if (Number.isNaN(date.getTime())) return;
+
+        const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        const current = latestByDay.get(dayKey);
+
+        if (!current || new Date(log.created_at).getTime() > new Date(current.created_at).getTime()) {
+          latestByDay.set(dayKey, log);
+        }
+      });
+
+    return [...latestByDay.values()].sort(
+      (a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
+  };
+
   const generateMonthlyReport = async () => {
     setReportLoading(true);
     setReport(null);
@@ -340,18 +364,38 @@ export default function Progress() {
 
       const reportWorkouts = workouts.filter((w: any) => isInReportPeriod(w.created_at));
       const reportPRs = prs.filter((p: any) => isInReportPeriod(p.created_at));
-      const reportBodyLogs = bodyLogs
-        .filter((b: any) => b.weight != null && isInReportPeriod(b.created_at))
-        .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const reportBodyLogs = getDailyWeightLogs(
+        bodyLogs.filter((b: any) => b.weight != null && isInReportPeriod(b.created_at)),
+      );
       const reportPhotos = photos.filter((p: any) => isInReportPeriod(p.taken_at || p.created_at));
       const reportMeasures = measureLogs.filter((m: any) => isInReportPeriod(m.created_at));
 
-      const startW = reportBodyLogs[0]?.weight;
-      const endW = reportBodyLogs[reportBodyLogs.length - 1]?.weight;
-      const weightEvolution =
-        startW != null && endW != null && reportBodyLogs.length > 1
-          ? `${Number(endW) - Number(startW) > 0 ? '+' : ''}${(Number(endW) - Number(startW)).toFixed(1)} kg`
-          : 'non calculable';
+      const firstWeightLog = reportBodyLogs[0];
+      const lastWeightLog = reportBodyLogs[reportBodyLogs.length - 1];
+      const startW = firstWeightLog?.weight;
+      const endW = lastWeightLog?.weight;
+      const weightObservationDays =
+        firstWeightLog && lastWeightLog
+          ? Math.round(
+              (new Date(lastWeightLog.created_at).setHours(0, 0, 0, 0) -
+                new Date(firstWeightLog.created_at).setHours(0, 0, 0, 0)) /
+                86400000,
+            )
+          : 0;
+      const hasWeightTrend =
+        startW != null &&
+        endW != null &&
+        reportBodyLogs.length > 1 &&
+        weightObservationDays > 0;
+      const weightEvolution = hasWeightTrend
+        ? `${Number(endW) - Number(startW) > 0 ? '+' : ''}${(Number(endW) - Number(startW)).toFixed(1)} kg sur ${weightObservationDays} jour${weightObservationDays > 1 ? 's' : ''}`
+        : 'non calculable : pas encore deux jours distincts de pesée';
+      const firstWeightDate = firstWeightLog
+        ? new Date(firstWeightLog.created_at).toLocaleDateString('fr-FR')
+        : null;
+      const lastWeightDate = lastWeightLog
+        ? new Date(lastWeightLog.created_at).toLocaleDateString('fr-FR')
+        : null;
 
       const reportVolume = reportWorkouts.reduce(
         (sum: number, w: any) => sum + (Number(w.total_volume) || 0),
@@ -371,8 +415,9 @@ DONNÉES RÉELLEMENT ENREGISTRÉES :
 - Séances complétées : ${reportWorkouts.length}
 - Records personnels enregistrés : ${reportPRs.length}
 - Volume total enregistré : ${Math.round(reportVolume)} kg
-- Poids au premier relevé de la période : ${startW != null ? `${startW} kg` : 'non renseigné'}
-- Poids au dernier relevé de la période : ${endW != null ? `${endW} kg` : 'non renseigné'}
+- Jours distincts avec une pesée : ${reportBodyLogs.length}
+- Premier poids journalier disponible : ${startW != null ? `${startW} kg (${firstWeightDate})` : 'non renseigné'}
+- Dernier poids journalier disponible : ${endW != null ? `${endW} kg (${lastWeightDate})` : 'non renseigné'}
 - Évolution du poids : ${weightEvolution}
 - Objectif utilisateur : ${profile?.goal_type || 'non renseigné'}
 - Jours de nutrition disponibles dans les données chargées : ${nutritionDays}
@@ -383,6 +428,8 @@ Règles :
 - Utilise uniquement ces données.
 - Si une donnée est absente, dis simplement qu'elle n'est pas encore assez renseignée.
 - Ne transforme pas une absence de données en mauvaise performance.
+- La période sélectionnée (${period}) est une fenêtre d'analyse, pas la durée d'une évolution de poids.
+- N'annonce une perte ou une prise de poids que si l'évolution du poids ci-dessus est calculable entre au moins deux jours distincts.
 - Donne un bilan factuel, la tendance principale observable et UNE prochaine action concrète.
 - Réponds en français en 3 à 5 phrases courtes, sans markdown.`;
 
@@ -462,7 +509,7 @@ Réponds en français, sans markdown.`,
 
   const periodWorkouts = workouts.filter((w: any) => inPeriod(w.created_at));
   const periodPrs = prs.filter((p: any) => inPeriod(p.created_at));
-  const allWeightLogs = bodyLogs.filter((b: any) => b.weight != null);
+  const allWeightLogs = getDailyWeightLogs(bodyLogs);
   const weightLogs = allWeightLogs.filter((b: any) => inPeriod(b.created_at));
   const periodEvents = events.filter((e: any) => inPeriod(e.date));
 
