@@ -129,144 +129,132 @@ export default function TrainingCalendar() {
     ? workouts.find(workout => workoutDateKey(workout) === selectedDate)
     : null;
 
+  const selectedDateLabel = selectedDate
+    ? new Date(`${selectedDate}T12:00:00`).toLocaleDateString('fr-FR', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+      })
+    : '';
+
+  const selectedDayWorkouts = selectedDate
+    ? workouts.filter((w: any) => workoutDateKey(w) === selectedDate)
+    : [];
+
+  const workoutCountByDate = workouts.reduce((acc: Record<string, number>, w: any) => {
+    const key = workoutDateKey(w);
+    if (key) acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
   return (
-    <div style={{ minHeight: '100vh', background: BG, paddingBottom: 90 }}>
-      <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid ' + BORDER }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 22, marginBottom: 12, display: 'block' }}>←</button>
-        <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Training</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>CALENDRIER</div>
-      </div>
-
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, borderBottom: '1px solid ' + BORDER }}>
-        {[
-          { label: 'Total', value: stats.total },
-          { label: 'Ce mois', value: stats.thisMonth },
-          { label: 'Streak', value: stats.streak + 'j' },
-          { label: 'Moy.', value: stats.avgDuration + 'min' },
-        ].map(({ label, value }) => (
-          <div key={label} style={{ padding: '14px 0', textAlign: 'center', borderRight: '1px solid ' + BORDER }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: ACCENT }}>{value}</div>
-            <div style={{ fontSize: 10, color: '#555', fontWeight: 700, textTransform: 'uppercase' }}>{label}</div>
+    <div style={{ minHeight: '100vh', background: BG, color: '#fff', paddingBottom: 110 }}>
+      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '24px 20px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, marginBottom: 22, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button onClick={() => navigate(-1)} aria-label="Retour" style={{ width: 46, height: 46, borderRadius: 15, border: '1px solid #202020', background: '#141414', color: '#fff', cursor: 'pointer', fontSize: 24 }}>←</button>
+            <div>
+              <div style={{ fontSize: 12, color: '#777', textTransform: 'uppercase', letterSpacing: '.12em', fontWeight: 800 }}>Training</div>
+              <div style={{ fontSize: 'clamp(28px, 5vw, 46px)', lineHeight: 1, fontWeight: 950, letterSpacing: '-.04em' }}>CALENDRIER</div>
+            </div>
           </div>
-        ))}
-      </div>
-
-      <div style={{ padding: '16px 20px 0' }}>
-        {loadError && (
-          <div style={{ marginBottom: 16, padding: '12px 14px', borderRadius: 12, background: '#2a1111', border: '1px solid #6d2424', color: '#ff9b9b', fontSize: 12, lineHeight: 1.45 }}>
-            <div style={{ fontWeight: 900, marginBottom: 4 }}>IMPOSSIBLE DE CHARGER LES SÉANCES</div>
-            <div>{loadError}</div>
-            <button
-              onClick={() => void load()}
-              style={{ marginTop: 10, padding: '8px 12px', borderRadius: 9, border: '1px solid #ff9b9b55', background: 'transparent', color: '#ffb0b0', fontWeight: 800, cursor: 'pointer' }}
-            >
-              RÉESSAYER
-            </button>
+          <div style={{ display: 'flex', background: '#101010', border: '1px solid #242424', borderRadius: 999, padding: 4 }}>
+            <button onClick={() => setView('month')} style={{ border: view === 'month' ? `1px solid ${ACCENT}` : '1px solid transparent', background: 'transparent', color: '#fff', borderRadius: 999, padding: '9px 22px', fontWeight: 800, cursor: 'pointer' }}>Mois</button>
+            <button onClick={() => setView('week')} style={{ border: view === 'week' ? `1px solid ${ACCENT}` : '1px solid transparent', background: 'transparent', color: view === 'week' ? '#fff' : '#888', borderRadius: 999, padding: '9px 22px', fontWeight: 800, cursor: 'pointer' }}>Semaine</button>
           </div>
-        )}
-
-        {/* Navigation mois */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <button onClick={() => setCurrentMonth(m => new Date(m.getFullYear(), m.getMonth() - 1))}
-            style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 20, padding: '4px 8px' }}>‹</button>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>
-            {MONTH_NAMES[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-          </div>
-          <button onClick={() => setCurrentMonth(m => new Date(m.getFullYear(), m.getMonth() + 1))}
-            style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 20, padding: '4px 8px' }}>›</button>
         </div>
 
-        {/* Jours de semaine */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>
-          {DAY_NAMES.map((d, i) => (
-            <div key={i} style={{ textAlign: 'center', fontSize: 10, color: '#555', fontWeight: 700, padding: '4px 0' }}>{d}</div>
-          ))}
-        </div>
-
-        {/* Grille calendrier */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
-          {days.map((day, i) => {
-            if (!day) return <div key={i} />;
-            const dateStr = localDateKey(day);
-            const hasWorkout = workoutDates.has(dateStr);
-            const isToday = dateStr === todayStr;
-            const isSelected = dateStr === selectedDate;
-            const isFuture = day > new Date();
-            return (
-              <button key={i} onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                style={{
-                  padding: '8px 0', borderRadius: 10, border: '1px solid ' + (isSelected ? ACCENT : isToday ? ACCENT + '44' : BORDER),
-                  background: hasWorkout ? ACCENT + '22' : isToday ? '#1a1a1a' : 'transparent',
-                  cursor: isFuture ? 'default' : 'pointer', touchAction: 'manipulation',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                }}>
-                <span style={{ fontSize: 13, fontWeight: isToday ? 900 : 600, color: isSelected ? ACCENT : isToday ? '#fff' : isFuture ? '#333' : '#888' }}>
-                  {day.getDate()}
-                </span>
-                {hasWorkout && <div style={{ width: 5, height: 5, borderRadius: '50%', background: ACCENT }} />}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Détail séance sélectionnée */}
-        {selectedDate && (
-          <div style={{ marginTop: 20, background: SURFACE, border: '1px solid ' + (selectedWorkout ? ACCENT + '33' : BORDER), borderRadius: 16, padding: 18 }}>
-            {selectedWorkout ? (
-              <>
-                <div style={{ fontSize: 11, color: ACCENT, fontWeight: 800, textTransform: 'uppercase', marginBottom: 8 }}>SÉANCE DU {new Date(selectedDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 8 }}>{selectedWorkout.name || selectedWorkout.program_name || 'Séance'}</div>
-                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                  {selectedWorkout.duration_minutes && <span style={{ fontSize: 12, color: '#555' }}>⏱ {selectedWorkout.duration_minutes} min</span>}
-                  {selectedWorkout.total_volume && <span style={{ fontSize: 12, color: '#555' }}>📦 {Math.round(selectedWorkout.total_volume)}kg total</span>}
-                  {selectedWorkout.sets_completed && <span style={{ fontSize: 12, color: '#555' }}>✓ {selectedWorkout.sets_completed} séries</span>}
-                </div>
-              </>
-            ) : (
-              <div style={{ textAlign: 'center', color: '#333', fontSize: 13 }}>
-                Pas de séance ce jour
-                {new Date(selectedDate) <= new Date() && (
-                  <div style={{ marginTop: 10 }}>
-                    <button onClick={() => navigate('/program')}
-                      style={{ padding: '8px 16px', background: ACCENT + '22', border: '1px solid ' + ACCENT + '44', borderRadius: 10, color: ACCENT, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                      Voir le programme
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Historique récent */}
-        <div style={{ marginTop: 20 }}>
-          <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>SÉANCES RÉCENTES</div>
-          {workouts.slice(0, 5).map((w: any) => (
-            <div key={w.id} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '12px 14px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{w.name || w.program_name || 'Séance'}</div>
-                <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>
-                  {new Date(w.finished_at || w.started_at || w.created_at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
-                  {w.duration_minutes ? ` · ${w.duration_minutes}min` : ''}
-                </div>
-              </div>
-              <div style={{ fontSize: 12, color: ACCENT, fontWeight: 700 }}>✓</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', background: '#0f0f0f', border: '1px solid #242424', borderRadius: 20, overflow: 'hidden', marginBottom: 22 }}>
+          {[
+            { icon: '🏋', label: 'Séances totales', value: stats.total },
+            { icon: '▣', label: 'Ce mois', value: stats.thisMonth },
+            { icon: '🔥', label: 'Streak actuel', value: `${stats.streak}j` },
+            { icon: '◷', label: 'Durée moyenne', value: `${stats.avgDuration}min` },
+          ].map(({ icon, label, value }, index) => (
+            <div key={label} style={{ padding: '20px 18px', display: 'flex', alignItems: 'center', gap: 13, borderRight: index < 3 ? '1px solid #202020' : 'none' }}>
+              <div style={{ width: 42, height: 42, borderRadius: 13, background: '#181818', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 19 }}>{icon}</div>
+              <div><div style={{ fontSize: 25, fontWeight: 950, lineHeight: 1 }}>{value}</div><div style={{ marginTop: 6, color: '#777', fontSize: 10, fontWeight: 800, textTransform: 'uppercase' }}>{label}</div></div>
             </div>
           ))}
-          {!loading && !loadError && workouts.length === 0 && (
-            <div style={{ textAlign: 'center', color: '#555', padding: '20px 0', fontSize: 13 }}>
-              Pas encore de séances complétées
+        </div>
+
+        {loadError && <div style={{ marginBottom: 18, padding: '12px 14px', borderRadius: 12, background: '#2a1111', border: '1px solid #6d2424', color: '#ff9b9b', fontSize: 12 }}>
+          <strong>IMPOSSIBLE DE CHARGER LES SÉANCES</strong><div style={{ marginTop: 4 }}>{loadError}</div>
+          <button onClick={() => void load()} style={{ marginTop: 10, padding: '8px 12px', borderRadius: 9, border: '1px solid #ff9b9b55', background: 'transparent', color: '#ffb0b0', fontWeight: 800, cursor: 'pointer' }}>RÉESSAYER</button>
+        </div>}
+
+        <div style={{ display: 'grid', gridTemplateColumns: selectedDate ? 'minmax(0, 1.55fr) minmax(290px, .8fr)' : '1fr', gap: 20, alignItems: 'start' }}>
+          <div>
+            <div style={{ background: '#0f0f0f', border: '1px solid #242424', borderRadius: 22, padding: '20px 20px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+                <button onClick={() => setCurrentMonth(m => new Date(m.getFullYear(), m.getMonth() - 1))} style={{ width: 42, height: 42, borderRadius: 14, border: '1px solid #222', background: '#171717', color: '#fff', cursor: 'pointer', fontSize: 24 }}>‹</button>
+                <div style={{ fontSize: 19, fontWeight: 900 }}>{MONTH_NAMES[currentMonth.getMonth()]} {currentMonth.getFullYear()}</div>
+                <button onClick={() => setCurrentMonth(m => new Date(m.getFullYear(), m.getMonth() + 1))} style={{ width: 42, height: 42, borderRadius: 14, border: '1px solid #222', background: '#171717', color: '#fff', cursor: 'pointer', fontSize: 24 }}>›</button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, marginBottom: 7 }}>
+                {DAY_NAMES.map((d, i) => <div key={i} style={{ textAlign: 'center', color: '#777', fontSize: 11, fontWeight: 800, padding: '5px 0' }}>{d}</div>)}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
+                {days.map((day, i) => {
+                  if (!day) return <div key={i} />;
+                  const dateStr = localDateKey(day);
+                  const count = workoutCountByDate[dateStr] || 0;
+                  const hasWorkout = count > 0;
+                  const isToday = dateStr === todayStr;
+                  const isSelected = dateStr === selectedDate;
+                  const isFuture = day > new Date();
+                  return <button key={i} onClick={() => { if (!isFuture) setSelectedDate(isSelected ? null : dateStr); }} style={{
+                    minHeight: 64, padding: '8px 4px', borderRadius: 13,
+                    border: isToday ? `2px solid ${ACCENT}` : isSelected ? '2px solid #666' : '1px solid #252525',
+                    background: hasWorkout ? '#fff' : isSelected ? '#181818' : 'transparent',
+                    color: hasWorkout ? '#080808' : isToday ? ACCENT : isFuture ? '#383838' : '#aaa',
+                    cursor: isFuture ? 'default' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 900,
+                  }}>
+                    <span style={{ fontSize: 14 }}>{day.getDate()}</span>
+                    {hasWorkout && <div style={{ display: 'flex', gap: 3, height: 5 }}>{Array.from({ length: Math.min(count, 3) }).map((_, dot) => <span key={dot} style={{ width: 5, height: 5, borderRadius: '50%', background: ACCENT }} />)}</div>}
+                  </button>;
+                })}
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 22px', marginTop: 18, paddingTop: 14, borderTop: '1px solid #1e1e1e' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#777', fontSize: 11 }}><span style={{ width: 16, height: 16, borderRadius: 5, background: '#fff', border: '1px solid #333' }} />Séance effectuée</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#777', fontSize: 11 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: ACCENT }} />Plusieurs séances</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#777', fontSize: 11 }}><span style={{ width: 16, height: 16, borderRadius: 5, border: `2px solid ${ACCENT}` }} />Aujourd'hui</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#777', fontSize: 11 }}><span style={{ width: 16, height: 16, borderRadius: 5, background: '#111', border: '1px solid #333' }} />Aucune activité</div>
+              </div>
             </div>
-          )}
-          {loading && (
-            <div style={{ textAlign: 'center', color: '#555', padding: '20px 0', fontSize: 13 }}>
-              Chargement des séances...
+
+            <div style={{ background: '#0f0f0f', border: '1px solid #242424', borderRadius: 22, padding: 18, marginTop: 18 }}>
+              <div style={{ fontSize: 12, color: '#777', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Séances récentes</div>
+              {workouts.slice(0, 5).map((w: any) => {
+                const date = new Date(w.finished_at || w.started_at || w.created_at);
+                return <div key={w.id} style={{ borderTop: '1px solid #1d1d1d', padding: '12px 4px', display: 'grid', gridTemplateColumns: '58px 1fr auto', alignItems: 'center', gap: 12 }}>
+                  <div><div style={{ fontSize: 20, fontWeight: 950 }}>{date.getDate()}</div><div style={{ color: '#777', fontSize: 10 }}>{MONTH_NAMES[date.getMonth()]}.</div></div>
+                  <div><div style={{ fontSize: 13, fontWeight: 850 }}>{w.name || w.program_name || 'Séance'}</div><div style={{ color: '#777', fontSize: 10, marginTop: 3 }}>{w.sets_completed ? `${w.sets_completed} séries` : 'Séance terminée'}</div></div>
+                  <div style={{ color: '#aaa', fontSize: 11 }}>◷ {w.duration_minutes || '—'}min ›</div>
+                </div>;
+              })}
+              {!loading && !loadError && workouts.length === 0 && <div style={{ textAlign: 'center', color: '#555', padding: '22px 0', fontSize: 13 }}>Pas encore de séances complétées</div>}
+              {loading && <div style={{ textAlign: 'center', color: '#555', padding: '22px 0', fontSize: 13 }}>Chargement des séances...</div>}
             </div>
-          )}
+          </div>
+
+          {selectedDate && <aside style={{ position: 'sticky', top: 18, background: '#0f0f0f', border: '1px solid #242424', borderRadius: 22, padding: 18 }}>
+            <div style={{ fontSize: 17, fontWeight: 950, textTransform: 'capitalize' }}>{selectedDateLabel}</div>
+            <div style={{ marginTop: 5, color: '#888', fontSize: 12 }}>{selectedDayWorkouts.length ? `${selectedDayWorkouts.length} séance${selectedDayWorkouts.length > 1 ? 's' : ''}` : 'Aucune séance terminée'}</div>
+            {selectedDayWorkouts.length > 0 ? selectedDayWorkouts.map((workout: any) => <div key={workout.id} style={{ marginTop: 18, background: '#171717', borderRadius: 17, padding: 16, border: '1px solid #222' }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}><div style={{ width: 46, height: 46, borderRadius: 13, background: '#202020', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 20 }}>🏋</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 900 }}>{workout.name || workout.program_name || 'Séance'}</div><div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>Séance terminée</div></div></div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 16 }}>
+                <div style={{ background: '#121212', borderRadius: 12, padding: 12, textAlign: 'center' }}><div style={{ color: ACCENT }}>◷</div><div style={{ marginTop: 5, fontWeight: 900 }}>{workout.duration_minutes || '—'}min</div><div style={{ color: '#666', fontSize: 9 }}>Durée</div></div>
+                <div style={{ background: '#121212', borderRadius: 12, padding: 12, textAlign: 'center' }}><div style={{ color: ACCENT }}>▰</div><div style={{ marginTop: 5, fontWeight: 900 }}>{workout.total_volume ? `${Math.round(workout.total_volume)} kg` : '—'}</div><div style={{ color: '#666', fontSize: 9 }}>Volume</div></div>
+              </div>
+            </div>) : <div style={{ marginTop: 18, padding: '22px 12px', textAlign: 'center', background: '#151515', borderRadius: 16 }}>
+              <div style={{ color: '#777', fontSize: 12 }}>Pas de séance terminée ce jour.</div>
+              {new Date(`${selectedDate}T12:00:00`) <= new Date() && <button onClick={() => navigate('/program')} style={{ marginTop: 14, width: '100%', padding: 12, borderRadius: 12, border: 'none', background: ACCENT, color: '#080808', fontWeight: 950, cursor: 'pointer' }}>VOIR MON PROGRAMME →</button>}
+            </div>}
+          </aside>}
         </div>
       </div>
-
       <BottomNav active="training" />
     </div>
   );
