@@ -1000,9 +1000,9 @@ Réponds en français, sans markdown.`,
 
                   const compareWorkouts = workouts.filter((w: any) => between(w.created_at));
                   const compareVolume = compareWorkouts.reduce((sum: number, w: any) => sum + (Number(w.total_volume) || 0), 0);
-                  const compareWeights = bodyLogs
-                    .filter((b: any) => b.weight != null && between(b.created_at))
-                    .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                  const compareWeights = getDailyWeightLogs(
+                    bodyLogs.filter((b: any) => b.weight != null && between(b.created_at))
+                  );
                   const compareMeasures = measureLogs
                     .filter((m: any) => between(m.created_at))
                     .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
