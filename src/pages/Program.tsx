@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
-import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Check, ChevronRight, CirclePause, Dumbbell, Moon } from 'lucide-react';
 
 const ACCENT = '#C8FF00';
 const BG = '#F7F8F4';
@@ -57,6 +57,8 @@ export default function Program() {
   const [view, setView] = useState<View>('program');
   const [selSession, setSelSession] = useState<any>(null);
   const [selEx, setSelEx] = useState<any>(null);
+  const [completedWorkouts, setCompletedWorkouts] = useState<any[]>([]);
+  const [selectedWeek, setSelectedWeek] = useState(0);
 
   useEffect(() => {
     if (user) load();
@@ -79,6 +81,15 @@ export default function Program() {
     }
 
     setProgram(prog || null);
+
+    const { data: completed } = await supabase
+      .from('workouts')
+      .select('id, name, status, finished_at, created_at')
+      .eq('user_id', user.id)
+      .eq('status', 'completed')
+      .order('finished_at', { ascending: false });
+
+    setCompletedWorkouts(completed || []);
     setLoading(false);
   };
 
@@ -687,6 +698,50 @@ export default function Program() {
 
   // ------------------------------------------------------
   // LOADING
+  // Helpers semaine
+  const DAY_NAMES = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+  const startOfWeek = (date = new Date()) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+
+  const localDateKey = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const currentWeekStart = startOfWeek();
+  const visibleWeekStart = new Date(currentWeekStart);
+  visibleWeekStart.setDate(currentWeekStart.getDate() + selectedWeek * 7);
+  const todayKey = localDateKey(new Date());
+
+  const weekDays = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(visibleWeekStart);
+    date.setDate(visibleWeekStart.getDate() + index);
+    return { date, key: localDateKey(date), short: DAY_NAMES[date.getDay()], number: date.getDate() };
+  });
+
+  const workoutDateKey = (workout: any) => {
+    const raw = workout.finished_at || workout.created_at;
+    if (!raw) return null;
+    return localDateKey(new Date(raw));
+  };
+
+  const isCompletedOnDate = (session: any, dateKey: string) => {
+    return completedWorkouts.some(workout => {
+      if (workoutDateKey(workout) !== dateKey) return false;
+      if (workout.session_id && session.id && String(workout.session_id) === String(session.id)) return true;
+      return Boolean(workout.name && session.name && workout.name.trim().toLowerCase() === session.name.trim().toLowerCase());
+    });
+  };
+
   // ------------------------------------------------------
 
   if (loading) {
@@ -719,448 +774,103 @@ export default function Program() {
   // ------------------------------------------------------
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: BG,
-        color: BLACK,
-        paddingBottom: 110,
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 560,
-          margin: '0 auto',
-        }}
-      >
-        <header style={{ padding: '22px 20px 0' }}>
-          <div
-            style={{
-              fontSize: 10,
-              fontWeight: 900,
-              color: MUTED,
-              letterSpacing: '.12em',
-              marginBottom: 6,
-            }}
-          >
-            ENTRAÎNEMENT
-          </div>
+    <div style={{ minHeight: '100vh', background: '#FAFAF6', color: '#090909', paddingBottom: 100 }}>
+      <main style={{ width: '100%', maxWidth: 600, margin: '0 auto', padding: '26px 20px 20px' }}>
 
-          <h1
-            style={{
-              margin: '0 0 28px',
-              fontSize: 36,
-              lineHeight: 0.95,
-              fontWeight: 950,
-              letterSpacing: '-.05em',
-            }}
-          >
-            BOUGE POUR
-            <br />
-            TON OBJECTIF.
-          </h1>
+        {/* HEADER */}
+        <header style={{ marginBottom: 22 }}>
+          <div style={{ fontSize: 14, fontWeight: 850, color: '#656A61', letterSpacing: '.03em', marginBottom: 3 }}>ENTRAÎNEMENT</div>
+          <h1 style={{ margin: 0, fontSize: 40, lineHeight: .94, fontWeight: 1000, letterSpacing: '-.055em' }}>MON PROGRAMME</h1>
         </header>
 
-        <main style={{ padding: '0 20px' }}>
-          {/* PAS DE PROGRAMME */}
-
-          {!program && (
-            <div
-              style={{
-                background: BLACK,
-                borderRadius: 24,
-                padding: 24,
-                marginBottom: 14,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 900,
-                  color: MUTED,
-                  letterSpacing: '.12em',
-                  marginBottom: 8,
-                }}
-              >
-                PROGRAMME
-              </div>
-
-              <div
-                style={{
-                  fontSize: 22,
-                  fontWeight: 950,
-                  color: WHITE,
-                  lineHeight: 1.05,
-                  marginBottom: 12,
-                }}
-              >
-                Pas encore de
-                <br />
-                programme généré.
-              </div>
-
-              <button
-                onClick={() =>
-                  navigate('/generate-program')
-                }
-                style={{
-                  padding: '12px 20px',
-                  background: ACCENT,
-                  border: 0,
-                  borderRadius: 14,
-                  color: BLACK,
-                  fontWeight: 900,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                }}
-              >
-                CRÉER MON PROGRAMME
+        {/* SEMAINES */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 16 }}>
+          {[0, 1, 2, 3].map(week => {
+            const active = selectedWeek === week;
+            return (
+              <button key={week} onClick={() => setSelectedWeek(week)} style={{ flex: '0 0 auto', border: 0, borderRadius: 999, padding: '11px 16px', background: active ? '#E9FFC5' : 'transparent', color: active ? '#111' : '#999D94', fontSize: 13, fontWeight: active ? 950 : 750, cursor: 'pointer' }}>
+                Semaine {week + 1}
               </button>
-            </div>
-          )}
+            );
+          })}
+        </div>
 
-          {/* AUJOURD'HUI */}
-
-          {program && todaySession && (
-            <div
-              style={{
-                background: BLACK,
-                borderRadius: 24,
-                padding: 22,
-                marginBottom: 14,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 900,
-                  color: MUTED,
-                  letterSpacing: '.12em',
-                  marginBottom: 8,
-                }}
-              >
-                AUJOURD'HUI
-              </div>
-
-              <div
-                style={{
-                  fontSize: 26,
-                  fontWeight: 950,
-                  color: WHITE,
-                  lineHeight: 1,
-                  letterSpacing: '-.03em',
-                  marginBottom: 6,
-                }}
-              >
-                {todaySession.name}
-              </div>
-
-              <div
-                style={{
-                  fontSize: 13,
-                  color: '#888',
-                  marginBottom: 20,
-                }}
-              >
-                {todaySession.exercises?.length || 0}{' '}
-                exercices
-                {(todaySession.duration ||
-                  program?.program_json
-                    ?.session_length_min)
-                  ? ` · ${
-                      todaySession.duration ||
-                      program?.program_json
-                        ?.session_length_min
-                    } min`
-                  : ''}
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  gap: 10,
-                }}
-              >
-                <button
-                  onClick={() => {
-                    setSelSession(todaySession);
-                    setView('session');
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '12px 0',
-                    background: 'transparent',
-                    border: '1px solid #333',
-                    borderRadius: 14,
-                    color: WHITE,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Voir la séance
-                </button>
-
-                <button
-                  onClick={() => {
-                    const idx = sessions.findIndex(
-                      (s: any) =>
-                        s === todaySession
-                    );
-
-                    navigate(
-                      `/training/${
-                        todaySession.id || idx
-                      }`
-                    );
-                  }}
-                  style={{
-                    flex: 2,
-                    padding: '12px 0',
-                    background: ACCENT,
-                    border: 0,
-                    borderRadius: 14,
-                    color: BLACK,
-                    fontSize: 13,
-                    fontWeight: 900,
-                    cursor: 'pointer',
-                  }}
-                >
-                  COMMENCER →
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* REPOS */}
-
-          {program && !todaySession && (
-            <div
-              style={{
-                background: LIME,
-                border: '1px solid #DDF59C',
-                borderRadius: 24,
-                padding: 22,
-                marginBottom: 14,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 900,
-                  color: '#687600',
-                  letterSpacing: '.12em',
-                  marginBottom: 8,
-                }}
-              >
-                AUJOURD'HUI
-              </div>
-
-              <div
-                style={{
-                  fontSize: 26,
-                  fontWeight: 950,
-                  color: BLACK,
-                  lineHeight: 1,
-                  marginBottom: 6,
-                }}
-              >
-                JOUR DE REPOS.
-              </div>
-
-              <div
-                style={{
-                  fontSize: 13,
-                  color: '#69715F',
-                }}
-              >
-                La récupération fait partie de
-                l'entraînement.
-              </div>
-            </div>
-          )}
-
-          {/* TOUTES LES SÉANCES */}
-
-          {program && sessions.length > 0 && (
-            <>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 900,
-                  color: MUTED,
-                  letterSpacing: '.1em',
-                  marginBottom: 12,
-                }}
-              >
-                MON PROGRAMME · {sessions.length}{' '}
-                SÉANCE
-                {sessions.length > 1 ? 'S' : ''}
-              </div>
-
-              {sessions.map(
-                (session: any, i: number) => {
-                  const isToday =
-                    session === todaySession;
-
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => {
-                        setSelSession(session);
-                        setView('session');
-                      }}
-                      style={{
-                        width: '100%',
-                        background: WHITE,
-                        border: `1px solid ${
-                          isToday
-                            ? ACCENT
-                            : BORDER
-                        }`,
-                        borderRadius: 20,
-                        padding: '16px 18px',
-                        marginBottom: 10,
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        boxSizing: 'border-box',
-                        display: 'flex',
-                        justifyContent:
-                          'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            marginBottom: 6,
-                          }}
-                        >
-                          {isToday && (
-                            <div
-                              style={{
-                                padding:
-                                  '2px 8px',
-                                background:
-                                  ACCENT,
-                                borderRadius: 20,
-                                fontSize: 9,
-                                fontWeight: 900,
-                                color: BLACK,
-                              }}
-                            >
-                              AUJOURD'HUI
-                            </div>
-                          )}
-
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: MUTED,
-                              fontWeight: 700,
-                            }}
-                          >
-                            {String(
-                              session.day ||
-                                `Jour ${i + 1}`
-                            ).toUpperCase()}
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            fontSize: 17,
-                            fontWeight: 800,
-                            color: BLACK,
-                            marginBottom: 4,
-                          }}
-                        >
-                          {session.name}
-                        </div>
-
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: MUTED,
-                          }}
-                        >
-                          {session.exercises
-                            ?.length || 0}{' '}
-                          exercices
-                          {session.focus
-                            ? ` · ${session.focus}`
-                            : ''}
-                        </div>
-                      </div>
-
-                      <ChevronRight
-                        size={18}
-                        color={MUTED}
-                      />
-                    </button>
-                  );
-                }
-              )}
-            </>
-          )}
-
-          {/* LIENS */}
-
-          <div style={{ marginTop: 6 }}>
-            {[
-              {
-                label:
-                  "Calendrier d'entraînement",
-                path: '/training-calendar',
-              },
-              {
-                label: 'Modifier le programme',
-                path: '/generate-program',
-              },
-            ].map(({ label, path }) => (
-              <button
-                key={label}
-                onClick={() => navigate(path)}
-                style={{
-                  width: '100%',
-                  background: 'transparent',
-                  border: `1px solid ${BORDER}`,
-                  borderRadius: 16,
-                  padding: '14px 18px',
-                  marginBottom: 10,
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent:
-                    'space-between',
-                  alignItems: 'center',
-                  boxSizing: 'border-box',
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: BLACK,
-                  }}
-                >
-                  {label}
-                </span>
-
-                <ChevronRight
-                  size={16}
-                  color={MUTED}
-                />
-              </button>
-            ))}
+        {/* PAS DE PROGRAMME */}
+        {!program && (
+          <div style={{ background: '#fff', border: '1px solid #ECEDE8', borderRadius: 20, padding: 24, textAlign: 'center', marginBottom: 16 }}>
+            <div style={{ fontSize: 18, fontWeight: 950, marginBottom: 8 }}>Pas encore de programme</div>
+            <div style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>Génère ton programme personnalisé avec NOX.</div>
+            <button onClick={() => navigate('/generate-program')} style={{ padding: '12px 24px', background: '#090909', border: 0, borderRadius: 14, color: '#C8FF00', fontWeight: 900, fontSize: 13, cursor: 'pointer' }}>
+              CRÉER MON PROGRAMME
+            </button>
           </div>
-        </main>
-      </div>
+        )}
 
+        {/* PLANNING */}
+        {program && (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {weekDays.map((day, index) => {
+              const session = sessions?.[index];
+              const isToday = day.key === todayKey;
+              const completed = session ? isCompletedOnDate(session, day.key) : false;
+              const isRecovery = session ? /récup|recup|mobilité|mobilite/i.test(session.name || '') : false;
+              const isRest = !session;
+
+              return (
+                <button
+                  key={day.key}
+                  onClick={() => {
+                    if (!session) return;
+                    const idx = sessions.findIndex((s: any) => s === session);
+                    navigate(`/training/${session.id ?? idx}`);
+                  }}
+                  disabled={isRest}
+                  style={{
+                    width: '100%', display: 'grid', gridTemplateColumns: '64px 52px 1fr 38px',
+                    alignItems: 'center', gap: 10, padding: '8px 10px 8px 8px',
+                    border: isToday ? '1px solid #DFFF9C' : '1px solid #ECEDE8',
+                    borderRadius: 20,
+                    background: isToday ? '#EEFFD0' : '#FFFFFF',
+                    boxShadow: isToday ? '0 4px 18px rgba(184,255,0,.08)' : '0 2px 12px rgba(0,0,0,.025)',
+                    cursor: isRest ? 'default' : 'pointer',
+                    textAlign: 'left', color: '#090909', boxSizing: 'border-box',
+                  }}
+                >
+                  <div style={{ height: 66, borderRadius: 17, border: isToday ? '1px solid #D9F89C' : '1px solid #ECEDE8', background: isToday ? '#F3FFD9' : '#FFF', display: 'grid', placeItems: 'center', alignContent: 'center', gap: 2 }}>
+                    <div style={{ fontSize: 11, fontWeight: 750, color: '#747970' }}>{day.short}</div>
+                    <div style={{ fontSize: 16, fontWeight: 1000 }}>{day.number}</div>
+                  </div>
+                  <div style={{ width: 50, height: 50, borderRadius: '50%', display: 'grid', placeItems: 'center', background: completed ? '#E7FFD9' : isRecovery ? '#F1F0EA' : isRest ? '#F5F5F3' : index % 3 === 0 ? '#FFEAEA' : index % 3 === 1 ? '#FFF5DF' : '#EBFFD8' }}>
+                    {isRecovery ? <Moon size={22} strokeWidth={2.3} /> : isRest ? <CirclePause size={22} strokeWidth={2.3} color="#aaa" /> : <Dumbbell size={23} strokeWidth={2.5} />}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 16, lineHeight: 1.1, fontWeight: 950, letterSpacing: '-.025em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {session?.name || 'Repos'}
+                    </div>
+                    {session && (
+                      <div style={{ marginTop: 5, fontSize: 11, lineHeight: 1.2, fontWeight: 650, color: '#858A80' }}>
+                        {session.duration_minutes ? `${session.duration_minutes} min` : ''}
+                        {session.duration_minutes && session.exercises?.length ? ' • ' : ''}
+                        {session.exercises?.length ? `${session.exercises.length} exercices` : ''}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'grid', placeItems: 'center', justifySelf: 'end' }}>
+                    {completed ? (
+                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#B9F5A7', display: 'grid', placeItems: 'center' }}>
+                        <Check size={20} strokeWidth={3} />
+                      </div>
+                    ) : !isRest ? (
+                      <ChevronRight size={25} strokeWidth={2.5} color="#444940" />
+                    ) : null}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+      </main>
       <BottomNav active="training" />
     </div>
   );
