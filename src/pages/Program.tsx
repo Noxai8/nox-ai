@@ -808,7 +808,7 @@ export default function Program() {
 
         {/* PLANNING */}
         {program && (
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div style={{ display: 'grid', gap: 6 }}>
             {weekDays.map((day, index) => {
               const session = sessions?.[index];
               const isToday = day.key === todayKey;
@@ -836,7 +836,7 @@ export default function Program() {
                     textAlign: 'left', color: '#090909', boxSizing: 'border-box',
                   }}
                 >
-                  <div style={{ height: 66, borderRadius: 17, border: isToday ? '1px solid #D9F89C' : '1px solid #ECEDE8', background: isToday ? '#F3FFD9' : '#FFF', display: 'grid', placeItems: 'center', alignContent: 'center', gap: 2 }}>
+                  <div style={{ height: 62, borderRadius: 17, border: isToday ? '1px solid #D9F89C' : '1px solid #ECEDE8', background: isToday ? '#F3FFD9' : '#FFF', display: 'grid', placeItems: 'center', alignContent: 'center', gap: 2 }}>
                     <div style={{ fontSize: 11, fontWeight: 750, color: '#747970' }}>{day.short}</div>
                     <div style={{ fontSize: 16, fontWeight: 1000 }}>{day.number}</div>
                   </div>
