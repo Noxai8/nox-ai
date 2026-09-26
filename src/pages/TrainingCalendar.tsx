@@ -12,6 +12,16 @@ const BORDER = '#1a1a1a';
 const MONTH_NAMES = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
 const DAY_NAMES = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
+type IconName = 'dumbbell' | 'calendar' | 'flame' | 'clock';
+
+function NoxIcon({ name, size = 20 }: { name: IconName; size?: number }) {
+  const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  if (name === 'calendar') return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" {...common}/><path d="M7 3v4M17 3v4M3 10h18" {...common}/></svg>;
+  if (name === 'flame') return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true"><path d="M12.7 2.8c.6 3-1.2 4.5-2.7 6.1-1.3 1.4-2.5 2.8-2.5 5.1A4.5 4.5 0 0 0 12 18.5a4.5 4.5 0 0 0 4.5-4.5c0-1.9-.8-3.5-2.1-5.1.1 2-1 3.1-2.1 3.8.4-3.2-.2-6.4.4-9.9Z" {...common}/><path d="M9.5 17.7c0 2 1.1 3.3 2.5 3.3s2.5-1.3 2.5-3.3c0-1.2-.6-2.2-1.6-3.2-.1 1.1-.6 1.8-1.2 2.3-.2-1.1-.7-2-1.2-2.7-.7 1.1-1 2.2-1 3.6Z" {...common}/></svg>;
+  if (name === 'clock') return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" {...common}/><path d="M12 7v5l3.2 2" {...common}/></svg>;
+  return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9v6M17 9v6M9 12h6M4.5 8v8M19.5 8v8M2.5 10v4M21.5 10v4" {...common}/></svg>;
+}
+
 export default function TrainingCalendar() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -122,8 +132,43 @@ export default function TrainingCalendar() {
     return days;
   };
 
-  const days = getDaysInMonth(currentMonth);
+  const getDaysInWeek = (anchor: Date) => {
+    const date = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
+    const dow = date.getDay();
+    const mondayOffset = dow === 0 ? -6 : 1 - dow;
+    const monday = new Date(date);
+    monday.setDate(date.getDate() + mondayOffset);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d;
+    });
+  };
+
+  const days = view === 'week' ? getDaysInWeek(currentMonth) : getDaysInMonth(currentMonth);
   const todayStr = localDateKey(new Date());
+
+  const changePeriod = (direction: -1 | 1) => {
+    setCurrentMonth(current => {
+      const next = new Date(current);
+      if (view === 'week') next.setDate(next.getDate() + direction * 7);
+      else next.setMonth(next.getMonth() + direction);
+      return next;
+    });
+    setSelectedDate(null);
+  };
+
+  const periodTitle = view === 'month'
+    ? `${MONTH_NAMES[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`
+    : (() => {
+        const week = getDaysInWeek(currentMonth);
+        const first = week[0];
+        const last = week[6];
+        if (first.getMonth() === last.getMonth()) {
+          return `${first.getDate()}–${last.getDate()} ${MONTH_NAMES[last.getMonth()]} ${last.getFullYear()}`;
+        }
+        return `${first.getDate()} ${MONTH_NAMES[first.getMonth()]} – ${last.getDate()} ${MONTH_NAMES[last.getMonth()]} ${last.getFullYear()}`;
+      })();
 
   const selectedWorkout = selectedDate
     ? workouts.find(workout => workoutDateKey(workout) === selectedDate)
@@ -157,20 +202,20 @@ export default function TrainingCalendar() {
             </div>
           </div>
           <div style={{ display: 'flex', background: '#101010', border: '1px solid #242424', borderRadius: 999, padding: 4 }}>
-            <button onClick={() => setView('month')} style={{ border: view === 'month' ? `1px solid ${ACCENT}` : '1px solid transparent', background: 'transparent', color: '#fff', borderRadius: 999, padding: '9px 22px', fontWeight: 800, cursor: 'pointer' }}>Mois</button>
-            <button onClick={() => setView('week')} style={{ border: view === 'week' ? `1px solid ${ACCENT}` : '1px solid transparent', background: 'transparent', color: view === 'week' ? '#fff' : '#888', borderRadius: 999, padding: '9px 22px', fontWeight: 800, cursor: 'pointer' }}>Semaine</button>
+            <button onClick={() => { setView('month'); setCurrentMonth(selectedDate ? new Date(`${selectedDate}T12:00:00`) : new Date()); }} style={{ border: view === 'month' ? `1px solid ${ACCENT}` : '1px solid transparent', background: 'transparent', color: '#fff', borderRadius: 999, padding: '9px 22px', fontWeight: 800, cursor: 'pointer' }}>Mois</button>
+            <button onClick={() => { setView('week'); setCurrentMonth(selectedDate ? new Date(`${selectedDate}T12:00:00`) : new Date()); }} style={{ border: view === 'week' ? `1px solid ${ACCENT}` : '1px solid transparent', background: 'transparent', color: view === 'week' ? '#fff' : '#888', borderRadius: 999, padding: '9px 22px', fontWeight: 800, cursor: 'pointer' }}>Semaine</button>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', background: '#0f0f0f', border: '1px solid #242424', borderRadius: 20, overflow: 'hidden', marginBottom: 22 }}>
           {[
-            { icon: '⌁', label: 'Séances totales', value: stats.total },
-            { icon: '▣', label: 'Ce mois', value: stats.thisMonth },
-            { icon: '↗', label: 'Streak actuel', value: `${stats.streak}j` },
-            { icon: '◷', label: 'Durée moyenne', value: `${stats.avgDuration}min` },
+            { icon: 'dumbbell' as IconName, label: 'Séances totales', value: stats.total },
+            { icon: 'calendar' as IconName, label: 'Ce mois', value: stats.thisMonth },
+            { icon: 'flame' as IconName, label: 'Streak actuel', value: `${stats.streak}j` },
+            { icon: 'clock' as IconName, label: 'Durée moyenne', value: `${stats.avgDuration}min` },
           ].map(({ icon, label, value }, index) => (
             <div key={label} style={{ padding: '20px 18px', display: 'flex', alignItems: 'center', gap: 13, borderRight: index < 3 ? '1px solid #202020' : 'none' }}>
-              <div style={{ width: 42, height: 42, borderRadius: 13, background: '#181818', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 19 }}>{icon}</div>
+              <div style={{ width: 42, height: 42, borderRadius: 13, background: '#181818', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 19 }}><NoxIcon name={icon} size={20} /></div>
               <div><div style={{ fontSize: 25, fontWeight: 950, lineHeight: 1 }}>{value}</div><div style={{ marginTop: 6, color: '#777', fontSize: 10, fontWeight: 800, textTransform: 'uppercase' }}>{label}</div></div>
             </div>
           ))}
@@ -185,9 +230,9 @@ export default function TrainingCalendar() {
           <div>
             <div style={{ background: '#0f0f0f', border: '1px solid #242424', borderRadius: 22, padding: '20px 20px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-                <button onClick={() => setCurrentMonth(m => new Date(m.getFullYear(), m.getMonth() - 1))} style={{ width: 42, height: 42, borderRadius: 14, border: '1px solid #222', background: '#171717', color: '#fff', cursor: 'pointer', fontSize: 24 }}>‹</button>
-                <div style={{ fontSize: 19, fontWeight: 900 }}>{MONTH_NAMES[currentMonth.getMonth()]} {currentMonth.getFullYear()}</div>
-                <button onClick={() => setCurrentMonth(m => new Date(m.getFullYear(), m.getMonth() + 1))} style={{ width: 42, height: 42, borderRadius: 14, border: '1px solid #222', background: '#171717', color: '#fff', cursor: 'pointer', fontSize: 24 }}>›</button>
+                <button onClick={() => changePeriod(-1)} style={{ width: 42, height: 42, borderRadius: 14, border: '1px solid #222', background: '#171717', color: '#fff', cursor: 'pointer', fontSize: 24 }}>‹</button>
+                <div style={{ fontSize: 19, fontWeight: 900 }}>{periodTitle}</div>
+                <button onClick={() => changePeriod(1)} style={{ width: 42, height: 42, borderRadius: 14, border: '1px solid #222', background: '#171717', color: '#fff', cursor: 'pointer', fontSize: 24 }}>›</button>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, marginBottom: 7 }}>
