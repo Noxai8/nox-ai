@@ -20,34 +20,93 @@ export default function TrainingCalendar() {
   const [view, setView] = useState<'month' | 'week'>('month');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [stats, setStats] = useState({ total: 0, thisMonth: 0, streak: 0, avgDuration: 0 });
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => { if (user) load(); }, [user]);
 
-  const load = async () => {
-    const { data } = await supabase.from('workouts').select('*')
-      .eq('user_id', user!.id).eq('status', 'completed')
-      .order('created_at', { ascending: false });
-    setWorkouts(data || []);
-
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const monthWorkouts = (data || []).filter(w => w.created_at >= monthStart);
-    const avgDur = (data || []).reduce((s: number, w: any) => s + (w.duration_minutes || 0), 0) / Math.max((data || []).length, 1);
-
-    // Calculer streak
-    const dates = new Set((data || []).map((w: any) => w.created_at?.slice(0, 10)));
-    let streak = 0;
-    const cursor = new Date();
-    while (dates.has(cursor.toISOString().slice(0, 10))) {
-      streak++;
-      cursor.setDate(cursor.getDate() - 1);
-    }
-
-    setStats({ total: (data || []).length, thisMonth: monthWorkouts.length, streak, avgDuration: Math.round(avgDur) });
+  const localDateKey = (value: string | Date | null | undefined) => {
+    if (!value) return '';
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
-  const getWorkoutDates = () => new Set(workouts.map(w => w.created_at?.slice(0, 10)));
-  const workoutDates = getWorkoutDates();
+  const workoutDateKey = (workout: any) =>
+    localDateKey(workout?.finished_at || workout?.started_at || workout?.created_at);
+
+  const load = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    setLoadError('');
+
+    try {
+      const { data, error } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('started_at', { ascending: false });
+
+      if (error) throw error;
+
+      const rows = data || [];
+      setWorkouts(rows);
+
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonthIndex = now.getMonth();
+
+      const monthWorkouts = rows.filter((workout: any) => {
+        const rawDate = workout?.finished_at || workout?.started_at || workout?.created_at;
+        if (!rawDate) return false;
+        const date = new Date(rawDate);
+        return !Number.isNaN(date.getTime())
+          && date.getFullYear() === currentYear
+          && date.getMonth() === currentMonthIndex;
+      });
+
+      const durations = rows
+        .map((workout: any) => Number(workout.duration_minutes))
+        .filter((duration: number) => Number.isFinite(duration) && duration > 0);
+
+      const avgDuration = durations.length
+        ? Math.round(durations.reduce((sum: number, duration: number) => sum + duration, 0) / durations.length)
+        : 0;
+
+      const completedDates = new Set(
+        rows.map(workoutDateKey).filter(Boolean)
+      );
+
+      let streak = 0;
+      const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      while (completedDates.has(localDateKey(cursor))) {
+        streak += 1;
+        cursor.setDate(cursor.getDate() - 1);
+      }
+
+      setStats({
+        total: rows.length,
+        thisMonth: monthWorkouts.length,
+        streak,
+        avgDuration,
+      });
+    } catch (error: any) {
+      console.error('TrainingCalendar load:', error);
+      setWorkouts([]);
+      setStats({ total: 0, thisMonth: 0, streak: 0, avgDuration: 0 });
+      setLoadError(error?.message || 'Impossible de charger les séances.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const workoutDates = new Set(workouts.map(workoutDateKey).filter(Boolean));
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -64,9 +123,11 @@ export default function TrainingCalendar() {
   };
 
   const days = getDaysInMonth(currentMonth);
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localDateKey(new Date());
 
-  const selectedWorkout = selectedDate ? workouts.find(w => w.created_at?.slice(0, 10) === selectedDate) : null;
+  const selectedWorkout = selectedDate
+    ? workouts.find(workout => workoutDateKey(workout) === selectedDate)
+    : null;
 
   return (
     <div style={{ minHeight: '100vh', background: BG, paddingBottom: 90 }}>
@@ -92,6 +153,19 @@ export default function TrainingCalendar() {
       </div>
 
       <div style={{ padding: '16px 20px 0' }}>
+        {loadError && (
+          <div style={{ marginBottom: 16, padding: '12px 14px', borderRadius: 12, background: '#2a1111', border: '1px solid #6d2424', color: '#ff9b9b', fontSize: 12, lineHeight: 1.45 }}>
+            <div style={{ fontWeight: 900, marginBottom: 4 }}>IMPOSSIBLE DE CHARGER LES SÉANCES</div>
+            <div>{loadError}</div>
+            <button
+              onClick={() => void load()}
+              style={{ marginTop: 10, padding: '8px 12px', borderRadius: 9, border: '1px solid #ff9b9b55', background: 'transparent', color: '#ffb0b0', fontWeight: 800, cursor: 'pointer' }}
+            >
+              RÉESSAYER
+            </button>
+          </div>
+        )}
+
         {/* Navigation mois */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <button onClick={() => setCurrentMonth(m => new Date(m.getFullYear(), m.getMonth() - 1))}
@@ -114,7 +188,7 @@ export default function TrainingCalendar() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
           {days.map((day, i) => {
             if (!day) return <div key={i} />;
-            const dateStr = day.toISOString().slice(0, 10);
+            const dateStr = localDateKey(day);
             const hasWorkout = workoutDates.has(dateStr);
             const isToday = dateStr === todayStr;
             const isSelected = dateStr === selectedDate;
@@ -142,7 +216,7 @@ export default function TrainingCalendar() {
             {selectedWorkout ? (
               <>
                 <div style={{ fontSize: 11, color: ACCENT, fontWeight: 800, textTransform: 'uppercase', marginBottom: 8 }}>SÉANCE DU {new Date(selectedDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 8 }}>{selectedWorkout.program_name || 'Séance'}</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 8 }}>{selectedWorkout.name || selectedWorkout.program_name || 'Séance'}</div>
                 <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                   {selectedWorkout.duration_minutes && <span style={{ fontSize: 12, color: '#555' }}>⏱ {selectedWorkout.duration_minutes} min</span>}
                   {selectedWorkout.total_volume && <span style={{ fontSize: 12, color: '#555' }}>📦 {Math.round(selectedWorkout.total_volume)}kg total</span>}
@@ -171,18 +245,23 @@ export default function TrainingCalendar() {
           {workouts.slice(0, 5).map((w: any) => (
             <div key={w.id} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '12px 14px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{w.program_name || 'Séance'}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{w.name || w.program_name || 'Séance'}</div>
                 <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>
-                  {new Date(w.created_at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  {new Date(w.finished_at || w.started_at || w.created_at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
                   {w.duration_minutes ? ` · ${w.duration_minutes}min` : ''}
                 </div>
               </div>
               <div style={{ fontSize: 12, color: ACCENT, fontWeight: 700 }}>✓</div>
             </div>
           ))}
-          {workouts.length === 0 && (
-            <div style={{ textAlign: 'center', color: '#333', padding: '20px 0', fontSize: 13 }}>
+          {!loading && !loadError && workouts.length === 0 && (
+            <div style={{ textAlign: 'center', color: '#555', padding: '20px 0', fontSize: 13 }}>
               Pas encore de séances complétées
+            </div>
+          )}
+          {loading && (
+            <div style={{ textAlign: 'center', color: '#555', padding: '20px 0', fontSize: 13 }}>
+              Chargement des séances...
             </div>
           )}
         </div>
