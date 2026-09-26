@@ -602,49 +602,76 @@ CRÉER UN PROGRAMME →
 );
 // ─── DONE ───────────────────────────────────────────────────
 if (done) {
-const duration = Math.max(1, Math.round((Date.now() - startTime) / 60000));
+  const duration = Math.max(1, Math.round((Date.now() - startTime) / 60000));
 
-return (
-  <div style={{ minHeight: '100vh', background: '#F7F8F4', color: '#0B0B0B', display: 'flex', flexDirection: 'column', padding: 24, paddingTop: 60, maxWidth: 560, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-    <div style={{ fontSize: 10, fontWeight: 900, color: '#7A7F76', letterSpacing: '.12em', marginBottom: 8 }}>SÉANCE</div>
-    <h1 style={{ margin: '0 0 6px', fontSize: 40, lineHeight: .9, fontWeight: 950, letterSpacing: '-.05em' }}>
-      TERMINÉE.
-    </h1>
-    <div style={{ fontSize: 14, color: '#7A7F76', marginBottom: 32 }}>NOX a enregistré ta progression.</div>
+  return (
+    <div style={{ minHeight: '100vh', background: '#F7F8F4', color: '#0B0B0B', display: 'flex', justifyContent: 'center' }}>
+      <main style={{ width: '100%', maxWidth: 560, minHeight: '100vh', padding: '54px 20px 28px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 38 }}>
+          <NoxBrand />
+        </div>
 
-    <div style={{ background: '#0B0B0B', borderRadius: 24, padding: 22, marginBottom: 14 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 950, color: '#FFFFFF' }}>{duration}</div>
-          <div style={{ fontSize: 9, color: '#7A7F76', fontWeight: 700, marginTop: 3 }}>MIN</div>
+        <div style={{ width: 70, height: 70, borderRadius: '50%', background: ACCENT, display: 'grid', placeItems: 'center', margin: '0 auto 22px', boxShadow: '0 12px 32px rgba(200,255,0,.28)' }}>
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 12.5l4.2 4.2L19 7" stroke="#0B0B0B" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 950, color: '#FFFFFF' }}>{exercises.length}</div>
-          <div style={{ fontSize: 9, color: '#7A7F76', fontWeight: 700, marginTop: 3 }}>EXERCICES</div>
+
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{ fontSize: 10, fontWeight: 950, color: '#7A7F76', letterSpacing: '.14em', marginBottom: 9 }}>SÉANCE TERMINÉE</div>
+          <h1 style={{ margin: 0, fontSize: 42, lineHeight: .92, fontWeight: 1000, letterSpacing: '-.055em' }}>
+            BIEN JOUÉ.
+          </h1>
+          <div style={{ fontSize: 13, color: '#7A7F76', marginTop: 11, lineHeight: 1.45 }}>Ta séance est enregistrée. NOX garde ces données pour suivre ta progression.</div>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 950, color: ACCENT }}>{completedSets.length}</div>
-          <div style={{ fontSize: 9, color: '#7A7F76', fontWeight: 700, marginTop: 3 }}>SÉRIES</div>
-        </div>
-      </div>
-      <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #1a1a1a', fontSize: 12, color: '#888' }}>
-        +50 XP · Streak mis à jour
-      </div>
+
+        <section style={{ background: '#0B0B0B', borderRadius: 26, padding: '22px 18px 18px', marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            {[
+              [String(duration), 'MIN'],
+              [String(exercises.length), 'EXERCICES'],
+              [String(completedSets.length), 'SÉRIES'],
+            ].map(([value, label], index) => (
+              <div key={label} style={{ textAlign: 'center', borderLeft: index ? '1px solid #242424' : 'none' }}>
+                <div style={{ fontSize: 30, fontWeight: 1000, color: index === 2 ? ACCENT : '#FFFFFF', letterSpacing: '-.04em' }}>{value}</div>
+                <div style={{ fontSize: 8.5, color: '#77776F', fontWeight: 900, marginTop: 5, letterSpacing: '.06em' }}>{label}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 19, paddingTop: 15, borderTop: '1px solid #242424', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div>
+              <div style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 900 }}>Progression enregistrée</div>
+              <div style={{ color: '#77776F', fontSize: 10.5, marginTop: 3 }}>Streak et historique mis à jour</div>
+            </div>
+            <div style={{ color: ACCENT, fontSize: 12, fontWeight: 1000 }}>+50 XP</div>
+          </div>
+        </section>
+
+        <section style={{ background: '#FFFFFF', border: '1px solid #E6E8E0', borderRadius: 22, padding: 18, marginBottom: 14 }}>
+          <div style={{ fontSize: 10, fontWeight: 1000, color: '#111', letterSpacing: '.08em', marginBottom: 6 }}>COMMENT TU TE SENS ?</div>
+          <div style={{ fontSize: 12.5, color: '#77776F', lineHeight: 1.45 }}>Ton ressenti aidera NOX à adapter la récupération et tes prochaines séances.</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 15 }}>
+            {['DIFFICILE', 'BIEN', 'FACILE'].map((label, index) => (
+              <button key={label} type="button" style={{ height: 44, borderRadius: 13, border: index === 1 ? `1px solid ${ACCENT}` : '1px solid #E6E8E0', background: index === 1 ? '#F6FFDA' : '#F7F8F4', color: '#111', fontSize: 10, fontWeight: 950, cursor: 'pointer' }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <button onClick={() => navigate('/training-calendar')}
+          style={{ width: '100%', padding: 18, background: ACCENT, border: 'none', borderRadius: 18, color: '#0B0B0B', fontWeight: 1000, fontSize: 13, cursor: 'pointer', marginTop: 'auto' }}>
+          VOIR MON CALENDRIER →
+        </button>
+        <button onClick={() => navigate('/home')}
+          style={{ width: '100%', padding: '14px 18px', background: 'transparent', border: 'none', color: '#77776F', fontWeight: 850, fontSize: 11, cursor: 'pointer', marginTop: 4 }}>
+          RETOUR À L'ACCUEIL
+        </button>
+      </main>
     </div>
-
-    <div style={{ background: '#F0FFD0', border: '1px solid #DDF59C', borderRadius: 18, padding: 16, marginBottom: 14 }}>
-      <div style={{ fontSize: 11, fontWeight: 900, color: '#687600', marginBottom: 4 }}>COMMENT TU TE SENS ?</div>
-      <div style={{ fontSize: 13, color: '#456000', lineHeight: 1.5 }}>NOX utilise ton ressenti pour adapter la prochaine séance.</div>
-    </div>
-
-    <button onClick={() => navigate('/home')}
-      style={{ width: '100%', padding: 18, background: '#0B0B0B', border: 'none', borderRadius: 18, color: ACCENT, fontWeight: 900, fontSize: 14, cursor: 'pointer', marginTop: 'auto' }}>
-      RETOUR À L'ACCUEIL
-    </button>
-  </div>
-);
-
+  );
 }
+
 const ex = exercises[currentIdx];
 const noxExercise = resolvedNoxExercise(ex);
 const tags = muscleTags(ex);
