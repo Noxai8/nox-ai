@@ -211,8 +211,6 @@ export default function Onboarding() {
         sex,
         diet_preferences: nutritionContext,
         activity_level: activity,
-        first_name: firstName.trim(),
-        display_name: firstName.trim(),
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'id' });
@@ -221,13 +219,9 @@ export default function Onboarding() {
       const { error: targetError } = await supabase.from('nutrition_targets').upsert({
         user_id: user.id,
         calories: preview.calories,
-        protein_g: preview.protein,
-        carbs_g: preview.carbs,
-        fat_g: preview.fat,
+        protein: preview.protein,
         carbs: preview.carbs,
         fat: preview.fat,
-        start_date: new Date().toISOString().slice(0, 10),
-        is_active: true,
       }, { onConflict: 'user_id' });
       if (targetError) throw targetError;
 
