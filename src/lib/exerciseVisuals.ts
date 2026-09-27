@@ -269,6 +269,12 @@ const VISUALS: Record<string, string> = {
   dumbbell_bench_press:   '/exercises/bench-press-dumbbells.webp',
   incline_bench_press:    '/exercises/incline-bench-press-barbell.webp',
   incline_dumbbell_press: '/exercises/incline-bench-press-dumbbells.webp',
+  dumbbell_fly:           '/exercises/dumbbell-fly.webp',
+  cable_fly:              '/exercises/cable-fly.webp',
+  pec_deck:               '/exercises/pec-deck.webp',
+  dips:                   '/exercises/dips.webp',
+  weighted_dips:          '/exercises/weighted-dips.webp',
+  wide_push_up:           '/exercises/wide-push-up.webp',
 
   // Dos
   pull_up:                '/exercises/pronated-pull-up.webp',
