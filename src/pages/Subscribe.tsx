@@ -82,7 +82,7 @@ export default function Subscribe() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, color: BLACK, paddingBottom: 110 }}>
+    <div style={{ minHeight: '100vh', background: BG, color: BLACK, paddingBottom: onboardingFlow ? 40 : 110 }}>
       <div style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
 
         <header style={{ padding: '20px 20px 0', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>
@@ -204,7 +204,7 @@ export default function Subscribe() {
           </div>
         </main>
       </div>
-      <BottomNav active="moi" />
+      {!onboardingFlow && <BottomNav active="moi" />}
     </div>
   );
 }
