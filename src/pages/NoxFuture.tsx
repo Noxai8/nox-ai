@@ -181,7 +181,7 @@ export default function NoxFuture() {
       } = await supabase
         .from('future_you_generations')
         .select(
-          'id,prompt,projection_text,source_photo_url,generated_image_url,status,created_at'
+          'id, generated_image_url, projection_months, prompt, status, created_at'
         )
         .eq('user_id', user.id)
         .eq('status', 'completed')
