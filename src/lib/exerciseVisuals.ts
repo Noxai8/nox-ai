@@ -232,5 +232,9 @@ export function getExerciseVisualKey(
 export function getExerciseVisualPath(
   exerciseName?: string | null
 ): string {
-  return `/exercises/${getExerciseVisualKey(exerciseName)}.webp`;
+  const key = getExerciseVisualKey(exerciseName);
+  const visual = VISUALS[key];
+  const path = visual?.image_url ?? `/exercises/${key}.webp`;
+  console.log('[NOX VISUAL]', { name: exerciseName, key, image_url: visual?.image_url, path });
+  return path;
 }
