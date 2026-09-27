@@ -211,6 +211,30 @@ export default function Onboarding() {
         sex,
         diet_preferences: nutritionContext,
         activity_level: activity,
+        onboarding_context: {
+          first_name: firstName.trim(),
+          goal: goal,
+          experience_level: level,
+          training: {
+            location: location,
+            equipment: equipment,
+            available_days: days,
+            session_length_min: Number(duration),
+          },
+          body: {
+            starting_weight_kg: Number(weight),
+            height_cm: Number(height),
+            date_of_birth: dob,
+            sex: sex,
+          },
+          lifestyle: {
+            activity_level: activity,
+          },
+          nutrition: {
+            preferences: nutritionContext,
+          },
+          completed_at: new Date().toISOString(),
+        },
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'id' });
