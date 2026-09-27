@@ -198,15 +198,15 @@ export default function Onboarding() {
       // Upsert garanti — évite goal_type = NULL si la ligne n'existe pas encore
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: user.id,
+        display_name: firstName.trim(),
         goal_type: goal,
         experience_level: level,
         training_location: location,
-        equipment: equipment.length ? equipment.join(',') : null,
+        equipment: location === 'maison' ? equipment : [],
         available_days: days,
         session_length_min: Number(duration),
         starting_weight_kg: Number(weight),
         height_cm: Number(height),
-        weight_kg: Number(weight),
         date_of_birth: dob,
         sex,
         diet_preferences: nutritionContext,
@@ -219,9 +219,13 @@ export default function Onboarding() {
       const { error: targetError } = await supabase.from('nutrition_targets').upsert({
         user_id: user.id,
         calories: preview.calories,
-        protein: preview.protein,
+        protein_g: preview.protein,
+        carbs_g: preview.carbs,
+        fat_g: preview.fat,
         carbs: preview.carbs,
         fat: preview.fat,
+        start_date: new Date().toISOString().slice(0, 10),
+        is_active: true,
       }, { onConflict: 'user_id' });
       if (targetError) throw targetError;
 

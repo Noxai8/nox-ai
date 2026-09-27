@@ -205,8 +205,6 @@ const NOX_EXERCISE_CATALOG_FOR_PROMPT = NOX_EXERCISE_LIBRARY
 
 function getExerciseCatalogForProfile(profile: any): NoxExercise[] {
   const location = cleanProfileText(profile?.training_location).toLowerCase();
-  const rawEquipment = cleanProfileText(profile?.equipment).toLowerCase();
-
   const isHome =
     location.includes('maison') ||
     location.includes('domicile') ||
@@ -214,8 +212,13 @@ function getExerciseCatalogForProfile(profile: any): NoxExercise[] {
 
   if (!isHome) return NOX_EXERCISE_LIBRARY;
 
+  // equipment peut être un tableau (Supabase) ou une chaîne (legacy)
+  const equipmentValues = Array.isArray(profile?.equipment)
+    ? profile.equipment
+    : String(profile?.equipment || '').split(',').map((item: string) => item.trim()).filter(Boolean);
+
   const ownedEquipment = new Set(
-    rawEquipment.split(',').map((item) => item.trim()).filter(Boolean)
+    equipmentValues.map((item: string) => String(item).trim().toLowerCase())
   );
 
   const has = (...ids: string[]) => ids.some((id) => ownedEquipment.has(id));
