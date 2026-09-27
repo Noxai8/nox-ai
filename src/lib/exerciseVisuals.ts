@@ -308,6 +308,27 @@ const VISUALS: Record<string, string> = {
   chest_supported_rear_delt_fly: '/exercises/chest-supported-rear-delt-fly.webp',
   wide_upright_row:        '/exercises/wide-upright-row.webp',
 
+  // Biceps
+  barbell_curl:               '/exercises/ez-bar-curl.webp',
+  dumbbell_curl:              '/exercises/alternating-dumbbell-curl.webp',
+  hammer_curl:                '/exercises/hammer-curl.webp',
+  cable_curl:                 '/exercises/cable-curl.webp',
+  incline_dumbbell_curl:      '/exercises/incline-dumbbell-curl.webp',
+  alternating_dumbbell_curl:  '/exercises/alternating-dumbbell-curl.webp',
+  ez_bar_curl:                '/exercises/ez-bar-curl.webp',
+  concentration_curl:         '/exercises/concentration-curl.webp',
+  preacher_curl:              '/exercises/preacher-curl.webp',
+  reverse_barbell_curl:       '/exercises/reverse-barbell-curl.webp',
+
+  // Triceps
+  tricep_pushdown:                    '/exercises/rope-triceps-pushdown.webp',
+  rope_pushdown:                      '/exercises/rope-triceps-pushdown.webp',
+  tricep_extension:                   '/exercises/dumbbell-overhead-triceps-extension.webp',
+  skull_crusher:                      '/exercises/close-grip-bench-press.webp',
+  dumbbell_skull_crusher:             '/exercises/dumbbell-overhead-triceps-extension.webp',
+  overhead_cable_tricep_extension:    '/exercises/cable-overhead-triceps-extension.webp',
+  close_grip_bench_press:             '/exercises/close-grip-bench-press.webp',
+
   // Jambes
   squat:                  '/exercises/back-squat-barbell.webp',
 };
