@@ -327,7 +327,8 @@ function extractJsonObject(text: string): any {
 function normalizeAndValidateProgram(
   rawProgram: any,
   sessionCount: number,
-  sessionLength: number
+  sessionLength: number,
+  allowedExercises: NoxExercise[]
 ) {
   if (
     !rawProgram ||
@@ -346,6 +347,10 @@ function normalizeAndValidateProgram(
       `SESSION_COUNT:${rawProgram.sessions.length}:${sessionCount}`
     );
   }
+
+  const allowedExerciseIds = new Set(
+    allowedExercises.map((exercise) => exercise.id)
+  );
 
   const prog = {
     ...rawProgram,
@@ -453,6 +458,10 @@ function normalizeAndValidateProgram(
 
             if (!catalogExercise) {
               throw new Error(`EXERCISE_NOT_IN_CATALOG:${exercise.name}`);
+            }
+
+            if (!allowedExerciseIds.has(catalogExercise.id)) {
+              throw new Error(`EXERCISE_NOT_ALLOWED:${catalogExercise.name}`);
             }
 
             return {
@@ -1004,7 +1013,8 @@ Génère exactement ${sessionCount} séances.`;
         return normalizeAndValidateProgram(
           rawProgram,
           sessionCount,
-          sessionLength
+          sessionLength,
+          availableExerciseCatalog
         );
       };
 
