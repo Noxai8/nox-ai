@@ -128,100 +128,57 @@ const NAME_TO_KEY: Record<string, string> = {
 // Bibliothèque visuelle — images CC0/libre de droits
 // Sources : Wikimedia Commons, ExerciseDB illustrations
 const VISUALS: Record<string, Omit<ExerciseVisual, 'key'>> = {
-  bench_press:            { image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Benchpress.svg/640px-Benchpress.svg.png', muscles: 'Pectoraux · Triceps · Épaules' },
-  incline_bench_press:    { image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Incline-bench-press.svg/640px-Incline-bench-press.svg.png', muscles: 'Pectoraux haut · Triceps' },
-  dumbbell_bench_press:   { image_url: null, muscles: 'Pectoraux · Triceps' },
-  incline_dumbbell_press: { image_url: null, muscles: 'Pectoraux haut · Épaules' },
-  dumbbell_fly:           { image_url: null, muscles: 'Pectoraux' },
-  push_up:                { image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Push-up_-_Gifs.gif/320px-Push-up_-_Gifs.gif', muscles: 'Pectoraux · Triceps · Core' },
-  dips:                   { image_url: null, muscles: 'Triceps · Pectoraux' },
-  tricep_dips:            { image_url: null, muscles: 'Triceps' },
-
-  pull_up:                { image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Pull_up.gif/320px-Pull_up.gif', muscles: 'Dos · Biceps' },
-  chin_up:                { image_url: null, muscles: 'Dos · Biceps' },
-  lat_pulldown:           { image_url: null, muscles: 'Dos large · Biceps' },
-  cable_row:              { image_url: null, muscles: 'Dos · Biceps · Trapèzes' },
-  barbell_row:            { image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Bent_over_row.svg/640px-Bent_over_row.svg.png', muscles: 'Dos · Biceps' },
-  dumbbell_row:           { image_url: null, muscles: 'Dos · Biceps' },
-  deadlift:               { image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Conventional_deadlift.svg/640px-Conventional_deadlift.svg.png', muscles: 'Ischio · Dos · Fessiers' },
-  romanian_deadlift:      { image_url: null, muscles: 'Ischio · Fessiers · Lombaires' },
-  back_extension:         { image_url: null, muscles: 'Lombaires · Fessiers' },
-
-  overhead_press:         { image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/OHP.svg/640px-OHP.svg.png', muscles: 'Épaules · Triceps' },
-  dumbbell_shoulder_press:{ image_url: null, muscles: 'Épaules · Triceps' },
-  lateral_raise:          { image_url: null, muscles: 'Deltoïdes latéraux' },
-  front_raise:            { image_url: null, muscles: 'Deltoïdes antérieurs' },
-  rear_delt_fly:          { image_url: null, muscles: 'Deltoïdes postérieurs · Trapèzes' },
-  face_pull:              { image_url: null, muscles: 'Épaules postérieures · Trapèzes' },
-  upright_row:            { image_url: null, muscles: 'Trapèzes · Deltoïdes' },
-
-  barbell_curl:           { image_url: null, muscles: 'Biceps' },
-  dumbbell_curl:          { image_url: null, muscles: 'Biceps' },
-  hammer_curl:            { image_url: null, muscles: 'Biceps · Avant-bras' },
-  cable_curl:             { image_url: null, muscles: 'Biceps' },
-  incline_dumbbell_curl:  { image_url: null, muscles: 'Biceps long' },
-
-  tricep_pushdown:        { image_url: null, muscles: 'Triceps' },
-  tricep_extension:       { image_url: null, muscles: 'Triceps' },
-  skull_crusher:          { image_url: null, muscles: 'Triceps' },
-  tricep_kickback:        { image_url: null, muscles: 'Triceps' },
-
-  squat:                  { image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/SquatWithBarbell.svg/640px-SquatWithBarbell.svg.png', muscles: 'Quadriceps · Fessiers · Ischio' },
-  front_squat:            { image_url: null, muscles: 'Quadriceps · Core' },
-  leg_press:              { image_url: null, muscles: 'Quadriceps · Fessiers' },
-  lunge:                  { image_url: null, muscles: 'Quadriceps · Fessiers' },
-  walking_lunge:          { image_url: null, muscles: 'Quadriceps · Fessiers · Équilibre' },
-  leg_extension:          { image_url: null, muscles: 'Quadriceps' },
-  bulgarian_split_squat:  { image_url: null, muscles: 'Quadriceps · Fessiers' },
-
-  leg_curl:               { image_url: null, muscles: 'Ischio-jambiers' },
-  hip_thrust:             { image_url: null, muscles: 'Fessiers' },
-  glute_bridge:           { image_url: null, muscles: 'Fessiers' },
-  good_morning:           { image_url: null, muscles: 'Ischio · Lombaires' },
-
-  calf_raise:             { image_url: null, muscles: 'Mollets' },
-
-  crunch:                 { image_url: null, muscles: 'Abdominaux' },
-  plank:                  { image_url: null, muscles: 'Core · Abdominaux' },
-  leg_raise:              { image_url: null, muscles: 'Abdominaux bas' },
-  cable_crunch:           { image_url: null, muscles: 'Abdominaux' },
-  ab_rollout:             { image_url: null, muscles: 'Core · Abdominaux' },
-  russian_twist:          { image_url: null, muscles: 'Obliques' },
+  bench_press:             { image_url: '/exercises/bench-press-barbell.webp', muscles: 'Pectoraux · Triceps · Épaules' },
+  incline_bench_press:     { image_url: '/exercises/incline-bench-press-barbell.webp', muscles: 'Pectoraux haut · Triceps' },
+  dumbbell_bench_press:    { image_url: '/exercises/bench-press-dumbbells.webp', muscles: 'Pectoraux · Triceps' },
+  incline_dumbbell_press:  { image_url: '/exercises/incline-bench-press-dumbbells.webp', muscles: 'Pectoraux haut · Épaules' },
+  dumbbell_fly:            { image_url: null, muscles: 'Pectoraux' },
+  push_up:                 { image_url: null, muscles: 'Pectoraux · Triceps · Core' },
+  dips:                    { image_url: null, muscles: 'Triceps · Pectoraux' },
+  tricep_dips:             { image_url: null, muscles: 'Triceps' },
+  pull_up:                 { image_url: '/exercises/pronated-pull-up.webp', muscles: 'Dos · Biceps' },
+  chin_up:                 { image_url: '/exercises/supinated-pull-up.webp', muscles: 'Dos · Biceps' },
+  lat_pulldown:            { image_url: '/exercises/lat-pulldown-chest.webp', muscles: 'Dos large · Biceps' },
+  cable_row:               { image_url: '/exercises/seated-cable-row.webp', muscles: 'Dos · Biceps · Trapèzes' },
+  barbell_row:             { image_url: '/exercises/bent-over-row-barbell.webp', muscles: 'Dos · Biceps' },
+  dumbbell_row:            { image_url: '/exercises/one-arm-dumbbell-row.webp', muscles: 'Dos · Biceps' },
+  deadlift:                { image_url: null, muscles: 'Ischio · Dos · Fessiers' },
+  romanian_deadlift:       { image_url: null, muscles: 'Ischio · Fessiers · Lombaires' },
+  back_extension:          { image_url: null, muscles: 'Lombaires · Fessiers' },
+  overhead_press:          { image_url: '/exercises/overhead-press-barbell.webp', muscles: 'Épaules · Triceps' },
+  dumbbell_shoulder_press: { image_url: '/exercises/overhead-press-dumbbells.webp', muscles: 'Épaules · Triceps' },
+  lateral_raise:           { image_url: '/exercises/dumbbell-lateral-raise.webp', muscles: 'Deltoïdes latéraux' },
+  front_raise:             { image_url: '/exercises/dumbbell-front-raise.webp', muscles: 'Deltoïdes antérieurs' },
+  rear_delt_fly:           { image_url: null, muscles: 'Deltoïdes postérieurs · Trapèzes' },
+  face_pull:               { image_url: '/exercises/face-pull-cable.webp', muscles: 'Épaules postérieures · Trapèzes' },
+  upright_row:             { image_url: null, muscles: 'Trapèzes · Deltoïdes' },
+  barbell_curl:            { image_url: null, muscles: 'Biceps' },
+  dumbbell_curl:           { image_url: null, muscles: 'Biceps' },
+  hammer_curl:             { image_url: null, muscles: 'Biceps · Avant-bras' },
+  cable_curl:              { image_url: null, muscles: 'Biceps' },
+  incline_dumbbell_curl:   { image_url: null, muscles: 'Biceps long' },
+  tricep_pushdown:         { image_url: null, muscles: 'Triceps' },
+  tricep_extension:        { image_url: null, muscles: 'Triceps' },
+  skull_crusher:           { image_url: null, muscles: 'Triceps' },
+  tricep_kickback:         { image_url: null, muscles: 'Triceps' },
+  squat:                   { image_url: '/exercises/back-squat-barbell.webp', muscles: 'Quadriceps · Fessiers · Ischio' },
+  front_squat:             { image_url: null, muscles: 'Quadriceps · Core' },
+  leg_press:               { image_url: null, muscles: 'Quadriceps · Fessiers' },
+  lunge:                   { image_url: null, muscles: 'Quadriceps · Fessiers' },
+  walking_lunge:           { image_url: null, muscles: 'Quadriceps · Fessiers · Équilibre' },
+  leg_extension:           { image_url: null, muscles: 'Quadriceps' },
+  bulgarian_split_squat:   { image_url: null, muscles: 'Quadriceps · Fessiers' },
+  leg_curl:                { image_url: null, muscles: 'Ischio-jambiers' },
+  hip_thrust:              { image_url: null, muscles: 'Fessiers' },
+  glute_bridge:            { image_url: null, muscles: 'Fessiers' },
+  good_morning:            { image_url: null, muscles: 'Ischio · Lombaires' },
+  calf_raise:              { image_url: null, muscles: 'Mollets' },
+  crunch:                  { image_url: null, muscles: 'Abdominaux' },
+  plank:                   { image_url: null, muscles: 'Core · Abdominaux' },
+  leg_raise:               { image_url: null, muscles: 'Abdominaux bas' },
+  cable_crunch:            { image_url: null, muscles: 'Abdominaux' },
+  ab_rollout:              { image_url: null, muscles: 'Core · Abdominaux' },
+  russian_twist:           { image_url: null, muscles: 'Obliques' },
 };
-
-/** Normalise un nom d'exercice en clé canonique */
-export function toExerciseKey(name: string): string {
-  const normalized = name
-    .toLowerCase()
-    .replace(/[éèêë]/g, 'e')
-    .replace(/[àâä]/g, 'a')
-    .replace(/[ùûü]/g, 'u')
-    .replace(/[ôö]/g, 'o')
-    .replace(/[îï]/g, 'i')
-    .replace(/[ç]/g, 'c')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
-
-  // Lookup direct
-  if (NAME_TO_KEY[normalized]) return NAME_TO_KEY[normalized];
-
-  // Lookup partiel — on cherche la clé dont le nom contient les mots clés
-  for (const [alias, key] of Object.entries(NAME_TO_KEY)) {
-    if (normalized.includes(alias) || alias.includes(normalized)) {
-      return key;
-    }
-  }
-
-  // Fallback : slugify le nom
-  return normalized.replace(/\s+/g, '_');
-}
-
-/** Retourne le visuel pour un exercice — null si inconnu */
-export function getExerciseVisual(name: string): ExerciseVisual | null {
-  const key = toExerciseKey(name);
-  const visual = VISUALS[key];
-  if (!visual) return null;
-  return { key, ...visual };
-}
 
 export { VISUALS, NAME_TO_KEY };

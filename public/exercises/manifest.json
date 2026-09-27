@@ -1,0 +1,22 @@
+{
+  "bench-press-barbell": "/exercises/bench-press-barbell.webp",
+  "bench-press-dumbbells": "/exercises/bench-press-dumbbells.webp",
+  "incline-bench-press-barbell": "/exercises/incline-bench-press-barbell.webp",
+  "incline-bench-press-dumbbells": "/exercises/incline-bench-press-dumbbells.webp",
+  "overhead-press-barbell": "/exercises/overhead-press-barbell.webp",
+  "overhead-press-dumbbells": "/exercises/overhead-press-dumbbells.webp",
+  "dumbbell-lateral-raise": "/exercises/dumbbell-lateral-raise.webp",
+  "dumbbell-front-raise": "/exercises/dumbbell-front-raise.webp",
+  "cable-lateral-raise": "/exercises/cable-lateral-raise.webp",
+  "bent-over-row-barbell": "/exercises/bent-over-row-barbell.webp",
+  "one-arm-dumbbell-row": "/exercises/one-arm-dumbbell-row.webp",
+  "chest-supported-row-machine": "/exercises/chest-supported-row-machine.webp",
+  "lat-pulldown-chest": "/exercises/lat-pulldown-chest.webp",
+  "lat-pulldown-close-grip": "/exercises/lat-pulldown-close-grip.webp",
+  "seated-cable-row": "/exercises/seated-cable-row.webp",
+  "face-pull-cable": "/exercises/face-pull-cable.webp",
+  "assisted-pull-up": "/exercises/assisted-pull-up.webp",
+  "pronated-pull-up": "/exercises/pronated-pull-up.webp",
+  "supinated-pull-up": "/exercises/supinated-pull-up.webp",
+  "back-squat-barbell": "/exercises/back-squat-barbell.webp"
+}
