@@ -203,6 +203,35 @@ const NOX_EXERCISE_CATALOG_FOR_PROMPT = NOX_EXERCISE_LIBRARY
   .map((exercise) => `${exercise.id} | ${exercise.name} | ${exercise.category} | ${exercise.equipment}`)
   .join('\n');
 
+function getExerciseCatalogForProfile(profile: any): NoxExercise[] {
+  const location = cleanProfileText(profile?.training_location).toLowerCase();
+  const equipment = cleanProfileText(profile?.equipment).toLowerCase();
+
+  const isHome =
+    location.includes('maison') ||
+    location.includes('domicile') ||
+    location.includes('home');
+
+  // Salle / autre lieu → catalogue complet
+  if (!isHome) {
+    return NOX_EXERCISE_LIBRARY;
+  }
+
+  // Maison sans matériel → uniquement poids du corps
+  if (!equipment) {
+    return NOX_EXERCISE_LIBRARY.filter(
+      (exercise) => exercise.equipment === 'poids du corps'
+    );
+  }
+
+  // Maison avec matériel → poids du corps + matériel déclaré
+  return NOX_EXERCISE_LIBRARY.filter((exercise) => {
+    if (exercise.equipment === 'poids du corps') return true;
+
+    return equipment.includes(exercise.equipment.toLowerCase());
+  });
+}
+
 function resolveNoxExercise(exercise: any): NoxExercise | null {
   const id = typeof exercise?.exercise_id === 'string' ? exercise.exercise_id.trim() : '';
   if (id && NOX_EXERCISE_BY_ID.has(id)) return NOX_EXERCISE_BY_ID.get(id)!;
