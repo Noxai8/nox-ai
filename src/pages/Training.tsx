@@ -626,11 +626,12 @@ const exerciseNoteKey = (name: string) =>
     .replace(/^-|-$/g, '');
 
 const saveExerciseNote = async () => {
-  if (!user || !workoutId || !exercise?.name) return;
+  const currentExerciseName = exercises[currentIdx]?.name;
+  if (!user || !workoutId || !currentExerciseName) return;
   setNoteSaving(true);
   setNoteSaved(false);
   try {
-    const key = exerciseNoteKey(exercise.name);
+    const key = exerciseNoteKey(currentExerciseName);
     const { data: workout, error: readError } = await supabase
       .from('workouts')
       .select('notes')
