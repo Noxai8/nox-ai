@@ -215,3 +215,22 @@ export function getExerciseVisual(name: string): ExerciseVisual | null {
   return { key, ...visual };
 }
 
+// Alias public pour la compatibilité avec getExerciseVisualKey
+export const EXERCISE_VISUAL_KEYS: Record<string, string> = NAME_TO_KEY;
+
+export const UNKNOWN_EXERCISE_VISUAL_KEY = 'unknown-exercise';
+
+export function getExerciseVisualKey(
+  exerciseName?: string | null
+): string {
+  if (!exerciseName) return UNKNOWN_EXERCISE_VISUAL_KEY;
+  const key = toExerciseKey(exerciseName.trim());
+  // Vérifier que le visuel existe réellement
+  return VISUALS[key] ? key : UNKNOWN_EXERCISE_VISUAL_KEY;
+}
+
+export function getExerciseVisualPath(
+  exerciseName?: string | null
+): string {
+  return `/exercises/${getExerciseVisualKey(exerciseName)}.webp`;
+}

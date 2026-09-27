@@ -2,7 +2,7 @@ import { calculateProgressiveOverload, detectStagnation } from '../lib/noxBrain'
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { getExerciseVisual } from '../lib/exerciseVisuals';
+import { getExerciseVisualPath } from '../lib/exerciseVisuals';
 import TutorialTooltip from '../components/TutorialTooltip';
 import { useAuth } from '../lib/AuthContext';
 import {
@@ -1068,30 +1068,23 @@ function NoxExerciseCover({ exercise, tags }: { exercise: any; tags: string[] })
       </div>
 
       <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', maxHeight: 390, minHeight: 235, display: 'grid', placeItems: 'center', background: '#FFFFFF', overflow: 'hidden' }}>
-        {hdVisual ? (
-          <NoxExerciseImage
-            src={hdVisual}
-            alt={nox?.name || exercise?.name || 'Exercice'}
-            height={Math.min(390, typeof window !== 'undefined' ? window.innerWidth * 0.72 : 360)}
-            fallbackLabel="DÉMO NOX"
-          />
-        ) : (() => {
-          const v = getExerciseVisual(nox?.name || exercise?.name || '');
-          return v?.image_url ? (
-            <img src={v.image_url} alt={nox?.name || exercise?.name || 'Exercice'}
-              style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 16 }}
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-          ) : (
-            <div style={{ display: 'grid', placeItems: 'center', gap: 12, textAlign: 'center', padding: 30 }}>
-              <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#F0F1EC', display: 'grid', placeItems: 'center' }}>
-                <span style={{ fontSize: 28 }}>💪</span>
-              </div>
-              <div style={{ fontSize: 11, color: '#A0A49B', fontWeight: 600, lineHeight: 1.4 }}>
-                {v?.muscles || 'Illustration bientôt disponible'}
-              </div>
-            </div>
-          );
-        })()}
+        <img
+          src={getExerciseVisualPath(nox?.name || exercise?.name)}
+          alt={nox?.name || exercise?.name || 'Exercice'}
+          style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 16 }}
+          onError={(e) => {
+            const img = e.target as HTMLImageElement;
+            img.style.display = 'none';
+            const parent = img.parentElement;
+            if (parent && !parent.querySelector('.nox-fallback')) {
+              const fb = document.createElement('div');
+              fb.className = 'nox-fallback';
+              fb.style.cssText = 'display:grid;place-items:center;gap:12px;text-align:center;padding:30px;width:100%';
+              fb.innerHTML = '<div style="width:60px;height:60px;border-radius:50%;background:#F0F1EC;display:grid;place-items:center;font-size:28px">💪</div><div style="font-size:11px;color:#A0A49B;font-weight:600">Illustration bientôt disponible</div>';
+              parent.appendChild(fb);
+            }
+          }}
+        />
       </div>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
