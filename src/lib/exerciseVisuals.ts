@@ -182,3 +182,36 @@ const VISUALS: Record<string, Omit<ExerciseVisual, 'key'>> = {
 };
 
 export { VISUALS, NAME_TO_KEY };
+
+/** Normalise un nom d'exercice en clé canonique */
+export function toExerciseKey(name: string): string {
+  const normalized = name
+    .toLowerCase()
+    .replace(/[éèêë]/g, 'e')
+    .replace(/[àâä]/g, 'a')
+    .replace(/[ùûü]/g, 'u')
+    .replace(/[ôö]/g, 'o')
+    .replace(/[îï]/g, 'i')
+    .replace(/[ç]/g, 'c')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+  if (NAME_TO_KEY[normalized]) return NAME_TO_KEY[normalized];
+
+  for (const [alias, key] of Object.entries(NAME_TO_KEY)) {
+    if (normalized.includes(alias) || alias.includes(normalized)) {
+      return key;
+    }
+  }
+
+  return normalized.replace(/\s+/g, '_');
+}
+
+/** Retourne le visuel pour un exercice — null si inconnu */
+export function getExerciseVisual(name: string): ExerciseVisual | null {
+  const key = toExerciseKey(name);
+  const visual = VISUALS[key];
+  if (!visual) return null;
+  return { key, ...visual };
+}
+
