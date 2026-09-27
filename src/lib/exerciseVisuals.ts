@@ -329,8 +329,29 @@ const VISUALS: Record<string, string> = {
   overhead_cable_tricep_extension:    '/exercises/cable-overhead-triceps-extension.webp',
   close_grip_bench_press:             '/exercises/close-grip-bench-press.webp',
 
-  // Jambes
-  squat:                  '/exercises/back-squat-barbell.webp',
+  // Jambes / Quadriceps
+  squat:                   '/exercises/back-squat.webp',
+  front_squat:             '/exercises/front-squat.webp',
+  hack_squat:              '/exercises/hack-squat.webp',
+  leg_press:               '/exercises/leg-press.webp',
+  leg_extension:           '/exercises/leg-extension.webp',
+  lunge:                   '/exercises/walking-lunge.webp',
+  walking_lunge:           '/exercises/walking-lunge.webp',
+  reverse_dumbbell_lunge:  '/exercises/walking-lunge.webp',
+  bulgarian_split_squat:   '/exercises/bulgarian-split-squat.webp',
+  goblet_squat:            '/exercises/front-squat.webp',
+  sissy_squat:             '/exercises/sissy-squat.webp',
+
+  // Ischio / Mollets
+  romanian_deadlift:       '/exercises/romanian-deadlift.webp',
+  dumbbell_romanian_deadlift: '/exercises/romanian-deadlift.webp',
+  leg_curl:                '/exercises/lying-leg-curl.webp',
+  lying_leg_curl:          '/exercises/lying-leg-curl.webp',
+  seated_leg_curl:         '/exercises/lying-leg-curl.webp',
+  calf_raise:              '/exercises/standing-calf-raise.webp',
+  standing_calf_raise:     '/exercises/standing-calf-raise.webp',
+  seated_calf_raise:       '/exercises/seated-calf-raise.webp',
+  dumbbell_calf_raise:     '/exercises/standing-calf-raise.webp',
 };
 
 // ── Muscles cibles (fallback si pas de visuel) ────────────────────────────────
