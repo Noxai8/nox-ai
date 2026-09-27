@@ -1176,7 +1176,7 @@ Génère exactement ${sessionCount} séances.`;
         readableGenerationError(err);
 
       setError(
-        `Impossible de générer un programme exploitable : ${readable} Réessaie.`
+        `DEBUG — ${err?.name || 'Error'} : ${err?.message || String(err)}`
       );
     } finally {
       setGenerating(false);
