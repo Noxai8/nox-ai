@@ -125,6 +125,7 @@ export default function Onboarding() {
   const [activity, setActivity] = useState('');
   const [level, setLevel] = useState('');
   const [location, setLocation] = useState('');
+  const [equipment, setEquipment] = useState<string[]>([]);
   const [days, setDays] = useState<number[]>([]);
   const [duration, setDuration] = useState('60');
   const [goal, setGoal] = useState('');
@@ -200,6 +201,7 @@ export default function Onboarding() {
         goal_type: goal,
         experience_level: level,
         training_location: location,
+        equipment: equipment.length ? equipment.join(',') : null,
         available_days: days,
         session_length_min: Number(duration),
         starting_weight_kg: Number(weight),
@@ -315,6 +317,35 @@ export default function Onboarding() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {LOCATIONS.map(([id, label]) => <Choice key={id} selected={location === id} onClick={() => setLocation(id)} centered>{label}</Choice>)}
           </div>
+          {location === 'maison' && (<>
+            <SmallTitle>TON MATÉRIEL À LA MAISON</SmallTitle>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {[
+                ['aucun', 'Aucun matériel'],
+                ['halteres', 'Haltères'],
+                ['elastiques', 'Élastiques'],
+                ['kettlebell', 'Kettlebell'],
+                ['banc', 'Banc'],
+                ['barre', 'Barre + poids'],
+                ['barre_traction', 'Barre de traction'],
+              ].map(([id, label]) => {
+                const isNone = id === 'aucun';
+                const sel = isNone ? equipment.length === 0 : equipment.includes(id);
+                return (
+                  <button key={id} onClick={() => {
+                    if (isNone) { setEquipment([]); return; }
+                    setEquipment(c => c.includes(id) ? c.filter(x => x !== id) : [...c, id]);
+                  }} style={{
+                    padding: '12px 10px', borderRadius: 14,
+                    border: `1.5px solid ${sel ? BLACK : BORDER}`,
+                    background: sel ? BLACK : WHITE,
+                    color: sel ? ACCENT : BLACK,
+                    fontSize: 13, fontWeight: 800, cursor: 'pointer', textAlign: 'center',
+                  }}>{label}</button>
+                );
+              })}
+            </div>
+          </>)}
         </Screen>}
 
         {step === 5 && <Screen eyebrow="05 · DISPONIBILITÉS" title={<>Un plan qui tient<br />dans ta vraie vie.</>} subtitle="Choisis uniquement les jours où tu peux réellement t’entraîner.">
