@@ -99,6 +99,10 @@ const [completedSets, setCompletedSets] = useState<any[]>([]);
 const [newPR, setNewPR] = useState<any>(null);
 const [exerciseNotes, setExerciseNotes] = useState<Record<string, string>>({});
 const [showNotes, setShowNotes] = useState(false);
+const [notesOpen, setNotesOpen] = useState(false);
+const [exerciseNote, setExerciseNote] = useState('');
+const [noteSaving, setNoteSaving] = useState(false);
+const [noteSaved, setNoteSaved] = useState(false);
 const [warmupSets, setWarmupSets] = useState<Record<number, boolean>>({});
 const [showSubstitute, setShowSubstitute] = useState(false);
 const [comebackMode, setComebackMode] = useState(false);
@@ -583,6 +587,44 @@ const saveSessionFeedback = async (feedback: 'hard' | 'good' | 'easy') => {
   }
 };
 
+const exerciseNoteKey = (name: string) =>
+  name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+const saveExerciseNote = async () => {
+  if (!user || !workoutId || !exercise?.name) return;
+  setNoteSaving(true);
+  setNoteSaved(false);
+  try {
+    const key = exerciseNoteKey(exercise.name);
+    const { data: workout, error: readError } = await supabase
+      .from('workouts')
+      .select('notes')
+      .eq('id', workoutId)
+      .eq('user_id', user.id)
+      .single();
+    if (readError) throw readError;
+    const notes = { ...(workout?.notes || {}), [key]: exerciseNote.trim() };
+    const { error } = await supabase
+      .from('workouts')
+      .update({ notes })
+      .eq('id', workoutId)
+      .eq('user_id', user.id);
+    if (error) throw error;
+    setNoteSaved(true);
+  } catch (err) {
+    console.error('Training saveExerciseNote:', err);
+    setTrainingError("Impossible d'enregistrer la note.");
+  } finally {
+    setNoteSaving(false);
+  }
+};
+
 const abandonWorkout = async () => {
 setTrainingError('');
 
@@ -883,10 +925,36 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
         <div style={{ width: '100%', border: '1px solid #242424', borderRadius: 28, overflow: 'hidden', background: '#111111', marginBottom: 12 }}>
           <NoxExerciseCover exercise={ex} tags={tags} />
         </div>
-            <button onClick={() => setShowNotes(true)}
-              style={{ flexShrink: 0, padding: '8px 14px', background: '#161616', border: '1px solid #242424', borderRadius: 12, color: exerciseNotes[ex?.name || ''] ? ACCENT : '#929292', fontSize: 11, fontWeight: 800, cursor: 'pointer', touchAction: 'manipulation' as const }}>
-              📝 {exerciseNotes[ex?.name || ''] ? 'Note ✓' : 'Notes'}
-            </button>
+        <div style={{ marginTop: 14 }}>
+          <button
+            type="button"
+            onClick={() => { setNotesOpen(v => !v); setNoteSaved(false); }}
+            style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: '1px solid #242424', background: '#161616', color: '#929292', fontWeight: 800, cursor: 'pointer' }}
+          >
+            📝 {exerciseNote.trim() ? 'Modifier ma note' : 'Notes'}
+          </button>
+
+          {notesOpen && (
+            <div style={{ marginTop: 10 }}>
+              <textarea
+                value={exerciseNote}
+                onChange={(e) => { setExerciseNote(e.target.value); setNoteSaved(false); }}
+                placeholder="Ex : gêne épaule droite, augmenter la charge..."
+                maxLength={500}
+                rows={3}
+                style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', padding: 14, borderRadius: 14, border: '1px solid #242424', background: '#111111', color: '#FFFFFF', outline: 'none', font: 'inherit' }}
+              />
+              <button
+                type="button"
+                onClick={saveExerciseNote}
+                disabled={noteSaving}
+                style={{ width: '100%', marginTop: 8, padding: 13, border: 0, borderRadius: 12, background: '#C8FF00', color: '#080808', fontWeight: 1000, cursor: noteSaving ? 'default' : 'pointer', opacity: noteSaving ? 0.6 : 1 }}
+              >
+                {noteSaving ? 'ENREGISTREMENT...' : noteSaved ? '✓ NOTE ENREGISTRÉE' : 'ENREGISTRER LA NOTE'}
+              </button>
+            </div>
+          )}
+        </div>
 
         {false && tags.length > 0 && <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 15 }}>
           {tags.map((tag, i) => <span key={tag} style={{ padding: '7px 11px', background: i === 0 ? '#F3FFE1' : '#F1F1EE', border: i === 0 ? `1px solid ${ACCENT}` : '1px solid transparent', borderRadius: 999, color: '#55554F', fontSize: 10.5, fontWeight: 800 }}>{tag}</span>)}
