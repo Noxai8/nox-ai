@@ -365,6 +365,20 @@ const VISUALS: Record<string, string> = {
   standing_calf_raise:            '/exercises/standing-calf-raise.webp',
   seated_calf_raise:              '/exercises/seated-calf-raise.webp',
   dumbbell_calf_raise:            '/exercises/standing-calf-raise.webp',
+
+  // Core / Abdos
+  crunch:                  '/exercises/crunch.webp',
+  plank:                   '/exercises/plank.webp',
+  side_plank:              '/exercises/side-plank.webp',
+  leg_raise:               '/exercises/lying-leg-raise.webp',
+  hanging_leg_raise:       '/exercises/hanging-leg-raise.webp',
+  hanging_leg_raise_knee:  '/exercises/hanging-knee-raise.webp',
+  ab_rollout:              '/exercises/ab-wheel-rollout.webp',
+  cable_crunch:            '/exercises/cable-crunch.webp',
+  russian_twist:           '/exercises/russian-twist.webp',
+  pallof_press:            '/exercises/pallof-press.webp',
+  cable_woodchop:          '/exercises/cable-woodchop.webp',
+  swiss_ball_crunch:       '/exercises/swiss-ball-crunch.webp',
 };
 
 // ── Muscles cibles (fallback si pas de visuel) ────────────────────────────────
