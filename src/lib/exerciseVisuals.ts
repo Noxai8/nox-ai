@@ -379,6 +379,24 @@ const VISUALS: Record<string, string> = {
   pallof_press:            '/exercises/pallof-press.webp',
   cable_woodchop:          '/exercises/cable-woodchop.webp',
   swiss_ball_crunch:       '/exercises/swiss-ball-crunch.webp',
+
+  // Cardio
+  elliptical:              '/exercises/elliptical.webp',
+  rowing_machine:          '/exercises/rowing-machine.webp',
+  stationary_bike:         '/exercises/stationary-bike-hiit.webp',
+  bike_hiit:               '/exercises/stationary-bike-hiit.webp',
+  bike_or_rower:           '/exercises/rowing-machine.webp',
+  incline_treadmill:       '/exercises/treadmill-run.webp',
+  incline_walk:            '/exercises/treadmill-run.webp',
+  treadmill:               '/exercises/treadmill-run.webp',
+  jump_rope:               '/exercises/jump-rope.webp',
+  box_jump:                '/exercises/box-jump.webp',
+  battle_rope:             '/exercises/battle-rope.webp',
+  sled_push:               '/exercises/sled-push.webp',
+  stair_climber:           '/exercises/stair-climber.webp',
+  mountain_climber:        '/exercises/mountain-climber.webp',
+  high_knees:              '/exercises/high-knees.webp',
+  bodyweight_squat:        '/exercises/bodyweight-squat-cardio.webp',
 };
 
 // ── Muscles cibles (fallback si pas de visuel) ────────────────────────────────
