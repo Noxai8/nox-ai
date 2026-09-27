@@ -44,8 +44,15 @@ export default function NoxFuture() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const routeState = (location.state as any) || {};
+
   const onboardingFlow = Boolean(
-    (location.state as any)?.onboarding
+    routeState.onboardingFlow ||
+    routeState.onboarding
+  );
+
+  const futureOffer = Boolean(
+    routeState.futureOffer
   );
 
   const [step, setStep] = useState<Step>(
@@ -840,6 +847,66 @@ Réponds uniquement avec un JSON valide :
   /* =========================================================
      CHARGEMENT
   ========================================================= */
+
+  if (onboardingFlow && futureOffer) {
+    return (
+      <div style={{ minHeight: '100dvh', background: BG, color: BLACK }}>
+        <main style={{ maxWidth: 560, margin: '0 auto', padding: '28px 20px 40px' }}>
+          <div style={{ fontSize: 22, fontWeight: 950, letterSpacing: '-.05em', marginBottom: 42 }}>
+            NOX<span style={{ color: ACCENT }}>.</span>
+          </div>
+
+          <Eyebrow>TON PROFIL EST PRÊT</Eyebrow>
+
+          <Title>Vois où<br />tu vas.</Title>
+
+          <Text>
+            NOX connaît maintenant ton objectif, ton niveau, ton rythme et ton environnement.
+            Passe à l'étape supérieure avec NOX AI.
+          </Text>
+
+          <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 28, padding: 22, margin: '28px 0 18px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 10px', borderRadius: 999, background: '#F0FFD0', fontSize: 10, fontWeight: 950, letterSpacing: '.08em', marginBottom: 22 }}>
+              <Sparkles size={14} />
+              NOX FUTURE
+            </div>
+
+            <h2 style={{ fontSize: 28, lineHeight: 1, letterSpacing: '-.05em', margin: '0 0 10px', fontWeight: 950 }}>
+              Transforme ton objectif<br />en trajectoire.
+            </h2>
+
+            <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.55, margin: '0 0 22px' }}>
+              Débloque l'intelligence NOX pour construire une expérience réellement personnalisée autour de toi.
+            </p>
+
+            {['NOX Future', 'Programme IA personnalisé', 'NOX Coach', 'Nutrition et analyses IA', 'Adaptations intelligentes'].map((feature) => (
+              <div key={feature} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 0', borderTop: `1px solid ${BORDER}`, fontSize: 13, fontWeight: 750 }}>
+                <div style={{ width: 24, height: 24, borderRadius: 8, background: ACCENT, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                  <Check size={14} strokeWidth={3} />
+                </div>
+                {feature}
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => navigate('/subscribe', { state: { onboardingFlow: true, returnTo: '/future' } })}
+            style={primary(true)}
+          >
+            DÉCOUVRIR NOX FUTURE
+            <ChevronRight size={18} />
+          </button>
+
+          <button
+            onClick={() => navigate('/home', { replace: true })}
+            style={{ width: '100%', minHeight: 50, border: 0, background: 'transparent', color: MUTED, fontSize: 11, fontWeight: 900, textDecoration: 'underline', cursor: 'pointer', marginTop: 8 }}
+          >
+            IGNORER POUR L'INSTANT
+          </button>
+        </main>
+      </div>
+    );
+  }
 
   if (!historyLoaded && !onboardingFlow) {
     return (
