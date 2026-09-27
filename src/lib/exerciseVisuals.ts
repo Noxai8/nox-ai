@@ -289,7 +289,14 @@ const VISUALS: Record<string, string> = {
   dumbbell_shoulder_press: '/exercises/overhead-press-dumbbells.webp',
   lateral_raise:           '/exercises/dumbbell-lateral-raise.webp',
   front_raise:             '/exercises/dumbbell-front-raise.webp',
-  face_pull:               '/exercises/face-pull-cable.webp',
+  face_pull:               '/exercises/face-pull.webp',
+  arnold_press:            '/exercises/arnold-press.webp',
+  rear_delt_fly:           '/exercises/rear-delt-fly.webp',
+  cable_lateral_raise:     '/exercises/machine-lateral-raise.webp',
+  reverse_pec_deck:        '/exercises/reverse-pec-deck.webp',
+  upright_row:             '/exercises/upright-row.webp',
+  cable_rear_delt_fly:     '/exercises/cable-rear-delt-fly.webp',
+  wide_upright_row:        '/exercises/wide-upright-row.webp',
 
   // Jambes
   squat:                  '/exercises/back-squat-barbell.webp',
