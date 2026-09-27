@@ -277,12 +277,21 @@ const VISUALS: Record<string, string> = {
   wide_push_up:           '/exercises/wide-push-up.webp',
 
   // Dos
-  pull_up:                '/exercises/pronated-pull-up.webp',
-  chin_up:                '/exercises/supinated-pull-up.webp',
-  lat_pulldown:           '/exercises/lat-pulldown-chest.webp',
-  cable_row:              '/exercises/seated-cable-row.webp',
-  barbell_row:            '/exercises/bent-over-row-barbell.webp',
-  dumbbell_row:           '/exercises/one-arm-dumbbell-row.webp',
+  pull_up:                        '/exercises/pull-up.webp',
+  chin_up:                        '/exercises/supinated-pull-up.webp',
+  lat_pulldown:                   '/exercises/lat-pulldown.webp',
+  wide_grip_pull_up:              '/exercises/wide-grip-lat-pulldown.webp',
+  neutral_grip_lat_pulldown:      '/exercises/lat-pulldown.webp',
+  close_grip_lat_pulldown:        '/exercises/lat-pulldown.webp',
+  cable_row:                      '/exercises/seated-cable-row.webp',
+  barbell_row:                    '/exercises/barbell-row.webp',
+  pendlay_row:                    '/exercises/barbell-row.webp',
+  dumbbell_row:                   '/exercises/one-arm-dumbbell-row.webp',
+  chest_supported_machine_row:    '/exercises/chest-supported-row.webp',
+  machine_row:                    '/exercises/machine-row.webp',
+  deadlift:                       '/exercises/deadlift.webp',
+  reverse_cable_fly:              '/exercises/reverse-cable-fly.webp',
+  band_row:                       '/exercises/machine-row.webp',
 
   // Épaules
   overhead_press:          '/exercises/overhead-press-barbell.webp',
