@@ -296,6 +296,7 @@ const VISUALS: Record<string, string> = {
   reverse_pec_deck:        '/exercises/reverse-pec-deck.webp',
   upright_row:             '/exercises/upright-row.webp',
   cable_rear_delt_fly:     '/exercises/cable-rear-delt-fly.webp',
+  chest_supported_rear_delt_fly: '/exercises/chest-supported-rear-delt-fly.webp',
   wide_upright_row:        '/exercises/wide-upright-row.webp',
 
   // Jambes
