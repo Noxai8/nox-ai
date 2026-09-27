@@ -707,7 +707,7 @@ if (done) {
             })}
           </div>
           {feedbackSaving && (
-            <div style={{ marginTop: 10, fontSize: 10.5, color: '#77776F', fontWeight: 750 }}>Enregistrement…</div>
+            <div style={{ marginTop: 10, fontSize: 10.5, color: '#929292', fontWeight: 750 }}>Enregistrement…</div>
           )}
           {!feedbackSaving && sessionFeedback && (
             <div style={{ marginTop: 10, fontSize: 10.5, color: '#59604F', fontWeight: 850 }}>Ressenti enregistré ✓</div>
@@ -740,8 +740,8 @@ const exerciseProgress = ((currentIdx + (currentSet - 1) / totalSets) / exercise
 return (
 <div style={{
 minHeight: '100vh',
-background: resting ? '#090909' : '#F7F8F4',
-color: resting ? '#fff' : '#111',
+background: '#080808',
+color: '#FFFFFF',
 display: 'flex',
 flexDirection: 'column',
 transition: 'background .25s ease, color .25s ease',
@@ -751,7 +751,7 @@ width: '100%',
 maxWidth: 560,
 minHeight: '100vh',
 margin: '0 auto',
-background: resting ? '#090909' : '#F7F8F4',
+background: '#080808',
 display: 'flex',
 flexDirection: 'column',
 }}>
@@ -763,7 +763,7 @@ onClick={() => { if (confirm('Abandonner la séance ?')) void abandonWorkout(); 
 aria-label="Abandonner la séance"
 style={{
 width: 36, height: 36, border: 'none', background: 'transparent',
-color: resting ? '#6B6B6B' : '#111', cursor: 'pointer',
+color: '#FFFFFF', cursor: 'pointer',
 fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
 }}
 >
@@ -771,11 +771,11 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
 </button>
 
         <div style={{ textAlign: 'center', minWidth: 0 }}>
-          {!resting && <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}><NoxBrand compact /></div>}
+          {!resting && <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}><NoxBrand compact dark /></div>}
           <div style={{
             fontSize: resting ? 13 : 11,
             fontWeight: 950,
-            color: resting ? '#626262' : '#77776F',
+            color: '#929292',
             textTransform: 'uppercase',
             letterSpacing: '.08em',
             whiteSpace: 'nowrap',
@@ -786,12 +786,12 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
           </div>
         </div>
 
-        <div style={{ textAlign: 'right', fontSize: 12, fontWeight: 800, color: resting ? '#626262' : '#77776F' }}>
+        <div style={{ textAlign: 'right', fontSize: 12, fontWeight: 800, color: '#929292' }}>
           {currentIdx + 1}/{exercises.length}
         </div>
       </div>
 
-      <div style={{ height: 4, background: resting ? '#1B1B1B' : '#ECECE8', borderRadius: 999, overflow: 'hidden', marginBottom: resting ? 12 : 20 }}>
+      <div style={{ height: 4, background: '#242424', borderRadius: 999, overflow: 'hidden', marginBottom: resting ? 12 : 20 }}>
         <div style={{ height: '100%', width: `${Math.max(3, exerciseProgress)}%`, background: ACCENT, borderRadius: 999, transition: 'width .4s' }} />
       </div>
     </div>
@@ -803,9 +803,9 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
     )}
 
     {stagnation?.stagnating && !resting && (
-      <div style={{ margin: '0 20px 12px', background: '#FAFAF8', border: '1px solid #E1E1DC', borderRadius: 13, padding: '11px 13px' }}>
-        <div style={{ fontSize: 9.5, color: '#111', fontWeight: 1000, textTransform: 'uppercase', letterSpacing: '.07em' }}>ANALYSE NOX</div>
-        <div style={{ fontSize: 11, color: '#66665F', marginTop: 4, lineHeight: 1.45 }}>{stagnation.suggestion}</div>
+      <div style={{ margin: '0 20px 12px', background: '#111111', border: '1px solid #242424', borderRadius: 13, padding: '11px 13px' }}>
+        <div style={{ fontSize: 9.5, color: '#FFFFFF', fontWeight: 1000, textTransform: 'uppercase', letterSpacing: '.07em' }}>ANALYSE NOX</div>
+        <div style={{ fontSize: 11, color: '#929292', marginTop: 4, lineHeight: 1.45 }}>{stagnation.suggestion}</div>
       </div>
     )}
 
@@ -849,12 +849,12 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
 
     {/* Progressive Overload suggestion */}
     {overloadSuggestion && !resting && (
-      <div style={{ margin: '0 20px 12px', background: '#F8FFE4', border: `1px solid ${ACCENT}`, borderRadius: 13, padding: '11px 13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ margin: '0 20px 12px', background: '#111111', border: `1px solid ${ACCENT}`, borderRadius: 13, padding: '11px 13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ fontSize: 9.5, color: '#111', fontWeight: 1000, textTransform: 'uppercase', letterSpacing: '.07em' }}>PROGRESSION NOX</div>
-          <div style={{ fontSize: 11, color: '#66665F', marginTop: 4 }}>{overloadSuggestion.reason}</div>
+          <div style={{ fontSize: 9.5, color: '#FFFFFF', fontWeight: 1000, textTransform: 'uppercase', letterSpacing: '.07em' }}>PROGRESSION NOX</div>
+          <div style={{ fontSize: 11, color: '#929292', marginTop: 4 }}>{overloadSuggestion.reason}</div>
         </div>
-        <div style={{ fontSize: 18, fontWeight: 1000, color: '#111', flexShrink: 0, marginLeft: 12 }}>{overloadSuggestion.suggestedWeight} kg</div>
+        <div style={{ fontSize: 18, fontWeight: 1000, color: ACCENT, flexShrink: 0, marginLeft: 12 }}>{overloadSuggestion.suggestedWeight} kg</div>
       </div>
     )}
 
@@ -872,49 +872,49 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
       />
     ) : (
       <div style={{ flex: 1, padding: '0 20px 28px', display: 'flex', flexDirection: 'column' }}>
-        {/* Fiche exercice NOX — blanche, visuelle, sans mascotte. */}
+        {/* Fiche exercice NOX — Training Mode sombre. */}
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10, color: '#8A8A83', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 7, fontWeight: 900 }}>EXERCICE {currentIdx + 1}</div>
-          <div style={{ fontSize: 31, fontWeight: 1000, color: '#111', letterSpacing: '-.05em', lineHeight: .98 }}>{ex?.name}</div>
-          <div style={{ fontSize: 13, color: '#74746D', lineHeight: 1.4, marginTop: 10, fontWeight: 650 }}>{exerciseCoachCopy(ex)}</div>
+          <div style={{ fontSize: 10, color: '#929292', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 7, fontWeight: 900 }}>EXERCICE {currentIdx + 1}</div>
+          <div style={{ fontSize: 31, fontWeight: 1000, color: '#FFFFFF', letterSpacing: '-.05em', lineHeight: .98 }}>{ex?.name}</div>
+          <div style={{ fontSize: 13, color: '#929292', lineHeight: 1.4, marginTop: 10, fontWeight: 650 }}>{exerciseCoachCopy(ex)}</div>
         </div>
 
         {/* Grande maquette de l'exercice. Le PLAY ouvre la démo guidée 1/3 → 3/3. */}
         <button onClick={() => setShowDemo(true)} aria-label={`Voir la démonstration de ${ex?.name || 'cet exercice'}`}
-          style={{ width: '100%', border: '1px solid #E8EAE2', padding: 0, borderRadius: 28, overflow: 'hidden', background: '#FFFFFF', cursor: 'pointer', marginBottom: 12, textAlign: 'left', boxShadow: '0 12px 32px rgba(0,0,0,.06)' }}>
+          style={{ width: '100%', border: '1px solid #242424', padding: 0, borderRadius: 28, overflow: 'hidden', background: '#111111', cursor: 'pointer', marginBottom: 12, textAlign: 'left', boxShadow: '0 12px 32px rgba(0,0,0,.06)' }}>
           <NoxExerciseCover exercise={ex} tags={tags} />
-          <div style={{ padding: '14px 16px 15px', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ padding: '14px 16px 15px', background: '#111111', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 1000, color: '#111' }}>Voir la démonstration</div>
-              <div style={{ marginTop: 3, fontSize: 10.5, color: '#77776F', fontWeight: 750 }}>3 étapes · placement · mouvement · retour</div>
+              <div style={{ fontSize: 15, fontWeight: 1000, color: '#FFFFFF' }}>Voir la démonstration</div>
+              <div style={{ marginTop: 3, fontSize: 10.5, color: '#929292', fontWeight: 750 }}>3 étapes · placement · mouvement · retour</div>
             </div>
-            <div style={{ color: '#111', fontSize: 21, fontWeight: 1000 }}>→</div>
+            <div style={{ color: '#FFFFFF', fontSize: 21, fontWeight: 1000 }}>→</div>
           </div>
         </button>
             <button onClick={() => setShowNotes(true)}
-              style={{ flexShrink: 0, padding: '8px 14px', background: '#FFFFFF', border: '1px solid ' + BORDER, borderRadius: 12, color: exerciseNotes[ex?.name || ''] ? '#090909' : '#777B72', fontSize: 11, fontWeight: 800, cursor: 'pointer', touchAction: 'manipulation' as const }}>
+              style={{ flexShrink: 0, padding: '8px 14px', background: '#161616', border: '1px solid #242424', borderRadius: 12, color: exerciseNotes[ex?.name || ''] ? ACCENT : '#929292', fontSize: 11, fontWeight: 800, cursor: 'pointer', touchAction: 'manipulation' as const }}>
               📝 {exerciseNotes[ex?.name || ''] ? 'Note ✓' : 'Notes'}
             </button>
 
-        {tags.length > 0 && <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 15 }}>
+        {false && tags.length > 0 && <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 15 }}>
           {tags.map((tag, i) => <span key={tag} style={{ padding: '7px 11px', background: i === 0 ? '#F3FFE1' : '#F1F1EE', border: i === 0 ? `1px solid ${ACCENT}` : '1px solid transparent', borderRadius: 999, color: '#55554F', fontSize: 10.5, fontWeight: 800 }}>{tag}</span>)}
         </div>}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '14px 16px', borderRadius: 20, background: '#F7FFE5', marginBottom: 17 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '14px 16px', borderRadius: 20, background: '#111111', border: '1px solid #242424', marginBottom: 17 }}>
           <div style={{ width: 42, height: 42, borderRadius: 14, background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 20 }}>🎯</div>
-          <div><div style={{ fontSize: 9.5, color: '#999991', fontWeight: 950, letterSpacing: '.07em' }}>OBJECTIF DU JOUR</div>
-          <div style={{ fontSize: 19, color: '#111', fontWeight: 1000, marginTop: 2 }}>{ex?.reps || '8–12'} répétitions</div></div>
+          <div><div style={{ fontSize: 9.5, color: '#929292', fontWeight: 950, letterSpacing: '.07em' }}>OBJECTIF DU JOUR</div>
+          <div style={{ fontSize: 19, color: '#FFFFFF', fontWeight: 1000, marginTop: 2 }}>{ex?.reps || '8–12'} répétitions</div></div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 17 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 17, color: '#111' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 17, color: '#FFFFFF' }}>
             <span>Série <b>{currentSet}</b> / {totalSets}</span>
-            <span style={{ color: '#B7B7B0' }}>·</span>
-            <span style={{ display: 'flex', gap: 6 }}>{Array.from({ length: totalSets }).map((_, i) => <i key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < currentSet ? ACCENT : '#EDEDEA', display: 'block' }} />)}</span>
+            <span style={{ color: '#555555' }}>·</span>
+            <span style={{ display: 'flex', gap: 6 }}>{Array.from({ length: totalSets }).map((_, i) => <i key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < currentSet ? ACCENT : '#303030', display: 'block' }} />)}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#F7FFE5', display: 'grid', placeItems: 'center' }}>🏆</div>
-            <div><div style={{ fontSize: 10.5, fontWeight: 950 }}>Tu avances bien !</div><div style={{ fontSize: 9.5, color: '#999' }}>Reste concentré.</div></div>
+            <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#161616', display: 'grid', placeItems: 'center' }}>🏆</div>
+            <div><div style={{ fontSize: 10.5, fontWeight: 950 }}>Tu avances bien !</div><div style={{ fontSize: 9.5, color: '#929292' }}>Reste concentré.</div></div>
           </div>
         </div>
 
@@ -925,18 +925,18 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
           <NumberField label="RÉPÉTITIONS" value={reps} onChange={setReps} mode="numeric" step={1} />
         </div>
 
-        <button onClick={() => setWeight(weight === '0' ? '' : '0')} style={{ background: 'transparent', border: 'none', color: weight === '0' ? '#111' : '#77776F', fontSize: 11.5, cursor: 'pointer', marginBottom: 15, textAlign: 'left', padding: '2px 0', fontWeight: weight === '0' ? 850 : 600 }}>
-          <span style={{ color: weight === '0' ? ACCENT : '#AAA', fontWeight: 1000 }}>{weight === '0' ? '●' : '○'}</span>{' '}Poids du corps / Sans charge
+        <button onClick={() => setWeight(weight === '0' ? '' : '0')} style={{ background: 'transparent', border: 'none', color: weight === '0' ? '#FFFFFF' : '#929292', fontSize: 11.5, cursor: 'pointer', marginBottom: 15, textAlign: 'left', padding: '2px 0', fontWeight: weight === '0' ? 850 : 600 }}>
+          <span style={{ color: weight === '0' ? ACCENT : '#666666', fontWeight: 1000 }}>{weight === '0' ? '●' : '○'}</span>{' '}Poids du corps / Sans charge
         </button>
 
         <button onClick={validateSet} disabled={!weight || !reps || savingSet}
-          style={{ width: '100%', padding: 18, background: weight && reps && !savingSet ? ACCENT : '#EFEFEC', border: 'none', borderRadius: 18, color: weight && reps && !savingSet ? '#111' : '#B6B6AF', fontWeight: 1000, fontSize: 15, cursor: weight && reps && !savingSet ? 'pointer' : 'not-allowed', marginBottom: 14 }}>
+          style={{ width: '100%', padding: 18, background: weight && reps && !savingSet ? ACCENT : '#1C1C1C', border: 'none', borderRadius: 18, color: weight && reps && !savingSet ? '#080808' : '#666666', fontWeight: 1000, fontSize: 15, cursor: weight && reps && !savingSet ? 'pointer' : 'not-allowed', marginBottom: 14 }}>
           {savingSet ? 'ENREGISTREMENT...' : 'VALIDER LA SÉRIE ✓'}
         </button>
 
-        {currentIdx < exercises.length - 1 && <div style={{ padding: '15px 16px', background: '#fff', borderRadius: 18, border: '1px solid #E7E7E2', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div><div style={{ fontSize: 9, color: '#A0A099', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 5, fontWeight: 900 }}>PROCHAIN EXERCICE</div>
-          <div style={{ fontSize: 14, color: '#111', fontWeight: 900 }}>{exercises[currentIdx + 1]?.name}</div></div><div style={{ fontSize: 26 }}>›</div>
+        {currentIdx < exercises.length - 1 && <div style={{ padding: '15px 16px', background: '#111111', borderRadius: 18, border: '1px solid #242424', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div><div style={{ fontSize: 9, color: '#929292', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 5, fontWeight: 900 }}>PROCHAIN EXERCICE</div>
+          <div style={{ fontSize: 14, color: '#FFFFFF', fontWeight: 900 }}>{exercises[currentIdx + 1]?.name}</div></div><div style={{ fontSize: 26 }}>›</div>
         </div>}
 
         {showDemo && <DemoNox exercise={ex} tags={tags} onClose={() => setShowDemo(false)} />}
@@ -955,16 +955,16 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
 
 );
 }
-function NoxBrand({ compact = false }: { compact?: boolean }) {
+function NoxBrand({ compact = false, dark = false }: { compact?: boolean; dark?: boolean }) {
 return (
 <div style={{ display: 'inline-flex', alignItems: 'center', gap: compact ? 6 : 8 }}>
 <div style={{ position: 'relative', width: compact ? 23 : 28, height: compact ? 18 : 22, flexShrink: 0 }}>
 <span style={{ position: 'absolute', width: compact ? 10 : 13, height: compact ? 6 : 7, left: 1, top: 2, borderRadius: 999, background: ACCENT, transform: 'rotate(28deg)' }} />
 <span style={{ position: 'absolute', width: compact ? 18 : 22, height: compact ? 7 : 8, left: compact ? 6 : 7, top: compact ? 9 : 11, borderRadius: 999, background: ACCENT, transform: 'rotate(7deg)' }} />
 </div>
-<div style={{ display: 'flex', alignItems: 'baseline', gap: 4, color: '#111' }}>
+<div style={{ display: 'flex', alignItems: 'baseline', gap: 4, color: dark ? '#FFFFFF' : '#111' }}>
 <span style={{ fontSize: compact ? 14 : 17, fontWeight: 1000, letterSpacing: '-.045em' }}>NOX</span>
-<span style={{ fontSize: compact ? 8 : 9.5, fontWeight: 900, letterSpacing: '.1em', color: '#66665F' }}>AI</span>
+<span style={{ fontSize: compact ? 8 : 9.5, fontWeight: 900, letterSpacing: '.1em', color: dark ? '#929292' : '#66665F' }}>AI</span>
 </div>
 </div>
 );
@@ -984,13 +984,13 @@ function NumberField({
     onChange(mode === 'numeric' ? String(Math.round(next)) : String(Math.round(next * 10) / 10));
   };
   return (
-    <div style={{ border: '1px solid #E8EAE2', borderRadius: 20, padding: '12px 10px 14px', background: '#fff' }}>
-      <label style={{ fontSize: 9.5, color: '#77776F', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: 10, fontWeight: 900 }}>{label}</label>
+    <div style={{ border: '1px solid #242424', borderRadius: 20, padding: '12px 10px 14px', background: '#111111' }}>
+      <label style={{ fontSize: 9.5, color: '#929292', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: 10, fontWeight: 900 }}>{label}</label>
       <div style={{ display: 'grid', gridTemplateColumns: '42px 1fr 42px', alignItems: 'center', gap: 5 }}>
-        <button type="button" onClick={() => changeBy(-step)} style={{ width: 42, height: 42, borderRadius: '50%', border: 0, background: '#F1F1F3', fontSize: 24, cursor: 'pointer' }}>−</button>
+        <button type="button" onClick={() => changeBy(-step)} style={{ width: 42, height: 42, borderRadius: '50%', border: 0, background: '#1C1C1C', color: '#FFFFFF', fontSize: 24, cursor: 'pointer' }}>−</button>
         <input type="number" value={value} onChange={e => onChange(e.target.value)} placeholder="0" inputMode={mode}
-          style={{ width: '100%', border: 0, outline: 'none', background: 'transparent', color: '#111', fontSize: 31, fontWeight: 1000, textAlign: 'center', minWidth: 0 }} />
-        <button type="button" onClick={() => changeBy(step)} style={{ width: 42, height: 42, borderRadius: '50%', border: 0, background: '#F1F1F3', fontSize: 24, cursor: 'pointer' }}>+</button>
+          style={{ width: '100%', border: 0, outline: 'none', background: 'transparent', color: '#FFFFFF', fontSize: 31, fontWeight: 1000, textAlign: 'center', minWidth: 0 }} />
+        <button type="button" onClick={() => changeBy(step)} style={{ width: 42, height: 42, borderRadius: '50%', border: 0, background: '#1C1C1C', color: '#FFFFFF', fontSize: 24, cursor: 'pointer' }}>+</button>
       </div>
     </div>
   );
@@ -1061,17 +1061,17 @@ function NoxExerciseCover({ exercise, tags }: { exercise: any; tags: string[] })
   const hdVisual = getNoxExerciseHdCover(nox?.id) || '';
 
   return (
-    <div style={{ position: 'relative', background: '#FFFFFF', borderBottom: '1px solid #ECECE7', overflow: 'hidden', padding: '14px 14px 16px' }}>
+    <div style={{ position: 'relative', background: '#111111', borderBottom: '1px solid #242424', overflow: 'hidden', padding: '14px 14px 16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-        <span style={{ fontSize: 9.5, color: '#8A8A83', fontWeight: 950, textTransform: 'uppercase', letterSpacing: '.08em' }}>MOUVEMENT</span>
-        <span style={{ background: '#F5F5F2', borderRadius: 999, padding: '6px 10px', fontSize: 9, color: '#74746D', fontWeight: 900, textTransform: 'uppercase' }}>{equipment}</span>
+        <span style={{ fontSize: 9.5, color: '#929292', fontWeight: 950, textTransform: 'uppercase', letterSpacing: '.08em' }}>MOUVEMENT</span>
+        <span style={{ background: '#1C1C1C', borderRadius: 999, padding: '6px 10px', fontSize: 9, color: '#B0B0B0', fontWeight: 900, textTransform: 'uppercase' }}>{equipment}</span>
       </div>
 
-      <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', maxHeight: 390, minHeight: 235, display: 'grid', placeItems: 'center', background: '#FFFFFF', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', maxHeight: 390, minHeight: 235, display: 'grid', placeItems: 'center', background: '#080808', overflow: 'hidden' }}>
         <img
           src={getExerciseVisualPath(nox?.name || exercise?.name)}
           alt={nox?.name || exercise?.name || 'Exercice'}
-          style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 16 }}
+          style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 0 }}
           onError={(e) => {
             const img = e.target as HTMLImageElement;
             img.style.display = 'none';
@@ -1088,7 +1088,7 @@ function NoxExerciseCover({ exercise, tags }: { exercise: any; tags: string[] })
       </div>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-        {tags.slice(0, 3).map((tag, index) => <span key={tag} style={{ padding: '6px 9px', borderRadius: 999, background: index === 0 ? '#F2FFD8' : '#F3F3F0', border: index === 0 ? `1px solid ${ACCENT}` : '1px solid transparent', fontSize: 9.5, fontWeight: 900 }}>{tag}</span>)}
+        {tags.slice(0, 3).map((tag, index) => <span key={tag} style={{ padding: '6px 9px', borderRadius: 999, background: index === 0 ? '#182000' : '#1C1C1C', border: index === 0 ? `1px solid ${ACCENT}` : '1px solid transparent', fontSize: 9.5, fontWeight: 900, color: index === 0 ? '#FFFFFF' : '#D0D0D0' }}>{tag}</span>)}
       </div>
     </div>
   );
@@ -1170,7 +1170,7 @@ function DemoNox({ exercise, tags, onClose }: { exercise: any; tags: string[]; o
           <button onClick={onClose} aria-label="Fermer" style={{ width: 40, height: 40, borderRadius: '50%', border: '1px solid #E7E7E2', background: '#FFFFFF', fontSize: 25, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>×</button>
           <div style={{ textAlign: 'center', minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 1000, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</div>
-            <div style={{ fontSize: 9.5, color: '#8A8A83', fontWeight: 900, letterSpacing: '.1em', marginTop: 3 }}>DÉMO NOX</div>
+            <div style={{ fontSize: 9.5, color: '#929292', fontWeight: 900, letterSpacing: '.1em', marginTop: 3 }}>DÉMO NOX</div>
           </div>
           <div style={{ textAlign: 'right', fontSize: 12, fontWeight: 1000 }}>{activeStep + 1} / 3</div>
         </div>
@@ -1183,7 +1183,7 @@ function DemoNox({ exercise, tags, onClose }: { exercise: any; tags: string[]; o
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10, color: '#8A8A83', fontWeight: 1000, letterSpacing: '.09em', textTransform: 'uppercase' }}>ÉTAPE {activeStep + 1}</div>
+          <div style={{ fontSize: 10, color: '#929292', fontWeight: 1000, letterSpacing: '.09em', textTransform: 'uppercase' }}>ÉTAPE {activeStep + 1}</div>
           <div style={{ fontSize: 27, fontWeight: 1000, letterSpacing: '-.04em', lineHeight: 1.02, marginTop: 6 }}>{currentStep?.title || 'Mouvement'}</div>
           <div style={{ fontSize: 13, color: '#66665F', lineHeight: 1.5, marginTop: 9 }}>{currentStep?.cue}</div>
         </div>
@@ -1381,7 +1381,7 @@ return (
 <div style={{ background: '#FAFAF8', border: '1px solid #E7E7E2', borderRadius: 12, padding: '10px 12px', marginBottom: 14 }}>
 {lastSets.length > 0 && (
 <div style={{ marginBottom: history.length > 0 || completedSets.length > 0 ? 8 : 0 }}>
-<div style={{ fontSize: 8.5, color: '#999991', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5, fontWeight: 850 }}>DERNIÈRE SÉANCE</div>
+<div style={{ fontSize: 8.5, color: '#929292', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5, fontWeight: 850 }}>DERNIÈRE SÉANCE</div>
 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
 {lastSets.map((s: any, i: number) => (
 <div key={i} style={{ background: '#EEEEEA', borderRadius: 7, padding: '4px 8px', fontSize: 10.5, color: '#44443F', fontWeight: 750 }}>
@@ -1394,7 +1394,7 @@ return (
 
   {history[0] && (
     <div style={{ marginBottom: completedSets.length > 0 ? 8 : 0 }}>
-      <div style={{ fontSize: 8.5, color: '#999991', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4, fontWeight: 850 }}>MEILLEUR PR</div>
+      <div style={{ fontSize: 8.5, color: '#929292', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4, fontWeight: 850 }}>MEILLEUR PR</div>
       <div style={{ fontSize: 12.5, fontWeight: 900, color: '#111' }}>
         {history[0].weight} kg × {history[0].reps} reps
       </div>
@@ -1403,7 +1403,7 @@ return (
 
   {completedSets.length > 0 && (
     <div>
-      <div style={{ fontSize: 8.5, color: '#999991', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5, fontWeight: 850 }}>CETTE SÉANCE</div>
+      <div style={{ fontSize: 8.5, color: '#929292', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5, fontWeight: 850 }}>CETTE SÉANCE</div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         {completedSets.map((s: any, i: number) => (
           <div key={i} style={{ background: '#EEEEEA', borderRadius: 7, padding: '4px 8px', fontSize: 10.5, color: '#44443F', fontWeight: 750 }}>
