@@ -399,6 +399,16 @@ const VISUALS: Record<string, string> = {
   mountain_climber:        '/exercises/mountain-climber.webp',
   high_knees:              '/exercises/high-knees.webp',
   bodyweight_squat:        '/exercises/bodyweight-squat-cardio.webp',
+
+  // Final batch — complétion bibliothèque 99/99
+  hip_abduction_machine:   '/exercises/hip-abduction-machine.webp',
+  machine_shoulder_press:  '/exercises/machine-shoulder-press.webp',
+  bench_dips:              '/exercises/bench-dips.webp',
+  good_morning:            '/exercises/good-morning.webp',
+  push_press:              '/exercises/push-press.webp',
+  barbell_shrug:           '/exercises/barbell-shrug.webp',
+  sumo_deadlift:           '/exercises/sumo-deadlift.webp',
+  assisted_pull_up:        '/exercises/assisted-pull-up.webp',
 };
 
 // ── Muscles cibles (fallback si pas de visuel) ────────────────────────────────
