@@ -719,6 +719,15 @@ export default function GenerateProgram() {
 
     const availableDays = getAvailableDays(profile);
 
+    const availableExerciseCatalog = getExerciseCatalogForProfile(profile);
+
+    const exerciseCatalogForPrompt = availableExerciseCatalog
+      .map(
+        (exercise) =>
+          `${exercise.id} | ${exercise.name} | ${exercise.category} | ${exercise.equipment}`
+      )
+      .join('\n');
+
     let generationProfile: ReturnType<typeof requireGenerationProfile>;
 
     try {
@@ -864,7 +873,7 @@ Pour chaque exercice, recopie exactement exercise_id et name.
 N'invente jamais, ne traduis jamais et ne modifie jamais un nom.
 Si le matériel ou une contrainte rend un exercice inadapté, choisis un autre exercice compatible du catalogue.
 
-${NOX_EXERCISE_CATALOG_FOR_PROMPT}
+${exerciseCatalogForPrompt}
 
 RÈGLES DE PROGRAMMATION :
 
