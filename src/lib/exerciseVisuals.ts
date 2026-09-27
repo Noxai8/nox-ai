@@ -359,3 +359,16 @@ export function getExerciseMuscles(exerciseName?: string | null): string {
   if (!key) return 'Illustration bientôt disponible';
   return MUSCLES[key] ?? 'Illustration bientôt disponible';
 }
+
+export function debugExerciseVisual(exerciseName: string) {
+  const key = toExerciseKey(exerciseName);
+  const visual = getExerciseVisualPath(exerciseName);
+
+  return {
+    name: exerciseName,
+    key,
+    recognized: key !== null,
+    visual,
+    hasVisual: visual !== null,
+  };
+}
