@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { BottomNav } from './Home';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
@@ -44,20 +44,41 @@ const FEATURES_PRO_PLUS = [
 export default function Subscribe() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const routeState = (location.state as any) || {};
+  const onboardingFlow = Boolean(routeState.onboardingFlow);
+  const returnTo = routeState.returnTo || null;
   const [billing, setBilling] = useState<'monthly' | 'annual'>('annual');
   const [selected, setSelected] = useState<'pro' | 'pro_plus'>('pro');
   const [loading, setLoading] = useState(false);
 
   const startTrial = async () => {
-    if (!user) return;
+    if (!user || loading) return;
     setLoading(true);
-    const trialEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-    await supabase.from('profiles').update({
-      subscription_plan: selected,
-      trial_ends_at: trialEnd,
-    }).eq('id', user.id);
-    setLoading(false);
-    navigate('/home');
+    try {
+      const trialEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { error } = await supabase.from('profiles').update({
+        subscription_plan: selected,
+        trial_ends_at: trialEnd,
+        updated_at: new Date().toISOString(),
+      }).eq('id', user.id);
+      if (error) throw error;
+
+      if (onboardingFlow && returnTo === '/future') {
+        navigate('/future', {
+          replace: true,
+          state: { onboardingFlow: true, futureOffer: false, subscriptionActivated: true },
+        });
+        return;
+      }
+
+      navigate('/home', { replace: true });
+    } catch (error) {
+      console.error('NOX subscription activation error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
