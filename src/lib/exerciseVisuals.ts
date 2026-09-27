@@ -245,13 +245,7 @@ const MUSCLES: Record<string, string> = {
 export function toExerciseKey(exerciseName?: string | null): string | null {
   if (!exerciseName) return null;
   const normalized = normalizeExerciseName(exerciseName);
-  // Lookup exact
-  if (EXERCISE_ALIASES[normalized]) return EXERCISE_ALIASES[normalized];
-  // Lookup partiel — le nom contient un alias connu
-  for (const [alias, key] of Object.entries(EXERCISE_ALIASES)) {
-    if (normalized.includes(alias) || alias.includes(normalized)) return key;
-  }
-  return null;
+  return EXERCISE_ALIASES[normalized] ?? null;
 }
 
 /** Chemin vers le visuel — null si pas encore disponible */
