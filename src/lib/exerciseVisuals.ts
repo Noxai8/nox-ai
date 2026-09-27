@@ -342,16 +342,29 @@ const VISUALS: Record<string, string> = {
   goblet_squat:            '/exercises/front-squat.webp',
   sissy_squat:             '/exercises/sissy-squat.webp',
 
+  // Fessiers / Chaîne postérieure
+  hip_thrust:                    '/exercises/barbell-hip-thrust.webp',
+  barbell_glute_bridge:          '/exercises/barbell-hip-thrust.webp',
+  machine_hip_thrust:            '/exercises/machine-hip-thrust.webp',
+  glute_bridge:                  '/exercises/barbell-hip-thrust.webp',
+  cable_glute_kickback:          '/exercises/cable-glute-kickback.webp',
+  machine_glute_kickback:        '/exercises/cable-glute-kickback.webp',
+  back_extension:                '/exercises/back-extension-glutes.webp',
+  cable_pull_through:            '/exercises/cable-pull-through.webp',
+  kettlebell_swing:              '/exercises/cable-pull-through.webp',
+  single_leg_romanian_deadlift:  '/exercises/single-leg-romanian-deadlift.webp',
+  reverse_dumbbell_lunge:        '/exercises/reverse-dumbbell-lunge.webp',
+
   // Ischio / Mollets
-  romanian_deadlift:       '/exercises/romanian-deadlift.webp',
-  dumbbell_romanian_deadlift: '/exercises/romanian-deadlift.webp',
-  leg_curl:                '/exercises/lying-leg-curl.webp',
-  lying_leg_curl:          '/exercises/lying-leg-curl.webp',
-  seated_leg_curl:         '/exercises/lying-leg-curl.webp',
-  calf_raise:              '/exercises/standing-calf-raise.webp',
-  standing_calf_raise:     '/exercises/standing-calf-raise.webp',
-  seated_calf_raise:       '/exercises/seated-calf-raise.webp',
-  dumbbell_calf_raise:     '/exercises/standing-calf-raise.webp',
+  romanian_deadlift:              '/exercises/romanian-deadlift-barbell.webp',
+  dumbbell_romanian_deadlift:     '/exercises/dumbbell-romanian-deadlift.webp',
+  leg_curl:                       '/exercises/lying-leg-curl.webp',
+  lying_leg_curl:                 '/exercises/lying-leg-curl.webp',
+  seated_leg_curl:                '/exercises/lying-leg-curl.webp',
+  calf_raise:                     '/exercises/standing-calf-raise.webp',
+  standing_calf_raise:            '/exercises/standing-calf-raise.webp',
+  seated_calf_raise:              '/exercises/seated-calf-raise.webp',
+  dumbbell_calf_raise:            '/exercises/standing-calf-raise.webp',
 };
 
 // ── Muscles cibles (fallback si pas de visuel) ────────────────────────────────
