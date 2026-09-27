@@ -205,30 +205,68 @@ const NOX_EXERCISE_CATALOG_FOR_PROMPT = NOX_EXERCISE_LIBRARY
 
 function getExerciseCatalogForProfile(profile: any): NoxExercise[] {
   const location = cleanProfileText(profile?.training_location).toLowerCase();
-  const equipment = cleanProfileText(profile?.equipment).toLowerCase();
+  const rawEquipment = cleanProfileText(profile?.equipment).toLowerCase();
 
   const isHome =
     location.includes('maison') ||
     location.includes('domicile') ||
     location.includes('home');
 
-  // Salle / autre lieu → catalogue complet
-  if (!isHome) {
-    return NOX_EXERCISE_LIBRARY;
-  }
+  if (!isHome) return NOX_EXERCISE_LIBRARY;
 
-  // Maison sans matériel → uniquement poids du corps
-  if (!equipment) {
-    return NOX_EXERCISE_LIBRARY.filter(
-      (exercise) => exercise.equipment === 'poids du corps'
-    );
-  }
+  const ownedEquipment = new Set(
+    rawEquipment.split(',').map((item) => item.trim()).filter(Boolean)
+  );
 
-  // Maison avec matériel → poids du corps + matériel déclaré
+  const has = (...ids: string[]) => ids.some((id) => ownedEquipment.has(id));
+
+  const hasDumbbells  = has('halteres', 'haltères', 'haltere', 'haltère');
+  const hasBench      = has('banc', 'bench');
+  const hasBarbell    = has('barre', 'barre_poids', 'barre_et_poids', 'barbell');
+  const hasPullUpBar  = has('barre_traction', 'barre_de_traction', 'pull_up_bar');
+  const hasKettlebell = has('kettlebell', 'kettlebells');
+  const hasBands      = has('elastiques', 'élastiques', 'elastique', 'élastique', 'bands');
+
+  const requiresPullUpBar = new Set([
+    'pull_up', 'chin_up', 'neutral_grip_pull_up', 'hanging_knee_raise', 'hanging_leg_raise',
+  ]);
+
+  const requiresSupport = new Set(['dip', 'inverted_row']);
+
+  const dumbbellExercisesRequiringBench = new Set([
+    'dumbbell_bench_press', 'incline_dumbbell_bench_press', 'decline_dumbbell_bench_press',
+    'dumbbell_fly', 'incline_dumbbell_fly', 'dumbbell_skull_crusher',
+    'chest_supported_dumbbell_row', 'incline_dumbbell_curl',
+  ]);
+
+  const barbellExercisesRequiringBench = new Set([
+    'barbell_bench_press', 'incline_barbell_bench_press', 'decline_barbell_bench_press',
+    'close_grip_bench_press', 'box_squat',
+  ]);
+
   return NOX_EXERCISE_LIBRARY.filter((exercise) => {
-    if (exercise.equipment === 'poids du corps') return true;
+    if (exercise.equipment === 'poids du corps') {
+      if (requiresPullUpBar.has(exercise.id)) return hasPullUpBar;
+      if (requiresSupport.has(exercise.id))   return hasBench || hasPullUpBar;
+      return true;
+    }
 
-    return equipment.includes(exercise.equipment.toLowerCase());
+    if (exercise.equipment === 'haltères') {
+      if (!hasDumbbells) return false;
+      if (dumbbellExercisesRequiringBench.has(exercise.id)) return hasBench;
+      return true;
+    }
+
+    if (exercise.equipment === 'barre') {
+      if (!hasBarbell) return false;
+      if (barbellExercisesRequiringBench.has(exercise.id)) return hasBench;
+      return true;
+    }
+
+    if (exercise.equipment === 'kettlebell' && hasKettlebell) return true;
+    if (exercise.equipment === 'élastiques' && hasBands)      return true;
+
+    return false;
   });
 }
 
@@ -532,6 +570,9 @@ function readableGenerationError(error: unknown): string {
   if (message.startsWith('EXERCISE_NOT_IN_CATALOG:')) {
     return 'Un exercice généré ne faisait pas partie du catalogue NOX.';
   }
+  if (message.startsWith('EXERCISE_NOT_ALLOWED:')) {
+    return "Un exercice généré n'était pas compatible avec le lieu ou le matériel disponible.";
+  }
 
   if (message.startsWith('SETS_INVALID:')) {
     return 'Un exercice contenait un nombre de séries invalide.';
@@ -561,6 +602,7 @@ function shouldRetryGeneration(error: unknown): boolean {
     message.startsWith('SESSION_EXERCISES_MISSING:') ||
     message.startsWith('EXERCISE_INVALID:') ||
     message.startsWith('EXERCISE_NOT_IN_CATALOG:') ||
+    message.startsWith('EXERCISE_NOT_ALLOWED:') ||
     message.startsWith('SETS_INVALID:') ||
     message.startsWith('REPS_MISSING:')
   );
