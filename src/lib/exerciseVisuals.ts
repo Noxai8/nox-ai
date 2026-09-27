@@ -188,6 +188,7 @@ const EXERCISE_ALIASES: Record<string, string> = {
   'rowing barre buste penche':                        'barbell_row',
   'rowing elastique':                                 'band_row',
   'rowing haltere unilaterale':                       'dumbbell_row',
+  'rowing haltere unilateral':                        'dumbbell_row',
   'rowing machine poitrine appuyee':                  'chest_supported_machine_row',
   'rowing pendlay':                                   'pendlay_row',
   'shrugs barre':                                     'barbell_shrug',
@@ -204,6 +205,7 @@ const EXERCISE_ALIASES: Record<string, string> = {
   // DEADLIFT / CHAÎNE POSTÉRIEURE
   'romanian deadlift barre':                          'romanian_deadlift',
   'souleve de terre conventionnel':                   'deadlift',
+  'souleve de terre roumain':                         'romanian_deadlift',
   'souleve de terre roumain halteres':                'dumbbell_romanian_deadlift',
   'souleve de terre sumo':                            'sumo_deadlift',
   'good morning barre':                               'good_morning',
