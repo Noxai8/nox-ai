@@ -337,6 +337,35 @@ return () => {
 };
 
 }, [user, exercises, currentIdx, workoutId]);
+
+// Charger automatiquement la note de l'exercice courant
+useEffect(() => {
+  const loadExerciseNote = async () => {
+    if (!user || !workoutId || !exercises[currentIdx]?.name) {
+      setExerciseNote('');
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('workouts')
+        .select('notes')
+        .eq('id', workoutId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+      const key = exerciseNoteKey(exercises[currentIdx].name);
+      const savedNote = data?.notes?.[key];
+      setExerciseNote(typeof savedNote === 'string' ? savedNote : '');
+      setNoteSaved(false);
+      setNotesOpen(false);
+    } catch (err) {
+      console.error('Training loadExerciseNote:', err);
+      setExerciseNote('');
+    }
+  };
+  loadExerciseNote();
+}, [workoutId, currentIdx, user?.id]);
+
 const startRest = (seconds: number) => {
 clearInterval(timerRef.current);
 setRestMax(seconds);
