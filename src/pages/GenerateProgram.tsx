@@ -690,6 +690,64 @@ function requireGenerationProfile(
   };
 }
 
+function buildFreeHomeBodyweightProgram(profile: any) {
+  const availableDays = getAvailableDays(profile);
+
+  const templates = [
+    {
+      name: 'FULL BODY A',
+      objective: 'Construire une base solide sur tout le corps.',
+      duration_minutes: 35,
+      exercises: [
+        { exercise_id: 'bodyweight_squat', name: 'Squat poids du corps', sets: 3, reps: '12-15', rest: '60 sec' },
+        { exercise_id: 'push_up', name: 'Pompes', sets: 3, reps: '8-12', rest: '60 sec' },
+        { exercise_id: 'reverse_lunge', name: 'Fentes arrière', sets: 3, reps: '10 / jambe', rest: '60 sec' },
+        { exercise_id: 'glute_bridge', name: 'Pont fessier', sets: 3, reps: '15', rest: '45 sec' },
+        { exercise_id: 'plank', name: 'Planche', sets: 3, reps: '30-45 sec', rest: '45 sec' },
+      ],
+    },
+    {
+      name: 'FULL BODY B',
+      objective: 'Renforcer tout le corps avec un travail complémentaire.',
+      duration_minutes: 35,
+      exercises: [
+        { exercise_id: 'bodyweight_lunge', name: 'Fentes poids du corps', sets: 3, reps: '10 / jambe', rest: '60 sec' },
+        { exercise_id: 'incline_push_up', name: 'Pompes inclinées', sets: 3, reps: '10-15', rest: '60 sec' },
+        { exercise_id: 'single_leg_glute_bridge', name: 'Pont fessier une jambe', sets: 3, reps: '10 / jambe', rest: '45 sec' },
+        { exercise_id: 'wall_sit', name: 'Chaise contre un mur', sets: 3, reps: '30-45 sec', rest: '45 sec' },
+        { exercise_id: 'dead_bug', name: 'Dead Bug', sets: 3, reps: '10 / côté', rest: '45 sec' },
+      ],
+    },
+    {
+      name: 'FULL BODY C',
+      objective: 'Développer force, stabilité et endurance musculaire.',
+      duration_minutes: 35,
+      exercises: [
+        { exercise_id: 'bodyweight_squat', name: 'Squat poids du corps', sets: 3, reps: '15', rest: '60 sec' },
+        { exercise_id: 'diamond_push_up', name: 'Pompes diamant', sets: 3, reps: '6-10', rest: '60 sec' },
+        { exercise_id: 'walking_lunge', name: 'Fentes marchées', sets: 3, reps: '10 / jambe', rest: '60 sec' },
+        { exercise_id: 'glute_bridge', name: 'Pont fessier', sets: 3, reps: '15-20', rest: '45 sec' },
+        { exercise_id: 'side_plank', name: 'Planche latérale', sets: 3, reps: '30 sec / côté', rest: '45 sec' },
+      ],
+    },
+  ];
+
+  const sessionCount = Math.min(Math.max(availableDays.length, 2), 3);
+
+  const sessions = Array.from({ length: sessionCount }, (_, index) => ({
+    id: `free-home-${index + 1}`,
+    day: availableDays[index] || '',
+    ...templates[index % templates.length],
+  }));
+
+  return {
+    version: 1,
+    type: 'free_basic',
+    session_length_min: 35,
+    sessions,
+  };
+}
+
 export default function GenerateProgram() {
   const { user } = useAuth();
   const { isPro } = usePlan();
@@ -1187,7 +1245,10 @@ Génère exactement ${sessionCount} séances.`;
   };
 
   useEffect(() => {
+    // FREE = aucun appel IA automatique.
+    // Le programme Free est créé localement par createFreeProgram().
     if (
+      !isPro ||
       !profile ||
       generating ||
       done ||
@@ -1201,7 +1262,7 @@ Génère exactement ${sessionCount} séances.`;
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [profile, generating, done, error]);
+  }, [isPro, profile, generating, done, error]);
 
   if (done) {
     return (
@@ -1252,14 +1313,79 @@ Génère exactement ${sessionCount} séances.`;
   }
 
   if (!isPro) {
+    const createFreeProgram = async () => {
+      if (!user || !profile || generating) return;
+      setGenerating(true);
+      setError('');
+      try {
+        const loc = String(profile.training_location || '').toLowerCase();
+        const equip = Array.isArray(profile.equipment) ? profile.equipment : [];
+        const isHome = loc.includes('maison') || loc.includes('domicile') || loc.includes('home');
+        const hasNoEquipment = equip.length === 0;
+
+        if (!isHome || !hasNoEquipment) {
+          throw new Error('Le programme Free est pour le moment disponible pour Maison sans matériel.');
+        }
+
+        const programJson = buildFreeHomeBodyweightProgram(profile);
+
+        const { data: insertedProgram, error: insertError } = await supabase
+          .from('workout_programs')
+          .insert({
+            user_id: user.id,
+            name: 'NOX FREE — MAISON',
+            description: 'Programme basique au poids du corps.',
+            goal: profile.goal_type || 'Remise en forme',
+            days_per_week: programJson.sessions.length,
+            duration_weeks: 4,
+            is_active: true,
+            program_json: programJson,
+            created_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+
+        if (insertError || !insertedProgram?.id) {
+          throw new Error(insertError?.message || 'Impossible de sauvegarder ton programme.');
+        }
+
+        const { error: deactivateError } = await supabase
+          .from('workout_programs')
+          .update({ is_active: false })
+          .eq('user_id', user.id)
+          .neq('id', insertedProgram.id)
+          .eq('is_active', true);
+
+        if (deactivateError) {
+          console.error('Programme Free créé mais anciens programmes non désactivés :', deactivateError);
+        }
+
+        navigate('/program', { replace: true });
+      } catch (err: any) {
+        console.error('Erreur création programme Free :', err);
+        setError(err?.message || 'Impossible de créer ton programme.');
+      } finally {
+        setGenerating(false);
+      }
+    };
+
     return (
       <div style={{ minHeight: '100vh', background: '#F7F8F4', padding: '60px 24px 24px', maxWidth: 560, margin: '0 auto', boxSizing: 'border-box' }}>
-        <div style={{ fontSize: 10, fontWeight: 900, color: '#7A7F76', letterSpacing: '.12em', marginBottom: 8 }}>PROGRAMME PERSONNALISÉ</div>
-        <h1 style={{ fontSize: 32, fontWeight: 950, letterSpacing: '-.04em', color: '#0B0B0B', marginBottom: 24 }}>BOUGE POUR<br />TON OBJECTIF.</h1>
-        <PaywallCard
-          feature="Programme IA personnalisé"
-          description="NOX génère un programme sur mesure selon ton objectif, ton niveau, tes jours disponibles et ton matériel."
-        />
+        <div style={{ fontSize: 10, fontWeight: 900, color: '#7A7F76', letterSpacing: '.12em', marginBottom: 8 }}>PROGRAMME NOX FREE</div>
+        <h1 style={{ fontSize: 32, fontWeight: 950, letterSpacing: '-.04em', color: '#0B0B0B', marginBottom: 12 }}>BOUGE POUR<br />TON OBJECTIF.</h1>
+        <p style={{ fontSize: 14, lineHeight: 1.5, color: '#7A7F76', marginBottom: 24 }}>Ton programme basique au poids du corps, adapté à tes jours disponibles.</p>
+        {error && (
+          <div style={{ background: '#FFF', border: '1px solid #E8EAE4', borderRadius: 16, padding: 14, fontSize: 12, color: '#B42318', marginBottom: 14 }}>
+            {error}
+          </div>
+        )}
+        <button
+          onClick={createFreeProgram}
+          disabled={generating}
+          style={{ width: '100%', padding: 18, border: 0, borderRadius: 18, background: '#C8FF00', color: '#0B0B0B', fontSize: 14, fontWeight: 950, cursor: generating ? 'default' : 'pointer', opacity: generating ? 0.6 : 1 }}
+        >
+          {generating ? 'CRÉATION...' : 'CRÉER MON PROGRAMME →'}
+        </button>
       </div>
     );
   }
