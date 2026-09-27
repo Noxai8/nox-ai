@@ -150,6 +150,104 @@ const EXERCISE_ALIASES: Record<string, string> = {
   'calf raise':                         'calf_raise',
   'elevation mollets':                  'calf_raise',
 
+
+  // ── Alias exacts issus de Supabase ──────────────────────────────────────────
+
+  // PECTORAUX
+  'ecarte couche halteres':                           'dumbbell_fly',
+  'ecarte poulie haute':                              'cable_fly',
+  'ecarte poulie vis a vis':                          'cable_fly',
+  'pec deck':                                         'pec_deck',
+  'pompes prise large':                               'wide_push_up',
+  'dips lestes':                                      'weighted_dips',
+  'dips sur banc':                                    'bench_dips',
+
+  // ÉPAULES
+  'arnold press':                                     'arnold_press',
+  'developpe epaules machine':                        'machine_shoulder_press',
+  'elevation laterale poulie':                        'cable_lateral_raise',
+  'elevations laterales halteres':                    'lateral_raise',
+  'elevations frontales halteres':                    'front_raise',
+  'oiseau halteres':                                  'rear_delt_fly',
+  'reverse pec deck':                                 'reverse_pec_deck',
+  'push press':                                       'push_press',
+
+  // BICEPS
+  'curl alterne halteres':                            'alternating_dumbbell_curl',
+  'curl barre ez':                                    'ez_bar_curl',
+  'curl halteres incline':                            'incline_dumbbell_curl',
+
+  // TRICEPS
+  'extension triceps corde':                          'rope_pushdown',
+  'extension triceps couche halteres':                'dumbbell_skull_crusher',
+  'extension triceps poulie au dessus de la tete':   'overhead_cable_tricep_extension',
+  'triceps poulie haute corde':                       'rope_pushdown',
+
+  // DOS
+  'face pull poulie':                                 'face_pull',
+  'rowing barre buste penche':                        'barbell_row',
+  'rowing elastique':                                 'band_row',
+  'rowing haltere unilaterale':                       'dumbbell_row',
+  'rowing machine poitrine appuyee':                  'chest_supported_machine_row',
+  'rowing pendlay':                                   'pendlay_row',
+  'shrugs barre':                                     'barbell_shrug',
+  'tirage barre pronation':                           'barbell_row',
+  'tirage horizontal poulie':                         'cable_row',
+  'tirage poulie haute prise neutre':                 'neutral_grip_lat_pulldown',
+  'tirage vertical poitrine':                         'lat_pulldown',
+  'tirage vertical prise neutre':                     'neutral_grip_lat_pulldown',
+  'tirage vertical prise serree':                     'close_grip_lat_pulldown',
+  'tractions assistees':                              'assisted_pull_up',
+  'tractions prise large':                            'wide_grip_pull_up',
+  'tractions pronation':                              'pull_up',
+
+  // DEADLIFT / CHAÎNE POSTÉRIEURE
+  'romanian deadlift barre':                          'romanian_deadlift',
+  'souleve de terre conventionnel':                   'deadlift',
+  'souleve de terre roumain halteres':                'dumbbell_romanian_deadlift',
+  'souleve de terre sumo':                            'sumo_deadlift',
+  'good morning barre':                               'good_morning',
+
+  // QUADRICEPS / JAMBES
+  'extension de jambes':                              'leg_extension',
+  'extension quadriceps machine':                     'leg_extension',
+  'fentes arriere halteres':                          'reverse_dumbbell_lunge',
+  'fentes marchees halteres':                         'walking_lunge',
+  'goblet squat':                                     'goblet_squat',
+  'leg extension':                                    'leg_extension',
+  'squat barre arriere':                              'squat',
+  'squat gobelet kettlebell':                         'goblet_squat',
+  'swing kettlebell':                                 'kettlebell_swing',
+
+  // ISCHIOS / FESSIERS
+  'abduction de hanches machine':                     'hip_abduction_machine',
+  'glute bridge barre':                               'barbell_glute_bridge',
+  'hip thrust machine':                               'machine_hip_thrust',
+  'kickback fessier machine':                         'machine_glute_kickback',
+  'leg curl allonge':                                 'lying_leg_curl',
+  'leg curl assis':                                   'seated_leg_curl',
+  'leg curl couche machine':                          'lying_leg_curl',
+
+  // MOLLETS
+  'mollets assis machine':                            'seated_calf_raise',
+  'mollets debout halteres':                          'dumbbell_calf_raise',
+  'mollets debout machine':                           'standing_calf_raise',
+
+  // CORE
+  'gainage planche':                                  'plank',
+  'pallof press':                                     'pallof_press',
+  'releve de jambes suspendu':                        'hanging_leg_raise',
+
+  // CARDIO
+  'cardio hiit velo':                                 'bike_hiit',
+  'cardio tapis roulant incline':                     'incline_treadmill',
+  'cardio velo ou rameur':                            'bike_or_rower',
+  'marche inclinee':                                  'incline_walk',
+  'marche inclinee sur tapis':                        'incline_walk',
+  'rameur':                                           'rowing_machine',
+  'velo elliptique':                                  'elliptical',
+  'velo stationnaire':                                'stationary_bike',
+
   // Core
   'crunch':                             'crunch',
   'planche':                            'plank',
