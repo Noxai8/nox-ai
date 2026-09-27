@@ -253,8 +253,8 @@ export default function Onboarding() {
       }, { onConflict: 'user_id' });
       if (targetError) throw targetError;
 
-      // Redirection vers Aujourd'hui — NOX Future accessible depuis Home ou Profil
-      navigate('/home');
+      // Proposition NOX Future après onboarding
+      navigate('/future', { state: { onboardingFlow: true, futureOffer: true } });
     } catch (e: any) {
       console.error('Erreur onboarding NOX :', e);
       setError(e?.message || "Impossible d'enregistrer ton profil.");
