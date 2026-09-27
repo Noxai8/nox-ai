@@ -121,6 +121,7 @@ const EXERCISE_ALIASES: Record<string, string> = {
 
   // Jambes
   'squat':                              'squat',
+  'squat poids du corps':               'bodyweight_squat',
   'squat barre':                        'squat',
   'back squat':                         'squat',
   'squat avant':                        'front_squat',
@@ -462,10 +463,34 @@ const MUSCLES: Record<string, string> = {
 // ── API publique ──────────────────────────────────────────────────────────────
 
 /** Normalise un nom d'exercice et retourne la clé canonique, ou null si inconnue */
+export function getExerciseVisualById(
+  exerciseId?: string | null
+): string | null {
+  if (!exerciseId) return null;
+  const key = exerciseId.trim().toLowerCase();
+  return VISUALS[key] ?? null;
+}
+
 export function toExerciseKey(exerciseName?: string | null): string | null {
   if (!exerciseName) return null;
+
   const normalized = normalizeExerciseName(exerciseName);
-  return EXERCISE_ALIASES[normalized] ?? null;
+
+  // Alias humain : "Squat poids du corps" → bodyweight_squat
+  const aliasKey = EXERCISE_ALIASES[normalized];
+  if (aliasKey) return aliasKey;
+
+  // Clé canonique directe : bodyweight_squat → bodyweight_squat
+  const canonicalKey = exerciseName
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+
+  if (VISUALS[canonicalKey]) {
+    return canonicalKey;
+  }
+
+  return null;
 }
 
 /** Chemin vers le visuel — null si pas encore disponible */

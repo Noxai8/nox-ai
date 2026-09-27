@@ -2,7 +2,7 @@ import { calculateProgressiveOverload, detectStagnation } from '../lib/noxBrain'
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { getExerciseVisualPath, getExerciseMuscles } from '../lib/exerciseVisuals';
+import { getExerciseVisualPath, getExerciseVisualById, getExerciseMuscles } from '../lib/exerciseVisuals';
 import TutorialTooltip from '../components/TutorialTooltip';
 import { useAuth } from '../lib/AuthContext';
 import {
@@ -1160,7 +1160,11 @@ function NoxExerciseCover({ exercise, tags }: { exercise: any; tags: string[] })
       <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', maxHeight: 390, minHeight: 235, display: 'grid', placeItems: 'center', background: '#080808', overflow: 'hidden' }}>
         {(() => {
           const exerciseName = nox?.name || exercise?.name;
-          const visualPath = getExerciseVisualPath(exerciseName);
+
+          const visualPath =
+            getExerciseVisualById(exercise?.exercise_id) ||
+            getExerciseVisualPath(exercise?.name) ||
+            getExerciseVisualPath(nox?.name);
           if (visualPath) {
             return (
               <img
