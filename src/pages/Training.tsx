@@ -879,18 +879,10 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
           <div style={{ fontSize: 13, color: '#929292', lineHeight: 1.4, marginTop: 10, fontWeight: 650 }}>{exerciseCoachCopy(ex)}</div>
         </div>
 
-        {/* Grande maquette de l'exercice. Le PLAY ouvre la démo guidée 1/3 → 3/3. */}
-        <button onClick={() => setShowDemo(true)} aria-label={`Voir la démonstration de ${ex?.name || 'cet exercice'}`}
-          style={{ width: '100%', border: '1px solid #242424', padding: 0, borderRadius: 28, overflow: 'hidden', background: '#111111', cursor: 'pointer', marginBottom: 12, textAlign: 'left', boxShadow: '0 12px 32px rgba(0,0,0,.06)' }}>
+        {/* Carte MOUVEMENT — sans bouton démo */}
+        <div style={{ width: '100%', border: '1px solid #242424', borderRadius: 28, overflow: 'hidden', background: '#111111', marginBottom: 12 }}>
           <NoxExerciseCover exercise={ex} tags={tags} />
-          <div style={{ padding: '14px 16px 15px', background: '#111111', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 1000, color: '#FFFFFF' }}>Voir la démonstration</div>
-              <div style={{ marginTop: 3, fontSize: 10.5, color: '#929292', fontWeight: 750 }}>3 étapes · placement · mouvement · retour</div>
-            </div>
-            <div style={{ color: '#FFFFFF', fontSize: 21, fontWeight: 1000 }}>→</div>
-          </div>
-        </button>
+        </div>
             <button onClick={() => setShowNotes(true)}
               style={{ flexShrink: 0, padding: '8px 14px', background: '#161616', border: '1px solid #242424', borderRadius: 12, color: exerciseNotes[ex?.name || ''] ? ACCENT : '#929292', fontSize: 11, fontWeight: 800, cursor: 'pointer', touchAction: 'manipulation' as const }}>
               📝 {exerciseNotes[ex?.name || ''] ? 'Note ✓' : 'Notes'}
