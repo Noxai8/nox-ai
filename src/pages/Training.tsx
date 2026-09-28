@@ -1170,7 +1170,7 @@ function NoxExerciseCover({ exercise, tags }: { exercise: any; tags: string[] })
               <img
                 src={visualPath}
                 alt={exerciseName || 'Exercice'}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.55)', transformOrigin: 'center' }}
               />
             );
           }
