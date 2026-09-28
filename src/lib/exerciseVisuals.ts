@@ -401,6 +401,28 @@ const VISUALS: Record<string, string> = {
   high_knees:              '/exercises/high-knees.webp',
   bodyweight_squat:        '/exercises/bodyweight-squat-cardio.webp',
 
+  // Maison — poids du corps
+  push_up:                    '/exercises/push-up.webp',
+  incline_push_up:            '/exercises/incline-push-up.webp',
+  decline_push_up:            '/exercises/decline-push-up.webp',
+  diamond_push_up:            '/exercises/diamond-push-up.webp',
+
+  bodyweight_lunge:           '/exercises/bodyweight-lunge.webp',
+  reverse_lunge:              '/exercises/reverse-lunge.webp',
+  step_up:                    '/exercises/step-up.webp',
+  single_leg_glute_bridge:    '/exercises/single-leg-glute-bridge.webp',
+  single_leg_calf_raise:      '/exercises/single-leg-calf-raise.webp',
+  wall_sit:                   '/exercises/wall-sit.webp',
+
+  dead_bug:                   '/exercises/dead-bug.webp',
+  bird_dog:                   '/exercises/bird-dog.webp',
+  hollow_hold:                '/exercises/hollow-hold.webp',
+  reverse_crunch:             '/exercises/reverse-crunch.webp',
+  bicycle_crunch:             '/exercises/bicycle-crunch.webp',
+  lying_leg_raise:            '/exercises/lying-leg-raise.webp',
+  v_up:                       '/exercises/v-up.webp',
+  bear_crawl:                 '/exercises/bear-crawl.webp',
+
   // Final batch — complétion bibliothèque 99/99
   hip_abduction_machine:   '/exercises/hip-abduction-machine.webp',
   machine_shoulder_press:  '/exercises/machine-shoulder-press.webp',
