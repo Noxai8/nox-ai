@@ -156,6 +156,7 @@ const timerRef = useRef<any>(null);
 const finishingRef = useRef(false);
 const [exerciseTimer, setExerciseTimer] = useState(0);
 const [exerciseTimerRunning, setExerciseTimerRunning] = useState(false);
+const [countdown, setCountdown] = useState<number | null>(null);
 const exerciseTimerRef = useRef<any>(null);
 useEffect(() => {
 if (!user) return;
@@ -430,8 +431,6 @@ useEffect(() => {
   else { setExerciseTimer(0); }
   return () => clearInterval(exerciseTimerRef.current);
 }, [currentIdx, currentSet, trackingMode, targetSeconds]);
-
-const [countdown, setCountdown] = useState<number | null>(null);
 
 const toggleExerciseTimer = () => {
   if (exerciseTimerRunning || countdown !== null) {
