@@ -82,6 +82,38 @@ function muscleTags(exercise: any): string[] {
     : [];
 }
 
+type ExerciseTrackingMode = 'timed' | 'bodyweight_reps' | 'weighted_reps';
+
+const TIMED_EXERCISE_IDS = new Set([
+  'plank', 'side_plank', 'wall_sit', 'hollow_hold',
+]);
+
+const BODYWEIGHT_EXERCISE_IDS = new Set([
+  'bodyweight_squat', 'push_up', 'incline_push_up', 'decline_push_up',
+  'diamond_push_up', 'bodyweight_lunge', 'reverse_lunge', 'walking_lunge',
+  'step_up', 'glute_bridge', 'single_leg_glute_bridge', 'single_leg_calf_raise',
+  'dead_bug', 'bird_dog', 'reverse_crunch', 'bicycle_crunch',
+  'lying_leg_raise', 'v_up', 'bear_crawl',
+]);
+
+function getExerciseTrackingMode(exercise: any): ExerciseTrackingMode {
+  const id = String(exercise?.exercise_id || '').trim().toLowerCase();
+  const prescription = String(exercise?.reps || '').trim().toLowerCase();
+  if (/\b\d+\s*(?:-|–|à)?\s*\d*\s*(?:sec|secs|seconde|secondes|min|mins|minute|minutes)\b/i.test(prescription)) return 'timed';
+  if (TIMED_EXERCISE_IDS.has(id)) return 'timed';
+  if (BODYWEIGHT_EXERCISE_IDS.has(id)) return 'bodyweight_reps';
+  return 'weighted_reps';
+}
+
+function getTargetSeconds(value: unknown): number {
+  const text = String(value || '').toLowerCase();
+  const range = text.match(/(\d+)\s*(?:-|–|à)\s*(\d+)\s*(sec|secs|seconde|secondes|min|mins|minute|minutes)/);
+  if (range) { const max = Number(range[2]); return range[3].startsWith('min') ? max * 60 : max; }
+  const single = text.match(/(\d+)\s*(sec|secs|seconde|secondes|min|mins|minute|minutes)/);
+  if (single) { const amount = Number(single[1]); return single[2].startsWith('min') ? amount * 60 : amount; }
+  return 30;
+}
+
 export default function Training() {
 const { sessionId } = useParams();
 const { user } = useAuth();
@@ -122,6 +154,9 @@ const [showDemo, setShowDemo] = useState(false);
 const [startTime] = useState(Date.now());
 const timerRef = useRef<any>(null);
 const finishingRef = useRef(false);
+const [exerciseTimer, setExerciseTimer] = useState(0);
+const [exerciseTimerRunning, setExerciseTimerRunning] = useState(false);
+const exerciseTimerRef = useRef<any>(null);
 useEffect(() => {
 if (!user) return;
 loadSession();
@@ -387,6 +422,26 @@ clearInterval(timerRef.current);
 setResting(false);
 setRestTime(0);
 };
+useEffect(() => {
+  clearInterval(exerciseTimerRef.current);
+  setExerciseTimerRunning(false);
+  if (trackingMode === 'timed') { setExerciseTimer(targetSeconds); }
+  else { setExerciseTimer(0); }
+  return () => clearInterval(exerciseTimerRef.current);
+}, [currentIdx, currentSet, trackingMode, targetSeconds]);
+
+const toggleExerciseTimer = () => {
+  if (exerciseTimerRunning) { clearInterval(exerciseTimerRef.current); setExerciseTimerRunning(false); return; }
+  if (exerciseTimer <= 0) { setExerciseTimer(targetSeconds); }
+  setExerciseTimerRunning(true);
+  exerciseTimerRef.current = setInterval(() => {
+    setExerciseTimer(previous => {
+      if (previous <= 1) { clearInterval(exerciseTimerRef.current); setExerciseTimerRunning(false); return 0; }
+      return previous - 1;
+    });
+  }, 1000);
+};
+
 const validateSet = async () => {
     if (savingSet || !user) return;
 
@@ -416,15 +471,20 @@ if (!ex || !workoutId) {
   return;
 }
 
-const parsedWeight = Number(String(weight).replace(',', '.'));
-const parsedReps = Number(reps);
+const mode = getExerciseTrackingMode(ex);
+const parsedWeight = mode === 'weighted_reps' ? Number(String(weight).replace(',', '.')) : 0;
+const parsedReps = mode === 'timed' ? targetSeconds : Number(reps);
 
-if (!Number.isFinite(parsedWeight) || parsedWeight < 0) {
+if (mode === 'weighted_reps' && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
   setTrainingError('Entre une charge valide.');
   return;
 }
-if (!Number.isInteger(parsedReps) || parsedReps <= 0 || parsedReps > 200) {
+if (mode !== 'timed' && (!Number.isInteger(parsedReps) || parsedReps <= 0 || parsedReps > 200)) {
   setTrainingError('Entre un nombre de répétitions valide.');
+  return;
+}
+if (mode === 'timed' && exerciseTimer > 0) {
+  setTrainingError('Termine le minuteur avant de valider la série.');
   return;
 }
 
@@ -805,6 +865,8 @@ if (done) {
 }
 
 const ex = exercises[currentIdx];
+const trackingMode = getExerciseTrackingMode(ex);
+const targetSeconds = getTargetSeconds(ex?.reps);
 const noxExercise = resolvedNoxExercise(ex);
 const tags = muscleTags(ex);
 const totalSets = parseInt(ex?.sets) || 3;
@@ -993,7 +1055,9 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
         <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '14px 16px', borderRadius: 20, background: '#111111', border: '1px solid #242424', marginBottom: 17 }}>
           <div style={{ width: 42, height: 42, borderRadius: 14, background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 20 }}>🎯</div>
           <div><div style={{ fontSize: 9.5, color: '#929292', fontWeight: 950, letterSpacing: '.07em' }}>OBJECTIF DU JOUR</div>
-          <div style={{ fontSize: 19, color: '#FFFFFF', fontWeight: 1000, marginTop: 2 }}>{ex?.reps || '8–12'} répétitions</div></div>
+          <div style={{ fontSize: 19, color: '#FFFFFF', fontWeight: 1000, marginTop: 2 }}>
+  {trackingMode === 'timed' ? (ex?.reps || `${targetSeconds} sec`) : `${ex?.reps || '8–12'} répétitions`}
+</div></div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 17 }}>
@@ -1010,19 +1074,45 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
 
         <LastPerformances exerciseName={ex?.name} userId={user?.id} workoutId={workoutId} completedSets={completedSets.filter(s => s.exercise_name === ex?.name)} />
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-          <NumberField label="CHARGE (KG)" value={weight} onChange={setWeight} mode="decimal" step={2.5} />
-          <NumberField label="RÉPÉTITIONS" value={reps} onChange={setReps} mode="numeric" step={1} />
-        </div>
+        {trackingMode === 'weighted_reps' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+            <NumberField label="CHARGE (KG)" value={weight} onChange={setWeight} mode="decimal" step={2.5} />
+            <NumberField label="RÉPÉTITIONS" value={reps} onChange={setReps} mode="numeric" step={1} />
+          </div>
+        )}
 
-        <button onClick={() => setWeight(weight === '0' ? '' : '0')} style={{ background: 'transparent', border: 'none', color: weight === '0' ? '#FFFFFF' : '#929292', fontSize: 11.5, cursor: 'pointer', marginBottom: 15, textAlign: 'left', padding: '2px 0', fontWeight: weight === '0' ? 850 : 600 }}>
-          <span style={{ color: weight === '0' ? ACCENT : '#666666', fontWeight: 1000 }}>{weight === '0' ? '●' : '○'}</span>{' '}Poids du corps / Sans charge
-        </button>
+        {trackingMode === 'bodyweight_reps' && (
+          <div style={{ marginBottom: 12 }}>
+            <NumberField label="RÉPÉTITIONS" value={reps} onChange={setReps} mode="numeric" step={1} />
+          </div>
+        )}
 
-        <button onClick={validateSet} disabled={!weight || !reps || savingSet}
-          style={{ width: '100%', padding: 18, background: weight && reps && !savingSet ? ACCENT : '#1C1C1C', border: 'none', borderRadius: 18, color: weight && reps && !savingSet ? '#080808' : '#666666', fontWeight: 1000, fontSize: 15, cursor: weight && reps && !savingSet ? 'pointer' : 'not-allowed', marginBottom: 14 }}>
-          {savingSet ? 'ENREGISTREMENT...' : 'VALIDER LA SÉRIE ✓'}
-        </button>
+        {trackingMode === 'timed' && (
+          <div style={{ padding: 22, marginBottom: 14, background: '#111111', border: '1px solid #242424', borderRadius: 20, textAlign: 'center' }}>
+            <div style={{ fontSize: 10, color: '#929292', fontWeight: 900, letterSpacing: '.08em', marginBottom: 8 }}>MINUTEUR</div>
+            <div style={{ fontSize: 52, lineHeight: 1, fontWeight: 1000, color: exerciseTimer === 0 ? ACCENT : '#FFFFFF', marginBottom: 18 }}>
+              {Math.floor(exerciseTimer / 60)}:{String(exerciseTimer % 60).padStart(2, '0')}
+            </div>
+            <button type="button" onClick={toggleExerciseTimer} disabled={exerciseTimer === 0}
+              style={{ width: '100%', padding: 15, border: 0, borderRadius: 14, background: exerciseTimer === 0 ? '#202020' : ACCENT, color: exerciseTimer === 0 ? '#777777' : '#080808', fontWeight: 1000, cursor: exerciseTimer === 0 ? 'default' : 'pointer' }}>
+              {exerciseTimer === 0 ? '✓ TERMINÉ' : exerciseTimerRunning ? 'PAUSE' : 'DÉMARRER'}
+            </button>
+          </div>
+        )}
+
+        {(() => {
+          const canValidate = !savingSet && (
+            trackingMode === 'timed' ? exerciseTimer === 0
+            : trackingMode === 'bodyweight_reps' ? Number(reps) > 0
+            : Number(String(weight).replace(',', '.')) >= 0 && Number(reps) > 0
+          );
+          return (
+            <button onClick={validateSet} disabled={!canValidate}
+              style={{ width: '100%', padding: 18, background: canValidate ? ACCENT : '#1C1C1C', border: 'none', borderRadius: 18, color: canValidate ? '#080808' : '#666666', fontWeight: 1000, fontSize: 15, cursor: canValidate ? 'pointer' : 'not-allowed', marginBottom: 14 }}>
+              {savingSet ? 'ENREGISTREMENT...' : 'VALIDER LA SÉRIE ✓'}
+            </button>
+          );
+        })()}
 
         {currentIdx < exercises.length - 1 && <div style={{ padding: '15px 16px', background: '#111111', borderRadius: 18, border: '1px solid #242424', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div><div style={{ fontSize: 9, color: '#929292', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 5, fontWeight: 900 }}>PROCHAIN EXERCICE</div>
