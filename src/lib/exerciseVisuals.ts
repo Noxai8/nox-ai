@@ -349,7 +349,7 @@ const VISUALS: Record<string, string> = {
   hip_thrust:                    '/exercises/barbell-hip-thrust.webp',
   barbell_glute_bridge:          '/exercises/barbell-hip-thrust.webp',
   machine_hip_thrust:            '/exercises/machine-hip-thrust.webp',
-  glute_bridge:                  '/exercises/barbell-hip-thrust.webp',
+  glute_bridge:                  '/exercises/glute-bridge.webp',
   cable_glute_kickback:          '/exercises/cable-glute-kickback.webp',
   machine_glute_kickback:        '/exercises/cable-glute-kickback.webp',
   back_extension:                '/exercises/back-extension-glutes.webp',
