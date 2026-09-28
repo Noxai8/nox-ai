@@ -425,20 +425,46 @@ setRestTime(0);
 useEffect(() => {
   clearInterval(exerciseTimerRef.current);
   setExerciseTimerRunning(false);
+  setCountdown(null);
   if (trackingMode === 'timed') { setExerciseTimer(targetSeconds); }
   else { setExerciseTimer(0); }
   return () => clearInterval(exerciseTimerRef.current);
 }, [currentIdx, currentSet, trackingMode, targetSeconds]);
 
+const [countdown, setCountdown] = useState<number | null>(null);
+
 const toggleExerciseTimer = () => {
-  if (exerciseTimerRunning) { clearInterval(exerciseTimerRef.current); setExerciseTimerRunning(false); return; }
+  if (exerciseTimerRunning || countdown !== null) {
+    clearInterval(exerciseTimerRef.current);
+    setExerciseTimerRunning(false);
+    setCountdown(null);
+    return;
+  }
   if (exerciseTimer <= 0) { setExerciseTimer(targetSeconds); }
-  setExerciseTimerRunning(true);
+
+  // Countdown 3-2-1 avant de lancer
+  setCountdown(3);
+  let count = 3;
   exerciseTimerRef.current = setInterval(() => {
-    setExerciseTimer(previous => {
-      if (previous <= 1) { clearInterval(exerciseTimerRef.current); setExerciseTimerRunning(false); return 0; }
-      return previous - 1;
-    });
+    count -= 1;
+    if (count > 0) {
+      setCountdown(count);
+    } else {
+      clearInterval(exerciseTimerRef.current);
+      setCountdown(null);
+      setExerciseTimerRunning(true);
+      // Lancer le vrai minuteur
+      exerciseTimerRef.current = setInterval(() => {
+        setExerciseTimer(previous => {
+          if (previous <= 1) {
+            clearInterval(exerciseTimerRef.current);
+            setExerciseTimerRunning(false);
+            return 0;
+          }
+          return previous - 1;
+        });
+      }, 1000);
+    }
   }, 1000);
 };
 
@@ -1090,12 +1116,18 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
         {trackingMode === 'timed' && (
           <div style={{ padding: 22, marginBottom: 14, background: '#111111', border: '1px solid #242424', borderRadius: 20, textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: '#929292', fontWeight: 900, letterSpacing: '.08em', marginBottom: 8 }}>MINUTEUR</div>
-            <div style={{ fontSize: 52, lineHeight: 1, fontWeight: 1000, color: exerciseTimer === 0 ? ACCENT : '#FFFFFF', marginBottom: 18 }}>
-              {Math.floor(exerciseTimer / 60)}:{String(exerciseTimer % 60).padStart(2, '0')}
-            </div>
-            <button type="button" onClick={toggleExerciseTimer} disabled={exerciseTimer === 0}
-              style={{ width: '100%', padding: 15, border: 0, borderRadius: 14, background: exerciseTimer === 0 ? '#202020' : ACCENT, color: exerciseTimer === 0 ? '#777777' : '#080808', fontWeight: 1000, cursor: exerciseTimer === 0 ? 'default' : 'pointer' }}>
-              {exerciseTimer === 0 ? '✓ TERMINÉ' : exerciseTimerRunning ? 'PAUSE' : 'DÉMARRER'}
+            {countdown !== null ? (
+              <div style={{ fontSize: 96, lineHeight: 1, fontWeight: 1000, color: ACCENT, marginBottom: 18, animation: 'countPulse .5s ease-out' }}>
+                {countdown}
+              </div>
+            ) : (
+              <div style={{ fontSize: 52, lineHeight: 1, fontWeight: 1000, color: exerciseTimer === 0 ? ACCENT : '#FFFFFF', marginBottom: 18 }}>
+                {Math.floor(exerciseTimer / 60)}:{String(exerciseTimer % 60).padStart(2, '0')}
+              </div>
+            )}
+            <button type="button" onClick={toggleExerciseTimer} disabled={exerciseTimer === 0 && countdown === null}
+              style={{ width: '100%', padding: 15, border: 0, borderRadius: 14, background: exerciseTimer === 0 && countdown === null ? '#202020' : ACCENT, color: exerciseTimer === 0 && countdown === null ? '#777777' : '#080808', fontWeight: 1000, cursor: exerciseTimer === 0 && countdown === null ? 'default' : 'pointer' }}>
+              {exerciseTimer === 0 && countdown === null ? '✓ TERMINÉ' : countdown !== null ? 'ANNULER' : exerciseTimerRunning ? 'PAUSE' : 'DÉMARRER'}
             </button>
           </div>
         )}
@@ -1126,6 +1158,7 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
 
   <style>{`
     @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes countPulse { from { transform: scale(1.4); opacity: 0.5; } to { transform: scale(1); opacity: 1; } }
     @keyframes spin { to { transform: rotate(360deg); } }
     input::-webkit-outer-spin-button,
     input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
