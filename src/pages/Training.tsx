@@ -427,19 +427,25 @@ useEffect(() => {
   clearInterval(exerciseTimerRef.current);
   setExerciseTimerRunning(false);
   setCountdown(null);
-  if (trackingMode === 'timed') { setExerciseTimer(targetSeconds); }
+  const currentExercise = exercises[currentIdx];
+  const mode = getExerciseTrackingMode(currentExercise);
+  const seconds = getTargetSeconds(currentExercise?.reps);
+  if (mode === 'timed') { setExerciseTimer(seconds); }
   else { setExerciseTimer(0); }
   return () => clearInterval(exerciseTimerRef.current);
-}, [currentIdx, currentSet, trackingMode, targetSeconds]);
+}, [currentIdx, currentSet, exercises]);
 
 const toggleExerciseTimer = () => {
+  const currentExercise = exercises[currentIdx];
+  const seconds = getTargetSeconds(currentExercise?.reps);
+
   if (exerciseTimerRunning || countdown !== null) {
     clearInterval(exerciseTimerRef.current);
     setExerciseTimerRunning(false);
     setCountdown(null);
     return;
   }
-  if (exerciseTimer <= 0) { setExerciseTimer(targetSeconds); }
+  if (exerciseTimer <= 0) { setExerciseTimer(seconds); }
 
   // Countdown 3-2-1 avant de lancer
   setCountdown(3);
@@ -452,7 +458,6 @@ const toggleExerciseTimer = () => {
       clearInterval(exerciseTimerRef.current);
       setCountdown(null);
       setExerciseTimerRunning(true);
-      // Lancer le vrai minuteur
       exerciseTimerRef.current = setInterval(() => {
         setExerciseTimer(previous => {
           if (previous <= 1) {
@@ -890,11 +895,12 @@ if (done) {
 }
 
 const ex = exercises[currentIdx];
-const trackingMode = getExerciseTrackingMode(ex);
-const targetSeconds = getTargetSeconds(ex?.reps);
 const noxExercise = resolvedNoxExercise(ex);
 const tags = muscleTags(ex);
 const totalSets = parseInt(ex?.sets) || 3;
+
+const trackingMode = getExerciseTrackingMode(ex);
+const targetSeconds = getTargetSeconds(ex?.reps);
 const exerciseProgress = ((currentIdx + (currentSet - 1) / totalSets) / exercises.length) * 100;
 return (
 <div style={{
