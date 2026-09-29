@@ -1854,7 +1854,7 @@ function DemoNox({ exercise, tags, onClose }: { exercise: any; tags: string[]; o
             ? <button type="button" onClick={() => setActiveStep(step => Math.min(2, step + 1))}
                 style={{ minHeight: 56, borderRadius: 18, border: 'none', background: ACCENT, color: '#111', fontWeight: 1000, cursor: 'pointer' }}>SUIVANT →</button>
             : <button type="button" onClick={onClose}
-                style={{ minHeight: 56, borderRadius: 18, border: 'none', background: ACCENT, color: '#111', fontWeight: 1000, cursor: 'pointer' }}>J’AI COMPRIS ✓</button>}
+                style={{ minHeight: 56, borderRadius: 18, border: 'none', background: ACCENT, color: '#111', fontWeight: 1000, cursor: 'pointer' }}>J\'AI COMPRIS ✓</button>}
         </div>
 
         {activeStep === 2 && (
