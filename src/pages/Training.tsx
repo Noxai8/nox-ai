@@ -114,6 +114,31 @@ function getTargetSeconds(value: unknown): number {
   return 30;
 }
 
+type CooldownStretch = {
+  id: string;
+  name: string;
+  duration: number;
+  instruction: string;
+  tip: string;
+};
+
+function buildCooldownStretches(exercises: any[]): CooldownStretch[] {
+  const ids = new Set(exercises.map(ex => String(ex?.exercise_id || '').trim().toLowerCase()).filter(Boolean));
+  const stretches: CooldownStretch[] = [];
+
+  const hasLegs = ['bodyweight_squat','bodyweight_lunge','reverse_lunge','walking_lunge','step_up','wall_sit'].some(id => ids.has(id));
+  const hasGlutes = ['glute_bridge','single_leg_glute_bridge','bodyweight_lunge','reverse_lunge'].some(id => ids.has(id));
+  const hasPush = ['push_up','incline_push_up','decline_push_up','diamond_push_up'].some(id => ids.has(id));
+  const hasCore = ['plank','side_plank','dead_bug','bird_dog','hollow_hold','reverse_crunch','bicycle_crunch','lying_leg_raise','v_up'].some(id => ids.has(id));
+
+  if (hasLegs) stretches.push({ id: 'quad-stretch', name: 'Étirement quadriceps', duration: 30, instruction: 'Debout, ramène doucement le talon vers la fesse et garde les genoux proches.', tip: 'Garde le bassin droit et évite de cambrer le dos.' });
+  if (hasGlutes) stretches.push({ id: 'glute-stretch', name: 'Étirement fessiers', duration: 30, instruction: 'Allongé sur le dos, pose une cheville sur le genou opposé puis rapproche doucement la jambe.', tip: 'Relâche les épaules et ne force jamais l\'amplitude.' });
+  if (hasPush) stretches.push({ id: 'chest-stretch', name: 'Ouverture des pectoraux', duration: 30, instruction: 'Place ton avant-bras contre un support puis tourne doucement le buste dans la direction opposée.', tip: 'L\'étirement doit rester confortable, jamais douloureux.' });
+  if (hasCore) stretches.push({ id: 'core-release', name: 'Relâchement abdominal', duration: 30, instruction: 'Allonge-toi sur le ventre puis redresse doucement le buste en gardant le bassin relâché.', tip: 'Monte seulement jusqu\'à sentir un étirement léger.' });
+
+  return stretches.slice(0, 4);
+}
+
 export default function Training() {
 const { sessionId } = useParams();
 const { user } = useAuth();
@@ -159,6 +184,11 @@ const [exerciseTimer, setExerciseTimer] = useState(0);
 const [exerciseTimerRunning, setExerciseTimerRunning] = useState(false);
 const [countdown, setCountdown] = useState<number | null>(null);
 const exerciseTimerRef = useRef<any>(null);
+const cooldownTimerRef = useRef<any>(null);
+const [showCooldown, setShowCooldown] = useState(false);
+const [cooldownIdx, setCooldownIdx] = useState(0);
+const [cooldownTime, setCooldownTime] = useState(30);
+const [cooldownRunning, setCooldownRunning] = useState(false);
 useEffect(() => {
 if (!user) return;
 loadSession();
@@ -489,6 +519,38 @@ const skipCurrentExercise = () => {
   setCurrentIdx(i => i + 1);
 };
 
+const cooldownStretches = buildCooldownStretches(exercises);
+const currentStretch = cooldownStretches[cooldownIdx];
+
+const startCooldownTimer = () => {
+  if (!currentStretch || cooldownRunning) return;
+  clearInterval(cooldownTimerRef.current);
+  if (cooldownTime <= 0) { setCooldownTime(currentStretch.duration); }
+  setCooldownRunning(true);
+  cooldownTimerRef.current = setInterval(() => {
+    setCooldownTime(previous => {
+      if (previous <= 1) { clearInterval(cooldownTimerRef.current); setCooldownRunning(false); return 0; }
+      return previous - 1;
+    });
+  }, 1000);
+};
+
+const nextCooldownStretch = async () => {
+  clearInterval(cooldownTimerRef.current);
+  setCooldownRunning(false);
+  if (cooldownIdx >= cooldownStretches.length - 1) { setShowCooldown(false); await finishWorkout(); return; }
+  const nextIndex = cooldownIdx + 1;
+  setCooldownIdx(nextIndex);
+  setCooldownTime(cooldownStretches[nextIndex].duration);
+};
+
+const skipCooldown = async () => {
+  clearInterval(cooldownTimerRef.current);
+  setCooldownRunning(false);
+  setShowCooldown(false);
+  await finishWorkout();
+};
+
 const validateSet = async () => {
     if (savingSet || !user) return;
 
@@ -613,7 +675,15 @@ try {
     setCurrentSet(1);
 
     if (currentIdx >= exercises.length - 1) {
-      await finishWorkout();
+      const stretches = buildCooldownStretches(exercises);
+      if (stretches.length > 0) {
+        setCooldownIdx(0);
+        setCooldownTime(stretches[0].duration);
+        setCooldownRunning(false);
+        setShowCooldown(true);
+      } else {
+        await finishWorkout();
+      }
     } else {
       setCurrentIdx(i => i + 1);
       startRest(restSecs);
@@ -808,6 +878,61 @@ CRÉER UN PROGRAMME →
 </div>
 );
 // ─── DONE ───────────────────────────────────────────────────
+if (showCooldown && currentStretch) {
+  return (
+    <div style={{ minHeight: '100vh', background: '#080808', color: '#FFFFFF', display: 'flex', justifyContent: 'center' }}>
+      <main style={{ width: '100%', maxWidth: 560, minHeight: '100vh', padding: '34px 20px 28px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', justifyContent: 'center' }}><NoxBrand compact dark /></div>
+
+        <div style={{ marginTop: 42 }}>
+          <div style={{ color: ACCENT, fontSize: 10, fontWeight: 1000, letterSpacing: '.12em' }}>RETOUR AU CALME</div>
+          <h1 style={{ margin: '8px 0 8px', fontSize: 38, lineHeight: 0.95, fontWeight: 1000, letterSpacing: '-.05em' }}>ÉTIREMENTS.</h1>
+          <div style={{ color: '#929292', fontSize: 13, lineHeight: 1.5 }}>Quelques minutes pour relâcher les zones que tu viens de travailler.</div>
+        </div>
+
+        <div style={{ height: 4, background: '#242424', borderRadius: 999, overflow: 'hidden', margin: '24px 0 28px' }}>
+          <div style={{ width: `${((cooldownIdx + 1) / cooldownStretches.length) * 100}%`, height: '100%', background: ACCENT, borderRadius: 999, transition: 'width .3s ease' }} />
+        </div>
+
+        <section style={{ background: '#111111', border: '1px solid #242424', borderRadius: 28, padding: 22 }}>
+          <div style={{ color: '#777', fontSize: 10, fontWeight: 900, letterSpacing: '.1em' }}>ÉTIREMENT {cooldownIdx + 1}/{cooldownStretches.length}</div>
+          <div style={{ fontSize: 27, fontWeight: 1000, marginTop: 8, letterSpacing: '-.035em' }}>{currentStretch.name}</div>
+          <div style={{ marginTop: 16, color: '#B5B5B5', fontSize: 13, lineHeight: 1.55 }}>{currentStretch.instruction}</div>
+          <div style={{ marginTop: 18, padding: '14px 16px', background: '#181818', borderRadius: 16 }}>
+            <div style={{ color: ACCENT, fontSize: 9, fontWeight: 1000, letterSpacing: '.08em' }}>TIP NOX</div>
+            <div style={{ color: '#B5B5B5', fontSize: 12, marginTop: 5, lineHeight: 1.45 }}>{currentStretch.tip}</div>
+          </div>
+        </section>
+
+        <div style={{ textAlign: 'center', marginTop: 30 }}>
+          <div style={{ fontSize: 72, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.06em', color: cooldownTime === 0 ? ACCENT : '#FFFFFF' }}>
+            0:{String(cooldownTime).padStart(2, '0')}
+          </div>
+          <div style={{ color: '#777', fontSize: 10, fontWeight: 900, marginTop: 8, letterSpacing: '.08em' }}>RESPIRATION LENTE</div>
+        </div>
+
+        <div style={{ marginTop: 'auto', paddingTop: 30 }}>
+          {cooldownTime > 0 ? (
+            <button type="button" onClick={startCooldownTimer} disabled={cooldownRunning}
+              style={{ width: '100%', padding: 18, border: 0, borderRadius: 18, background: cooldownRunning ? '#202020' : ACCENT, color: cooldownRunning ? '#777' : '#080808', fontSize: 14, fontWeight: 1000, cursor: cooldownRunning ? 'default' : 'pointer' }}>
+              {cooldownRunning ? 'ÉTIREMENT EN COURS...' : 'DÉMARRER 30 SEC'}
+            </button>
+          ) : (
+            <button type="button" onClick={() => void nextCooldownStretch()}
+              style={{ width: '100%', padding: 18, border: 0, borderRadius: 18, background: ACCENT, color: '#080808', fontSize: 14, fontWeight: 1000, cursor: 'pointer' }}>
+              {cooldownIdx >= cooldownStretches.length - 1 ? 'TERMINER LA SÉANCE ✓' : 'ÉTIREMENT SUIVANT →'}
+            </button>
+          )}
+          <button type="button" onClick={() => void skipCooldown()}
+            style={{ width: '100%', padding: 15, border: 0, background: 'transparent', color: '#777', fontSize: 10, fontWeight: 900, cursor: 'pointer', marginTop: 6 }}>
+            PASSER LES ÉTIREMENTS
+          </button>
+        </div>
+      </main>
+    </div>
+  );
+}
+
 if (done) {
   const duration = Math.max(1, Math.round((Date.now() - startTime) / 60000));
 
