@@ -179,6 +179,7 @@ const [showDemo, setShowDemo] = useState(false);
 const [showSkipExercise, setShowSkipExercise] = useState(false);
 const [guideTab, setGuideTab] = useState<'steps' | 'tips' | 'mistakes'>('steps');
 const [exerciseDifficultyFeedback, setExerciseDifficultyFeedback] = useState('');
+const [showExerciseFeedback, setShowExerciseFeedback] = useState(false);
 const [startTime] = useState(Date.now());
 const timerRef = useRef<any>(null);
 const finishingRef = useRef(false);
@@ -524,6 +525,28 @@ const skipCurrentExercise = () => {
   setCurrentIdx(i => i + 1);
 };
 
+const confirmExerciseFeedback = async () => {
+  setShowExerciseFeedback(false);
+  const ex = exercises[currentIdx];
+  const restSecs = parseRestSeconds(ex?.rest);
+  setCurrentSet(1);
+
+  if (currentIdx >= exercises.length - 1) {
+    const stretches = buildCooldownStretches(exercises);
+    if (stretches.length > 0) {
+      setCooldownIdx(0);
+      setCooldownTime(stretches[0].duration);
+      setCooldownRunning(false);
+      setShowCooldown(true);
+    } else {
+      await finishWorkout();
+    }
+  } else {
+    setCurrentIdx(i => i + 1);
+    startRest(restSecs);
+  }
+};
+
 const cooldownStretches = buildCooldownStretches(exercises);
 const currentStretch = cooldownStretches[cooldownIdx];
 
@@ -677,22 +700,8 @@ try {
   const restSecs = parseRestSeconds(ex.rest);
 
   if (currentSet >= totalSets) {
-    setCurrentSet(1);
-
-    if (currentIdx >= exercises.length - 1) {
-      const stretches = buildCooldownStretches(exercises);
-      if (stretches.length > 0) {
-        setCooldownIdx(0);
-        setCooldownTime(stretches[0].duration);
-        setCooldownRunning(false);
-        setShowCooldown(true);
-      } else {
-        await finishWorkout();
-      }
-    } else {
-      setCurrentIdx(i => i + 1);
-      startRest(restSecs);
-    }
+    // Afficher le feedback de difficulté avant de continuer
+    setShowExerciseFeedback(true);
   } else {
     setCurrentSet(s => s + 1);
     startRest(restSecs);
@@ -1299,18 +1308,6 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
           {tags.map((tag, i) => <span key={tag} style={{ padding: '7px 11px', background: i === 0 ? '#F3FFE1' : '#F1F1EE', border: i === 0 ? `1px solid ${ACCENT}` : '1px solid transparent', borderRadius: 999, color: '#55554F', fontSize: 10.5, fontWeight: 800 }}>{tag}</span>)}
         </div>}
 
-        <div style={{ marginBottom: 16, padding: 14, background: '#111111', border: '1px solid #242424', borderRadius: 18 }}>
-          <div style={{ color: '#929292', fontSize: 9, fontWeight: 950, letterSpacing: '.08em', marginBottom: 10 }}>DIFFICULTÉ RESSENTIE</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7 }}>
-            {['Facile', 'Bien', 'Difficile'].map(value => (
-              <button key={value} type="button" onClick={() => setExerciseDifficultyFeedback(value)}
-                style={{ padding: 11, borderRadius: 999, border: exerciseDifficultyFeedback === value ? `1px solid ${ACCENT}` : '1px solid #292929', background: '#181818', color: '#FFFFFF', fontSize: 10, fontWeight: 900, cursor: 'pointer' }}>
-                {value}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '14px 16px', borderRadius: 20, background: '#111111', border: '1px solid #242424', marginBottom: 17 }}>
           <div style={{ width: 42, height: 42, borderRadius: 14, background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 20 }}>🎯</div>
           <div><div style={{ fontSize: 9.5, color: '#929292', fontWeight: 950, letterSpacing: '.07em' }}>OBJECTIF DU JOUR</div>
@@ -1393,6 +1390,43 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
           <div><div style={{ fontSize: 9, color: '#929292', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 5, fontWeight: 900 }}>PROCHAIN EXERCICE</div>
           <div style={{ fontSize: 14, color: '#FFFFFF', fontWeight: 900 }}>{exercises[currentIdx + 1]?.name}</div></div><div style={{ fontSize: 26 }}>›</div>
         </div>}
+
+        {showExerciseFeedback && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(0,0,0,.92)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: '0 20px 44px' }}>
+            <div style={{ width: '100%', maxWidth: 440 }}>
+              <div style={{ textAlign: 'center', marginBottom: 28 }}>
+                <div style={{ color: ACCENT, fontSize: 11, fontWeight: 1000, letterSpacing: '.1em', marginBottom: 8 }}>EXERCICE TERMINÉ ✓</div>
+                <div style={{ color: '#FFFFFF', fontSize: 26, fontWeight: 1000, letterSpacing: '-.04em' }}>{ex?.name}</div>
+                <div style={{ color: '#777', fontSize: 13, marginTop: 6 }}>Comment s'est passé cet exercice ?</div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 9, marginBottom: 16 }}>
+                {[
+                  { value: 'Facile', emoji: '😎', desc: 'Trop facile' },
+                  { value: 'Bien', emoji: '💪', desc: 'Juste bien' },
+                  { value: 'Difficile', emoji: '🔥', desc: 'Challenge' },
+                ].map(({ value, emoji, desc }) => (
+                  <button key={value} type="button"
+                    onClick={() => setExerciseDifficultyFeedback(exerciseDifficultyFeedback === value ? '' : value)}
+                    style={{ padding: '16px 10px', borderRadius: 20, border: exerciseDifficultyFeedback === value ? `2px solid ${ACCENT}` : '1px solid #2A2A2A', background: exerciseDifficultyFeedback === value ? '#1A2800' : '#141414', cursor: 'pointer', textAlign: 'center' }}>
+                    <div style={{ fontSize: 28, marginBottom: 6 }}>{emoji}</div>
+                    <div style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 1000 }}>{value}</div>
+                    <div style={{ color: '#777', fontSize: 9, marginTop: 3 }}>{desc}</div>
+                  </button>
+                ))}
+              </div>
+
+              <button type="button" onClick={() => void confirmExerciseFeedback()}
+                style={{ width: '100%', padding: 18, border: 0, borderRadius: 18, background: ACCENT, color: '#080808', fontSize: 14, fontWeight: 1000, cursor: 'pointer' }}>
+                {currentIdx >= exercises.length - 1 ? 'TERMINER LA SÉANCE →' : 'EXERCICE SUIVANT →'}
+              </button>
+              <button type="button" onClick={() => void confirmExerciseFeedback()}
+                style={{ width: '100%', marginTop: 8, padding: 14, border: 0, background: 'transparent', color: '#777', fontSize: 10, fontWeight: 900, cursor: 'pointer' }}>
+                PASSER SANS NOTER
+              </button>
+            </div>
+          </div>
+        )}
 
         {showSkipExercise && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,.82)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
