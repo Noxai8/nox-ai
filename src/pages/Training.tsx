@@ -661,6 +661,44 @@ try {
 
   // Persistance indispensable au moteur de progression.
   // La série doit être écrite avant toute progression de l'interface.
+  // Sécurité anti-doublon : une même série ne doit jamais être créée deux fois.
+  const { data: existingSet, error: existingSetError } = await supabase
+    .from('workout_sets')
+    .select('exercise_name, set_number, weight, reps, created_at')
+    .eq('user_id', user.id)
+    .eq('workout_id', workoutId)
+    .eq('exercise_name', ex.name)
+    .eq('set_number', currentSet)
+    .maybeSingle();
+
+  if (existingSetError) {
+    throw new Error(`Impossible de vérifier la série : ${existingSetError.message}`);
+  }
+
+  if (existingSet) {
+    setCompletedSets(prev => {
+      const alreadyLoaded = prev.some(
+        row => row.exercise_name === ex.name && Number(row.set_number) === Number(currentSet)
+      );
+      return alreadyLoaded ? prev : [...prev, existingSet];
+    });
+
+    const totalSets = parseInt(ex.sets) || 3;
+    const restSecs = parseRestSeconds(ex.rest);
+    setWeight('');
+    setReps('');
+    setTrainingError('');
+
+    if (currentSet >= totalSets) {
+      setShowExerciseFeedback(true);
+    } else {
+      setCurrentSet(s => s + 1);
+      startRest(restSecs);
+    }
+    return;
+  }
+
+  // La série n'existe pas : insertion normale.
   const { error: setInsertError } = await supabase
     .from('workout_sets')
     .insert({
@@ -674,8 +712,6 @@ try {
     });
 
   if (setInsertError) {
-    // workout_sets alimente directement noxBrain. Avancer malgré cet échec
-    // donnerait l'impression que NOX apprend alors que la série est perdue.
     throw new Error(`Série non enregistrée : ${setInsertError.message}`);
   }
 
