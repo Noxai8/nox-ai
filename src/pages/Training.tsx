@@ -177,6 +177,8 @@ const [loading, setLoading] = useState(true);
 const [savingSet, setSavingSet] = useState(false);
 const [showDemo, setShowDemo] = useState(false);
 const [showSkipExercise, setShowSkipExercise] = useState(false);
+const [guideTab, setGuideTab] = useState<'steps' | 'tips' | 'mistakes'>('steps');
+const [exerciseDifficultyFeedback, setExerciseDifficultyFeedback] = useState('');
 const [startTime] = useState(Date.now());
 const timerRef = useRef<any>(null);
 const finishingRef = useRef(false);
@@ -465,6 +467,9 @@ useEffect(() => {
   else { setExerciseTimer(0); }
   return () => clearInterval(exerciseTimerRef.current);
 }, [currentIdx, currentSet, exercises]);
+
+useEffect(() => { setGuideTab('steps'); }, [currentIdx]);
+useEffect(() => { setExerciseDifficultyFeedback(''); }, [currentIdx]);
 
 const toggleExerciseTimer = () => {
   const currentExercise = exercises[currentIdx];
@@ -1039,6 +1044,12 @@ if (done) {
 const ex = exercises[currentIdx];
 const noxExercise = resolvedNoxExercise(ex);
 const tags = muscleTags(ex);
+
+const exerciseSteps = noxExercise ? getNoxExerciseSteps(noxExercise.id) : demoSteps(ex);
+const exerciseTips = noxExercise ? getNoxExerciseCoachTips(noxExercise.id) : exerciseSteps.map(step => step.cue);
+const exerciseMistakes = noxExercise ? getNoxExerciseMistakes(noxExercise.id) : [];
+const exerciseMuscles = noxExercise ? getNoxExerciseMuscles(noxExercise.id) : { primary: tags, secondary: [], stabilizers: [] };
+const exerciseDifficulty = noxExercise?.difficulty || ex?.difficulty || 'Standard';
 const totalSets = parseInt(ex?.sets) || 3;
 
 const trackingMode = getExerciseTrackingMode(ex);
@@ -1190,6 +1201,69 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
         <div style={{ width: '100%', border: '1px solid #242424', borderRadius: 28, overflow: 'hidden', background: '#111111', marginBottom: 12 }}>
           <NoxExerciseCover exercise={ex} tags={tags} />
         </div>
+
+        {/* Guide COMMENT FAIRE */}
+        <section style={{ marginTop: 12, marginBottom: 14, padding: 16, borderRadius: 22, border: '1px solid #242424', background: '#111111' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <div>
+              <div style={{ color: ACCENT, fontSize: 10, fontWeight: 1000, letterSpacing: '.1em' }}>⚡ COMMENT FAIRE ?</div>
+              <div style={{ color: '#777', fontSize: 10, fontWeight: 800, marginTop: 4 }}>Niveau : {exerciseDifficulty}</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 14 }}>
+            {(['steps', 'tips', 'mistakes'] as const).map((id, i) => {
+              const label = ['Étapes', 'Conseils', 'Erreurs'][i];
+              const active = guideTab === id;
+              return (
+                <button key={id} type="button" onClick={() => setGuideTab(id)}
+                  style={{ padding: '10px 6px', borderRadius: 999, border: active ? `1px solid ${ACCENT}` : '1px solid #292929', background: active ? '#181818' : '#151515', color: active ? '#FFFFFF' : '#929292', fontSize: 10, fontWeight: 900, cursor: 'pointer' }}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {guideTab === 'steps' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {exerciseSteps.slice(0, 4).map((step, index) => (
+                <div key={`${step.title}-${index}`} style={{ display: 'grid', gridTemplateColumns: '34px 1fr', gap: 10, padding: 12, borderRadius: 16, background: '#181818' }}>
+                  <div style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #555', display: 'grid', placeItems: 'center', color: '#FFFFFF', fontSize: 11, fontWeight: 1000 }}>{index + 1}</div>
+                  <div>
+                    <div style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 1000 }}>{step.title}</div>
+                    <div style={{ color: '#A0A0A0', fontSize: 11, lineHeight: 1.45, marginTop: 4 }}>{step.cue}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {guideTab === 'tips' && (
+            <div style={{ padding: 14, borderRadius: 18, background: 'rgba(200,255,0,.06)', border: '1px solid rgba(200,255,0,.30)' }}>
+              <div style={{ color: ACCENT, fontSize: 10, fontWeight: 1000, marginBottom: 12 }}>💡 TIPS NOX</div>
+              {exerciseTips.slice(0, 4).map((tip, index) => (
+                <div key={index} style={{ display: 'flex', gap: 9, marginTop: index ? 10 : 0, color: '#D0D0D0', fontSize: 11, lineHeight: 1.45 }}>
+                  <span style={{ color: ACCENT, fontWeight: 1000 }}>✓</span><span>{tip}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {guideTab === 'mistakes' && (
+            <div style={{ padding: 14, borderRadius: 18, background: 'rgba(255,75,75,.06)', border: '1px solid rgba(255,75,75,.30)' }}>
+              <div style={{ color: '#FF6262', fontSize: 10, fontWeight: 1000, marginBottom: 12 }}>⚠ ERREURS FRÉQUENTES</div>
+              {exerciseMistakes.length > 0 ? exerciseMistakes.slice(0, 4).map((mistake, index) => (
+                <div key={index} style={{ marginTop: index ? 11 : 0 }}>
+                  <div style={{ display: 'flex', gap: 8, color: '#FFFFFF', fontSize: 11, fontWeight: 900 }}>
+                    <span style={{ color: '#FF6262' }}>✕</span><span>{mistake.title}</span>
+                  </div>
+                  {mistake.correction && <div style={{ paddingLeft: 20, marginTop: 3, color: '#888', fontSize: 10, lineHeight: 1.4 }}>{mistake.correction}</div>}
+                </div>
+              )) : <div style={{ color: '#888', fontSize: 11 }}>Aucune erreur spécifique renseignée pour cet exercice.</div>}
+            </div>
+          )}
+        </section>
+
         <div style={{ marginTop: 14 }}>
           <button
             type="button"
@@ -1224,6 +1298,18 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
         {false && tags.length > 0 && <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 15 }}>
           {tags.map((tag, i) => <span key={tag} style={{ padding: '7px 11px', background: i === 0 ? '#F3FFE1' : '#F1F1EE', border: i === 0 ? `1px solid ${ACCENT}` : '1px solid transparent', borderRadius: 999, color: '#55554F', fontSize: 10.5, fontWeight: 800 }}>{tag}</span>)}
         </div>}
+
+        <div style={{ marginBottom: 16, padding: 14, background: '#111111', border: '1px solid #242424', borderRadius: 18 }}>
+          <div style={{ color: '#929292', fontSize: 9, fontWeight: 950, letterSpacing: '.08em', marginBottom: 10 }}>DIFFICULTÉ RESSENTIE</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7 }}>
+            {['Facile', 'Bien', 'Difficile'].map(value => (
+              <button key={value} type="button" onClick={() => setExerciseDifficultyFeedback(value)}
+                style={{ padding: 11, borderRadius: 999, border: exerciseDifficultyFeedback === value ? `1px solid ${ACCENT}` : '1px solid #292929', background: '#181818', color: '#FFFFFF', fontSize: 10, fontWeight: 900, cursor: 'pointer' }}>
+                {value}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '14px 16px', borderRadius: 20, background: '#111111', border: '1px solid #242424', marginBottom: 17 }}>
           <div style={{ width: 42, height: 42, borderRadius: 14, background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 20 }}>🎯</div>
