@@ -139,6 +139,24 @@ function buildCooldownStretches(exercises: any[]): CooldownStretch[] {
   return stretches.slice(0, 4);
 }
 
+function estimateWorkoutCalories({
+  weightKg,
+  durationMinutes,
+  completedSetCount,
+}: {
+  weightKg: number;
+  durationMinutes: number;
+  completedSetCount: number;
+}): number | null {
+  if (
+    !Number.isFinite(weightKg) || weightKg <= 0 ||
+    !Number.isFinite(durationMinutes) || durationMinutes <= 0 ||
+    completedSetCount <= 0
+  ) { return null; }
+  const MET = 4.5;
+  return Math.max(1, Math.round((MET * 3.5 * weightKg / 200) * durationMinutes));
+}
+
 export default function Training() {
 const { sessionId } = useParams();
 const { user } = useAuth();
@@ -177,6 +195,9 @@ const [loading, setLoading] = useState(true);
 const [savingSet, setSavingSet] = useState(false);
 const [showDemo, setShowDemo] = useState(false);
 const [showSkipExercise, setShowSkipExercise] = useState(false);
+const [finalDuration, setFinalDuration] = useState(0);
+const [estimatedCalories, setEstimatedCalories] = useState<number | null>(null);
+const [showFinishConfetti, setShowFinishConfetti] = useState(false);
 const [guideTab, setGuideTab] = useState<'steps' | 'tips' | 'mistakes'>('steps');
 const [exerciseDifficultyFeedback, setExerciseDifficultyFeedback] = useState('');
 const [showExerciseFeedback, setShowExerciseFeedback] = useState(false);
@@ -758,11 +779,19 @@ try {
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('xp')
+    .select('xp, starting_weight_kg')
     .eq('id', user.id)
     .maybeSingle();
 
   if (profileError) throw profileError;
+
+  const calories = estimateWorkoutCalories({
+    weightKg: Number(profile?.starting_weight_kg),
+    durationMinutes: duration,
+    completedSetCount: completedSets.length,
+  });
+  setFinalDuration(duration);
+  setEstimatedCalories(calories);
 
   const { error: rewardError } = await supabase
     .from('profiles')
@@ -774,6 +803,8 @@ try {
 
   if (rewardError) throw rewardError;
 
+  setShowFinishConfetti(true);
+  window.setTimeout(() => { setShowFinishConfetti(false); }, 3500);
   setDone(true);
 } catch (err: any) {
   console.error('Training finishWorkout:', err);
@@ -948,11 +979,38 @@ if (showCooldown && currentStretch) {
 }
 
 if (done) {
-  const duration = Math.max(1, Math.round((Date.now() - startTime) / 60000));
+  const duration = finalDuration || Math.max(1, Math.round((Date.now() - startTime) / 60000));
+
+  const completedExerciseNames = new Set(
+    completedSets
+      .map(set => String(set?.exercise_name || '').trim())
+      .filter(Boolean)
+  );
+  const completedExerciseCount = completedExerciseNames.size;
 
   return (
     <div style={{ minHeight: '100vh', background: '#F7F8F4', color: '#0B0B0B', display: 'flex', justifyContent: 'center' }}>
       <main style={{ width: '100%', maxWidth: 560, minHeight: '100vh', padding: '54px 20px 28px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+
+        {showFinishConfetti && (
+          <div aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none', overflow: 'hidden' }}>
+            {Array.from({ length: 28 }).map((_, index) => (
+              <span key={index} style={{
+                position: 'absolute',
+                left: `${(index * 37) % 100}%`,
+                top: '-20px',
+                width: index % 3 === 0 ? 8 : 6,
+                height: index % 2 === 0 ? 14 : 9,
+                borderRadius: 2,
+                background: index % 3 === 0 ? ACCENT : index % 3 === 1 ? '#111111' : '#A8A8A0',
+                transform: `rotate(${index * 29}deg)`,
+                animation: `noxConfetti ${1.8 + (index % 5) * 0.18}s ease-out ${(index % 7) * 0.06}s forwards`,
+              }} />
+            ))}
+            <style>{`@keyframes noxConfetti { 0% { transform: translateY(-20px) rotate(0deg); opacity: 1; } 100% { transform: translateY(105vh) rotate(620deg); opacity: 0; } }`}</style>
+          </div>
+        )}
+
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 38 }}>
           <NoxBrand />
         </div>
@@ -972,11 +1030,12 @@ if (done) {
         </div>
 
         <section style={{ background: '#0B0B0B', borderRadius: 26, padding: '22px 18px 18px', marginBottom: 14 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
             {[
               [String(duration), 'MIN'],
-              [String(exercises.length), 'EXERCICES'],
+              [String(completedExerciseCount), 'EXOS'],
               [String(completedSets.length), 'SÉRIES'],
+              [estimatedCalories !== null ? String(estimatedCalories) : '---', 'KCAL EST.'],
             ].map(([value, label], index) => (
               <div key={label} style={{ textAlign: 'center', borderLeft: index ? '1px solid #242424' : 'none' }}>
                 <div style={{ fontSize: 30, fontWeight: 1000, color: index === 2 ? ACCENT : '#FFFFFF', letterSpacing: '-.04em' }}>{value}</div>
@@ -992,6 +1051,12 @@ if (done) {
             <div style={{ color: ACCENT, fontSize: 12, fontWeight: 1000 }}>+50 XP</div>
           </div>
         </section>
+
+        {estimatedCalories !== null && (
+          <div style={{ marginTop: -8, marginBottom: 10, color: '#77776F', fontSize: 9.5, lineHeight: 1.4, textAlign: 'center' }}>
+            Calories estimées selon ton poids et la durée de la séance.
+          </div>
+        )}
 
         <section style={{ background: '#FFFFFF', border: '1px solid #E6E8E0', borderRadius: 22, padding: 18, marginBottom: 14 }}>
           <div style={{ fontSize: 10, fontWeight: 1000, color: '#111', letterSpacing: '.08em', marginBottom: 6 }}>COMMENT TU TE SENS ?</div>
