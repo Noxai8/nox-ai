@@ -120,23 +120,44 @@ type CooldownStretch = {
   duration: number;
   instruction: string;
   tip: string;
+  image: string;
 };
 
 function buildCooldownStretches(exercises: any[]): CooldownStretch[] {
-  const ids = new Set(exercises.map(ex => String(ex?.exercise_id || '').trim().toLowerCase()).filter(Boolean));
-  const stretches: CooldownStretch[] = [];
+  const ids = new Set(
+    exercises.map(ex => String(ex?.exercise_id || '').trim().toLowerCase()).filter(Boolean)
+  );
 
-  const hasLegs = ['bodyweight_squat','bodyweight_lunge','reverse_lunge','walking_lunge','step_up','wall_sit'].some(id => ids.has(id));
-  const hasGlutes = ['glute_bridge','single_leg_glute_bridge','bodyweight_lunge','reverse_lunge'].some(id => ids.has(id));
-  const hasPush = ['push_up','incline_push_up','decline_push_up','diamond_push_up'].some(id => ids.has(id));
-  const hasCore = ['plank','side_plank','dead_bug','bird_dog','hollow_hold','reverse_crunch','bicycle_crunch','lying_leg_raise','v_up'].some(id => ids.has(id));
+  const library: Record<string, CooldownStretch> = {
+    quad: { id: 'quad-stretch', name: 'Étirement quadriceps', duration: 30, instruction: 'Debout, ramène doucement le talon vers la fesse et garde les genoux proches.', tip: 'Garde le bassin droit et évite de cambrer le dos.', image: '/exercises/stretches/quad-stretch.webp' },
+    hamstring: { id: 'hamstring-stretch', name: 'Étirement ischio-jambiers', duration: 30, instruction: 'Tends une jambe devant toi, garde le dos long puis incline doucement le buste vers l'avant.', tip: 'Ne cherche pas à toucher le pied : privilégie une tension douce derrière la cuisse.', image: '/exercises/stretches/hamstring-stretch.webp' },
+    glute: { id: 'glute-stretch', name: 'Étirement fessiers', duration: 30, instruction: 'Allongé sur le dos, pose une cheville sur le genou opposé puis rapproche doucement la jambe.', tip: 'Relâche les épaules et ne force jamais l'amplitude.', image: '/exercises/stretches/glute-stretch.webp' },
+    calf: { id: 'calf-stretch', name: 'Étirement mollets', duration: 30, instruction: 'Place les mains contre un support, recule une jambe et garde son talon au sol.', tip: 'Garde le pied arrière orienté vers l'avant et la jambe tendue.', image: '/exercises/stretches/calf-stretch.webp' },
+    hipFlexor: { id: 'hip-flexor-stretch', name: 'Fléchisseurs de hanche', duration: 30, instruction: 'En fente, pose un genou au sol puis avance doucement le bassin.', tip: 'Contracte légèrement le fessier de la jambe arrière pour mieux cibler la hanche.', image: '/exercises/stretches/hip-flexor-stretch.webp' },
+    adductor: { id: 'adductor-stretch', name: 'Étirement adducteurs', duration: 30, instruction: 'Écarte les jambes puis fléchis doucement un côté en gardant l'autre jambe allongée.', tip: 'Garde le dos long et contrôle l'amplitude.', image: '/exercises/stretches/adductor-stretch.webp' },
+    chest: { id: 'chest-stretch', name: 'Ouverture des pectoraux', duration: 30, instruction: 'Place ton avant-bras contre un support puis tourne doucement le buste dans la direction opposée.', tip: 'L'étirement doit rester confortable, jamais douloureux.', image: '/exercises/stretches/chest-stretch.webp' },
+    shoulder: { id: 'shoulder-stretch', name: 'Étirement épaules', duration: 30, instruction: 'Ramène un bras devant la poitrine et accompagne-le doucement avec l'autre bras.', tip: 'Garde l'épaule basse et évite de tourner le buste.', image: '/exercises/stretches/shoulder-stretch.webp' },
+    triceps: { id: 'triceps-stretch', name: 'Étirement triceps', duration: 30, instruction: 'Passe une main derrière la tête puis accompagne doucement le coude avec l'autre main.', tip: 'Reste grand et évite de cambrer le bas du dos.', image: '/exercises/stretches/triceps-stretch.webp' },
+    lat: { id: 'lat-stretch', name: 'Étirement dorsaux', duration: 30, instruction: 'Recule les hanches en gardant les bras loin devant toi et la poitrine dirigée vers le sol.', tip: 'Respire lentement et cherche de la longueur sur les côtés du dos.', image: '/exercises/stretches/lat-stretch.webp' },
+    upperBack: { id: 'upper-back-stretch', name: 'Relâchement haut du dos', duration: 30, instruction: 'Arrondis doucement le haut du dos en tendant les bras devant toi.', tip: 'Éloigne les omoplates sans forcer sur la nuque.', image: '/exercises/stretches/upper-back-stretch.webp' },
+    core: { id: 'core-release', name: 'Relâchement abdominal', duration: 30, instruction: 'Allonge-toi sur le ventre puis redresse doucement le buste en gardant le bassin relâché.', tip: 'Monte seulement jusqu'à sentir un étirement léger.', image: '/exercises/stretches/core-release.webp' },
+  };
 
-  if (hasLegs) stretches.push({ id: 'quad-stretch', name: 'Étirement quadriceps', duration: 30, instruction: 'Debout, ramène doucement le talon vers la fesse et garde les genoux proches.', tip: 'Garde le bassin droit et évite de cambrer le dos.' });
-  if (hasGlutes) stretches.push({ id: 'glute-stretch', name: 'Étirement fessiers', duration: 30, instruction: 'Allongé sur le dos, pose une cheville sur le genou opposé puis rapproche doucement la jambe.', tip: 'Relâche les épaules et ne force jamais l\'amplitude.' });
-  if (hasPush) stretches.push({ id: 'chest-stretch', name: 'Ouverture des pectoraux', duration: 30, instruction: 'Place ton avant-bras contre un support puis tourne doucement le buste dans la direction opposée.', tip: 'L\'étirement doit rester confortable, jamais douloureux.' });
-  if (hasCore) stretches.push({ id: 'core-release', name: 'Relâchement abdominal', duration: 30, instruction: 'Allonge-toi sur le ventre puis redresse doucement le buste en gardant le bassin relâché.', tip: 'Monte seulement jusqu\'à sentir un étirement léger.' });
+  const selected: CooldownStretch[] = [];
+  const add = (key: keyof typeof library) => {
+    const stretch = library[key];
+    if (stretch && !selected.some(item => item.id === stretch.id)) selected.push(stretch);
+  };
+  const has = (...exerciseIds: string[]) => exerciseIds.some(id => ids.has(id));
 
-  return stretches.slice(0, 4);
+  if (has('bodyweight_squat', 'wall_sit', 'step_up')) { add('quad'); add('hamstring'); add('hipFlexor'); }
+  if (has('bodyweight_lunge', 'reverse_lunge', 'walking_lunge')) { add('quad'); add('glute'); add('hipFlexor'); add('adductor'); }
+  if (has('glute_bridge', 'single_leg_glute_bridge')) { add('glute'); add('hamstring'); add('hipFlexor'); }
+  if (has('single_leg_calf_raise')) add('calf');
+  if (has('push_up', 'incline_push_up', 'decline_push_up', 'diamond_push_up')) { add('chest'); add('shoulder'); add('triceps'); }
+  if (has('plank', 'side_plank', 'dead_bug', 'bird_dog', 'hollow_hold', 'reverse_crunch', 'bicycle_crunch', 'lying_leg_raise', 'v_up')) { add('core'); add('lat'); add('upperBack'); }
+
+  return selected.slice(0, 5);
 }
 
 function estimateWorkoutCalories({
@@ -546,6 +567,13 @@ const skipCurrentExercise = () => {
   setCurrentIdx(i => i + 1);
 };
 
+const getPerformedExercises = () => {
+  const performedNames = new Set(
+    completedSets.map(row => String(row?.exercise_name || '').trim()).filter(Boolean)
+  );
+  return exercises.filter(ex => performedNames.has(String(ex?.name || '').trim()));
+};
+
 const confirmExerciseFeedback = async () => {
   setShowExerciseFeedback(false);
   const ex = exercises[currentIdx];
@@ -553,7 +581,7 @@ const confirmExerciseFeedback = async () => {
   setCurrentSet(1);
 
   if (currentIdx >= exercises.length - 1) {
-    const stretches = buildCooldownStretches(exercises);
+    const stretches = buildCooldownStretches(getPerformedExercises());
     if (stretches.length > 0) {
       setCooldownIdx(0);
       setCooldownTime(stretches[0].duration);
@@ -568,7 +596,7 @@ const confirmExerciseFeedback = async () => {
   }
 };
 
-const cooldownStretches = buildCooldownStretches(exercises);
+const cooldownStretches = buildCooldownStretches(getPerformedExercises());
 const currentStretch = cooldownStretches[cooldownIdx];
 
 const startCooldownTimer = () => {
@@ -978,6 +1006,11 @@ if (showCooldown && currentStretch) {
         <section style={{ background: '#111111', border: '1px solid #242424', borderRadius: 28, padding: 22 }}>
           <div style={{ color: '#777', fontSize: 10, fontWeight: 900, letterSpacing: '.1em' }}>ÉTIREMENT {cooldownIdx + 1}/{cooldownStretches.length}</div>
           <div style={{ fontSize: 27, fontWeight: 1000, marginTop: 8, letterSpacing: '-.035em' }}>{currentStretch.name}</div>
+          <div style={{ marginTop: 18, height: 250, borderRadius: 20, overflow: 'hidden', background: '#080808', border: '1px solid #242424', display: 'grid', placeItems: 'center' }}>
+            <img src={currentStretch.image} alt={currentStretch.name}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', display: 'block' }} />
+          </div>
+
           <div style={{ marginTop: 16, color: '#B5B5B5', fontSize: 13, lineHeight: 1.55 }}>{currentStretch.instruction}</div>
           <div style={{ marginTop: 18, padding: '14px 16px', background: '#181818', borderRadius: 16 }}>
             <div style={{ color: ACCENT, fontSize: 9, fontWeight: 1000, letterSpacing: '.08em' }}>TIP NOX</div>
