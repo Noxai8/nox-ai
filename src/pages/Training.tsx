@@ -151,6 +151,7 @@ const [workoutId, setWorkoutId] = useState<string | null>(null);
 const [loading, setLoading] = useState(true);
 const [savingSet, setSavingSet] = useState(false);
 const [showDemo, setShowDemo] = useState(false);
+const [showSkipExercise, setShowSkipExercise] = useState(false);
 const [startTime] = useState(Date.now());
 const timerRef = useRef<any>(null);
 const finishingRef = useRef(false);
@@ -470,6 +471,22 @@ const toggleExerciseTimer = () => {
       }, 1000);
     }
   }, 1000);
+};
+
+const skipCurrentExercise = () => {
+  clearInterval(exerciseTimerRef.current);
+  clearInterval(timerRef.current);
+  setExerciseTimerRunning(false);
+  setCountdown(null);
+  setResting(false);
+  setRestTime(0);
+  setWeight('');
+  setReps('');
+  setCurrentSet(1);
+  setShowSkipExercise(false);
+  setTrainingError('');
+  if (currentIdx >= exercises.length - 1) return;
+  setCurrentIdx(i => i + 1);
 };
 
 const validateSet = async () => {
@@ -1151,10 +1168,32 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
           );
         })()}
 
+        <button
+          type="button"
+          onClick={() => setShowSkipExercise(true)}
+          disabled={savingSet}
+          style={{ width: '100%', padding: '15px 18px', marginBottom: 14, background: 'transparent', border: '1px solid #2A2A2A', borderRadius: 18, color: '#B5B5B5', fontWeight: 900, fontSize: 11, cursor: savingSet ? 'default' : 'pointer', letterSpacing: '.04em' }}
+        >
+          PASSER CET EXERCICE →
+          <div style={{ marginTop: 4, color: '#666666', fontSize: 9, fontWeight: 700 }}>Si c'est trop dur, tu peux le passer.</div>
+        </button>
+
         {currentIdx < exercises.length - 1 && <div style={{ padding: '15px 16px', background: '#111111', borderRadius: 18, border: '1px solid #242424', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div><div style={{ fontSize: 9, color: '#929292', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 5, fontWeight: 900 }}>PROCHAIN EXERCICE</div>
           <div style={{ fontSize: 14, color: '#FFFFFF', fontWeight: 900 }}>{exercises[currentIdx + 1]?.name}</div></div><div style={{ fontSize: 26 }}>›</div>
         </div>}
+
+        {showSkipExercise && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,.82)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+            <div style={{ width: '100%', maxWidth: 420, background: '#111111', border: '1px solid #2A2A2A', borderRadius: 26, padding: 24, textAlign: 'center' }}>
+              <div style={{ width: 46, height: 46, borderRadius: '50%', border: '2px solid #777', margin: '0 auto 18px', display: 'grid', placeItems: 'center', fontWeight: 1000, fontSize: 20 }}>!</div>
+              <div style={{ fontSize: 24, fontWeight: 1000, marginBottom: 8 }}>Passer cet exercice ?</div>
+              <div style={{ color: '#929292', fontSize: 13, lineHeight: 1.5, marginBottom: 22 }}>Aucun souci. Les séries déjà réalisées restent enregistrées. NOX passe à l'exercice suivant.</div>
+              <button type="button" onClick={skipCurrentExercise} style={{ width: '100%', padding: 16, border: 0, borderRadius: 16, background: ACCENT, color: '#080808', fontWeight: 1000, cursor: 'pointer' }}>OUI, PASSER →</button>
+              <button type="button" onClick={() => setShowSkipExercise(false)} style={{ width: '100%', padding: 15, marginTop: 8, border: '1px solid #333333', borderRadius: 16, background: 'transparent', color: '#FFFFFF', fontWeight: 900, cursor: 'pointer' }}>ANNULER</button>
+            </div>
+          </div>
+        )}
 
         {showDemo && <DemoNox exercise={ex} tags={tags} onClose={() => setShowDemo(false)} />}
       </div>
