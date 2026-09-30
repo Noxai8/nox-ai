@@ -302,17 +302,14 @@ export default function Home() {
         <main style={{ padding: '20px 20px 0' }}>
 
           {/* HEADER */}
-          <header style={{ marginBottom: 22, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 750, color: '#555950', marginBottom: 4 }}>
-                {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
-              </div>
-              <h1 style={{ margin: 0, fontSize: 40, lineHeight: .92, fontWeight: 1000, letterSpacing: '-.055em', color: BLACK }}>
-                AUJOURD'HUI
-              </h1>
-              <div style={{ marginTop: 7, fontSize: 13, color: '#7B8076', fontWeight: 700 }}>{dateLabel}</div>
+          <header style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 14, fontWeight: 750, color: '#555950', marginBottom: 4 }}>
+              {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
             </div>
-            <NoxCompanion observedDays={observedDays} size="md" />
+            <h1 style={{ margin: 0, fontSize: 40, lineHeight: .92, fontWeight: 1000, letterSpacing: '-.055em', color: BLACK }}>
+              AUJOURD'HUI
+            </h1>
+            <div style={{ marginTop: 7, fontSize: 13, color: '#7B8076', fontWeight: 700 }}>{dateLabel}</div>
           </header>
 
           {/* PRIORITÉ NOX */}

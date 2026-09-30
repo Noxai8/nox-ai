@@ -1,199 +1,207 @@
+/* NOX Companion — créature abstraite premium */
 .nox-companion {
   --lime: #c8ff00;
   --unit: 1;
   position: relative;
-  width: calc(190px * var(--unit));
-  height: calc(170px * var(--unit));
+  width: calc(180px * var(--unit));
+  height: calc(160px * var(--unit));
   flex: 0 0 auto;
   isolation: isolate;
-  filter: drop-shadow(0 22px 28px rgba(0,0,0,.36));
 }
-.nox-companion--sm { --unit: .58; }
-.nox-companion--md { --unit: .82; }
-.nox-companion--lg { --unit: 1.25; }
+.nox-companion--sm { --unit: .55; }
+.nox-companion--md { --unit: .80; }
+.nox-companion--lg { --unit: 1.20; }
 
+/* ── Aura ── */
 .nox-companion__aura {
   position: absolute;
-  left: 10%; right: 2%; bottom: 0; height: 54%;
+  left: 15%; right: 15%; bottom: 2%; height: 45%;
   border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(200,255,0,.22), rgba(200,255,0,.06) 42%, transparent 72%);
-  filter: blur(calc(14px * var(--unit)));
-  animation: noxAura 4.8s ease-in-out infinite;
-}
-.nox-companion__body {
-  position: absolute;
-  z-index: 4;
-  left: 23%;
-  top: 31%;
-  width: 58%;
-  height: 57%;
-  border-radius: 53% 52% 48% 49% / 58% 58% 43% 43%;
-  background:
-    radial-gradient(circle at 38% 22%, rgba(255,255,255,.09), transparent 18%),
-    radial-gradient(circle at 54% 70%, rgba(200,255,0,.055), transparent 24%),
-    linear-gradient(145deg, #282c26 0%, #121411 43%, #070807 100%);
-  box-shadow:
-    inset 9px 7px 18px rgba(255,255,255,.035),
-    inset -13px -16px 24px rgba(0,0,0,.62),
-    0 14px 28px rgba(0,0,0,.45);
-  animation: noxBreathe 4.2s ease-in-out infinite;
-}
-.nox-companion__ear {
-  position: absolute;
-  z-index: -1;
-  top: -34%;
-  width: 31%;
-  height: 63%;
+  background: radial-gradient(ellipse at center,
+    rgba(200,255,0,.18), rgba(200,255,0,.05) 50%, transparent 75%);
+  filter: blur(calc(18px * var(--unit)));
+  animation: noxAura 5.6s ease-in-out infinite;
   opacity: 0;
-  overflow: hidden;
-  background:
-    linear-gradient(155deg, rgba(230,255,147,.88), rgba(200,255,0,.24) 45%, rgba(18,22,16,.72) 100%);
-  border: 1px solid rgba(220,255,115,.32);
-  box-shadow: inset 0 0 14px rgba(200,255,0,.18), 0 0 16px rgba(200,255,0,.10);
-  transition: opacity .4s ease, transform .4s ease;
 }
-.nox-companion__ear::after {
-  content: "";
-  position: absolute; inset: 16% 45% 10% 48%;
-  background: rgba(240,255,190,.48);
-  transform: rotate(8deg);
-  filter: blur(1px);
-}
-.nox-companion__ear--left {
-  left: 11%;
-  border-radius: 90% 10% 78% 22%;
-  transform: rotate(-29deg) scale(.4);
-  transform-origin: bottom right;
-}
-.nox-companion__ear--right {
-  right: 9%;
-  border-radius: 10% 90% 22% 78%;
-  transform: rotate(28deg) scale(.4);
-  transform-origin: bottom left;
-}
-.nox-companion__eye {
-  position: absolute;
-  top: 43%;
-  width: 19%;
-  height: 10%;
-  background: linear-gradient(90deg, #dfff57, var(--lime));
-  box-shadow: 0 0 10px rgba(200,255,0,.85), 0 0 22px rgba(200,255,0,.32);
-}
-.nox-companion__eye--left {
-  left: 20%;
-  border-radius: 100% 18% 100% 18%;
-  transform: rotate(13deg);
-}
-.nox-companion__eye--right {
-  right: 20%;
-  border-radius: 18% 100% 18% 100%;
-  transform: rotate(-13deg);
-}
-.nox-companion__nose {
-  position: absolute;
-  left: 50%; top: 62%;
-  width: 4%; aspect-ratio: 1;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: rgba(220,255,105,.8);
-  box-shadow: 0 0 8px rgba(200,255,0,.7);
-}
-.nox-companion__foot {
-  position: absolute;
-  z-index: 5;
-  bottom: 8%;
-  width: 18%; height: 14%;
-  border-radius: 55% 55% 45% 45%;
-  background: #0a0b09;
-  box-shadow: inset 3px 3px 6px rgba(255,255,255,.025);
-}
-.nox-companion__foot--left { left: 27%; }
-.nox-companion__foot--right { right: 20%; }
+.nox-companion--stage-3 .nox-companion__aura { opacity: .55; }
+.nox-companion--stage-4 .nox-companion__aura { opacity: .75; }
+.nox-companion--stage-5 .nox-companion__aura { opacity: 1; }
 
+/* ── Extensions végétales — derrière le corps ── */
 .nox-companion__leaf {
   position: absolute;
-  z-index: 2;
-  right: 4%;
-  top: 26%;
-  width: 40%;
-  height: 57%;
+  z-index: 1;
   opacity: 0;
-  border: 1px solid rgba(220,255,120,.28);
-  background:
-    linear-gradient(145deg, rgba(235,255,166,.55), rgba(200,255,0,.13) 45%, rgba(9,12,8,.45));
-  box-shadow: inset 0 0 17px rgba(200,255,0,.13), 0 0 18px rgba(200,255,0,.08);
-  backdrop-filter: blur(3px);
-  transform-origin: 20% 80%;
+  border-radius: 80% 20% 70% 30% / 70% 30% 80% 20%;
+  background: linear-gradient(155deg,
+    rgba(210,255,100,.38) 0%,
+    rgba(200,255,0,.14) 45%,
+    rgba(10,12,8,.28) 100%);
+  border: 1px solid rgba(200,255,0,.18);
+  box-shadow: inset 0 0 12px rgba(200,255,0,.10), 0 0 14px rgba(200,255,0,.06);
+  backdrop-filter: blur(2px);
+  transition: opacity .6s ease, transform .6s ease;
 }
-.nox-companion__leaf--back-1 { border-radius: 95% 5% 82% 18%; transform: rotate(27deg) scale(.72); }
-.nox-companion__leaf--back-2 { border-radius: 8% 92% 20% 80%; transform: rotate(55deg) translate(12%,8%) scale(.66); }
-.nox-companion__leaf--back-3 { border-radius: 92% 8% 76% 24%; transform: rotate(83deg) translate(22%,8%) scale(.58); }
 
+/* Feuille gauche */
+.nox-companion__leaf--l1 {
+  left: 8%; top: 15%;
+  width: 34%; height: 58%;
+  border-radius: 90% 10% 75% 25% / 80% 20% 90% 10%;
+  transform-origin: 90% 85%;
+}
+/* Feuille droite */
+.nox-companion__leaf--r1 {
+  right: 6%; top: 18%;
+  width: 32%; height: 54%;
+  border-radius: 10% 90% 25% 75% / 20% 80% 10% 90%;
+  transform-origin: 10% 85%;
+}
+/* Feuille haute gauche */
+.nox-companion__leaf--l2 {
+  left: 4%; top: 5%;
+  width: 28%; height: 46%;
+  border-radius: 85% 15% 65% 35% / 75% 25% 85% 15%;
+  transform-origin: 85% 90%;
+}
+/* Feuille haute droite */
+.nox-companion__leaf--r2 {
+  right: 2%; top: 8%;
+  width: 26%; height: 44%;
+  border-radius: 15% 85% 35% 65% / 25% 75% 15% 85%;
+  transform-origin: 15% 90%;
+}
+
+/* Stages feuilles */
+.nox-companion--stage-2 .nox-companion__leaf--l1,
+.nox-companion--stage-2 .nox-companion__leaf--r1 {
+  opacity: .38;
+  transform: scale(.65) rotate(-8deg);
+}
+.nox-companion--stage-2 .nox-companion__leaf--r1 {
+  transform: scale(.65) rotate(8deg);
+}
+.nox-companion--stage-3 .nox-companion__leaf--l1,
+.nox-companion--stage-3 .nox-companion__leaf--r1 {
+  opacity: .62;
+  transform: scale(.88) rotate(-5deg);
+}
+.nox-companion--stage-3 .nox-companion__leaf--r1 {
+  transform: scale(.88) rotate(5deg);
+}
+.nox-companion--stage-4 .nox-companion__leaf--l1,
+.nox-companion--stage-4 .nox-companion__leaf--r1 { opacity: .78; transform: scale(1) rotate(-3deg); }
+.nox-companion--stage-4 .nox-companion__leaf--r1 { transform: scale(1) rotate(3deg); }
+.nox-companion--stage-4 .nox-companion__leaf--l2 { opacity: .48; transform: scale(.72) rotate(-12deg); }
+.nox-companion--stage-4 .nox-companion__leaf--r2 { opacity: .44; transform: scale(.68) rotate(12deg); }
+.nox-companion--stage-5 .nox-companion__leaf--l1 { opacity: .88; transform: scale(1) rotate(-3deg); }
+.nox-companion--stage-5 .nox-companion__leaf--r1 { opacity: .84; transform: scale(1) rotate(3deg); }
+.nox-companion--stage-5 .nox-companion__leaf--l2 { opacity: .64; transform: scale(.88) rotate(-8deg); }
+.nox-companion--stage-5 .nox-companion__leaf--r2 { opacity: .58; transform: scale(.82) rotate(8deg); }
+
+/* ── Corps ── */
+.nox-companion__body {
+  position: absolute;
+  z-index: 3;
+  left: 22%; top: 28%;
+  width: 58%; height: 54%;
+  border-radius: 52% 48% 45% 55% / 55% 50% 45% 50%;
+  background:
+    radial-gradient(circle at 36% 25%, rgba(255,255,255,.07), transparent 22%),
+    radial-gradient(circle at 60% 68%, rgba(200,255,0,.04), transparent 20%),
+    linear-gradient(150deg, #252924 0%, #111310 40%, #060706 100%);
+  box-shadow:
+    inset 6px 5px 16px rgba(255,255,255,.03),
+    inset -10px -12px 22px rgba(0,0,0,.6),
+    0 10px 24px rgba(0,0,0,.40);
+  animation: noxBreathe 4.8s ease-in-out infinite;
+}
+/* Stage 1 : plus petit */
+.nox-companion--stage-1 .nox-companion__body {
+  transform: scale(.78);
+}
+
+/* ── Yeux ── */
+.nox-companion__eye {
+  position: absolute;
+  top: 40%;
+  width: 22%; height: 9%;
+  background: linear-gradient(90deg, #d6ff40, #c8ff00);
+  box-shadow: 0 0 8px rgba(200,255,0,.9), 0 0 20px rgba(200,255,0,.28);
+  transition: opacity .3s;
+}
+.nox-companion__eye--left {
+  left: 16%;
+  border-radius: 100% 20% 100% 20% / 100% 20% 100% 20%;
+  transform: rotate(12deg);
+}
+.nox-companion__eye--right {
+  right: 16%;
+  border-radius: 20% 100% 20% 100% / 20% 100% 20% 100%;
+  transform: rotate(-12deg);
+}
+.nox-companion--stage-1 .nox-companion__eye {
+  opacity: .60;
+  width: 18%; height: 7%;
+}
+
+/* ── Particules (stage 5) ── */
 .nox-companion__spark {
   position: absolute;
-  z-index: 6;
-  width: calc(4px * var(--unit));
-  height: calc(4px * var(--unit));
+  z-index: 5;
+  width: calc(3px * var(--unit));
+  height: calc(3px * var(--unit));
   border-radius: 50%;
-  background: var(--lime);
-  box-shadow: 0 0 calc(10px * var(--unit)) var(--lime);
+  background: #c8ff00;
+  box-shadow: 0 0 calc(8px * var(--unit)) #c8ff00;
   opacity: 0;
 }
-.nox-companion__spark--1 { left: 17%; top: 27%; }
-.nox-companion__spark--2 { right: 7%; top: 18%; }
-.nox-companion__spark--3 { right: 2%; bottom: 25%; }
-.nox-companion__spark--4 { left: 12%; bottom: 17%; }
+.nox-companion__spark--1 { left: 18%; top: 20%; }
+.nox-companion__spark--2 { right: 10%; top: 14%; }
+.nox-companion__spark--3 { right: 5%; bottom: 22%; }
+.nox-companion__spark--4 { left: 10%; bottom: 16%; }
 
-/* L'évolution dépend uniquement du nombre de jours observés. */
-.nox-companion--stage-1 .nox-companion__body { transform: scale(.72) translateY(12%); }
-.nox-companion--stage-1 .nox-companion__eye { opacity: .65; transform: scale(.68); }
+.nox-companion--stage-5 .nox-companion__spark {
+  animation: noxSpark 3.2s ease-in-out infinite alternate;
+}
+.nox-companion--stage-5 .nox-companion__spark--1 { opacity: .7; animation-delay: 0s; }
+.nox-companion--stage-5 .nox-companion__spark--2 { opacity: .55; animation-delay: .8s; }
+.nox-companion--stage-5 .nox-companion__spark--3 { opacity: .45; animation-delay: 1.6s; }
+.nox-companion--stage-5 .nox-companion__spark--4 { opacity: .60; animation-delay: .4s; }
 
-.nox-companion--stage-2 .nox-companion__ear { opacity: .65; }
-.nox-companion--stage-2 .nox-companion__ear--left { transform: rotate(-29deg) scale(.72); }
-.nox-companion--stage-2 .nox-companion__ear--right { transform: rotate(28deg) scale(.72); }
-
-.nox-companion--stage-3 .nox-companion__ear { opacity: .9; }
-.nox-companion--stage-3 .nox-companion__ear--left { transform: rotate(-29deg) scale(.9); }
-.nox-companion--stage-3 .nox-companion__ear--right { transform: rotate(28deg) scale(.9); }
-.nox-companion--stage-3 .nox-companion__leaf--back-1 { opacity: .48; }
-
-.nox-companion--stage-4 .nox-companion__ear,
-.nox-companion--stage-5 .nox-companion__ear { opacity: 1; }
-.nox-companion--stage-4 .nox-companion__ear--left,
-.nox-companion--stage-5 .nox-companion__ear--left { transform: rotate(-29deg) scale(1); }
-.nox-companion--stage-4 .nox-companion__ear--right,
-.nox-companion--stage-5 .nox-companion__ear--right { transform: rotate(28deg) scale(1); }
-.nox-companion--stage-4 .nox-companion__leaf--back-1 { opacity: .7; }
-.nox-companion--stage-4 .nox-companion__leaf--back-2 { opacity: .56; }
-
-.nox-companion--stage-5 .nox-companion__leaf { opacity: .8; }
-.nox-companion--stage-5 .nox-companion__leaf--back-2 { opacity: .72; }
-.nox-companion--stage-5 .nox-companion__leaf--back-3 { opacity: .58; }
-.nox-companion--stage-5 .nox-companion__spark { opacity: .8; animation: noxSpark 2.7s ease-in-out infinite alternate; }
-
+/* ── Animations ── */
+@keyframes noxBreathe {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50%       { transform: scale(1.025) translateY(-2%); }
+}
+.nox-companion--stage-1 .nox-companion__body { animation: noxBreathe1 4.8s ease-in-out infinite; }
+@keyframes noxBreathe1 {
+  0%, 100% { transform: scale(.78) translateY(0); }
+  50%       { transform: scale(.80) translateY(-2%); }
+}
+@keyframes noxAura {
+  0%, 100% { opacity: .55; transform: scale(.90); }
+  50%       { opacity: 1;   transform: scale(1.08); }
+}
+@keyframes noxSpark {
+  from { opacity: .2; transform: scale(.5); }
+  to   { opacity: 1;  transform: scale(1.3); }
+}
 @media (prefers-reduced-motion: no-preference) {
+  .nox-companion--stage-2 .nox-companion__leaf,
   .nox-companion--stage-3 .nox-companion__leaf,
   .nox-companion--stage-4 .nox-companion__leaf,
   .nox-companion--stage-5 .nox-companion__leaf {
-    animation: noxLeaves 5.8s ease-in-out infinite alternate;
+    animation: noxLeaves 6.4s ease-in-out infinite alternate;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .nox-companion *, .nox-companion *::before, .nox-companion *::after { animation: none !important; }
-}
-@keyframes noxBreathe {
-  0%,100% { translate: 0 0; }
-  50% { translate: 0 -3%; }
-}
-@keyframes noxAura {
-  0%,100% { opacity: .55; transform: scale(.92); }
-  50% { opacity: 1; transform: scale(1.06); }
-}
 @keyframes noxLeaves {
-  from { translate: 0 1%; rotate: -1deg; }
-  to { translate: 2% -2%; rotate: 2deg; }
+  from { translate: 0 0; rotate: 0deg; }
+  to   { translate: 1% -1.5%; rotate: 1.5deg; }
 }
-@keyframes noxSpark {
-  from { opacity: .25; transform: scale(.65); }
-  to { opacity: 1; transform: scale(1.25); }
+@media (prefers-reduced-motion: reduce) {
+  .nox-companion *, .nox-companion *::before, .nox-companion *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
