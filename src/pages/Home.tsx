@@ -8,6 +8,7 @@ import {
   ScanLine, Utensils, X,
 } from 'lucide-react';
 import { generateDailyPriority, type DailyPriority } from '../lib/nox/priorityEngine';
+import NoxCompanion from '../components/NoxCompanion';
 import { todayLocalDate } from '../lib/localDate';
 
 const ACCENT = '#C8FF00';
@@ -161,6 +162,7 @@ export default function Home() {
   const [todayWorkout, setTodayWorkout] = useState<any>(null);
   const [todayPulse, setTodayPulse]         = useState<any>(null);
   const [daysSinceActivity, setDaysSinceActivity] = useState<number | null>(null);
+  const [observedDays, setObservedDays]               = useState(0);
   const [habitDone, setHabitDone]   = useState(0);
   const [habitTotal, setHabitTotal] = useState(4);
 
@@ -168,6 +170,12 @@ export default function Home() {
 
   const loadAll = async () => {
     if (!user) return;
+    // Journées réellement clôturées
+    const { count: observedDaysCount } = await supabase
+      .from('daily_closures')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+    setObservedDays(observedDaysCount ?? 0);
     const now   = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const end   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
@@ -294,14 +302,17 @@ export default function Home() {
         <main style={{ padding: '20px 20px 0' }}>
 
           {/* HEADER */}
-          <header style={{ marginBottom: 22 }}>
-            <div style={{ fontSize: 14, fontWeight: 750, color: '#555950', marginBottom: 4 }}>
-              {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
+          <header style={{ marginBottom: 22, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 750, color: '#555950', marginBottom: 4 }}>
+                {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
+              </div>
+              <h1 style={{ margin: 0, fontSize: 40, lineHeight: .92, fontWeight: 1000, letterSpacing: '-.055em', color: BLACK }}>
+                AUJOURD'HUI
+              </h1>
+              <div style={{ marginTop: 7, fontSize: 13, color: '#7B8076', fontWeight: 700 }}>{dateLabel}</div>
             </div>
-            <h1 style={{ margin: 0, fontSize: 40, lineHeight: .92, fontWeight: 1000, letterSpacing: '-.055em', color: BLACK }}>
-              AUJOURD'HUI
-            </h1>
-            <div style={{ marginTop: 7, fontSize: 13, color: '#7B8076', fontWeight: 700 }}>{dateLabel}</div>
+            <NoxCompanion observedDays={observedDays} size="md" />
           </header>
 
           {/* PRIORITÉ NOX */}
