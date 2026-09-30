@@ -21,6 +21,7 @@ const WeeklyReview = lazy(() => import('./pages/WeeklyReview'));
 const Settings = lazy(() => import('./pages/Settings'));
 const BarcodeScanner = lazy(() => import('./pages/BarcodeScanner'));
 const NutritionGoals = lazy(() => import('./pages/NutritionGoals'));
+const Pulse = lazy(() => import('./pages/Pulse'));
 const Subscribe = lazy(() => import('./pages/Subscribe'));
 const RestDay = lazy(() => import('./pages/RestDay'));
 const Partner = lazy(() => import('./pages/Partner'));
@@ -359,6 +360,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route path="/pulse" element={<ProtectedRoute><Pulse /></ProtectedRoute>} />
 
         <Route
           path="/fasting"
