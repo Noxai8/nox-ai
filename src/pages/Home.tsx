@@ -159,7 +159,8 @@ export default function Home() {
   const [todayFood, setTodayFood]   = useState<any[]>([]);
   const [sleepData, setSleepData]   = useState<any>(null);
   const [todayWorkout, setTodayWorkout] = useState<any>(null);
-  const [todayPulse, setTodayPulse]     = useState<any>(null);
+  const [todayPulse, setTodayPulse]         = useState<any>(null);
+  const [daysSinceActivity, setDaysSinceActivity] = useState<number | null>(null);
   const [habitDone, setHabitDone]   = useState(0);
   const [habitTotal, setHabitTotal] = useState(4);
 
@@ -191,6 +192,23 @@ export default function Home() {
       .limit(1)
       .maybeSingle();
     setTodayWorkout(workout || null);
+    // Dernière activité complétée (pour days_since_last_activity)
+    const { data: lastActivity } = await supabase
+      .from('workouts')
+      .select('finished_at')
+      .eq('user_id', user.id)
+      .eq('status', 'completed')
+      .not('finished_at', 'is', null)
+      .order('finished_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (lastActivity?.finished_at) {
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const diff = Math.floor((Date.now() - new Date(lastActivity.finished_at).getTime()) / msPerDay);
+      setDaysSinceActivity(diff);
+    } else {
+      setDaysSinceActivity(null);
+    }
     // Pulse du jour
     const { data: pulse } = await supabase
       .from('daily_pulses')
@@ -233,7 +251,7 @@ export default function Home() {
       last_session_feedback: todayWorkout?.session_feedback === 'hard' ? 'hard'
         : todayWorkout?.session_feedback === 'easy' ? 'easy'
         : todayWorkout?.session_feedback ? 'good' : null,
-      days_since_last_session: null,
+      days_since_last_session: daysSinceActivity,
     },
     nutrition: {
       protein_logged: Math.round(todayProt),
