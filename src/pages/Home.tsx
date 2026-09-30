@@ -7,7 +7,8 @@ import {
   Droplets, Dumbbell, Flame, Moon, Plus, Ruler, Scale,
   ScanLine, Utensils, X,
 } from 'lucide-react';
-import { usePlan } from '../lib/usePlan';
+import { generateDailyPriority, type DailyPriority } from '../lib/nox/priorityEngine';
+import { todayLocalDate } from '../lib/localDate';
 
 const ACCENT = '#C8FF00';
 const BG     = '#F7F8F4';
@@ -156,13 +157,11 @@ export default function Home() {
   const [program, setProgram]       = useState<any>(null);
   const [targets, setTargets]       = useState<any>(null);
   const [todayFood, setTodayFood]   = useState<any[]>([]);
-  const [noxMsg, setNoxMsg]         = useState<string | null>(null);
-  const [loadingMsg, setLoadingMsg] = useState(false);
   const [sleepData, setSleepData]   = useState<any>(null);
   const [todayWorkout, setTodayWorkout] = useState<any>(null);
+  const [todayPulse, setTodayPulse]     = useState<any>(null);
   const [habitDone, setHabitDone]   = useState(0);
   const [habitTotal, setHabitTotal] = useState(4);
-  const { isPro } = usePlan();
 
   useEffect(() => { if (user) loadAll(); }, [user]);
 
@@ -192,6 +191,14 @@ export default function Home() {
       .limit(1)
       .maybeSingle();
     setTodayWorkout(workout || null);
+    // Pulse du jour
+    const { data: pulse } = await supabase
+      .from('daily_pulses')
+      .select('sleep_score, energy_score, body_score')
+      .eq('user_id', user.id)
+      .eq('date', todayLocalDate())
+      .maybeSingle();
+    setTodayPulse(pulse || null);
     // Habitudes du jour depuis localStorage
     try {
       const d = new Date();
@@ -215,6 +222,31 @@ export default function Home() {
   const todaySession     = sessions.find((s: any) =>
     String(s?.day || '').toLowerCase().includes(dayNames[new Date().getDay()].toLowerCase().slice(0,3))
   ) || null;
+
+  const priority: DailyPriority = generateDailyPriority({
+    pulse: todayPulse
+      ? { sleep_score: Number(todayPulse.sleep_score), energy_score: Number(todayPulse.energy_score), body_score: Number(todayPulse.body_score) }
+      : null,
+    profile: { goal_type: profile?.goal_type ?? null },
+    recentActivity: {
+      session_planned_today: Boolean(todaySession) && !Boolean(todayWorkout),
+      last_session_feedback: todayWorkout?.session_feedback === 'hard' ? 'hard'
+        : todayWorkout?.session_feedback === 'easy' ? 'easy'
+        : todayWorkout?.session_feedback ? 'good' : null,
+      days_since_last_session: null,
+    },
+    nutrition: {
+      protein_logged: Math.round(todayProt),
+      protein_target: proteinTarget,
+      calories_logged: Math.round(todayKcal),
+      calories_target: caloriesTarget,
+      days_logged_last_7: todayFood.length > 0 ? 1 : 0,
+    },
+    context: {
+      localDate: todayLocalDate(),
+      localHour: new Date().getHours(),
+    },
+  });
   // NOX Core — score explicable : nutrition 50% + protéines 30% + séance 20%
   const sessionDone  = Boolean(todayWorkout);
   const sessionScore = todaySession ? (sessionDone ? 20 : 10) : 20;
@@ -229,40 +261,6 @@ export default function Home() {
   const noxPct = hasEnoughDataForScore ? calculatedNoxPct : null;
   const dateLabel = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()).toUpperCase();
 
-  const fetchNoxMsg = async () => {
-    // Version déterministe pour Free — pas d'appel IA
-    if (!isPro) {
-      const h = new Date().getHours();
-      const protLeft = Math.max(0, proteinTarget - Math.round(todayProt));
-      if (kcalLeft > 300) {
-        setNoxMsg(`Il te reste ${kcalLeft} kcal et ${protLeft}g de protéines aujourd'hui. Ajoute un repas riche en protéines pour rester sur ta trajectoire.`);
-      } else if (todaySession) {
-        setNoxMsg(`Ta séance "${todaySession.name}" t'attend. Lance-toi maintenant pendant que tu as l'énergie.`);
-      } else if (h >= 20) {
-        setNoxMsg(`Bonne récupération ce soir. Dors tôt pour optimiser ta progression de demain.`);
-      } else {
-        setNoxMsg(`Tu es sur la bonne voie aujourd'hui. Continue à suivre ton plan.`);
-      }
-      return;
-    }
-    // Version IA pour Pro
-    setLoadingMsg(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const h = new Date().getHours();
-      const prompt = `Tu es NOX. Reponds en 2 phrases max, sans markdown. Heure: ${h}h. Objectif: ${profile?.goal_type || 'transformation'}. Calories: ${Math.round(todayKcal)}/${caloriesTarget}. Proteines: ${Math.round(todayProt)}/${proteinTarget}g. Seance: ${todaySession?.name || 'aucune'}. Question: ET MAINTENANT ? Donne une seule recommandation concrete.`;
-      const resp = await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/nox-coach', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
-        body: JSON.stringify({ system: 'Tu es NOX, assistant de transformation. 2 phrases max, pas de markdown.', messages: [{ role: 'user', content: prompt }] }),
-      });
-      const data = await resp.json();
-      const text = data?.content?.[0]?.text || '';
-      if (text) setNoxMsg(text.trim());
-      else if (data?.error === 'PRO_REQUIRED') setNoxMsg('Passe à NOX Pro pour des recommandations personnalisées par IA.');
-    } catch {}
-    setLoadingMsg(false);
-  };
 
   return (
     <div style={{ minHeight: '100vh', background: BG, color: BLACK, paddingBottom: 110 }}>
@@ -288,133 +286,73 @@ export default function Home() {
             <div style={{ marginTop: 7, fontSize: 13, color: '#7B8076', fontWeight: 700 }}>{dateLabel}</div>
           </header>
 
-          {/* NOX SCORE */}
-          <section style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 24, padding: '16px 18px 17px', marginBottom: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 950, letterSpacing: '.06em', marginBottom: 12 }}>NOX SCORE</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', alignItems: 'center', gap: 14 }}>
-              {/* GRAND CERCLE */}
-              <div style={{ width: 142, height: 142, position: 'relative' }}>
-                <svg width="142" height="142" viewBox="0 0 142 142" style={{ transform: 'rotate(-90deg)' }}>
-                  <circle cx="71" cy="71" r="57" fill="none" stroke="#ECEFE7" strokeWidth="12" />
-                  <circle cx="71" cy="71" r="57" fill="none" stroke={ACCENT} strokeWidth="12" strokeLinecap="round"
-                    strokeDasharray={`${((noxPct ?? 0) / 100) * (2 * Math.PI * 57)} ${2 * Math.PI * 57}`} />
-                </svg>
-                <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
-                  {noxPct !== null ? (
-                    <div>
-                      <div style={{ fontSize: 48, lineHeight: .85, fontWeight: 1000, letterSpacing: '-.06em' }}>{noxPct}</div>
-                      <div style={{ marginTop: 7, fontSize: 12, fontWeight: 800, color: '#73786E' }}>/ 100</div>
-                    </div>
-                  ) : (
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 1000 }}>EN COURS</div>
-                      <div style={{ marginTop: 5, fontSize: 8, fontWeight: 850, color: '#888D83' }}>PLUS DE DONNÉES</div>
-                    </div>
-                  )}
+          {/* PRIORITÉ NOX */}
+          {todayPulse && (
+            <section style={{
+              background: priority.type === 'none' ? WHITE : BLACK,
+              color: priority.type === 'none' ? BLACK : WHITE,
+              border: priority.type === 'none' ? `1px solid ${BORDER}` : 'none',
+              borderRadius: 26, padding: '22px 20px', marginBottom: 14,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 1000, letterSpacing: '.09em', color: priority.type === 'none' ? MUTED : ACCENT }}>
+                  TA PRIORITÉ
+                </div>
+                <div style={{ padding: '6px 9px', borderRadius: 99, background: priority.type === 'none' ? BG : 'rgba(255,255,255,.1)', fontSize: 9, fontWeight: 900, letterSpacing: '.04em', color: priority.type === 'none' ? MUTED : '#D5D8D0' }}>
+                  CONFIANCE {priority.confidence === 'high' ? 'ÉLEVÉE' : priority.confidence === 'moderate' ? 'MODÉRÉE' : 'FAIBLE'}
                 </div>
               </div>
-              {/* SIGNAUX */}
-              <div style={{ display: 'grid', gap: 11, minWidth: 0 }}>
-                {[
-                  { label: 'Sommeil',      value: sleepData?.duration_hours ? `${sleepData.duration_hours}h` : '—', i: 0 },
-                  { label: 'Nutrition',    value: hasNutritionData ? `${kcalPct}%` : '—', i: 1 },
-                  { label: 'Entraînement', value: sessionDone ? 'Fait' : todaySession ? 'Prévu' : 'Repos', i: 2 },
-                  { label: 'Récupération', value: '—', i: 3 },
-                  { label: 'Régularité',   value: habitTotal > 0 ? `${habitDone}/${habitTotal}` : '—', i: 4 },
-                ].map(item => (
-                  <div key={item.label} style={{ display: 'grid', gridTemplateColumns: '18px 1fr auto', alignItems: 'center', gap: 7 }}>
-                    <div style={{ width: 17, height: 17, borderRadius: 6, background: item.i === 1 || item.i === 3 ? '#E8FFD0' : '#F1F2EE', display: 'grid', placeItems: 'center', fontSize: 8, fontWeight: 1000 }}>
-                      {item.i === 0 ? '◔' : item.i === 1 ? '◉' : item.i === 2 ? '↗' : item.i === 3 ? '◴' : '✓'}
-                    </div>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: '#40443D', whiteSpace: 'nowrap' }}>{item.label}</span>
-                    <span style={{ fontSize: 12, fontWeight: 950, color: BLACK }}>{item.value}</span>
-                  </div>
-                ))}
+
+              <div style={{ fontSize: 29, lineHeight: 1.02, fontWeight: 1000, letterSpacing: '-.045em', marginBottom: 10 }}>
+                {priority.type === 'none' ? 'Tout va bien' : (priority as any).title}
               </div>
-            </div>
-          </section>
 
-          {/* NOX A REMARQUÉ */}
-          <section style={{ background: '#EDFFC9', borderRadius: 22, padding: '18px 20px', marginBottom: 22 }}>
-            <div style={{ fontSize: 11, fontWeight: 1000, letterSpacing: '.055em', marginBottom: 8 }}>NOX A REMARQUÉ</div>
-            <div style={{ fontSize: 14, lineHeight: 1.5, fontWeight: 650, color: '#282B26' }}>
-              {!hasEnoughDataForScore
-                ? `Ta journée commence. NOX affinera son analyse à mesure que tu ajoutes tes données.`
-                : sleepData && Number(sleepData.duration_hours) < 7
-                  ? `Ta nuit a été courte (${sleepData.duration_hours}h). Garde un œil sur ton énergie aujourd'hui.`
-                  : sessionDone && todayWorkout?.session_feedback === 'hard'
-                    ? `Ta dernière séance t'a semblé difficile. NOX utilisera ce signal pour suivre ta récupération.`
-                    : kcalPct < 50 && new Date().getHours() >= 14
-                      ? `Ton apport nutritionnel est encore bas pour ce moment de la journée.`
-                      : protPct < kcalPct - 15
-                        ? `Tes protéines avancent moins vite que ton apport énergétique aujourd'hui.`
-                        : `Tes signaux disponibles sont cohérents avec ton plan aujourd'hui.`}
-            </div>
-          </section>
+              <div style={{ fontSize: 14, lineHeight: 1.5, fontWeight: 650, color: priority.type === 'none' ? '#555A51' : '#C9CDC4' }}>
+                {priority.type === 'none' ? priority.reason : (priority as any).action}
+              </div>
 
-          {/* ET MAINTENANT */}
-          <section style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 18, marginBottom: 22 }}>
-            <div style={{ fontSize: 15, fontWeight: 1000, letterSpacing: '.03em', marginBottom: 15 }}>ET MAINTENANT</div>
-            {todaySession && !sessionDone ? (
-              <>
-                <div style={{ display: 'grid', gridTemplateColumns: '52px 1fr 24px', gap: 13, alignItems: 'center', marginBottom: 14 }}>
-                  <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#E8FFC2', display: 'grid', placeItems: 'center' }}>
-                    <Dumbbell size={24} strokeWidth={2.5} color={BLACK} />
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 17, lineHeight: 1.1, fontWeight: 1000, letterSpacing: '-.025em', color: BLACK }}>{todaySession.name}</div>
-                    <div style={{ marginTop: 4, fontSize: 12, color: '#73786E', fontWeight: 650 }}>
-                      {todaySession.duration_minutes ? `${todaySession.duration_minutes} min • ` : ''}
-                      {todaySession.exercises?.length || 0} exercices
-                    </div>
-                  </div>
-                  <ChevronRight size={25} strokeWidth={2.4} color="#4C5148" />
+              <details style={{ marginTop: 18, borderTop: priority.type === 'none' ? `1px solid ${BORDER}` : '1px solid rgba(255,255,255,.13)', paddingTop: 15 }}>
+                <summary style={{ cursor: 'pointer', fontSize: 11, fontWeight: 1000, letterSpacing: '.04em', color: priority.type === 'none' ? BLACK : ACCENT }}>
+                  POURQUOI ?
+                </summary>
+                <div style={{ marginTop: 13, fontSize: 13, lineHeight: 1.5, color: priority.type === 'none' ? '#555A51' : '#C9CDC4' }}>
+                  {priority.type !== 'none' ? (priority as any).reason : 'Tes signaux du matin ne montrent aucune zone qui nécessite une intervention aujourd\'hui.'}
                 </div>
-                <button onClick={() => navigate('/program')} style={{ width: '100%', height: 58, border: 0, borderRadius: 17, background: BLACK, color: WHITE, cursor: 'pointer', fontSize: 12, fontWeight: 1000, letterSpacing: '.025em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                  COMMENCER MA SÉANCE <span style={{ color: ACCENT, fontSize: 20, lineHeight: 1 }}>→</span>
-                </button>
-              </>
-            ) : kcalLeft > 300 ? (
-              <>
-                <div style={{ display: 'grid', gridTemplateColumns: '52px 1fr 24px', gap: 13, alignItems: 'center', marginBottom: 14 }}>
-                  <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#E8FFC2', display: 'grid', placeItems: 'center' }}>
-                    <Beef size={23} strokeWidth={2.4} color={BLACK} />
+                {priority.evidence.length > 0 && (
+                  <div style={{ display: 'grid', gap: 8, marginTop: 13 }}>
+                    {priority.evidence.map((ev) => (
+                      <div key={`${ev.key}-${ev.value}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '10px 12px', borderRadius: 13, background: priority.type === 'none' ? BG : 'rgba(255,255,255,.08)' }}>
+                        <span style={{ fontSize: 11, fontWeight: 750, color: priority.type === 'none' ? MUTED : '#AEB3A9' }}>{ev.label}</span>
+                        <span style={{ fontSize: 11, fontWeight: 1000 }}>{ev.value}</span>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <div style={{ fontSize: 19, fontWeight: 1000, color: BLACK }}>Ton prochain repas</div>
-                    <div style={{ marginTop: 4, fontSize: 12, color: '#73786E' }}>{kcalLeft} kcal restantes</div>
-                  </div>
-                  <ChevronRight size={25} strokeWidth={2.4} color="#4C5148" />
-                </div>
-                <button onClick={() => navigate('/fuel')} style={{ width: '100%', height: 58, border: 0, borderRadius: 17, background: BLACK, color: WHITE, fontSize: 12, fontWeight: 1000, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                  TROUVER MON PROCHAIN REPAS <span style={{ color: ACCENT, marginLeft: 4, fontSize: 18 }}>→</span>
-                </button>
-              </>
-            ) : (
-              <div style={{ fontSize: 15, fontWeight: 850 }}>Tes principales actions du jour sont bien engagées.</div>
-            )}
-          </section>
+                )}
+              </details>
 
-          {/* OBJECTIFS DU JOUR */}
-          <section>
-            <div style={{ fontSize: 11, fontWeight: 1000, letterSpacing: '.06em', marginBottom: 15 }}>TES OBJECTIFS DU JOUR</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 10 }}>
-              {([
-                { Icon: Flame, bg: '#FFF5D8', value: String(Math.round(todayKcal)), sub: `/ ${caloriesTarget} kcal`, action: () => navigate('/fuel') },
-                { Icon: Beef,  bg: '#FFF8D7', value: `${Math.round(todayProt)} g`, sub: `/ ${proteinTarget} g prot.`, action: () => navigate('/fuel') },
-                { Icon: Check, bg: '#FFEAEA', value: `${habitDone}/${habitTotal}`, sub: 'habitudes', action: () => navigate('/habits') },
-                { Icon: Moon,  bg: '#F1EEFF', value: sleepData?.duration_hours ? `${sleepData.duration_hours}h` : '—', sub: 'sommeil', action: () => navigate('/sleep') },
-              ] as { Icon: any; bg: string; value: string; sub: string; action: () => void }[]).map(({ Icon, bg, value, sub, action }, index) => (
-                <button key={index} onClick={action} style={{ border: 0, background: 'transparent', padding: '2px 3px 12px', cursor: 'pointer', textAlign: 'center', minWidth: 0 }}>
-                  <div style={{ width: 38, height: 38, margin: '0 auto 8px', borderRadius: '50%', background: bg, display: 'grid', placeItems: 'center' }}>
-                    <Icon size={18} strokeWidth={2.3} color={BLACK} />
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 1000, color: BLACK, whiteSpace: 'nowrap' }}>{value}</div>
-                  <div style={{ marginTop: 3, fontSize: 8.5, lineHeight: 1.25, fontWeight: 700, color: '#8A8E85' }}>{sub}</div>
+              {priority.type === 'activity' && todaySession && (
+                <button onClick={() => navigate('/program')} style={{ width: '100%', height: 56, marginTop: 18, border: 0, borderRadius: 17, background: ACCENT, color: BLACK, fontSize: 12, fontWeight: 1000, cursor: 'pointer' }}>
+                  COMMENCER MA SÉANCE →
                 </button>
-              ))}
-            </div>
-          </section>
+              )}
+              {priority.type === 'nutrition' && (
+                <button onClick={() => navigate('/fuel')} style={{ width: '100%', height: 56, marginTop: 18, border: 0, borderRadius: 17, background: ACCENT, color: BLACK, fontSize: 12, fontWeight: 1000, cursor: 'pointer' }}>
+                  AJOUTER MON REPAS →
+                </button>
+              )}
+            </section>
+          )}
+
+          {!todayPulse && (
+            <section style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 26, padding: '22px 20px', marginBottom: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 1000, letterSpacing: '.09em', color: MUTED, marginBottom: 12 }}>TON PULSE</div>
+              <div style={{ fontSize: 18, fontWeight: 950, marginBottom: 8 }}>Commence ta journée</div>
+              <div style={{ fontSize: 13, color: MUTED, marginBottom: 16 }}>3 signaux · 10 secondes · NOX comprend ton état du jour.</div>
+              <button onClick={() => navigate('/pulse')} style={{ width: '100%', padding: 16, border: 0, borderRadius: 16, background: BLACK, color: ACCENT, fontWeight: 1000, fontSize: 13, cursor: 'pointer' }}>
+                FAIRE MON PULSE →
+              </button>
+            </section>
+          )}
 
         </main>
       </div>
