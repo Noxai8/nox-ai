@@ -9,6 +9,7 @@ import { useAuth } from '../lib/AuthContext';
 import { generateDailyPriority, type DailyPriority } from '../lib/nox/priorityEngine';
 import { todayLocalDate } from '../lib/localDate';
 import NoxCompanion from '../components/NoxCompanion';
+import './Home.css';
 
 type Completion = 'yes' | 'partial' | 'no';
 type NavActive = 'home' | 'nutrition' | 'mon-nox' | 'moi';
