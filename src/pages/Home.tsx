@@ -440,13 +440,15 @@ export default function Home() {
       color: '#FFFFFF',
       paddingBottom: 'calc(118px + env(safe-area-inset-bottom))',
     }}>
-      <main style={{
-        width: '100%',
-        maxWidth: 430,
-        margin: '0 auto',
-        padding: '0 18px',
-        boxSizing: 'border-box',
-      }}>
+      <main
+        className="nox-home-main"
+        style={{
+          width: '100%',
+          margin: '0 auto',
+          padding: '0 18px',
+          boxSizing: 'border-box',
+        }}
+      >
 
         {/* AUJOURD'HUI */}
         <header style={{ paddingTop: 48, paddingBottom: 26 }}>
@@ -752,6 +754,32 @@ export default function Home() {
       </main>
 
       <BottomNav active="home" />
+
+      <style>{`
+        .nox-home-main {
+          max-width: 760px;
+        }
+
+        @media (max-width: 640px) {
+          .nox-home-main {
+            max-width: none;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+          }
+        }
+
+        @media (min-width: 641px) and (max-width: 900px) {
+          .nox-home-main {
+            max-width: 680px;
+          }
+        }
+
+        @media (min-width: 1100px) {
+          .nox-home-main {
+            max-width: 760px;
+          }
+        }
+      `}</style>
     </div>
   );
 }
