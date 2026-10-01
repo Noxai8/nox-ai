@@ -544,422 +544,106 @@ export default function Fuel() {
         }}
       />
 
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 560,
-          margin: '0 auto',
-        }}
-      >
+
+      {/* =========================================================
+          ÉCRAN 2 — NUTRITION
+          ========================================================= */}
+
+      <div className="nox-nutrition-shell">
+
         {/* HEADER */}
-        <header style={{ padding: '20px 20px 0' }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              marginBottom: 14,
-            }}
-          >
-            <div>
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: 32,
-                  lineHeight: 1,
-                  fontWeight: 950,
-                  letterSpacing: '-.045em',
-                }}
-              >
-                Nutrition
-              </h1>
-              <div style={{ marginTop: 4, fontSize: 12, color: MUTED }}>
-                {selectedSubtitle}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={() => navigate('/mon-nox')}
-                title="Voir Mon NOX"
-                style={{ width: 38, height: 38, borderRadius: '50%', border: 0, background: SURFACE_ALT, fontSize: 16, cursor: 'pointer' }}
-              >
-                ▣
-              </button>
-              <button
-                onClick={() => navigate('/meal-planner')}
-                title="Planifier la semaine"
-                style={{ width: 38, height: 38, borderRadius: '50%', border: 0, background: SURFACE_ALT, fontSize: 18, fontWeight: 900, cursor: 'pointer' }}
-              >
-                ···
-              </button>
+        <header className="nox-nutrition-header">
+          <div className="nox-nutrition-title-row">
+            <h1>Nutrition</h1>
+            <div className="nox-nutrition-actions">
+              <button type="button" aria-label="Rechercher un aliment" onClick={() => { setSelMeal(currentMeal()); setAddMode('search'); setShowAdd(true); }}>⌕</button>
+              <button type="button" aria-label="Objectifs nutritionnels" onClick={() => navigate('/nutrition-goals')}>☷</button>
             </div>
           </div>
-
-          {/* SEMAINE */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(7, 1fr)',
-              gap: 5,
-              marginBottom: 12,
-            }}
-          >
-            {weekDays.map(day => {
-              const isSelected = day.key === selectedDateKey;
-
-              return (
-                <button
-                  type="button"
-                  key={day.key}
-                  onClick={() => setSelectedDateKey(day.key)}
-                  style={{
-                    minWidth: 0,
-                    height: 54,
-                    borderRadius: 14,
-                    display: 'grid',
-                    placeItems: 'center',
-                    textAlign: 'center',
-                    background: isSelected ? ACCENT : SURFACE_ALT,
-                    border: 0,
-                    cursor: 'pointer',
-                    padding: 0,
-                    font: 'inherit',
-                  }}
-                >
-                  <div style={{ fontSize: 9, fontWeight: 700, color: isSelected ? BLACK : MUTED }}>
-                    {day.day}
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: isSelected ? BLACK : WHITE }}>
-                    {day.date}
-                  </div>
-                  {day.isToday ? (
-                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: ACCENT, margin: '3px auto 0' }} />
-                  ) : (
-                    <div style={{ width: 5, height: 5, margin: '3px auto 0' }} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* INTERPRÉTATION NOX */}
-          <div
-            style={{
-              background: 'linear-gradient(135deg, #0F1A00 0%, #111111 100%)',
-              border: '1px solid #263800',
-              borderRadius: 20,
-              padding: '14px 16px',
-              marginTop: 12,
-              marginBottom: 12,
-            }}
-          >
-            <div style={{ display: 'grid', gridTemplateColumns: '42px 1fr 18px', gap: 10, alignItems: 'start' }}>
-              <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#1C2A00', display: 'grid', placeItems: 'center' }}>
-                <span style={{ fontSize: 19, filter: 'grayscale(1)' }}>🧠</span>
-              </div>
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 800, color: ACCENT, marginBottom: 4 }}>INTERPRÉTATION NOX</div>
-                <div style={{ fontSize: 17, fontWeight: 900, lineHeight: 1.1, marginBottom: 5 }}>{noxMessage.title}</div>
-                <div style={{ fontSize: 12, lineHeight: 1.3, color: '#D0D0D0' }}>{noxMessage.body}</div>
-              </div>
-              <button
-                onClick={() => navigate('/nutrition-goals')}
-                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', marginTop: 6 }}
-              >
-                <ChevronRight size={18} color={ACCENT} />
-              </button>
-            </div>
-
-            {/* COURSES / FRIGO / RECETTES — flow centralisé */}
-            <button
-              type="button"
-              onClick={() => navigate('/quick-groceries')}
-              style={{
-                width: '100%',
-                height: 44,
-                marginTop: 12,
-                padding: '0 12px 0 14px',
-                border: 0,
-                borderRadius: 11,
-                background: BLACK,
-                color: WHITE,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                boxSizing: 'border-box',
-              }}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, fontWeight: 900 }}>
-                <span style={{ color: ACCENT }}>🧊</span>
-                TROUVER MON PROCHAIN REPAS
-              </span>
-              <ChevronRight size={14} color={ACCENT} />
-            </button>
-          </div>
-
-          {/* CALORIES + MACROS — toujours visible, sans inventer de cibles */}
-          <div
-            style={{
-              background: SURFACE,
-              borderRadius: 22,
-              padding: '18px 16px',
-              marginBottom: 14,
-              display: 'grid',
-              gridTemplateColumns: '132px 1fr',
-              gap: 18,
-              alignItems: 'center',
-              boxShadow: '0 8px 28px rgba(20, 25, 15, 0.04)',
-            }}
-          >
-            {/* CERCLE CALORIES */}
-            <div
-              style={{
-                width: 126, height: 126, borderRadius: '50%',
-                background: `conic-gradient(${ACCENT} ${displayKcalPct * 3.6}deg, #F0F1EE 0deg)`,
-                display: 'grid', placeItems: 'center',
-                transform: 'rotate(-10deg)',
-              }}
-            >
-              <div
-                style={{
-                  width: 101, height: 101, borderRadius: '50%',
-                  background: SURFACE, display: 'grid', placeItems: 'center',
-                  transform: 'rotate(10deg)', textAlign: 'center',
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 25, lineHeight: 1, fontWeight: 950, letterSpacing: '-.04em' }}>
-                    {displayKcal.toLocaleString('fr-FR')}
-                  </div>
-                  <div style={{ marginTop: 5, fontSize: 10, color: MUTED, whiteSpace: 'nowrap' }}>
-                    / {targets ? `${targets.kcal.toLocaleString('fr-FR')} kcal` : '— kcal'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* MACROS */}
-            <div style={{ display: 'grid', gap: 13, minWidth: 0 }}>
-              {[
-                { label: 'Protéines', value: displayProtein, target: targets?.protein, color: '#83E39A' },
-                { label: 'Glucides',  value: displayCarbs,   target: targets?.carbs,   color: '#A8DDF8' },
-                { label: 'Lipides',   value: displayFat,     target: targets?.fat,     color: '#FFAE43' },
-              ].map(macro => {
-                const pct = macro.target && macro.target > 0
-                  ? Math.min(100, (macro.value / macro.target) * 100) : 0;
-                return (
-                  <div key={macro.label}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 5 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: WHITE }}>{macro.label}</span>
-                      <span style={{ fontSize: 10, color: MUTED, whiteSpace: 'nowrap' }}>
-                        {macro.value} / {macro.target ?? '—'} g
-                      </span>
-                    </div>
-                    <div style={{ height: 7, borderRadius: 999, background: '#242424', overflow: 'hidden' }}>
-                      <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: macro.color }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="nox-nutrition-tabs">
+            <button className="active">Suivi</button>
+            <button onClick={() => navigate('/recipes')}>Recettes</button>
           </div>
         </header>
 
-        <main style={{ padding: '0 20px' }}>
-          {/* TES REPAS */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              margin: '12px 0 12px',
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: 10,
-                  color: MUTED,
-                  fontWeight: 900,
-                  letterSpacing: '.12em',
-                  marginBottom: 3,
-                }}
-              >
-                {selectedDateLabel}
-              </div>
-
-              <div
-                style={{
-                  fontSize: 22,
-                  fontWeight: 950,
-                  letterSpacing: '-.04em',
-                }}
-              >
-                Tes repas
+        {/* RÉSUMÉ DU JOUR */}
+        <section className="nox-summary-card">
+          <div className="nox-card-label">Résumé du jour</div>
+          <div className="nox-calorie-summary">
+            <div className="nox-side-stat">
+              <strong>{displayKcal.toLocaleString('fr-FR')}</strong>
+              <span>Mangées</span>
+              <i className="cyan-dot" />
+            </div>
+            <div className="nox-calorie-ring" style={{ background: targets?.kcal ? `conic-gradient(#C8FF00 ${displayKcalPct * 3.6}deg, #3A3E3B ${displayKcalPct * 3.6}deg)` : '#3A3E3B' }}>
+              <div className="nox-calorie-ring-inner">
+                <strong>{targets ? kcalLeft.toLocaleString('fr-FR') : '—'}</strong>
+                <span>kcal restantes</span>
               </div>
             </div>
-
-            {/* MODIF : + CONTEXTUEL SELON L'HEURE */}
-            <button
-              onClick={openQuickAdd}
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: 14,
-                background: BLACK,
-                border: 0,
-                color: ACCENT,
-                display: 'grid',
-                placeItems: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <Plus size={20} strokeWidth={3} />
-            </button>
+            <div className="nox-side-stat">
+              <strong>—</strong>
+              <span>Brûlées</span>
+              <i className="orange-dot" />
+            </div>
           </div>
-
-          <div
-            style={{
-              display: 'grid',
-              gap: 7,
-              marginBottom: 16,
-            }}
-          >
-            {MEALS.map(meal => {
-              const mealEntries = entries.filter(
-                entry => entry.meal_type === meal
-              );
-
-              const mealKcal = mealEntries.reduce(
-                (sum, entry) => sum + (entry.calories || 0),
-                0
-              );
-
+          <div className="nox-macros">
+            {[
+              { label: 'Glucides',  value: displayCarbs,   target: targets?.carbs },
+              { label: 'Protéines', value: displayProtein, target: targets?.protein },
+              { label: 'Lipides',   value: displayFat,     target: targets?.fat },
+            ].map(macro => {
+              const pct = macro.target && macro.target > 0 ? Math.min(100, (macro.value / macro.target) * 100) : 0;
               return (
-                <div
-                  key={meal}
-                  style={{
-                    ...card,
-                    padding: 0,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '100%',
-                      background: SURFACE,
-                      padding: '15px 16px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 12, background: SURFACE_ALT, display: 'grid', placeItems: 'center', fontSize: 17, flexShrink: 0 }}>
-                        {mealIcon(meal)}
-                      </div>
+                <div key={macro.label} className="nox-macro">
+                  <div className="nox-macro-top">
+                    <span>{macro.label}</span>
+                    <span>{Math.round(macro.value)} / {macro.target ?? '—'} g</span>
+                  </div>
+                  <div className="nox-macro-track">
+                    <div className="nox-macro-progress" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* MES REPAS */}
+        <section className="nox-meals-section">
+          <div className="nox-section-title-row">
+            <h2>Mes repas</h2>
+            <button className="nox-round-add" onClick={openQuickAdd} aria-label="Ajouter un repas"><Plus size={20} strokeWidth={3} /></button>
+          </div>
+          <div className="nox-meals-card">
+            {MEALS.map((meal, mealIndex) => {
+              const mealEntries = entries.filter(e => e.meal_type === meal);
+              const mealKcal = mealEntries.reduce((s, e) => s + (e.calories || 0), 0);
+              const targetShare = meal === 'Petit-dejeuner' ? 0.30 : meal === 'Dejeuner' ? 0.40 : meal === 'Diner' ? 0.25 : 0.05;
+              const estimatedMealTarget = targets?.kcal ? Math.round(targets.kcal * targetShare) : null;
+              return (
+                <div key={meal} className={`nox-meal${mealIndex < MEALS.length - 1 ? ' with-border' : ''}`}>
+                  <div className="nox-meal-main">
+                    <div className="nox-meal-left">
+                      <div className="nox-meal-icon">{mealIcon(meal)}</div>
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 900, color: WHITE }}>
-                          {mealLabel(meal)}
-                        </div>
-                        <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>
-                          {mealEntries.length
-                            ? `${Math.round(mealKcal)} kcal`
-                            : 'Rien enregistré'}
-                        </div>
+                        <div className="nox-meal-name">{mealLabel(meal)}</div>
+                        <div className="nox-meal-kcal">{Math.round(mealKcal)}{estimatedMealTarget ? ` / ${estimatedMealTarget}` : ''} kcal</div>
                       </div>
                     </div>
-
-                    <button
-                      onClick={() => {
-                        setSelMeal(meal);
-                        setShowAdd(true);
-                        setAddMode('choose');
-                      }}
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 10,
-                        background: SURFACE_ALT,
-                        border: `1px solid ${BORDER}`,
-                        color: WHITE,
-                        display: 'grid',
-                        placeItems: 'center',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <Plus size={16} strokeWidth={3} />
+                    <button className="nox-meal-add" onClick={() => { setSelMeal(meal); setAddMode('choose'); setShowAdd(true); }} aria-label={`Ajouter à ${mealLabel(meal)}`}>
+                      <Plus size={19} strokeWidth={3} />
                     </button>
                   </div>
-
                   {mealEntries.length > 0 && (
-                    <div
-                      style={{
-                        borderTop: `1px solid ${BORDER}`,
-                      }}
-                    >
-                      {mealEntries.map((entry, index) => (
-                        <div
-                          key={entry.id}
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '12px 16px',
-                            borderBottom:
-                              index < mealEntries.length - 1
-                                ? `1px solid ${BORDER}`
-                                : 'none',
-                          }}
-                        >
-                          <div
-                            style={{
-                              minWidth: 0,
-                              paddingRight: 10,
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize: 13,
-                                fontWeight: 700,
-                                color: WHITE,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {entry.food_name}
-                            </div>
-
-                            <div
-                              style={{
-                                fontSize: 11,
-                                color: MUTED,
-                                marginTop: 2,
-                              }}
-                            >
-                              {Math.round(entry.calories)} kcal
-                              {entry.protein > 0
-                                ? ` · ${Math.round(entry.protein)}g prot.`
-                                : ''}
-                            </div>
+                    <div className="nox-meal-entries">
+                      {mealEntries.map(entry => (
+                        <div key={entry.id} className="nox-food-entry">
+                          <div>
+                            <div className="nox-food-name">{entry.food_name}</div>
+                            <div className="nox-food-meta">{Math.round(entry.calories)} kcal{entry.protein > 0 ? ` · ${Math.round(entry.protein)} g prot.` : ''}</div>
                           </div>
-
-                          <button
-                            onClick={() => deleteEntry(entry.id)}
-                            style={{
-                              background: 'none',
-                              border: 0,
-                              color: MUTED,
-                              cursor: 'pointer',
-                              padding: '4px 6px',
-                            }}
-                          >
-                            ×
-                          </button>
+                          <button onClick={() => deleteEntry(entry.id)} aria-label="Supprimer">×</button>
                         </div>
                       ))}
                     </div>
@@ -968,86 +652,100 @@ export default function Fuel() {
               );
             })}
           </div>
+        </section>
 
-          {/* HYDRATATION — SANS FAUX OBJECTIF 2,5 L */}
-          <div
-            style={{
-              ...card,
-              marginBottom: 14,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginBottom: 14,
-              }}
-            >
+        {/* HYDRATATION */}
+        <section className="nox-water-section">
+          <div className="nox-section-title-row">
+            <h2>Hydratation</h2>
+            <span>{(water / 1000).toFixed(1)} L</span>
+          </div>
+          <div className="nox-water-card">
+            <div className="nox-water-main">
+              <div className="nox-water-icon">💧</div>
               <div>
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 900,
-                    color: MUTED,
-                    letterSpacing: '.1em',
-                    marginBottom: 5,
-                  }}
-                >
-                  HYDRATATION
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 27,
-                    fontWeight: 950,
-                  }}
-                >
-                  {(water / 1000).toFixed(1)} L
-                </div>
-              </div>
-
-              <div
-                style={{
-                  fontSize: 12,
-                  color: MUTED,
-                  paddingTop: 4,
-                }}
-              >
-                {isSelectedToday ? "aujourd'hui" : selectedDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                <strong>{(water / 1000).toFixed(1)} L</strong>
+                <span>{isSelectedToday ? "Aujourd'hui" : selectedDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
               </div>
             </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: 7,
-              }}
-            >
+            <div className="nox-water-buttons">
               {[150, 250, 330, 500].map(ml => (
-                <button
-                  key={ml}
-                  onClick={() => addWater(ml)}
-                  style={{
-                    padding: '11px 0',
-                    background: SURFACE_ALT,
-                    border: `1px solid ${BORDER}`,
-                    borderRadius: 12,
-                    color: WHITE,
-                    fontSize: 11,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
-                >
-                  +{ml}
-                </button>
+                <button key={ml} onClick={() => addWater(ml)}>+ {ml} ml</button>
               ))}
             </div>
           </div>
-        </main>
+        </section>
       </div>
 
+      <style>{`
+        .nox-nutrition-shell { width:100%; max-width:760px; margin:0 auto; box-sizing:border-box; padding:42px 18px calc(170px + env(safe-area-inset-bottom)); }
+        .nox-nutrition-header { margin-bottom:14px; }
+        .nox-nutrition-title-row { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:18px; }
+        .nox-nutrition-title-row h1 { margin:0; color:#fff; font-size:40px; line-height:1; font-weight:1000; letter-spacing:-.05em; }
+        .nox-nutrition-actions { display:flex; gap:8px; }
+        .nox-nutrition-actions button { width:42px; height:42px; border-radius:50%; border:1px solid #303330; background:#1B1E1C; color:#fff; display:grid; place-items:center; font-size:21px; font-weight:900; cursor:pointer; }
+        .nox-nutrition-tabs { display:grid; grid-template-columns:1fr 1fr; gap:7px; padding:4px; border-radius:999px; background:#171A18; margin-bottom:12px; }
+        .nox-nutrition-tabs button { height:42px; border:0; border-radius:999px; background:transparent; color:#B0B4B1; font-size:13px; font-weight:900; cursor:pointer; }
+        .nox-nutrition-tabs button.active { background:#C8FF00; color:#090B0A; }
+        .nox-summary-card { padding:18px 20px 21px; background:#242725; border:1.5px solid #505551; border-radius:22px; box-sizing:border-box; }
+        .nox-card-label { margin-bottom:15px; color:#fff; font-size:13px; font-weight:900; }
+        .nox-calorie-summary { display:grid; grid-template-columns:1fr 150px 1fr; align-items:center; gap:15px; }
+        .nox-side-stat { display:flex; flex-direction:column; align-items:center; }
+        .nox-side-stat strong { color:#fff; font-size:20px; font-weight:950; }
+        .nox-side-stat span { margin-top:3px; color:#A8ACA9; font-size:11px; }
+        .nox-side-stat i { width:7px; height:7px; margin-top:7px; border-radius:50%; }
+        .cyan-dot { background:#74DDD7; }
+        .orange-dot { background:#FF9B43; }
+        .nox-calorie-ring { width:142px; height:142px; padding:11px; border-radius:50%; box-sizing:border-box; display:grid; place-items:center; }
+        .nox-calorie-ring-inner { width:100%; height:100%; border-radius:50%; background:#242725; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+        .nox-calorie-ring-inner strong { color:#fff; font-size:26px; line-height:1; font-weight:1000; letter-spacing:-.04em; }
+        .nox-calorie-ring-inner span { margin-top:5px; color:#B0B4B1; font-size:10px; }
+        .nox-macros { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:22px; }
+        .nox-macro-top { display:flex; justify-content:space-between; gap:5px; margin-bottom:7px; color:#fff; font-size:10px; }
+        .nox-macro-top span:last-child { color:#A4A8A5; }
+        .nox-macro-track { height:6px; overflow:hidden; border-radius:99px; background:#494E4A; }
+        .nox-macro-progress { height:100%; border-radius:99px; background:#73DDD7; }
+        .nox-section-title-row { display:flex; justify-content:space-between; align-items:center; gap:16px; margin:27px 0 11px; }
+        .nox-section-title-row h2 { margin:0; color:#fff; font-size:25px; font-weight:1000; letter-spacing:-.04em; }
+        .nox-section-title-row > span { color:#C8FF00; font-size:13px; font-weight:900; }
+        .nox-round-add { width:37px; height:37px; padding:0; border:1px solid #3F4440; border-radius:50%; background:#252825; color:#fff; display:grid; place-items:center; cursor:pointer; }
+        .nox-meals-card { overflow:hidden; background:#242725; border:1.5px solid #505551; border-radius:22px; }
+        .nox-meal.with-border { border-bottom:1px solid #454A46; }
+        .nox-meal-main { min-height:73px; padding:11px 14px; box-sizing:border-box; display:flex; justify-content:space-between; align-items:center; }
+        .nox-meal-left { min-width:0; display:flex; align-items:center; gap:12px; }
+        .nox-meal-icon { width:42px; height:42px; flex:0 0 auto; border-radius:13px; background:#191C1A; display:grid; place-items:center; font-size:19px; }
+        .nox-meal-name { color:#fff; font-size:14px; font-weight:900; }
+        .nox-meal-kcal { margin-top:3px; color:#A6AAA7; font-size:11px; }
+        .nox-meal-add { width:34px; height:34px; flex:0 0 auto; padding:0; border:1px solid #414642; border-radius:50%; background:#303431; color:#fff; display:grid; place-items:center; cursor:pointer; }
+        .nox-meal-entries { padding:0 14px 8px 68px; }
+        .nox-food-entry { min-height:42px; padding:8px 0; border-top:1px solid #393D3A; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+        .nox-food-name { color:#E7E9E7; font-size:12px; font-weight:700; }
+        .nox-food-meta { margin-top:2px; color:#858A86; font-size:10px; }
+        .nox-food-entry button { border:0; background:transparent; color:#858A86; font-size:18px; cursor:pointer; }
+        .nox-water-card { padding:18px; background:#242725; border:1.5px solid #505551; border-radius:22px; }
+        .nox-water-main { display:flex; align-items:center; gap:13px; margin-bottom:17px; }
+        .nox-water-icon { width:46px; height:46px; border-radius:15px; background:#191C1A; display:grid; place-items:center; font-size:20px; }
+        .nox-water-main strong { display:block; color:#fff; font-size:21px; font-weight:950; }
+        .nox-water-main span { display:block; margin-top:2px; color:#999E9A; font-size:11px; }
+        .nox-water-buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
+        .nox-water-buttons button { min-height:39px; border:1px solid #414642; border-radius:11px; background:#191C1A; color:#fff; font-size:10px; font-weight:800; cursor:pointer; }
+        @media (max-width:640px) {
+          .nox-nutrition-shell { max-width:none; padding:30px 15px calc(155px + env(safe-area-inset-bottom)); }
+          .nox-nutrition-title-row h1 { font-size:34px; }
+          .nox-calorie-summary { grid-template-columns:1fr 124px 1fr; gap:5px; }
+          .nox-calorie-ring { width:118px; height:118px; padding:9px; }
+          .nox-calorie-ring-inner strong { font-size:22px; }
+          .nox-macros { gap:9px; }
+          .nox-macro-top { display:grid; gap:2px; }
+          .nox-section-title-row h2 { font-size:23px; }
+          .nox-meal-entries { padding-left:67px; }
+        }
+        @media (min-width:641px) and (max-width:900px) {
+          .nox-nutrition-shell { max-width:680px; }
+        }
+      `}</style>
+
+      
       {/* =========================================================
           MODALE AJOUT
           ========================================================= */}
