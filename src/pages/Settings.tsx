@@ -5,11 +5,11 @@ import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 import { ArrowLeft, ChevronDown, ChevronRight, ChevronUp, UserRound } from 'lucide-react';
 
-const BG = '#F7F8F4';
-const WHITE = '#FFFFFF';
-const BLACK = '#0B0B0B';
-const MUTED = '#7A7F76';
-const BORDER = '#E8EAE4';
+const BG = '#0A0A0A';
+const WHITE = '#111111';
+const BLACK = '#FFFFFF';
+const MUTED = '#8C8C8C';
+const BORDER = '#262626';
 const ACCENT = '#C8FF00';
 
 type Profile = {
@@ -209,9 +209,9 @@ export default function Settings() {
     minHeight: 54,
     borderRadius: 15,
     border: `1px solid ${BORDER}`,
-    background: WHITE,
+    background: '#1A1A1A',
     padding: '0 15px',
-    color: BLACK,
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 750,
     outline: 'none',
@@ -268,10 +268,10 @@ export default function Settings() {
   return (
     <div
       style={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
         background: BG,
         color: BLACK,
-        paddingBottom: 110,
+        paddingBottom: 'calc(132px + env(safe-area-inset-bottom))',
       }}
     >
       <main
@@ -354,7 +354,7 @@ export default function Settings() {
                 flexShrink: 0,
               }}
             >
-              <UserRound size={24} />
+              <UserRound size={24} color="#0B0B0B" />
             </div>
             <div style={{ minWidth: 0 }}>
               <div
@@ -544,8 +544,8 @@ export default function Settings() {
                       minHeight: 56,
                       border: 0,
                       borderRadius: 17,
-                      background: BLACK,
-                      color: WHITE,
+                      background: ACCENT,
+                      color: '#0B0B0B',
                       fontSize: 13,
                       fontWeight: 950,
                       cursor: savingPersonal ? 'wait' : 'pointer',
@@ -562,11 +562,12 @@ export default function Settings() {
                       style={{
                         marginTop: 12,
                         borderRadius: 15,
-                        background: '#F1FFD9',
+                        background: '#142000',
                         border: `1px solid ${ACCENT}`,
                         padding: 13,
                         fontSize: 12,
                         fontWeight: 850,
+                        color: ACCENT,
                       }}
                     >
                       Informations enregistrées ✓
@@ -582,9 +583,9 @@ export default function Settings() {
                         minHeight: 54,
                         marginTop: 10,
                         borderRadius: 17,
-                        border: `1px solid ${BLACK}`,
+                        border: `1px solid ${ACCENT}`,
                         background: ACCENT,
-                        color: BLACK,
+                        color: '#0B0B0B',
                         fontSize: 12,
                         fontWeight: 950,
                         cursor: 'pointer',
@@ -603,10 +604,10 @@ export default function Settings() {
           <div
             style={{
               borderRadius: 18,
-              background: '#FFF0ED',
-              border: '1px solid #FFD2CA',
+              background: '#241313',
+              border: '1px solid #6B2B2B',
               padding: '14px 16px',
-              color: '#C43D2F',
+              color: '#FFB8B8',
               fontSize: 13,
               lineHeight: 1.5,
               marginBottom: 14,
@@ -642,12 +643,12 @@ export default function Settings() {
             onClick={() => navigate('/nutrition-goals')}
           />
           <Row
-            title="Training"
-            subtitle="Programme et préférences d’entraînement"
-            onClick={() => navigate('/training')}
+            title="Mouvement / Sport"
+            subtitle="Programme et préférences de mouvement"
+            onClick={() => navigate('/program')}
           />
           <Row
-            title="Recovery"
+            title="Récupération"
             subtitle="Sommeil, récupération et habitudes"
             onClick={() => navigate('/recovery')}
           />
