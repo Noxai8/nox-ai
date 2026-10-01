@@ -24,6 +24,7 @@ const NutritionGoals = lazy(() => import('./pages/NutritionGoals'));
 const Pulse = lazy(() => import('./pages/Pulse'));
 const MonNox = lazy(() => import('./pages/MonNox'));
 const Closure = lazy(() => import('./pages/Closure'));
+const Movement = lazy(() => import('./pages/Movement'));
 const Subscribe = lazy(() => import('./pages/Subscribe'));
 const RestDay = lazy(() => import('./pages/RestDay'));
 const Partner = lazy(() => import('./pages/Partner'));
@@ -365,6 +366,7 @@ function AppRoutes() {
         <Route path="/pulse" element={<ProtectedRoute><Pulse /></ProtectedRoute>} />
         <Route path="/mon-nox" element={<ProtectedRoute><MonNox /></ProtectedRoute>} />
         <Route path="/closure" element={<ProtectedRoute><Closure /></ProtectedRoute>} />
+        <Route path="/movement" element={<ProtectedRoute><Movement /></ProtectedRoute>} />
 
         <Route
           path="/fasting"
