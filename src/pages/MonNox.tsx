@@ -224,6 +224,17 @@ export default function MonNox() {
           </section>
         )}
 
+        {/* Weekly Review */}
+        <button onClick={() => navigate('/weekly-review')}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, color: WHITE, cursor: 'pointer', marginBottom: 10, textAlign: 'left' }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 900, color: '#FFD93D', letterSpacing: '.08em', marginBottom: 5 }}>BILAN HEBDOMADAIRE</div>
+            <div style={{ fontSize: 15, fontWeight: 900 }}>Ta semaine avec NOX</div>
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>Pulse · nutrition · mouvement · priorités</div>
+          </div>
+          <ChevronRight size={20} color={MUTED} />
+        </button>
+
         {/* NOX Future */}
         <button onClick={() => navigate('/future')}
           style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, color: WHITE, cursor: 'pointer', marginBottom: 10, textAlign: 'left' }}>
