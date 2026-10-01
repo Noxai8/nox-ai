@@ -1,253 +1,277 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { todayLocalDate } from '../lib/localDate';
 import { BottomNav } from './Home';
 
-const ACCENT = '#C8FF00';
-const BG = '#F7F8F4';
-const SURFACE = '#FFFFFF';
-const BORDER = '#E8EAE4';
-const BLACK = '#0B0B0B';
-const MUTED = '#7A7F76';
-const SOFT_LIME = '#F0FFD0';
+const BG    = '#0A0A0A';
+const CARD  = '#111111';
+const CARD2 = '#161616';
+const WHITE = '#FFFFFF';
+const LIME  = '#C8FF00';
+const MUTED = '#666666';
+const BORDER= '#1E1E1E';
 
-const WEARABLES = [
-  { id: 'apple_watch', name: 'Apple Watch', icon: '⌚', color: MUTED, connected: false },
-  { id: 'oura', name: 'Oura Ring', icon: '💍', color: MUTED, connected: false },
-  { id: 'whoop', name: 'WHOOP', icon: '📿', color: MUTED, connected: false },
-  { id: 'garmin', name: 'Garmin', icon: '🏃', color: MUTED, connected: false },
-  { id: 'fitbit', name: 'Fitbit', icon: '⌚', color: MUTED, connected: false },
-];
+// ── Readiness déterministe depuis Pulse + activité récente ────────────────────
+type ReadinessResult = {
+  level:  'good' | 'moderate' | 'low';
+  label:  string;
+  advice: string;
+  color:  string;
+  sources: { label: string; value: string; origin: 'declared' | 'device' }[];
+};
+
+function computeReadiness(
+  pulse: { sleep_score: number; energy_score: number; body_score: number } | null,
+  lastWorkout: { session_feedback?: string; finished_at?: string; name?: string } | null,
+  lastMovement: { sport?: string; intensity?: string; duration_min?: number } | null,
+): ReadinessResult | null {
+  if (!pulse) return null;
+
+  const sources: ReadinessResult['sources'] = [
+    { label: 'Sommeil',  value: `${pulse.sleep_score}/5`,  origin: 'declared' },
+    { label: 'Énergie',  value: `${pulse.energy_score}/5`, origin: 'declared' },
+    { label: 'Corps',    value: `${pulse.body_score}/5`,   origin: 'declared' },
+  ];
+
+  // Score brut 0–100 depuis le Pulse
+  let score = 0;
+  score += (pulse.sleep_score  - 1) * 12.5; // 0–50
+  score += (pulse.energy_score - 1) * 12.5; // 0–50
+  score += (pulse.body_score   - 1) * 12.5; // 0–50 (on plafonne à 100 après)
+  // On moyenne les 3
+  score = Math.round(((pulse.sleep_score + pulse.energy_score + pulse.body_score) / 15) * 100);
+
+  // Malus séance difficile récente (≤ 1 jour)
+  const daysSinceWorkout = lastWorkout?.finished_at
+    ? Math.floor((Date.now() - new Date(lastWorkout.finished_at).getTime()) / 86400000)
+    : null;
+
+  if (lastWorkout?.session_feedback === 'hard' && daysSinceWorkout !== null && daysSinceWorkout <= 1) {
+    score = Math.max(0, score - 12);
+    sources.push({ label: 'Dernière séance', value: 'Difficile', origin: 'declared' });
+  } else if (lastWorkout?.session_feedback === 'hard' && daysSinceWorkout !== null && daysSinceWorkout <= 2) {
+    score = Math.max(0, score - 6);
+    sources.push({ label: 'Dernière séance', value: 'Difficile (il y a 2j)', origin: 'declared' });
+  }
+
+  // Malus mouvement intense récent
+  if (lastMovement?.intensity === 'intense') {
+    sources.push({ label: 'Dernière activité', value: `${lastMovement.sport} — Intense`, origin: 'declared' });
+    score = Math.max(0, score - 8);
+  }
+
+  score = Math.min(100, Math.max(0, score));
+
+  if (score >= 70) return {
+    level: 'good', color: LIME,
+    label: 'Tu peux maintenir ton rythme.',
+    advice: 'Tes signaux du matin sont bons. Tu peux garder le rythme prévu et faire ta séance si elle est programmée.',
+    sources,
+  };
+
+  if (score >= 45) return {
+    level: 'moderate', color: '#FFD93D',
+    label: 'Écoute ton corps aujourd\'hui.',
+    advice: 'Ta récupération est moyenne. Tu peux bouger, mais évite de forcer. Reste attentif à tes sensations pendant l\'effort.',
+    sources,
+  };
+
+  return {
+    level: 'low', color: '#FF6B6B',
+    label: 'Priorité récupération.',
+    advice: 'Tes signaux indiquent une récupération faible. Privilégie le repos actif, les étirements ou une marche légère.',
+    sources,
+  };
+}
 
 export default function Recovery() {
-  const { user } = useAuth();
-  const [checkin, setCheckin] = useState({
-    sleep_hours: '',
-    sleep_quality: '',
-    fatigue: '',
-    soreness: '',
-    stress: '',
-    hrv: '',
-    resting_hr: '',
-  });
-  const [saved, setSaved] = useState(false);
-  const [todayCheckin, setTodayCheckin] = useState<any>(null);
-  const [lastWorkout, setLastWorkout] = useState<any>(null);
-  const [loadingRecovery, setLoadingRecovery] = useState(true);
-  const [recoveryError, setRecoveryError] = useState('');
-  const [readiness, setReadiness] = useState<{ score: number; label: string; color: string; advice: string } | null>(null);
+  const { user }   = useAuth();
+  const navigate   = useNavigate();
 
-  useEffect(() => {
-    if (user) void loadRecovery();
-  }, [user]);
+  const [pulse,        setPulse]        = useState<any>(null);
+  const [lastWorkout,  setLastWorkout]  = useState<any>(null);
+  const [lastMovement, setLastMovement] = useState<any>(null);
+  const [readiness,    setReadiness]    = useState<ReadinessResult | null>(null);
+  const [loading,      setLoading]      = useState(true);
 
-  const loadRecovery = async () => {
-    if (!user) return;
-    setLoadingRecovery(true);
-    setRecoveryError('');
-    try {
-      const dayStart = new Date();
-      dayStart.setHours(0, 0, 0, 0);
-      const [
-        { data: checkinData, error: checkinError },
-        { data: workoutData, error: workoutError },
-      ] = await Promise.all([
-        supabase.from('recovery_checkins').select('*').eq('user_id', user.id)
-          .gte('created_at', dayStart.toISOString())
-          .order('created_at', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('workouts').select('id, name, finished_at, duration_minutes, session_feedback')
-          .eq('user_id', user.id).eq('status', 'completed')
-          .order('finished_at', { ascending: false }).limit(1).maybeSingle(),
-      ]);
-      if (checkinError) throw checkinError;
-      if (workoutError) throw workoutError;
-      setLastWorkout(workoutData || null);
-      if (checkinData) {
-        setTodayCheckin(checkinData);
-        computeReadiness(checkinData, workoutData || null);
-      }
-    } catch (err: any) {
-      console.error('Recovery loadRecovery:', err);
-      setRecoveryError(err?.message || 'Impossible de charger les données de récupération.');
-    } finally {
-      setLoadingRecovery(false);
-    }
+  useEffect(() => { if (user) void load(); }, [user]);
+
+  const load = async () => {
+    const today = todayLocalDate();
+    const [
+      { data: pulseData },
+      { data: workoutData },
+      { data: movementData },
+    ] = await Promise.all([
+      supabase.from('daily_pulses').select('sleep_score,energy_score,body_score')
+        .eq('user_id', user!.id).eq('date', today).maybeSingle(),
+      supabase.from('workouts').select('id,name,finished_at,session_feedback')
+        .eq('user_id', user!.id).eq('status', 'completed')
+        .not('finished_at', 'is', null)
+        .order('finished_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('movement_logs').select('sport,intensity,duration_min,date')
+        .eq('user_id', user!.id)
+        .order('date', { ascending: false }).limit(1).maybeSingle(),
+    ]);
+
+    setPulse(pulseData ?? null);
+    setLastWorkout(workoutData ?? null);
+    setLastMovement(movementData ?? null);
+    setReadiness(computeReadiness(pulseData ?? null, workoutData ?? null, movementData ?? null));
+    setLoading(false);
   };
 
-  const computeReadiness = (data: any, workout: any = lastWorkout) => {
-    let score = 100;
-    if (data.sleep_hours) score -= Math.max(0, (7 - parseFloat(data.sleep_hours)) * 10);
-    if (data.fatigue) score -= (parseInt(data.fatigue) - 1) * 8;
-    if (data.soreness) score -= (parseInt(data.soreness) - 1) * 6;
-    if (data.stress) score -= (parseInt(data.stress) - 1) * 6;
-    if (data.sleep_quality) score -= parseInt(data.sleep_quality) > 3 ? 0 : (4 - parseInt(data.sleep_quality)) * 8;
-    score = Math.max(0, Math.min(100, Math.round(score)));
+  // Label intensité
+  const intensityLabel: Record<string, string> = { light: 'Légère', moderate: 'Modérée', intense: 'Intense' };
 
-    const feedback = workout?.session_feedback || null;
-    let label = '', color = '', advice = '';
-
-    if (score >= 75) {
-      label = 'TU PEUX GARDER LE RYTHME.'; color = ACCENT;
-      advice = "Tes signaux de récupération sont bons aujourd'hui. Tu peux maintenir la séance et le rythme prévus.";
-    } else if (score >= 50) {
-      label = 'RALENTIS UN PEU.'; color = '#ffaa00';
-      advice = "Ta récupération est moyenne aujourd'hui. Tu peux bouger, mais évite de forcer inutilement et reste attentif à tes sensations.";
-    } else {
-      label = 'PRIORITÉ RÉCUPÉRATION.'; color = '#ff4444';
-      advice = "Tes signaux indiquent une récupération faible aujourd'hui. Privilégie le repos actif ou une séance légère.";
-    }
-
-    if (feedback === 'hard') {
-      if (score >= 75) advice = "Tes signaux de récupération sont bons aujourd'hui, mais ta dernière séance t'a semblé difficile. Garde le rythme prévu sans chercher à augmenter inutilement l'intensité et surveille tes sensations.";
-      else if (score >= 50) advice = "Ta récupération est moyenne et ta dernière séance t'a semblé difficile. Aujourd'hui, privilégie une intensité contrôlée et donne la priorité à une bonne récupération.";
-      else advice = "Ta récupération est faible et ta dernière séance t'a semblé difficile. Priorité au repos, à la récupération et à une reprise progressive.";
-    }
-    if (feedback === 'easy' && score >= 75) {
-      advice = "Tes signaux de récupération sont bons et ta dernière séance t'a semblé facile. Tu peux suivre le programme prévu ; NOX dispose maintenant de ce ressenti pour guider les prochaines adaptations.";
-    }
-    if (feedback === 'good' && score >= 75) {
-      advice = "Tes signaux de récupération sont bons et ta dernière séance s'est bien passée. Tu peux maintenir le rythme prévu.";
-    }
-
-    setReadiness({ score, label, color, advice });
-  };
-
-  const saveCheckin = async () => {
-    const entry = {
-      user_id: user!.id,
-      sleep_hours: checkin.sleep_hours ? parseFloat(checkin.sleep_hours) : null,
-      sleep_quality: checkin.sleep_quality ? parseInt(checkin.sleep_quality) : null,
-      fatigue: checkin.fatigue ? parseInt(checkin.fatigue) : null,
-      soreness: checkin.soreness ? parseInt(checkin.soreness) : null,
-      stress: checkin.stress ? parseInt(checkin.stress) : null,
-      hrv: checkin.hrv ? parseInt(checkin.hrv) : null,
-      resting_hr: checkin.resting_hr ? parseInt(checkin.resting_hr) : null,
-      created_at: new Date().toISOString(),
-    };
-    const { data, error } = await supabase
-      .from('recovery_checkins').insert(entry).select().single();
-    if (error) {
-      console.error('Recovery saveCheckin:', error);
-      setRecoveryError(error.message || "Impossible d'enregistrer le check-in.");
-      return;
-    }
-    setSaved(true);
-    setTodayCheckin(data);
-    computeReadiness(data, lastWorkout);
-  };
-
-  const ScaleSelector = ({ label, stateKey, emoji }: any) => (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 12, color: MUTED, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
-        {emoji} {label} <span style={{ color: MUTED }}>(1 = très bien · 5 = très mauvais)</span>
-      </div>
-      <div style={{ display: 'flex', gap: 8 }}>
-        {[1, 2, 3, 4, 5].map(v => (
-          <button key={v} onClick={() => setCheckin(p => ({ ...p, [stateKey]: String(v) }))}
-            style={{ flex: 1, padding: '12px 0', background: checkin[stateKey as keyof typeof checkin] === String(v) ? BLACK : SURFACE, border: '1px solid ' + (checkin[stateKey as keyof typeof checkin] === String(v) ? BLACK : BORDER), borderRadius: 16, color: checkin[stateKey as keyof typeof checkin] === String(v) ? '#000' : '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
-            {v}
-          </button>
-        ))}
-      </div>
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: BG, display: 'grid', placeItems: 'center' }}>
+      <div style={{ fontSize: 22, fontWeight: 950, color: WHITE }}>NOX<span style={{ color: LIME }}>.</span></div>
     </div>
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, paddingBottom: 80 }}>
-      <div style={{ maxWidth: 560, margin: '0 auto', padding: '28px 20px 8px' }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em' }}>RÉCUPÉRATION</div>
-        <div style={{ marginTop: 10, fontSize: 40, lineHeight: .95, letterSpacing: '-.04em', fontWeight: 950, color: BLACK }}>
-          TON CORPS<br />RÉCUPÈRE AUSSI.
+    <div style={{ minHeight: '100vh', background: BG, color: WHITE, paddingBottom: 100 }}>
+      <main style={{ maxWidth: 560, margin: '0 auto', padding: '0 20px' }}>
+
+        {/* Header */}
+        <div style={{ paddingTop: 52, paddingBottom: 24 }}>
+          <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.1em', marginBottom: 6 }}>RÉCUPÉRATION</div>
+          <h1 style={{ margin: 0, fontSize: 34, fontWeight: 1000, letterSpacing: '-.05em', lineHeight: .95 }}>
+            Comment<br />tu te portes ?
+          </h1>
         </div>
-        <div style={{ marginTop: 16, fontSize: 14, lineHeight: 1.5, color: MUTED }}>
-          Dis à NOX comment ton corps se sent aujourd’hui. Tes signaux de récupération servent à adapter ses recommandations.
-        </div>
-      </div>
 
-      <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 20px 0' }}>
-
-        {/* Score readiness */}
-        {readiness && (
-          <div style={{ background: SOFT_LIME, border: '1px solid ' + BORDER, borderRadius: 24, padding: 20, marginBottom: 16, textAlign: 'center' }}>
-            <div style={{ fontSize: 11, fontWeight: 900, color: BLACK, letterSpacing: '.1em', textTransform: 'uppercase' }}>RECOMMANDATION NOX</div>
-            <div style={{ fontSize: 28, lineHeight: 1, fontWeight: 950, color: BLACK, marginTop: 12, letterSpacing: '-.03em' }}>{readiness.label}</div>
-            <div style={{ fontSize: 14, color: '#4F534C', marginTop: 12, lineHeight: 1.55 }}>{readiness.advice}</div>
-          </div>
-        )}
-
-        {lastWorkout?.session_feedback && (
-          <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 22, padding: '16px 18px', marginBottom: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 950, color: MUTED, letterSpacing: '.09em', textTransform: 'uppercase' }}>DERNIÈRE SÉANCE</div>
-            <div style={{ marginTop: 7, fontSize: 15, fontWeight: 900, color: BLACK }}>{lastWorkout.name || 'Séance'}</div>
-            <div style={{ marginTop: 6, fontSize: 12.5, color: MUTED, lineHeight: 1.45 }}>
-              Ressenti :{' '}
-              <strong style={{ color: BLACK }}>
-                {lastWorkout.session_feedback === 'hard' ? 'Difficile' : lastWorkout.session_feedback === 'easy' ? 'Facile' : 'Bien'}
-              </strong>
-              . NOX utilise ce signal pour contextualiser ta récupération.
+        {/* Pas de Pulse */}
+        {!pulse && (
+          <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '22px 20px', marginBottom: 14 }}>
+            <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 8 }}>Pulse du matin manquant</div>
+            <div style={{ fontSize: 13, color: MUTED, marginBottom: 18, lineHeight: 1.55 }}>
+              Renseigne ton Pulse pour que NOX puisse évaluer ta récupération d'aujourd'hui.
             </div>
-          </div>
-        )}
-
-        {recoveryError && (
-          <div style={{ background: '#FFF2F2', border: '1px solid #FFB8B8', color: '#9B1C1C', borderRadius: 16, padding: '11px 13px', marginBottom: 16, fontSize: 11.5, lineHeight: 1.45, fontWeight: 750 }}>
-            {recoveryError}
-          </div>
-        )}
-
-        {/* Check-in du jour */}
-        {!todayCheckin ? (
-          <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 24, padding: 20, marginBottom: 16 }}>
-            <div style={{ fontSize: 15, fontWeight: 900, color: BLACK, marginBottom: 20 }}>CHECK-IN RÉCUPÉRATION</div>
-
-            {/* Sommeil */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, color: MUTED, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>😴 HEURES DE SOMMEIL</div>
-              <input value={checkin.sleep_hours} onChange={e => setCheckin(p => ({ ...p, sleep_hours: e.target.value }))}
-                type="number" step="0.5" min="0" max="12" placeholder="7.5"
-                style={{ width: '100%', padding: '12px 16px', background: BG, border: '1px solid ' + BORDER, borderRadius: 16, color: BLACK, fontSize: 18, fontWeight: 700, boxSizing: 'border-box', outline: 'none' }} />
-            </div>
-
-            <ScaleSelector label="Qualité du sommeil" stateKey="sleep_quality" emoji="🌙" />
-            <ScaleSelector label="Fatigue générale" stateKey="fatigue" emoji="⚡" />
-            <ScaleSelector label="Courbatures / douleurs musculaires" stateKey="soreness" emoji="💪" />
-            <ScaleSelector label="Niveau de stress" stateKey="stress" emoji="🧠" />
-
-            {/* HRV optionnel */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, color: MUTED, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
-                📱 HRV (optionnel — depuis ta montre)
-              </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <input value={checkin.hrv} onChange={e => setCheckin(p => ({ ...p, hrv: e.target.value }))}
-                  type="number" placeholder="HRV ms"
-                  style={{ flex: 1, padding: '10px 14px', background: BG, border: '1px solid ' + BORDER, borderRadius: 16, color: BLACK, fontSize: 14, outline: 'none' }} />
-                <input value={checkin.resting_hr} onChange={e => setCheckin(p => ({ ...p, resting_hr: e.target.value }))}
-                  type="number" placeholder="FC repos bpm"
-                  style={{ flex: 1, padding: '10px 14px', background: BG, border: '1px solid ' + BORDER, borderRadius: 16, color: BLACK, fontSize: 14, outline: 'none' }} />
-              </div>
-            </div>
-
-            <button onClick={saveCheckin}
-              style={{ width: '100%', padding: 16, background: BLACK, border: 'none', borderRadius: 18, color: '#fff', fontWeight: 900, fontSize: 15, cursor: 'pointer' }}>
-              ENREGISTRER MON CHECK-IN
+            <button onClick={() => navigate('/pulse')}
+              style={{ width: '100%', padding: 16, border: 0, borderRadius: 16, background: LIME, color: '#0A0A0A', fontWeight: 1000, fontSize: 14, cursor: 'pointer' }}>
+              FAIRE MON PULSE →
             </button>
-          </div>
-        ) : (
-          <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 22, padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: ACCENT }}>✓ Check-in récupération enregistré aujourd'hui</div>
-          </div>
+          </section>
         )}
 
-        <div style={{ marginTop: 8, padding: '16px 18px', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 22 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: MUTED, letterSpacing: '.06em' }}>DONNÉES AVANCÉES</div>
-          <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.5, color: MUTED }}>
-            HRV et fréquence cardiaque restent optionnelles. Les intégrations automatiques pourront être ajoutées plus tard sans bloquer ton check-in quotidien.
+        {/* Readiness */}
+        {readiness && (
+          <section style={{ background: readiness.level === 'good' ? '#0F1A00' : readiness.level === 'moderate' ? '#1A1500' : '#1A0500', border: `1px solid ${readiness.color}33`, borderRadius: 22, padding: '22px 20px', marginBottom: 14 }}>
+            <div style={{ fontSize: 10, fontWeight: 900, color: readiness.color, letterSpacing: '.1em', marginBottom: 12 }}>
+              TON ÉTAT AUJOURD'HUI
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 1000, letterSpacing: '-.04em', color: readiness.color, marginBottom: 10 }}>
+              {readiness.label}
+            </div>
+            <div style={{ fontSize: 14, color: '#CCCCCC', lineHeight: 1.6 }}>{readiness.advice}</div>
+          </section>
+        )}
+
+        {/* Signaux — Pulse du jour */}
+        {pulse && (
+          <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '18px 20px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em' }}>SIGNAUX DU MATIN</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#4CAF50' }} />
+                <span style={{ fontSize: 9, color: '#4CAF50', fontWeight: 900 }}>DÉCLARÉ</span>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              {[
+                { label: 'Sommeil', value: pulse.sleep_score,  emoji: '🌙', color: '#9C89FF' },
+                { label: 'Énergie', value: pulse.energy_score, emoji: '⚡', color: '#FFD93D' },
+                { label: 'Corps',   value: pulse.body_score,   emoji: '💪', color: '#4FC3F7' },
+              ].map(({ label, value, emoji, color }) => (
+                <div key={label} style={{ background: CARD2, borderRadius: 16, padding: '14px 10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 18, marginBottom: 6 }}>{emoji}</div>
+                  <div style={{ fontSize: 24, fontWeight: 1000, color: WHITE }}>{value}</div>
+                  <div style={{ fontSize: 9, color, fontWeight: 800, marginTop: 2 }}>/5</div>
+                  <div style={{ fontSize: 10, color: MUTED, fontWeight: 700, marginTop: 6 }}>{label}</div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => navigate('/pulse')}
+              style={{ width: '100%', marginTop: 12, padding: '11px 0', border: `1px solid ${BORDER}`, borderRadius: 14, background: 'transparent', color: MUTED, fontSize: 11, fontWeight: 900, cursor: 'pointer' }}>
+              MODIFIER MON PULSE
+            </button>
+          </section>
+        )}
+
+        {/* Dernière activité */}
+        {(lastWorkout || lastMovement) && (
+          <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '18px 20px', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em', marginBottom: 14 }}>ACTIVITÉ RÉCENTE</div>
+
+            {lastWorkout && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: CARD2, borderRadius: 16, marginBottom: lastMovement ? 8 : 0 }}>
+                <span style={{ fontSize: 22 }}>🏋️</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 900, color: WHITE }}>{lastWorkout.name || 'Séance'}</div>
+                  <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+                    {lastWorkout.session_feedback === 'hard' ? '🔥 Difficile' : lastWorkout.session_feedback === 'easy' ? '😎 Facile' : lastWorkout.session_feedback ? '💪 Bien' : ''
+                    }
+                    {lastWorkout.finished_at && ` · ${Math.floor((Date.now() - new Date(lastWorkout.finished_at).getTime()) / 86400000)}j`}
+                  </div>
+                </div>
+                <div style={{ fontSize: 9, fontWeight: 900, color: '#4CAF50', background: '#4CAF5018', padding: '4px 8px', borderRadius: 99 }}>DÉCLARÉ</div>
+              </div>
+            )}
+
+            {lastMovement && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: CARD2, borderRadius: 16 }}>
+                <span style={{ fontSize: 22 }}>🏃</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 900, color: WHITE }}>{lastMovement.sport}</div>
+                  <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+                    {lastMovement.duration_min} min · {intensityLabel[lastMovement.intensity] || lastMovement.intensity}
+                  </div>
+                </div>
+                <div style={{ fontSize: 9, fontWeight: 900, color: '#4CAF50', background: '#4CAF5018', padding: '4px 8px', borderRadius: 99 }}>DÉCLARÉ</div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Appareils connectés */}
+        <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '18px 20px', marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em', marginBottom: 8 }}>APPAREILS CONNECTÉS</div>
+          <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.55, marginBottom: 16 }}>
+            Les données d'un appareil permettront à NOX de distinguer ce que tu ressens de ce qui est réellement mesuré.
+          </div>
+          {[
+            { name: 'Apple Health / HealthKit', icon: '🍎' },
+            { name: 'Google Fit / Health Connect', icon: '🔵' },
+            { name: 'Garmin, WHOOP, Oura…', icon: '⌚' },
+          ].map(({ name, icon }) => (
+            <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: CARD2, borderRadius: 14, marginBottom: 8, opacity: .55 }}>
+              <span style={{ fontSize: 20 }}>{icon}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: WHITE }}>{name}</div>
+                <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Bientôt disponible</div>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* Légende source */}
+        <div style={{ display: 'flex', gap: 16, padding: '0 4px', marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4CAF50' }} />
+            <span style={{ fontSize: 10, color: MUTED, fontWeight: 700 }}>Déclaré par toi</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4FC3F7' }} />
+            <span style={{ fontSize: 10, color: MUTED, fontWeight: 700 }}>Mesuré par un appareil</span>
           </div>
         </div>
-      </div>
 
-      <BottomNav active="body" />
+      </main>
+      <BottomNav active="home" />
     </div>
   );
 }
