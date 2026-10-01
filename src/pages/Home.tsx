@@ -492,9 +492,11 @@ export default function Home() {
               <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: '.09em', color: priority.type === 'none' ? '#888888' : '#C8FF00' }}>
                 TA PRIORITÉ DU JOUR
               </div>
-              <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '.04em', color: '#555555', background: '#1A1A1A', padding: '5px 9px', borderRadius: 99 }}>
-                {priority.confidence === 'high' ? 'ÉLEVÉE' : priority.confidence === 'moderate' ? 'MODÉRÉE' : 'FAIBLE'}
-              </div>
+              {todayPulse && (
+                <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '.04em', color: '#555555', background: '#1A1A1A', padding: '5px 9px', borderRadius: 99 }}>
+                  {priority.confidence === 'high' ? 'ÉLEVÉE' : priority.confidence === 'moderate' ? 'MODÉRÉE' : 'FAIBLE'}
+                </div>
+              )}
             </div>
 
             {!todayPulse ? (
