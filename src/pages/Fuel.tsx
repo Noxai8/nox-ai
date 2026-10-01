@@ -14,7 +14,6 @@ const SURFACE = '#111111';
 const SURFACE_ALT = '#1A1A1A';
 const MUTED = '#9A9A9A';
 const BORDER = '#262626';
-const LIME = '#0F1A00';
 const FN = 'https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1';
 
 const MEALS = ['Petit-dejeuner', 'Dejeuner', 'Diner', 'Snacks'];
