@@ -477,40 +477,20 @@ export default function Home() {
           </section>
         )}
 
-        {/* CLÔTURE DU JOUR */}
+        {/* CLÔTURE DU JOUR → page dédiée */}
         {todayPulse && !todayClosure && (
-          <section style={{ background: '#111111', border: '1px solid #222222', borderRadius: 26, padding: '22px 20px', marginBottom: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 900, color: '#888888', letterSpacing: '.09em', marginBottom: 12 }}>CLÔTURE DE JOURNÉE</div>
+          <section style={{ background: '#111111', border: '1px solid #222222', borderRadius: 26, padding: '20px 20px', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: '#888888', letterSpacing: '.09em', marginBottom: 10 }}>CLÔTURE DE JOURNÉE</div>
             <div style={{ fontSize: 17, fontWeight: 950, marginBottom: 6 }}>Ta journée touche à sa fin.</div>
-            <div style={{ fontSize: 13, color: '#666666', marginBottom: 18 }}>As-tu accompli ta priorité du jour ?</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-              {(['Oui', 'Non'] as const).map(val => (
-                <button key={val}
-                  onClick={() => setClosure(c => ({ ...c, priorityDone: val === 'Oui' }))}
-                  style={{ padding: '14px 0', border: `1px solid ${closure.priorityDone === (val === 'Oui') ? '#C8FF00' : '#2A2A2A'}`, borderRadius: 14, background: closure.priorityDone === (val === 'Oui') ? '#0F1A00' : 'transparent', color: closure.priorityDone === (val === 'Oui') ? '#C8FF00' : '#AAAAAA', fontWeight: 1000, cursor: 'pointer', fontSize: 15 }}>
-                  {val}
-                </button>
-              ))}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 16 }}>
-              {(['😴','😕','😐','🙂','😄'] as const).map((emoji, i) => (
-                <button key={emoji}
-                  onClick={() => setClosure(c => ({ ...c, feeling: i + 1 }))}
-                  style={{ fontSize: 26, padding: '10px 0', border: `1px solid ${closure.feeling === i + 1 ? '#C8FF00' : '#222222'}`, borderRadius: 14, background: closure.feeling === i + 1 ? '#0F1A00' : 'transparent', cursor: 'pointer' }}>
-                  {emoji}
-                </button>
-              ))}
-            </div>
-            <textarea
-              placeholder="Une note rapide (optionnel)"
-              value={closure.note}
-              onChange={e => setClosure(c => ({ ...c, note: e.target.value }))}
-              style={{ width: '100%', boxSizing: 'border-box', background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: 14, padding: '13px 14px', color: '#FFFFFF', fontSize: 13, resize: 'none', outline: 'none', marginBottom: 12, font: 'inherit' }}
-              rows={2}
-            />
-            <button onClick={saveClosure} disabled={savingClosure}
-              style={{ width: '100%', padding: 16, border: 0, borderRadius: 16, background: '#C8FF00', color: '#0A0A0A', fontWeight: 1000, fontSize: 14, cursor: 'pointer', opacity: savingClosure ? 0.6 : 1 }}>
-              {savingClosure ? 'ENREGISTREMENT...' : 'VALIDER'}
+            <div style={{ fontSize: 13, color: '#666666', marginBottom: 18 }}>30 secondes pour clôturer avec NOX.</div>
+            <button onClick={() => navigate('/closure', {
+              state: {
+                priorityTitle: priority.type !== 'none' ? (priority as any).title : null,
+                priorityType:  priority.type,
+              }
+            })}
+              style={{ width: '100%', padding: 16, border: 0, borderRadius: 16, background: '#C8FF00', color: '#0A0A0A', fontWeight: 1000, fontSize: 14, cursor: 'pointer' }}>
+              CLÔTURER MA JOURNÉE →
             </button>
           </section>
         )}
