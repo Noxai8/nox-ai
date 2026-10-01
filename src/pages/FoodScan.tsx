@@ -696,7 +696,7 @@ export default function FoodScan() {
                   <div
                     key={label}
                     style={{
-                      background: '#F7F8F4',
+                      background: '#0A0A0A',
                       borderRadius: 13,
                       padding: '11px 4px',
                       textAlign: 'center',

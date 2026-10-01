@@ -10,7 +10,7 @@ import {
   UserRound,
 } from 'lucide-react';
 
-const BG = '#F7F8F4';
+const BG = '#0A0A0A';
 const WHITE = '#FFFFFF';
 const BLACK = '#0B0B0B';
 const MUTED = '#7A7F76';
