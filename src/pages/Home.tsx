@@ -651,3 +651,73 @@ export default function Home() {
   </div>
 );
 }
+
+// ── Composants helper ──────────────────────────────────────────────────────────
+
+const ui = {
+  bigTitle: {
+    fontSize: 28,
+    lineHeight: 1.1,
+    fontWeight: 1000,
+    letterSpacing: '-.035em',
+    marginBottom: 10,
+    color: '#FFFFFF',
+  } as React.CSSProperties,
+  body: {
+    fontSize: 14,
+    lineHeight: 1.55,
+    color: '#B3B7B4',
+    marginBottom: 0,
+  } as React.CSSProperties,
+};
+
+function SectionHeader({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      <div style={{ fontSize: 13, fontWeight: 900, color: '#8E938F', letterSpacing: '.05em', textTransform: 'uppercase' }}>{title}</div>
+      {action && (
+        <button onClick={onAction} style={{ border: 0, background: 'transparent', color: '#C8FF00', fontSize: 12, fontWeight: 900, cursor: onAction ? 'pointer' : 'default' }}>
+          {action}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function AppCard({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={{ background: '#151917', borderRadius: 22, overflow: 'hidden', ...style }}>
+      {children}
+    </div>
+  );
+}
+
+function LimeButton({ children, onClick, style }: { children: React.ReactNode; onClick?: () => void; style?: React.CSSProperties }) {
+  return (
+    <button onClick={onClick} style={{ display: 'block', width: '100%', padding: '16px 20px', border: 0, borderRadius: 16, background: '#C8FF00', color: '#090B0A', fontWeight: 1000, fontSize: 14, cursor: 'pointer', textAlign: 'center', ...style }}>
+      {children}
+    </button>
+  );
+}
+
+function DarkButton({ children, onClick, style }: { children: React.ReactNode; onClick?: () => void; style?: React.CSSProperties }) {
+  return (
+    <button onClick={onClick} style={{ display: 'block', width: '100%', padding: '16px 20px', border: '1px solid #2A2E2C', borderRadius: 16, background: '#1A1D1B', color: '#FFFFFF', fontWeight: 900, fontSize: 13, cursor: 'pointer', textAlign: 'center', ...style }}>
+      {children}
+    </button>
+  );
+}
+
+function Metric({ value, label, progress }: { value: string | number; label: string; progress?: number }) {
+  return (
+    <div style={{ background: '#1A1D1B', borderRadius: 16, padding: '16px' }}>
+      <div style={{ fontSize: 26, fontWeight: 1000, letterSpacing: '-.035em', marginBottom: 4 }}>{value}</div>
+      <div style={{ fontSize: 11, color: '#8E938F', fontWeight: 800, marginBottom: progress ? 10 : 0 }}>{label}</div>
+      {progress !== undefined && progress > 0 && (
+        <div style={{ height: 4, background: '#2A2E2C', borderRadius: 999, overflow: 'hidden' }}>
+          <div style={{ width: `${Math.min(100, Math.round(progress * 100))}%`, height: '100%', background: '#C8FF00', borderRadius: 999 }} />
+        </div>
+      )}
+    </div>
+  );
+}
