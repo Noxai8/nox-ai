@@ -1,9 +1,62 @@
-.nox3d{
-  position:relative;width:100%;height:100%;min-height:220px;overflow:hidden;
-  background:radial-gradient(circle at 72% 52%,rgba(164,210,0,.11),transparent 35%),#0d0f0b;
+.nox3d {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(200, 255, 0, .12) 0%, rgba(132, 170, 0, .055) 27%, transparent 55%),
+    #0b0d0a;
 }
-.nox3d canvas{position:absolute!important;inset:0;width:100%!important;height:100%!important}
-.nox3d__vignette{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#0d0f0b 0%,rgba(13,15,11,.72) 12%,transparent 44%),linear-gradient(180deg,rgba(0,0,0,.08),transparent 60%,rgba(0,0,0,.24))}
-.nox3d--sm{min-height:150px}.nox3d--md{min-height:220px}.nox3d--lg{min-height:430px}
-@media(max-width:820px){.nox3d{min-height:205px}.nox3d__vignette{background:linear-gradient(90deg,#0d0f0b 0%,rgba(13,15,11,.52) 10%,transparent 52%)}}
-@media(prefers-reduced-motion:reduce){.nox3d canvas{animation:none!important}}
+
+.nox3d canvas {
+  position: absolute !important;
+  inset: 0;
+  z-index: 1;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.nox3d__vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 45%, transparent 35%, rgba(0, 0, 0, .12) 72%, rgba(0, 0, 0, .30) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, .018), transparent 42%, rgba(0, 0, 0, .18));
+}
+
+.nox3d--sm {
+  min-height: 150px;
+}
+
+.nox3d--md {
+  min-height: 220px;
+}
+
+.nox3d--lg {
+  min-height: 430px;
+}
+
+@media (max-width: 820px) {
+  .nox3d {
+    min-height: 205px;
+  }
+
+  .nox3d--lg {
+    min-height: 360px;
+  }
+
+  .nox3d__vignette {
+    background:
+      radial-gradient(circle at 50% 45%, transparent 38%, rgba(0, 0, 0, .10) 76%, rgba(0, 0, 0, .26) 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nox3d canvas {
+    animation: none !important;
+  }
+}
