@@ -50,14 +50,14 @@ const Reschedule = lazy(() => import('./pages/Reschedule'));
 const Habits = lazy(() => import('./pages/Habits'));
 
 /* =========================================================
-   LOADER NOX — WHITE PREMIUM
+   LOADER NOX — DARK PREMIUM
 ========================================================= */
 
 const Loader = () => (
   <div
     style={{
       minHeight: '100vh',
-      background: '#F7F8F4',
+      background: '#0A0A0A',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -65,7 +65,7 @@ const Loader = () => (
   >
     <div
       style={{
-        color: '#0B0B0B',
+        color: '#FFFFFF',
         fontWeight: 950,
         letterSpacing: '-0.04em',
         fontSize: 28,
@@ -522,15 +522,6 @@ function AppRoutes() {
         {/* =====================================================
             SETTINGS
         ===================================================== */}
-
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          }
-        />
 
         <Route
           path="/notification-settings"

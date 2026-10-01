@@ -678,11 +678,6 @@ export default function Settings() {
             subtitle={profile?.subscription_plan || 'free'}
             onClick={() => navigate('/subscribe')}
           />
-          <Row
-            title="Paramètres"
-            subtitle="Préférences générales NOX"
-            onClick={() => navigate('/settings')}
-          />
         </section>
       </main>
 
