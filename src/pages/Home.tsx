@@ -438,48 +438,61 @@ export default function Home() {
       minHeight: '100dvh',
       background: '#090B0A',
       color: '#FFFFFF',
-      paddingBottom: 'calc(112px + env(safe-area-inset-bottom))',
+      paddingBottom: 'calc(118px + env(safe-area-inset-bottom))',
     }}>
-      <main style={{ maxWidth: 560, margin: '0 auto', padding: '0 20px' }}>
+      <main style={{
+        width: '100%',
+        maxWidth: 430,
+        margin: '0 auto',
+        padding: '0 18px',
+        boxSizing: 'border-box',
+      }}>
 
-        {/* HEADER */}
-        <header style={{ paddingTop: 48, paddingBottom: 28 }}>
+        {/* AUJOURD'HUI */}
+        <header style={{ paddingTop: 48, paddingBottom: 26 }}>
           <div style={{
             color: '#777C79',
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: 850,
-            letterSpacing: '.06em',
+            letterSpacing: '.055em',
             textTransform: 'uppercase',
             marginBottom: 8,
           }}>
             {dateLabel}
           </div>
-
           <h1 style={{
             margin: 0,
-            fontSize: 36,
-            lineHeight: 1.03,
-            letterSpacing: '-.045em',
+            fontSize: 40,
+            lineHeight: .98,
+            letterSpacing: '-.05em',
             fontWeight: 1000,
           }}>
-            {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
+            Aujourd’hui
           </h1>
+          <div style={{
+            marginTop: 8,
+            color: '#B2B6B3',
+            fontSize: 14,
+            fontWeight: 650,
+          }}>
+            {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
+          </div>
         </header>
 
-        {/* PULSE */}
-        <section style={{ marginBottom: 32 }}>
-          <SectionTitle
+        {/* TON PULSE */}
+        <section style={{ marginBottom: 34 }}>
+          <SectionHeader
             title="Ton Pulse"
             action={todayPulse ? 'Modifier' : 'Commencer'}
             onAction={() => navigate('/pulse')}
           />
 
           {todayPulse ? (
-            <Card>
+            <AppCard>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
-                padding: '18px 8px',
+                minHeight: 132,
               }}>
                 {[
                   ['🌙', 'Sommeil', todayPulse.sleep_score],
@@ -489,75 +502,68 @@ export default function Home() {
                   <div
                     key={String(label)}
                     style={{
-                      textAlign: 'center',
-                      padding: '3px 8px',
-                      borderLeft: index > 0 ? '1px solid #3B3F3C' : undefined,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderLeft: index ? '1px solid #4A4E4B' : undefined,
                     }}
                   >
-                    <div style={{ fontSize: 19, marginBottom: 9 }}>{emoji}</div>
-                    <div style={{ fontSize: 25, lineHeight: 1, fontWeight: 1000 }}>
+                    <div style={{ fontSize: 25, lineHeight: 1, marginBottom: 10 }}>{emoji}</div>
+                    <div style={{ fontSize: 31, lineHeight: 1, fontWeight: 1000 }}>
                       {value}
-                      <span style={{ color: '#727773', fontSize: 12, fontWeight: 800 }}>/5</span>
+                      <span style={{ color: '#777C79', fontSize: 13, fontWeight: 800 }}>/5</span>
                     </div>
                     <div style={{
-                      marginTop: 7,
-                      color: '#A7ABA8',
-                      fontSize: 11,
-                      fontWeight: 750,
+                      marginTop: 9,
+                      color: '#C1C4C2',
+                      fontSize: 12,
+                      fontWeight: 700,
                     }}>
                       {label}
                     </div>
                   </div>
                 ))}
               </div>
-            </Card>
+            </AppCard>
           ) : (
-            <Card style={{ padding: 20 }}>
-              <div style={{ fontSize: 18, fontWeight: 950, marginBottom: 6 }}>
+            <AppCard style={{ padding: 22 }}>
+              <div style={{ fontSize: 21, fontWeight: 1000, marginBottom: 7 }}>
                 Comment tu vas aujourd’hui ?
               </div>
-              <div style={{
-                color: '#A7ABA8',
-                fontSize: 13,
-                lineHeight: 1.5,
-                marginBottom: 18,
-              }}>
+              <div style={{ color: '#B3B7B4', fontSize: 14, lineHeight: 1.45, marginBottom: 20 }}>
                 Sommeil, énergie et état du corps. Quelques secondes pour donner du contexte à NOX.
               </div>
-              <PrimaryButton onClick={() => navigate('/pulse')}>
-                FAIRE MON PULSE →
-              </PrimaryButton>
-            </Card>
+              <LimeButton onClick={() => navigate('/pulse')}>FAIRE MON PULSE →</LimeButton>
+            </AppCard>
           )}
         </section>
 
         {/* PRIORITÉ */}
-        <section style={{ marginBottom: 32 }}>
-          <SectionTitle
+        <section style={{ marginBottom: 34 }}>
+          <SectionHeader
             title="Priorité du jour"
-            action={
-              todayPulse
-                ? priority.confidence === 'high'
-                  ? 'Élevée'
-                  : priority.confidence === 'moderate'
-                    ? 'Modérée'
-                    : 'Faible'
-                : undefined
-            }
+            action={todayPulse
+              ? priority.confidence === 'high'
+                ? 'Élevée'
+                : priority.confidence === 'moderate'
+                  ? 'Modérée'
+                  : 'Faible'
+              : undefined}
           />
 
-          <Card style={{ padding: 20 }}>
+          <AppCard style={{ padding: 22 }}>
             {!todayPulse ? (
               <>
-                <div style={styles.cardTitle}>À préciser avec ton Pulse</div>
-                <div style={styles.cardBody}>
+                <div style={ui.bigTitle}>À préciser avec ton Pulse</div>
+                <div style={ui.body}>
                   NOX attend tes trois signaux du matin avant de fixer la priorité de ta journée.
                 </div>
               </>
             ) : priority.type === 'none' ? (
               <>
-                <div style={styles.cardTitle}>Tout va bien ✓</div>
-                <div style={styles.cardBody}>
+                <div style={ui.bigTitle}>Tout va bien ✓</div>
+                <div style={ui.body}>
                   NOX n’a pas de signal suffisant pour te demander de modifier quelque chose aujourd’hui.
                 </div>
               </>
@@ -565,64 +571,54 @@ export default function Home() {
               <>
                 <div style={{
                   display: 'inline-flex',
-                  padding: '6px 9px',
+                  padding: '7px 10px',
                   borderRadius: 999,
-                  background: 'rgba(200,255,0,.10)',
+                  background: 'rgba(200,255,0,.12)',
                   color: '#C8FF00',
-                  fontSize: 9,
+                  fontSize: 10,
                   fontWeight: 950,
-                  letterSpacing: '.07em',
-                  marginBottom: 13,
+                  letterSpacing: '.05em',
+                  marginBottom: 15,
                 }}>
                   NOX RECOMMANDE
                 </div>
-                <div style={styles.cardTitle}>{(priority as any).title}</div>
-                <div style={styles.cardBody}>{(priority as any).action}</div>
+                <div style={ui.bigTitle}>{(priority as any).title}</div>
+                <div style={ui.body}>{(priority as any).action}</div>
               </>
             )}
 
             {todayPulse && (
               <details style={{
-                borderTop: '1px solid #3A3E3B',
-                marginTop: 18,
-                paddingTop: 14,
+                marginTop: 21,
+                paddingTop: 17,
+                borderTop: '1px solid #4A4E4B',
               }}>
                 <summary style={{
-                  color: '#C8FF00',
                   cursor: 'pointer',
-                  fontSize: 11,
+                  color: '#C8FF00',
+                  fontSize: 12,
                   fontWeight: 900,
                   userSelect: 'none',
                 }}>
                   Pourquoi ? ›
                 </summary>
-
-                <div style={{
-                  marginTop: 11,
-                  color: '#A7ABA8',
-                  fontSize: 12,
-                  lineHeight: 1.5,
-                }}>
+                <div style={{ marginTop: 12, color: '#B3B7B4', fontSize: 13, lineHeight: 1.5 }}>
                   {priority.type !== 'none'
                     ? (priority as any).reason
                     : 'Tes signaux du matin sont équilibrés — aucune zone ne nécessite d’intervention aujourd’hui.'}
                 </div>
-
                 {priority.evidence.length > 0 && (
-                  <div style={{ display: 'grid', gap: 7, marginTop: 12 }}>
+                  <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
                     {priority.evidence.map(ev => (
-                      <div
-                        key={ev.key}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          gap: 12,
-                          background: '#191C1A',
-                          borderRadius: 11,
-                          padding: '9px 11px',
-                        }}
-                      >
-                        <span style={{ color: '#858A86', fontSize: 11 }}>{ev.label}</span>
+                      <div key={ev.key} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        gap: 12,
+                        padding: '10px 12px',
+                        borderRadius: 12,
+                        background: '#1A1D1B',
+                      }}>
+                        <span style={{ color: '#8E938F', fontSize: 11 }}>{ev.label}</span>
                         <span style={{ fontSize: 11, fontWeight: 900 }}>{ev.value}</span>
                       </div>
                     ))}
@@ -632,122 +628,98 @@ export default function Home() {
             )}
 
             {todayPulse && priority.type === 'activity' && todaySession && (
-              <PrimaryButton onClick={() => navigate('/program')} style={{ marginTop: 18 }}>
+              <LimeButton onClick={() => navigate('/program')} style={{ marginTop: 21 }}>
                 COMMENCER MA SÉANCE →
-              </PrimaryButton>
+              </LimeButton>
             )}
 
             {todayPulse && priority.type === 'nutrition' && (
-              <PrimaryButton onClick={() => navigate('/fuel')} style={{ marginTop: 18 }}>
+              <LimeButton onClick={() => navigate('/fuel')} style={{ marginTop: 21 }}>
                 AJOUTER MON REPAS →
-              </PrimaryButton>
+              </LimeButton>
             )}
-          </Card>
+          </AppCard>
         </section>
 
         {/* MOUVEMENT */}
         {todaySession && !todayWorkout && (
-          <section style={{ marginBottom: 32 }}>
-            <SectionTitle title="Mouvement" action="Voir" onAction={() => navigate('/program')} />
-            <Card style={{ padding: 20 }}>
-              <div style={{
-                color: '#858A86',
-                fontSize: 10,
-                fontWeight: 900,
-                letterSpacing: '.07em',
-                marginBottom: 8,
-              }}>
+          <section style={{ marginBottom: 34 }}>
+            <SectionHeader title="Mouvement" action="Plus" onAction={() => navigate('/program')} />
+            <AppCard style={{ padding: 22 }}>
+              <div style={{ color: '#8E938F', fontSize: 11, fontWeight: 900, letterSpacing: '.06em', marginBottom: 8 }}>
                 SÉANCE DU JOUR
               </div>
-              <div style={styles.cardTitle}>{todaySession.name}</div>
+              <div style={ui.bigTitle}>{todaySession.name}</div>
               {todaySession.duration_minutes && (
-                <div style={{ ...styles.cardBody, marginBottom: 17 }}>
+                <div style={{ ...ui.body, marginBottom: 20 }}>
                   {todaySession.duration_minutes} min · {todaySession.exercises?.length ?? 0} exercices
                 </div>
               )}
-              <SecondaryButton onClick={() => navigate('/program')}>
-                VOIR MA SÉANCE →
-              </SecondaryButton>
-            </Card>
+              <DarkButton onClick={() => navigate('/program')}>VOIR MA SÉANCE →</DarkButton>
+            </AppCard>
           </section>
         )}
 
         {todayWorkout && (
-          <section style={{ marginBottom: 32 }}>
-            <SectionTitle title="Mouvement" />
-            <Card style={{
-              padding: 18,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 13,
-            }}>
+          <section style={{ marginBottom: 34 }}>
+            <SectionHeader title="Mouvement" />
+            <AppCard style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{
-                width: 40,
-                height: 40,
-                flexShrink: 0,
+                width: 44,
+                height: 44,
+                borderRadius: 15,
                 display: 'grid',
                 placeItems: 'center',
-                borderRadius: 13,
-                background: 'rgba(200,255,0,.11)',
+                flexShrink: 0,
+                background: 'rgba(200,255,0,.12)',
                 color: '#C8FF00',
+                fontSize: 19,
                 fontWeight: 1000,
-              }}>
-                ✓
-              </div>
+              }}>✓</div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 950 }}>Séance terminée</div>
-                <div style={{ color: '#A7ABA8', fontSize: 12, marginTop: 3 }}>
-                  {todayWorkout.name}
-                </div>
+                <div style={{ fontSize: 16, fontWeight: 950 }}>Séance terminée</div>
+                <div style={{ color: '#B3B7B4', fontSize: 13, marginTop: 3 }}>{todayWorkout.name}</div>
               </div>
-            </Card>
+            </AppCard>
           </section>
         )}
 
         {/* NUTRITION */}
         {(todayKcal > 0 || todayProt > 0) && (
-          <section style={{ marginBottom: 32 }}>
-            <SectionTitle title="Nutrition" action="Plus" onAction={() => navigate('/fuel')} />
-            <Card style={{ padding: 16 }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                gap: 10,
-              }}>
-                <MetricCard
+          <section style={{ marginBottom: 34 }}>
+            <SectionHeader title="Nutrition" action="Plus" onAction={() => navigate('/fuel')} />
+            <AppCard style={{ padding: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <Metric
                   value={Math.round(todayKcal)}
                   label={`kcal${caloriesTarget ? ` / ${caloriesTarget}` : ''}`}
                   progress={caloriesTarget > 0 ? todayKcal / caloriesTarget : 0}
                 />
-                <MetricCard
+                <Metric
                   value={`${Math.round(todayProt)}g`}
                   label={`protéines${proteinTarget ? ` / ${proteinTarget}g` : ''}`}
                   progress={proteinTarget > 0 ? todayProt / proteinTarget : 0}
                 />
               </div>
-            </Card>
+            </AppCard>
           </section>
         )}
 
         {/* CLÔTURE */}
         {!todayClosure ? (
-          <section style={{ marginBottom: 24 }}>
-            <SectionTitle title="Clôture de journée" />
-            <Card style={{ padding: 20 }}>
-              <div style={styles.cardTitle}>
+          <section style={{ marginBottom: 28 }}>
+            <SectionHeader title="Clôture de journée" />
+            <AppCard style={{ padding: 22 }}>
+              <div style={ui.bigTitle}>
                 {todayPulse ? 'Ta journée touche à sa fin.' : 'Ton bilan viendra ici ce soir.'}
               </div>
-              <div style={{
-                ...styles.cardBody,
-                marginBottom: todayPulse ? 18 : 0,
-              }}>
+              <div style={{ ...ui.body, marginBottom: todayPulse ? 20 : 0 }}>
                 {todayPulse
                   ? '30 secondes pour clôturer avec NOX.'
                   : 'Commence par ton Pulse pour donner à NOX le contexte de ta journée.'}
               </div>
-
               {todayPulse && (
-                <SecondaryButton
+                <DarkButton
                   onClick={() => navigate('/closure', {
                     state: {
                       priorityTitle: priority.type !== 'none' ? (priority as any).title : null,
@@ -756,43 +728,25 @@ export default function Home() {
                   })}
                 >
                   CLÔTURER MA JOURNÉE →
-                </SecondaryButton>
+                </DarkButton>
               )}
-            </Card>
+            </AppCard>
           </section>
         ) : (
-          <section style={{ marginBottom: 24 }}>
-            <SectionTitle title="Clôture de journée" />
-            <Card style={{
-              padding: 18,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 14,
-            }}>
+          <section style={{ marginBottom: 28 }}>
+            <SectionHeader title="Clôture de journée" />
+            <AppCard style={{ padding: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
               <div>
-                <div style={{ color: '#C8FF00', fontSize: 12, fontWeight: 950 }}>
-                  Journée clôturée ✓
-                </div>
-                <div style={{ color: '#A7ABA8', fontSize: 12, marginTop: 4 }}>
-                  NOX a enregistré ta journée.
-                </div>
+                <div style={{ color: '#C8FF00', fontSize: 13, fontWeight: 950 }}>Journée clôturée ✓</div>
+                <div style={{ color: '#B3B7B4', fontSize: 12, marginTop: 4 }}>NOX a enregistré ta journée.</div>
               </div>
               <button
                 onClick={() => setEditingClosure(true)}
-                style={{
-                  border: 0,
-                  padding: 0,
-                  background: 'transparent',
-                  color: '#C8FF00',
-                  fontSize: 11,
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                }}
+                style={{ border: 0, background: 'transparent', color: '#C8FF00', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}
               >
                 Modifier
               </button>
-            </Card>
+            </AppCard>
           </section>
         )}
       </main>
@@ -802,45 +756,25 @@ export default function Home() {
   );
 }
 
-/* ---------- UI ÉCRAN 1 : visuel uniquement ---------- */
+/* Visuel de l'écran Aujourd'hui uniquement. La BottomNav reste celle de NOX. */
 
-const styles = {
-  cardTitle: {
-    marginBottom: 7,
-    fontSize: 21,
-    lineHeight: 1.12,
-    letterSpacing: '-.025em',
-    fontWeight: 1000,
+const ui = {
+  bigTitle: {
+    marginBottom: 8,
     color: '#FFFFFF',
+    fontSize: 23,
+    lineHeight: 1.08,
+    letterSpacing: '-.035em',
+    fontWeight: 1000,
   } as React.CSSProperties,
-  cardBody: {
-    color: '#A7ABA8',
-    fontSize: 13,
+  body: {
+    color: '#B3B7B4',
+    fontSize: 14,
     lineHeight: 1.5,
   } as React.CSSProperties,
 };
 
-function Card({
-  children,
-  style,
-}: {
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <div style={{
-      overflow: 'hidden',
-      background: '#222523',
-      border: '1px solid #454A46',
-      borderRadius: 22,
-      ...style,
-    }}>
-      {children}
-    </div>
-  );
-}
-
-function SectionTitle({
+function SectionHeader({
   title,
   action,
   onAction,
@@ -851,18 +785,19 @@ function SectionTitle({
 }) {
   return (
     <div style={{
-      minHeight: 28,
+      minHeight: 34,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: 14,
-      marginBottom: 11,
+      marginBottom: 12,
     }}>
       <h2 style={{
         margin: 0,
-        fontSize: 23,
-        lineHeight: 1.05,
-        letterSpacing: '-.035em',
+        color: '#FFFFFF',
+        fontSize: 27,
+        lineHeight: 1,
+        letterSpacing: '-.04em',
         fontWeight: 1000,
       }}>
         {title}
@@ -877,7 +812,7 @@ function SectionTitle({
               padding: 0,
               background: 'transparent',
               color: '#C8FF00',
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 900,
               cursor: 'pointer',
             }}
@@ -887,9 +822,8 @@ function SectionTitle({
         ) : (
           <span style={{
             color: '#C8FF00',
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: 900,
-            letterSpacing: '.04em',
             textTransform: 'uppercase',
           }}>
             {action}
@@ -900,7 +834,28 @@ function SectionTitle({
   );
 }
 
-function PrimaryButton({
+function AppCard({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div style={{
+      overflow: 'hidden',
+      background: '#252826',
+      border: '2px solid #5B605C',
+      borderRadius: 22,
+      boxSizing: 'border-box',
+      ...style,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function LimeButton({
   children,
   onClick,
   style,
@@ -914,12 +869,12 @@ function PrimaryButton({
       onClick={onClick}
       style={{
         width: '100%',
-        minHeight: 49,
+        minHeight: 54,
         border: 0,
-        borderRadius: 15,
+        borderRadius: 16,
         background: '#C8FF00',
-        color: '#090B09',
-        fontSize: 12,
+        color: '#080A09',
+        fontSize: 13,
         fontWeight: 1000,
         cursor: 'pointer',
         ...style,
@@ -930,7 +885,7 @@ function PrimaryButton({
   );
 }
 
-function SecondaryButton({
+function DarkButton({
   children,
   onClick,
 }: {
@@ -942,12 +897,12 @@ function SecondaryButton({
       onClick={onClick}
       style={{
         width: '100%',
-        minHeight: 47,
-        border: '1px solid #505550',
-        borderRadius: 14,
-        background: '#2C2F2D',
+        minHeight: 52,
+        border: '1.5px solid #606561',
+        borderRadius: 15,
+        background: '#303330',
         color: '#FFFFFF',
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: 950,
         cursor: 'pointer',
       }}
@@ -957,7 +912,7 @@ function SecondaryButton({
   );
 }
 
-function MetricCard({
+function Metric({
   value,
   label,
   progress,
@@ -969,16 +924,16 @@ function MetricCard({
   return (
     <div style={{
       minWidth: 0,
-      padding: '15px 14px',
+      padding: '17px 14px',
       borderRadius: 16,
-      background: '#2C2F2D',
+      background: '#303330',
     }}>
-      <div style={{ fontSize: 23, fontWeight: 1000, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 25, lineHeight: 1, fontWeight: 1000 }}>{value}</div>
       <div style={{
-        marginTop: 5,
-        color: '#A7ABA8',
-        fontSize: 10,
-        fontWeight: 750,
+        marginTop: 6,
+        color: '#B3B7B4',
+        fontSize: 11,
+        fontWeight: 700,
         whiteSpace: 'nowrap',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
@@ -986,13 +941,7 @@ function MetricCard({
         {label}
       </div>
       {progress > 0 && (
-        <div style={{
-          height: 4,
-          marginTop: 11,
-          overflow: 'hidden',
-          borderRadius: 999,
-          background: '#4B504C',
-        }}>
+        <div style={{ height: 5, marginTop: 13, overflow: 'hidden', borderRadius: 999, background: '#555A56' }}>
           <div style={{
             width: `${Math.min(100, Math.max(0, progress * 100))}%`,
             height: '100%',
