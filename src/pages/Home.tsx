@@ -11,7 +11,7 @@ import { todayLocalDate } from '../lib/localDate';
 import NoxCompanion from '../components/NoxCompanion';
 
 type Completion = 'yes' | 'partial' | 'no';
-type NavActive = 'home' | 'nutrition' | 'progress' | 'moi';
+type NavActive = 'home' | 'nutrition' | 'mon-nox' | 'moi';
 
 type Closure = {
   completion: Completion;
@@ -48,7 +48,7 @@ function QuickAddModal({ open, onClose }: { open: boolean; onClose: () => void }
     { label: 'Humeur/Stress',   icon: Smile,     path: '/mood',      color: '#FFD93D' },
     { label: 'Eau',             icon: Droplets,  path: '/fuel',      color: '#4FC3F7' },
     { label: 'Note rapide',     icon: FileText,  path: '/coach',     color: '#A5D6A7' },
-    { label: 'Photo',           icon: Camera,    path: '/progress',  color: '#F48FB1' },
+    { label: 'Photo',           icon: Camera,    path: '/mon-nox',   color: '#F48FB1' },
   ];
 
   return (
@@ -299,420 +299,238 @@ export default function Home() {
         : null;
 
   return (
-    <div className="nox-home">
-      <style>{`.nox-home {
-  --home-bg: #f3f1e9;
-  --home-card: #fffef9;
-  --home-ink: #11120f;
-  --home-muted: #777b72;
-  --home-line: #dfddd3;
-  --home-lime: #c8ff00;
-  --home-lime-soft: #efffc0;
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at 8% 0%, rgba(200,255,0,.10), transparent 25rem),
-    var(--home-bg);
-  color: var(--home-ink);
-  padding-bottom: 96px;
-}
+    <div style={{ minHeight: '100vh', background: '#0A0A0A', color: '#FFFFFF', paddingBottom: 100 }}>
+      <main style={{ maxWidth: 560, margin: '0 auto', padding: '0 20px' }}>
 
-.nox-home button { color: inherit; }
-.nox-home button:focus-visible { outline-color: #89ad00; }
+        {/* HEADER */}
+        <div style={{ paddingTop: 52, paddingBottom: 10 }}>
+          <div style={{ fontSize: 13, color: '#777777', fontWeight: 700, marginBottom: 4 }}>{dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}</div>
+          <h1 style={{ margin: 0, fontSize: 38, fontWeight: 1000, letterSpacing: '-.05em', lineHeight: .95 }}>
+            {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
+          </h1>
+        </div>
 
-.nox-desktop-header {
-  width: min(1180px, calc(100% - 48px));
-  height: 78px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  border-bottom: 1px solid rgba(17,18,15,.08);
-}
-.nox-brand {
-  border: 0; background: transparent; cursor: pointer;
-  width: max-content; padding: 0;
-  font-size: 26px; font-weight: 950; letter-spacing: -.06em;
-}
-.nox-brand span { color: #9ed100; }
-.nox-desktop-header__nav { display: flex; align-items: center; gap: 8px; }
-.nox-desktop-header__nav button {
-  border: 0; background: transparent; cursor: pointer;
-  padding: 10px 13px; border-radius: 999px;
-  color: #6e7269; font-size: 13px; font-weight: 800;
-}
-.nox-desktop-header__nav button:hover,
-.nox-desktop-header__nav button.is-active { background: rgba(17,18,15,.06); color: var(--home-ink); }
-.nox-header-add {
-  justify-self: end; display: flex; align-items: center; gap: 7px;
-  border: 1px solid #d9d7ce; background: #fffef9; cursor: pointer;
-  padding: 10px 14px; border-radius: 14px; font-weight: 850; font-size: 12px;
-}
-.nox-mobile-header { display: none; }
-
-.nox-home__shell { width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding: 54px 0 72px; }
-.nox-hero { display: flex; justify-content: space-between; align-items: end; margin-bottom: 28px; }
-.nox-hello { color: #555950; font-size: 15px; font-weight: 750; margin-bottom: 7px; }
-.nox-hello span { font-size: 16px; }
-.nox-hero h1 { margin: 0; font-size: clamp(46px, 6vw, 82px); line-height: .86; letter-spacing: -.075em; font-weight: 1000; }
-.nox-date { margin-top: 14px; color: #8a8d84; font-size: 11px; letter-spacing: .08em; font-weight: 900; }
-.nox-hero__aside { color: #8a8d84; font-size: 13px; line-height: 1.45; font-weight: 700; text-align: right; padding-bottom: 5px; }
-
-.nox-eyebrow { font-size: 10px; font-weight: 1000; letter-spacing: .11em; color: #74786f; }
-.nox-eyebrow--lime { color: var(--home-lime); }
-
-.nox-start-card {
-  min-height: 260px; border-radius: 30px; padding: 34px;
-  background: #10110f; color: #fff; display: flex;
-  align-items: end; justify-content: space-between; gap: 30px;
-  box-shadow: 0 28px 70px rgba(16,17,15,.14);
-}
-.nox-start-card h2 { margin: 10px 0 8px; font-size: 36px; letter-spacing: -.045em; }
-.nox-start-card p { max-width: 560px; color: #bfc3b9; line-height: 1.55; }
-.nox-primary-button, .nox-priority-cta {
-  border: 0; cursor: pointer; background: var(--home-lime); color: #10110f !important;
-  min-height: 54px; border-radius: 15px; padding: 0 18px;
-  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  font-size: 11px; font-weight: 1000; letter-spacing: .02em;
-}
-
-.nox-pulse-card {
-  position: relative; overflow: hidden;
-  min-height: 240px; border-radius: 30px; background: #10110f; color: #fff;
-  display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr);
-  box-shadow: 0 26px 65px rgba(16,17,15,.14);
-}
-.nox-pulse-card__content { padding: 30px 34px; position: relative; z-index: 2; }
-.nox-pulse-card__headline { display: flex; align-items: end; gap: 20px; margin-top: 16px; }
-.nox-pulse-card__headline strong { font-size: 50px; line-height: .9; letter-spacing: -.06em; }
-.nox-pulse-card__headline span { color: #777c73; font-size: 18px; font-weight: 900; }
-.nox-pulse-card__headline p { max-width: 290px; color: #9ca198; font-size: 12px; line-height: 1.45; padding-bottom: 3px; }
-.nox-pulse-metrics { display: flex; gap: 9px; margin-top: 23px; }
-.nox-pulse-metrics > div {
-  min-width: 112px; border: 1px solid #2d2f2b; background: #171815;
-  border-radius: 13px; padding: 10px 12px; display: flex; justify-content: space-between; gap: 14px;
-}
-.nox-pulse-metrics span { color: #8d9288; font-size: 10px; font-weight: 800; }
-.nox-pulse-metrics b { color: #fff; font-size: 11px; }
-.nox-pulse-card__orb {
-  position: relative;
-  min-width: 0;
-  overflow: hidden;
-  background: #10110f;
-}
-
-.nox-orb { width: 160px; height: 160px; position: relative; display: grid; place-items: center; filter: drop-shadow(0 0 20px rgba(200,255,0,.16)); }
-.nox-orb--compact { width: 125px; height: 125px; }
-.nox-orb__ring { position: absolute; border-radius: 50%; border: 1px solid rgba(200,255,0,.48); }
-.nox-orb__ring--one { inset: 10%; transform: rotate(13deg) scaleX(.82); }
-.nox-orb__ring--two { inset: 18%; transform: rotate(-28deg) scaleY(.78); border-color: rgba(200,255,0,.34); }
-.nox-orb__ring--three { inset: 28%; border-color: rgba(200,255,0,.25); box-shadow: inset 0 0 20px rgba(200,255,0,.08); }
-.nox-orb__core { width: 11px; height: 11px; border-radius: 50%; background: var(--home-lime); box-shadow: 0 0 18px var(--home-lime); }
-@media (prefers-reduced-motion: no-preference) {
-  .nox-orb__ring--one { animation: nox-orbit 9s linear infinite; }
-  .nox-orb__ring--two { animation: nox-orbit-reverse 12s linear infinite; }
-}
-@keyframes nox-orbit { to { transform: rotate(373deg) scaleX(.82); } }
-@keyframes nox-orbit-reverse { to { transform: rotate(-388deg) scaleY(.78); } }
-
-.nox-priority-card {
-  margin-top: 18px; min-height: 270px; border-radius: 30px; overflow: hidden;
-  display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
-  background: var(--home-lime-soft); border: 1px solid #dceca9;
-}
-.nox-priority-card--none { background: #fffef9; border-color: var(--home-line); }
-.nox-priority-card.is-closed { background: #f2f0e7; border-color: var(--home-line); }
-.nox-priority-card.is-closed .nox-priority-visual { opacity: .55; filter: saturate(.45); }
-.nox-priority-card.is-closed .nox-priority-card__action { color: #777b72; }
-.nox-priority-card__copy { padding: 27px 34px; display: flex; flex-direction: column; align-items: flex-start; }
-.nox-priority-card__top { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-.nox-confidence { border: 1px solid rgba(17,18,15,.12); border-radius: 999px; padding: 6px 9px; font-size: 8px; font-weight: 950; letter-spacing: .06em; color: #6d7168; }
-.nox-priority-card h2 { margin: 15px 0 7px; font-size: clamp(31px, 3.4vw, 52px); line-height: .94; letter-spacing: -.06em; max-width: 680px; }
-.nox-priority-card__action { color: #4f554a; font-size: 15px; line-height: 1.5; font-weight: 650; max-width: 620px; }
-.nox-evidence-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
-.nox-evidence-row span { background: rgba(255,255,255,.55); border: 1px solid rgba(17,18,15,.08); padding: 7px 9px; border-radius: 10px; font-size: 10px; color: #686d63; }
-.nox-evidence-row b { color: #171914; margin-right: 3px; }
-.nox-why { margin-top: 13px; width: min(620px, 100%); }
-.nox-why summary { cursor: pointer; list-style: none; font-size: 10px; font-weight: 1000; letter-spacing: .08em; }
-.nox-why summary::-webkit-details-marker { display: none; }
-.nox-why p { margin-top: 9px; font-size: 12px; color: #686d63; line-height: 1.5; }
-.nox-priority-cta { margin-top: 15px; background: #11120f; color: #fff !important; }
-.nox-priority-visual { position: relative; display: grid; place-items: center; background: linear-gradient(145deg, rgba(17,18,15,.03), rgba(17,18,15,.10)); overflow: hidden; }
-.nox-priority-visual__halo { position: absolute; width: 280px; height: 280px; border-radius: 50%; background: radial-gradient(circle, rgba(200,255,0,.34), transparent 68%); }
-.nox-priority-visual__label { position: absolute; bottom: 25px; font-size: 9px; font-weight: 1000; letter-spacing: .15em; color: #676d5f; }
-
-.nox-lower-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 18px; margin-top: 18px; }
-.nox-quick-card, .nox-day-card { background: #fffef9; border: 1px solid var(--home-line); border-radius: 26px; padding: 25px; }
-.nox-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
-.nox-section-heading h3, .nox-day-card h3 { margin-top: 7px; font-size: 21px; letter-spacing: -.035em; }
-.nox-round-plus { width: 40px; height: 40px; border-radius: 13px; border: 0; background: #11120f; color: var(--home-lime) !important; display: grid; place-items: center; cursor: pointer; }
-.nox-quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin-top: 20px; }
-.nox-quick-actions button { border: 1px solid #e3e1d8; background: #f8f7f1; border-radius: 16px; padding: 14px; text-align: left; cursor: pointer; min-width: 0; }
-.nox-quick-actions button:hover { transform: translateY(-1px); border-color: #cdd0c4; }
-.nox-quick-actions button > span { width: 34px; height: 34px; border-radius: 11px; background: #fff; display: grid; place-items: center; margin-bottom: 14px; }
-.nox-quick-actions b { display: block; font-size: 12px; }
-.nox-quick-actions small { display: block; margin-top: 3px; color: #969990; font-size: 9px; line-height: 1.3; }
-
-.nox-day-card > p { margin-top: 9px; color: #7a7e75; font-size: 12px; line-height: 1.5; }
-.nox-completion-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 20px; }
-.nox-completion-buttons button { border: 1px solid #dddbd2; background: #f7f6f0; border-radius: 12px; padding: 11px 8px; font-size: 10px; font-weight: 900; cursor: pointer; }
-.nox-completion-buttons button.is-selected { background: var(--home-lime); border-color: #b9e700; }
-.nox-cancel-edit { border: 0; background: transparent; margin-top: 12px; font-size: 9px; font-weight: 900; color: #8a8e84; cursor: pointer; }
-.nox-day-card__done { display: flex; align-items: center; gap: 12px; }
-.nox-day-card__done > span { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; background: var(--home-lime); }
-.nox-energy { margin-top: 18px; padding-top: 16px; border-top: 1px solid #ebe9e0; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.nox-energy > span { font-size: 10px; font-weight: 850; color: #73776e; }
-.nox-energy > div { display: flex; gap: 4px; }
-.nox-energy button { width: 28px; height: 28px; border-radius: 9px; border: 1px solid #dfddd4; background: #f7f6f0; font-size: 9px; font-weight: 900; cursor: pointer; }
-.nox-energy button.is-selected { background: #11120f; color: var(--home-lime) !important; border-color: #11120f; }
-.nox-text-button { margin-top: 14px; border: 0; background: transparent; cursor: pointer; padding: 0; font-size: 9px; font-weight: 1000; letter-spacing: .06em; color: #656a60 !important; display: inline-flex; align-items: center; gap: 3px; }
-.nox-text-button--dark { color: #b8bdb3 !important; }
-
-.nox-modal-backdrop { position: fixed; inset: 0; z-index: 1000; background: rgba(8,9,7,.48); backdrop-filter: blur(10px); display: flex; align-items: flex-end; justify-content: center; padding: 20px; }
-.nox-modal { width: min(620px, 100%); background: #fffef9; color: #11120f; border-radius: 28px; padding: 12px 22px 24px; box-shadow: 0 35px 90px rgba(0,0,0,.24); }
-.nox-modal__handle { width: 42px; height: 4px; border-radius: 99px; background: #d7d5cc; margin: 0 auto 17px; }
-.nox-modal__header { display: flex; justify-content: space-between; align-items: start; gap: 20px; }
-.nox-modal__header h2 { margin-top: 5px; font-size: 25px; letter-spacing: -.045em; }
-.nox-icon-button { width: 42px; height: 42px; border-radius: 13px; border: 1px solid #dfddd4; background: #fffef9; display: grid; place-items: center; cursor: pointer; }
-.nox-modal__grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 20px; }
-.nox-modal-action { border: 1px solid #e2e0d7; background: #f7f6f0; border-radius: 16px; padding: 14px 10px; cursor: pointer; font-size: 10px; font-weight: 850; }
-.nox-modal-action span { width: 34px; height: 34px; margin: 0 auto 9px; border-radius: 11px; display: grid; place-items: center; background: #fff; }
-
-.nox-mobile-nav { display: none; }
-
-@media (max-width: 820px) {
-  .nox-home { padding-bottom: 104px; }
-  .nox-desktop-header { display: none; }
-  .nox-mobile-header { height: 70px; padding: 0 18px; display: flex; justify-content: space-between; align-items: center; }
-  .nox-home__shell { width: 100%; padding: 22px 16px 40px; }
-  .nox-hero { margin-bottom: 20px; }
-  .nox-hero h1 { font-size: 46px; }
-  .nox-hero__aside { display: none; }
-  .nox-hello { font-size: 13px; }
-  .nox-date { margin-top: 9px; font-size: 9px; }
-
-  .nox-pulse-card { min-height: 205px; grid-template-columns: 1fr 130px; border-radius: 24px; }
-  .nox-pulse-card__content { padding: 22px 20px; }
-  .nox-pulse-card__headline { margin-top: 13px; }
-  .nox-pulse-card__headline strong { font-size: 40px; }
-  .nox-pulse-card__headline p { display: none; }
-  .nox-pulse-metrics { gap: 5px; margin-top: 17px; }
-  .nox-pulse-metrics > div { min-width: 0; flex: 1; padding: 8px; display: block; }
-  .nox-pulse-metrics span { display: block; margin-bottom: 3px; font-size: 8px; }
-  .nox-pulse-card__orb { overflow: hidden; }
-  .nox-text-button--dark { margin-top: 12px; }
-
-  .nox-priority-card { min-height: 0; grid-template-columns: 1fr; border-radius: 24px; }
-  .nox-priority-card__copy { padding: 24px 20px 20px; }
-  .nox-priority-card h2 { margin-top: 18px; font-size: 34px; }
-  .nox-priority-card__action { font-size: 13px; }
-  .nox-confidence { font-size: 7px; padding: 5px 7px; }
-  .nox-priority-visual { display: none; }
-  .nox-priority-cta { width: 100%; }
-
-  .nox-lower-grid { grid-template-columns: 1fr; }
-  .nox-quick-card, .nox-day-card { border-radius: 22px; padding: 20px; }
-  .nox-quick-actions { grid-template-columns: repeat(4, 1fr); }
-  .nox-quick-actions button { padding: 11px 8px; }
-  .nox-quick-actions button > span { margin-bottom: 10px; }
-  .nox-quick-actions small { display: none; }
-
-  .nox-mobile-nav {
-    position: fixed; z-index: 500; left: 50%; bottom: 0; transform: translateX(-50%);
-    width: 100%; height: 72px; padding: 7px 12px max(8px, env(safe-area-inset-bottom));
-    display: flex; align-items: center; justify-content: space-around;
-    background: rgba(255,254,249,.94); backdrop-filter: blur(20px); border-top: 1px solid #dedcd3;
-  }
-  .nox-mobile-nav__item { flex: 1; border: 0; background: transparent; color: #999c94 !important; font-size: 9px; font-weight: 850; cursor: pointer; }
-  .nox-mobile-nav__item.is-active { color: #11120f !important; }
-  .nox-mobile-nav__plus { width: 50px; height: 50px; border: 0; border-radius: 17px; background: var(--home-lime); color: #11120f !important; display: grid; place-items: center; transform: translateY(-13px); box-shadow: 0 10px 24px rgba(170,218,0,.28); cursor: pointer; }
-
-  .nox-modal-backdrop { padding: 0; }
-  .nox-modal { border-radius: 28px 28px 0 0; padding-bottom: max(28px, env(safe-area-inset-bottom)); }
-  .nox-modal__grid { grid-template-columns: repeat(3, 1fr); }
-}
-
-@media (max-width: 430px) {
-  .nox-pulse-card { grid-template-columns: 1fr 105px; }
-  .nox-pulse-metrics > div { padding: 7px 6px; }
-  .nox-pulse-metrics b { font-size: 10px; }
-  .nox-priority-card__top { align-items: flex-start; }
-  .nox-quick-actions { gap: 6px; }
-  .nox-quick-actions b { font-size: 10px; }
-}
-
-@media (min-width: 821px) {
-  .nox-home { padding-bottom: 0; }
-}
-`}</style>
-      <QuickAddModal open={showAdd} onClose={() => setShowAdd(false)} />
-
-      <header className="nox-desktop-header">
-        <button className="nox-brand" onClick={() => navigate('/home')}>NOX<span>.</span></button>
-        <nav className="nox-desktop-header__nav">
-          <button className="is-active" onClick={() => navigate('/home')}>Aujourd’hui</button>
-          <button onClick={() => navigate('/fuel')}>Nutrition</button>
-          <button onClick={() => navigate('/progress')}>Mon NOX</button>
-          <button onClick={() => navigate('/profile')}>Moi</button>
-        </nav>
-        <button className="nox-header-add" onClick={() => setShowAdd(true)}><Plus size={18} /> Ajouter</button>
-      </header>
-
-      <div className="nox-mobile-header">
-        <button className="nox-brand" onClick={() => navigate('/home')}>NOX<span>.</span></button>
-        <button className="nox-icon-button" onClick={() => navigate('/profile')} aria-label="Profil"><CircleUserRound size={20} /></button>
-      </div>
-
-      <main className="nox-home__shell">
-        <section className="nox-hero">
-          <div>
-            <p className="nox-hello">{firstName ? `Bonjour ${firstName}` : 'Bonjour'} <span>👋</span></p>
-            <h1>AUJOURD’HUI</h1>
-            <p className="nox-date">{dateLabel}</p>
-          </div>
-          <p className="nox-hero__aside">Une seule priorité.<br />Le reste peut attendre.</p>
-        </section>
-
-        {!todayPulse ? (
-          <section className="nox-start-card">
-            <div>
-              <div className="nox-eyebrow">TON PULSE</div>
-              <h2>Comment tu te sens aujourd’hui ?</h2>
-              <p>3 signaux · 10 secondes · NOX choisit ensuite ce qui mérite vraiment ton attention.</p>
+        {/* PULSE */}
+        {todayPulse ? (
+          <section style={{ background: '#111111', border: '1px solid #222222', borderRadius: 26, padding: '18px 20px', margin: '18px 0 14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 900, color: '#888888', letterSpacing: '.09em' }}>TON PULSE</div>
+              <button onClick={() => navigate('/pulse')}
+                style={{ fontSize: 10, fontWeight: 900, color: '#C8FF00', background: 'transparent', border: 0, cursor: 'pointer' }}>
+                MODIFIER
+              </button>
             </div>
-            <button className="nox-primary-button" onClick={() => navigate('/pulse')}>FAIRE MON PULSE <ChevronRight size={18} /></button>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              {[
+                { label: 'Sommeil', value: todayPulse.sleep_score, emoji: '🌙' },
+                { label: 'Énergie', value: todayPulse.energy_score, emoji: '⚡' },
+                { label: 'Corps',   value: todayPulse.body_score,   emoji: '💪' },
+              ].map(({ label, value, emoji }) => (
+                <div key={label} style={{ background: '#1A1A1A', borderRadius: 18, padding: '14px 10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 20, marginBottom: 6 }}>{emoji}</div>
+                  <div style={{ fontSize: 26, fontWeight: 1000, color: '#FFFFFF', lineHeight: 1 }}>{value}</div>
+                  <div style={{ fontSize: 9, color: '#666666', fontWeight: 800, marginTop: 4, letterSpacing: '.05em' }}>/5</div>
+                  <div style={{ fontSize: 10, color: '#888888', fontWeight: 700, marginTop: 4 }}>{label}</div>
+                </div>
+              ))}
+            </div>
           </section>
         ) : (
-          <>
-            <section className="nox-pulse-card">
-              <div className="nox-pulse-card__content">
-                <div className="nox-eyebrow nox-eyebrow--lime">TON PULSE</div>
-                <div className="nox-pulse-card__headline">
-                  <div>
-                    <strong>3</strong><span> signaux</span>
-                  </div>
-                  <p>Sommeil, énergie et corps. Pas de score global inventé.</p>
-                </div>
-                <div className="nox-pulse-metrics">
-                  <div><span>Sommeil</span><b>{todayPulse.sleep_score}/5</b></div>
-                  <div><span>Énergie</span><b>{todayPulse.energy_score}/5</b></div>
-                  <div><span>Corps</span><b>{todayPulse.body_score}/5</b></div>
-                </div>
-                <button className="nox-text-button nox-text-button--dark" onClick={() => navigate('/pulse')}>METTRE À JOUR <ChevronRight size={15} /></button>
-              </div>
-              <div className="nox-pulse-card__orb"><NoxCompanion observedDays={observedDays} size="md" /></div>
-            </section>
-
-            <section className={`nox-priority-card nox-priority-card--${priority.type} ${todayClosure ? 'is-closed' : ''}`}>
-              <div className="nox-priority-card__copy">
-                <div className="nox-priority-card__top">
-                  <div className="nox-eyebrow">{todayClosure ? 'PRIORITÉ DU JOUR · CLÔTURÉE' : 'PRIORITÉ DU JOUR'}</div>
-                  <span className="nox-confidence">
-                    {todayClosure
-                      ? completionLabel[todayClosure.completion].toUpperCase()
-                      : priority.confidence === 'high'
-                        ? 'CONFIANCE ÉLEVÉE'
-                        : priority.confidence === 'moderate'
-                          ? 'CONFIANCE MODÉRÉE'
-                          : 'CONFIANCE FAIBLE'}
-                  </span>
-                </div>
-                <h2>{priorityTitle}</h2>
-                <p className="nox-priority-card__action">{priorityAction}</p>
-
-                {priority.evidence.length > 0 && (
-                  <div className="nox-evidence-row">
-                    {priority.evidence.slice(0, 3).map((item) => (
-                      <span key={`${item.key}-${item.value}`}><b>{item.label}</b> {item.value}</span>
-                    ))}
-                  </div>
-                )}
-
-                <details className="nox-why">
-                  <summary>POURQUOI ?</summary>
-                  <p>{priorityReason}</p>
-                </details>
-
-                {!todayClosure && actionLabel && (
-                  <button className="nox-priority-cta" onClick={mainAction}>{actionLabel} <ChevronRight size={18} /></button>
-                )}
-              </div>
-
-              <div className="nox-priority-visual" aria-hidden="true">
-                <div className="nox-priority-visual__halo" />
-                <NoxOrb compact />
-                <div className="nox-priority-visual__label">{priority.type === 'none' ? 'NOX' : priority.type.toUpperCase()}</div>
-              </div>
-            </section>
-
-            <section className="nox-lower-grid">
-              <div className="nox-quick-card">
-                <div className="nox-section-heading">
-                  <div>
-                    <div className="nox-eyebrow">AJOUT RAPIDE</div>
-                    <h3>Donne du contexte à NOX.</h3>
-                  </div>
-                  <button className="nox-round-plus" onClick={() => setShowAdd(true)}><Plus size={19} /></button>
-                </div>
-                <div className="nox-quick-actions">
-                  <button onClick={() => navigate('/food-scan')}><span><Utensils size={19} /></span><b>Repas</b><small>Photo ou saisie</small></button>
-                  <button onClick={() => navigate('/fuel')}><span><Droplets size={19} /></span><b>Eau</b><small>Hydratation</small></button>
-                  <button onClick={() => navigate('/program')}><span><Dumbbell size={19} /></span><b>Activité</b><small>Séance ou mouvement</small></button>
-                  <button onClick={() => navigate('/body')}><span><Scale size={19} /></span><b>Poids</b><small>Évolution corps</small></button>
-                </div>
-              </div>
-
-              <div className="nox-day-card">
-                {!todayClosure || editingClosure ? (
-                  <>
-                    <div className="nox-eyebrow">FIN DE JOURNÉE</div>
-                    <h3>Tu as suivi ta priorité ?</h3>
-                    <p>Une réponse suffit. NOX s’en sert pour comprendre ce qui fonctionne réellement pour toi.</p>
-                    <div className="nox-completion-buttons">
-                      {(['yes', 'partial', 'no'] as Completion[]).map((value) => (
-                        <button
-                          key={value}
-                          disabled={savingClosure}
-                          className={todayClosure?.completion === value ? 'is-selected' : ''}
-                          onClick={() => saveClosure(value)}
-                        >
-                          {completionLabel[value]}
-                        </button>
-                      ))}
-                    </div>
-                    {editingClosure && <button className="nox-cancel-edit" onClick={() => setEditingClosure(false)}>ANNULER</button>}
-                  </>
-                ) : (
-                  <>
-                    <div className="nox-day-card__done">
-                      <span><Activity size={18} /></span>
-                      <div>
-                        <div className="nox-eyebrow">JOURNÉE COMPRISE</div>
-                        <h3>À demain.</h3>
-                      </div>
-                    </div>
-                    <p>Priorité : <b>{completionLabel[todayClosure.completion]}</b>. Ton retour est enregistré.</p>
-                    <div className="nox-energy">
-                      <span>Énergie ce soir</span>
-                      <div>
-                        {[1, 2, 3, 4, 5].map((value) => (
-                          <button
-                            key={value}
-                            className={todayClosure.evening_energy === value ? 'is-selected' : ''}
-                            onClick={() => saveEnergy(value)}
-                            disabled={savingClosure}
-                          >{value}</button>
-                        ))}
-                      </div>
-                    </div>
-                    <button className="nox-text-button" onClick={() => setEditingClosure(true)}>MODIFIER</button>
-                  </>
-                )}
-              </div>
-            </section>
-          </>
+          <section style={{ background: '#111111', border: '1px solid #222222', borderRadius: 26, padding: '22px 20px', margin: '18px 0 14px' }}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: '#888888', letterSpacing: '.09em', marginBottom: 12 }}>PULSE DU MATIN</div>
+            <div style={{ fontSize: 17, fontWeight: 950, marginBottom: 6 }}>Comment tu vas aujourd'hui ?</div>
+            <div style={{ fontSize: 13, color: '#666666', marginBottom: 18 }}>3 signaux · 10 secondes · NOX comprend ton état.</div>
+            <button onClick={() => navigate('/pulse')}
+              style={{ width: '100%', padding: 16, border: 0, borderRadius: 16, background: '#C8FF00', color: '#0A0A0A', fontWeight: 1000, fontSize: 14, cursor: 'pointer' }}>
+              FAIRE MON PULSE →
+            </button>
+          </section>
         )}
+
+        {/* PRIORITÉ DU JOUR */}
+        {todayPulse && (
+          <section style={{
+            background: priority.type === 'none' ? '#111111' : '#0F1A00',
+            border: priority.type === 'none' ? '1px solid #222222' : '1px solid #3A5200',
+            borderRadius: 26, padding: '22px 20px', marginBottom: 14,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: '.09em', color: priority.type === 'none' ? '#888888' : '#C8FF00' }}>
+                TA PRIORITÉ DU JOUR
+              </div>
+              <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '.04em', color: '#555555', background: '#1A1A1A', padding: '5px 9px', borderRadius: 99 }}>
+                {priority.confidence === 'high' ? 'ÉLEVÉE' : priority.confidence === 'moderate' ? 'MODÉRÉE' : 'FAIBLE'}
+              </div>
+            </div>
+
+            {priority.type === 'none' ? (
+              <>
+                <div style={{ fontSize: 24, fontWeight: 1000, letterSpacing: '-.04em', marginBottom: 10 }}>Tout va bien ✓</div>
+                <div style={{ fontSize: 13, color: '#888888', lineHeight: 1.55 }}>NOX n'a pas de signal suffisant pour te demander de modifier quelque chose aujourd'hui. Continue normalement.</div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 26, fontWeight: 1000, letterSpacing: '-.04em', lineHeight: 1.1, marginBottom: 10 }}>
+                  {(priority as any).title}
+                </div>
+                <div style={{ fontSize: 14, color: '#AAAAAA', lineHeight: 1.55, marginBottom: 18 }}>
+                  {(priority as any).action}
+                </div>
+              </>
+            )}
+
+            <details style={{ borderTop: '1px solid #222222', paddingTop: 14 }}>
+              <summary style={{ cursor: 'pointer', fontSize: 11, fontWeight: 900, color: '#C8FF00', letterSpacing: '.05em', userSelect: 'none' }}>
+                POURQUOI ? ›
+              </summary>
+              <div style={{ marginTop: 12, fontSize: 13, color: '#AAAAAA', lineHeight: 1.55, marginBottom: 12 }}>
+                {priority.type !== 'none' ? (priority as any).reason : "Tes signaux du matin sont équilibrés — aucune zone ne nécessite d'intervention aujourd'hui."}
+              </div>
+              {priority.evidence.length > 0 && (
+                <div style={{ display: 'grid', gap: 7 }}>
+                  {priority.evidence.map(ev => (
+                    <div key={ev.key} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 12px', background: '#1A1A1A', borderRadius: 12 }}>
+                      <span style={{ fontSize: 11, color: '#666666', fontWeight: 700 }}>{ev.label}</span>
+                      <span style={{ fontSize: 11, color: '#FFFFFF', fontWeight: 900 }}>{ev.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </details>
+
+            {priority.type === 'activity' && todaySession && (
+              <button onClick={() => navigate('/program')}
+                style={{ width: '100%', padding: 16, marginTop: 16, border: 0, borderRadius: 16, background: '#C8FF00', color: '#0A0A0A', fontWeight: 1000, fontSize: 13, cursor: 'pointer' }}>
+                COMMENCER MA SÉANCE →
+              </button>
+            )}
+            {priority.type === 'nutrition' && (
+              <button onClick={() => navigate('/fuel')}
+                style={{ width: '100%', padding: 16, marginTop: 16, border: 0, borderRadius: 16, background: '#C8FF00', color: '#0A0A0A', fontWeight: 1000, fontSize: 13, cursor: 'pointer' }}>
+                AJOUTER MON REPAS →
+              </button>
+            )}
+          </section>
+        )}
+
+        {/* SÉANCE DU JOUR — uniquement si pertinent */}
+        {todaySession && !todayWorkout && (
+          <section style={{ background: '#111111', border: '1px solid #222222', borderRadius: 26, padding: '18px 20px', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: '#888888', letterSpacing: '.09em', marginBottom: 12 }}>SÉANCE DU JOUR</div>
+            <div style={{ fontSize: 18, fontWeight: 1000, marginBottom: 4 }}>{todaySession.name}</div>
+            {todaySession.duration_minutes && (
+              <div style={{ fontSize: 12, color: '#666666', marginBottom: 14 }}>{todaySession.duration_minutes} min · {todaySession.exercises?.length ?? 0} exercices</div>
+            )}
+            <button onClick={() => navigate('/program')}
+              style={{ width: '100%', padding: 14, border: '1px solid #333333', borderRadius: 14, background: 'transparent', color: '#FFFFFF', fontWeight: 900, fontSize: 13, cursor: 'pointer' }}>
+              VOIR MA SÉANCE →
+            </button>
+          </section>
+        )}
+
+        {todayWorkout && (
+          <section style={{ background: '#0F1A00', border: '1px solid #3A5200', borderRadius: 26, padding: '18px 20px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 12, background: '#C8FF00', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: 18 }}>✓</span>
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 1000, color: '#C8FF00' }}>SÉANCE FAITE</div>
+                <div style={{ fontSize: 12, color: '#AAAAAA', marginTop: 2 }}>{todayWorkout.name}</div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* NUTRITION RAPIDE */}
+        {(todayKcal > 0 || todayProt > 0) && (
+          <section style={{ background: '#111111', border: '1px solid #222222', borderRadius: 26, padding: '18px 20px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 900, color: '#888888', letterSpacing: '.09em' }}>NUTRITION AUJOURD'HUI</div>
+              <button onClick={() => navigate('/fuel')}
+                style={{ fontSize: 10, fontWeight: 900, color: '#C8FF00', background: 'transparent', border: 0, cursor: 'pointer' }}>VOIR →</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div style={{ background: '#1A1A1A', borderRadius: 16, padding: '14px 16px' }}>
+                <div style={{ fontSize: 22, fontWeight: 1000 }}>{Math.round(todayKcal)}</div>
+                <div style={{ fontSize: 10, color: '#666666', fontWeight: 800, marginTop: 3 }}>
+                  kcal {caloriesTarget ? `/ ${caloriesTarget}` : ''}
+                </div>
+                {caloriesTarget > 0 && (
+                  <div style={{ marginTop: 10, height: 4, background: '#2A2A2A', borderRadius: 999, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min(100, Math.round((todayKcal / caloriesTarget) * 100))}%`, height: '100%', background: '#C8FF00', borderRadius: 999 }} />
+                  </div>
+                )}
+              </div>
+              <div style={{ background: '#1A1A1A', borderRadius: 16, padding: '14px 16px' }}>
+                <div style={{ fontSize: 22, fontWeight: 1000 }}>{Math.round(todayProt)}g</div>
+                <div style={{ fontSize: 10, color: '#666666', fontWeight: 800, marginTop: 3 }}>
+                  protéines {proteinTarget ? `/ ${proteinTarget}g` : ''}
+                </div>
+                {proteinTarget > 0 && (
+                  <div style={{ marginTop: 10, height: 4, background: '#2A2A2A', borderRadius: 999, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min(100, Math.round((todayProt / proteinTarget) * 100))}%`, height: '100%', background: '#FF6B35', borderRadius: 999 }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* CLÔTURE DU JOUR */}
+        {todayPulse && !todayClosure && (
+          <section style={{ background: '#111111', border: '1px solid #222222', borderRadius: 26, padding: '22px 20px', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: '#888888', letterSpacing: '.09em', marginBottom: 12 }}>CLÔTURE DE JOURNÉE</div>
+            <div style={{ fontSize: 17, fontWeight: 950, marginBottom: 6 }}>Ta journée touche à sa fin.</div>
+            <div style={{ fontSize: 13, color: '#666666', marginBottom: 18 }}>As-tu accompli ta priorité du jour ?</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+              {(['Oui', 'Non'] as const).map(val => (
+                <button key={val}
+                  onClick={() => setClosure(c => ({ ...c, priorityDone: val === 'Oui' }))}
+                  style={{ padding: '14px 0', border: `1px solid ${closure.priorityDone === (val === 'Oui') ? '#C8FF00' : '#2A2A2A'}`, borderRadius: 14, background: closure.priorityDone === (val === 'Oui') ? '#0F1A00' : 'transparent', color: closure.priorityDone === (val === 'Oui') ? '#C8FF00' : '#AAAAAA', fontWeight: 1000, cursor: 'pointer', fontSize: 15 }}>
+                  {val}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 16 }}>
+              {(['😴','😕','😐','🙂','😄'] as const).map((emoji, i) => (
+                <button key={emoji}
+                  onClick={() => setClosure(c => ({ ...c, feeling: i + 1 }))}
+                  style={{ fontSize: 26, padding: '10px 0', border: `1px solid ${closure.feeling === i + 1 ? '#C8FF00' : '#222222'}`, borderRadius: 14, background: closure.feeling === i + 1 ? '#0F1A00' : 'transparent', cursor: 'pointer' }}>
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            <textarea
+              placeholder="Une note rapide (optionnel)"
+              value={closure.note}
+              onChange={e => setClosure(c => ({ ...c, note: e.target.value }))}
+              style={{ width: '100%', boxSizing: 'border-box', background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: 14, padding: '13px 14px', color: '#FFFFFF', fontSize: 13, resize: 'none', outline: 'none', marginBottom: 12, font: 'inherit' }}
+              rows={2}
+            />
+            <button onClick={saveClosure} disabled={savingClosure}
+              style={{ width: '100%', padding: 16, border: 0, borderRadius: 16, background: '#C8FF00', color: '#0A0A0A', fontWeight: 1000, fontSize: 14, cursor: 'pointer', opacity: savingClosure ? 0.6 : 1 }}>
+              {savingClosure ? 'ENREGISTREMENT...' : 'VALIDER'}
+            </button>
+          </section>
+        )}
+
+        {todayClosure && (
+          <section style={{ background: '#0F1A00', border: '1px solid #3A5200', borderRadius: 26, padding: '16px 20px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 900, color: '#C8FF00', letterSpacing: '.09em', marginBottom: 4 }}>JOURNÉE CLÔTURÉE</div>
+                <div style={{ fontSize: 13, color: '#AAAAAA' }}>NOX a enregistré ta journée.</div>
+              </div>
+              <button onClick={() => setEditingClosure(true)}
+                style={{ fontSize: 10, fontWeight: 900, color: '#666666', background: 'transparent', border: 0, cursor: 'pointer' }}>MODIFIER</button>
+            </div>
+          </section>
+        )}
+
       </main>
 
+      <QuickAddModal open={showAdd} onClose={() => setShowAdd(false)} />
       <BottomNav active="home" />
     </div>
   );
