@@ -7,12 +7,14 @@ import { usePlan } from '../lib/usePlan';
 import { Camera, ChevronRight, Plus, ScanLine, X } from 'lucide-react';
 
 const ACCENT = '#C8FF00';
-const BG = '#F7F8F4';
+const BG = '#0A0A0A';
 const WHITE = '#FFFFFF';
-const BLACK = '#0B0B0B';
-const MUTED = '#7A7F76';
-const BORDER = '#E8EAE4';
-const LIME = '#F0FFD0';
+const BLACK = '#0A0A0A';
+const SURFACE = '#111111';
+const SURFACE_ALT = '#1A1A1A';
+const MUTED = '#9A9A9A';
+const BORDER = '#262626';
+const LIME = '#0F1A00';
 const FN = 'https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1';
 
 const MEALS = ['Petit-dejeuner', 'Dejeuner', 'Diner', 'Snacks'];
@@ -493,7 +495,7 @@ export default function Fuel() {
     : 0;
 
   const card: React.CSSProperties = {
-    background: WHITE,
+    background: SURFACE,
     border: `1px solid ${BORDER}`,
     borderRadius: 24,
     padding: 20,
@@ -504,7 +506,7 @@ export default function Fuel() {
       style={{
         minHeight: '100vh',
         background: BG,
-        color: BLACK,
+        color: WHITE,
         paddingBottom: 110,
       }}
     >
@@ -579,16 +581,16 @@ export default function Fuel() {
 
             <div style={{ display: 'flex', gap: 8 }}>
               <button
-                onClick={() => navigate('/progress')}
-                title="Voir la progression"
-                style={{ width: 38, height: 38, borderRadius: '50%', border: 0, background: '#F1F2EF', fontSize: 16, cursor: 'pointer' }}
+                onClick={() => navigate('/mon-nox')}
+                title="Voir Mon NOX"
+                style={{ width: 38, height: 38, borderRadius: '50%', border: 0, background: SURFACE_ALT, fontSize: 16, cursor: 'pointer' }}
               >
                 ▣
               </button>
               <button
                 onClick={() => navigate('/meal-planner')}
                 title="Planifier la semaine"
-                style={{ width: 38, height: 38, borderRadius: '50%', border: 0, background: '#F1F2EF', fontSize: 18, fontWeight: 900, cursor: 'pointer' }}
+                style={{ width: 38, height: 38, borderRadius: '50%', border: 0, background: SURFACE_ALT, fontSize: 18, fontWeight: 900, cursor: 'pointer' }}
               >
                 ···
               </button>
@@ -619,17 +621,17 @@ export default function Fuel() {
                     display: 'grid',
                     placeItems: 'center',
                     textAlign: 'center',
-                    background: isSelected ? BLACK : '#F3F4F1',
+                    background: isSelected ? ACCENT : SURFACE_ALT,
                     border: 0,
                     cursor: 'pointer',
                     padding: 0,
                     font: 'inherit',
                   }}
                 >
-                  <div style={{ fontSize: 9, fontWeight: 700, color: isSelected ? WHITE : MUTED }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: isSelected ? BLACK : MUTED }}>
                     {day.day}
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: isSelected ? WHITE : BLACK }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: isSelected ? BLACK : WHITE }}>
                     {day.date}
                   </div>
                   {day.isToday ? (
@@ -645,8 +647,8 @@ export default function Fuel() {
           {/* INTERPRÉTATION NOX */}
           <div
             style={{
-              background: 'linear-gradient(135deg, #F2FFD3 0%, #FCFFE9 100%)',
-              border: '1px solid #E1F5A5',
+              background: 'linear-gradient(135deg, #0F1A00 0%, #111111 100%)',
+              border: '1px solid #263800',
               borderRadius: 20,
               padding: '14px 16px',
               marginTop: 12,
@@ -654,19 +656,19 @@ export default function Fuel() {
             }}
           >
             <div style={{ display: 'grid', gridTemplateColumns: '42px 1fr 18px', gap: 10, alignItems: 'start' }}>
-              <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#E3FF70', display: 'grid', placeItems: 'center' }}>
+              <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#1C2A00', display: 'grid', placeItems: 'center' }}>
                 <span style={{ fontSize: 19, filter: 'grayscale(1)' }}>🧠</span>
               </div>
               <div>
-                <div style={{ fontSize: 9, fontWeight: 800, color: '#7A9800', marginBottom: 4 }}>INTERPRÉTATION NOX</div>
+                <div style={{ fontSize: 9, fontWeight: 800, color: ACCENT, marginBottom: 4 }}>INTERPRÉTATION NOX</div>
                 <div style={{ fontSize: 17, fontWeight: 900, lineHeight: 1.1, marginBottom: 5 }}>{noxMessage.title}</div>
-                <div style={{ fontSize: 12, lineHeight: 1.3, color: '#30342E' }}>{noxMessage.body}</div>
+                <div style={{ fontSize: 12, lineHeight: 1.3, color: '#D0D0D0' }}>{noxMessage.body}</div>
               </div>
               <button
                 onClick={() => navigate('/nutrition-goals')}
                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', marginTop: 6 }}
               >
-                <ChevronRight size={18} color="#83A000" />
+                <ChevronRight size={18} color={ACCENT} />
               </button>
             </div>
 
@@ -701,7 +703,7 @@ export default function Fuel() {
           {/* CALORIES + MACROS — toujours visible, sans inventer de cibles */}
           <div
             style={{
-              background: WHITE,
+              background: SURFACE,
               borderRadius: 22,
               padding: '18px 16px',
               marginBottom: 14,
@@ -724,7 +726,7 @@ export default function Fuel() {
               <div
                 style={{
                   width: 101, height: 101, borderRadius: '50%',
-                  background: WHITE, display: 'grid', placeItems: 'center',
+                  background: SURFACE, display: 'grid', placeItems: 'center',
                   transform: 'rotate(10deg)', textAlign: 'center',
                 }}
               >
@@ -751,12 +753,12 @@ export default function Fuel() {
                 return (
                   <div key={macro.label}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 5 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: BLACK }}>{macro.label}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: WHITE }}>{macro.label}</span>
                       <span style={{ fontSize: 10, color: MUTED, whiteSpace: 'nowrap' }}>
                         {macro.value} / {macro.target ?? '—'} g
                       </span>
                     </div>
-                    <div style={{ height: 7, borderRadius: 999, background: '#F0F1EE', overflow: 'hidden' }}>
+                    <div style={{ height: 7, borderRadius: 999, background: '#242424', overflow: 'hidden' }}>
                       <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: macro.color }} />
                     </div>
                   </div>
@@ -848,7 +850,7 @@ export default function Fuel() {
                   <div
                     style={{
                       width: '100%',
-                      background: WHITE,
+                      background: SURFACE,
                       padding: '15px 16px',
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -857,11 +859,11 @@ export default function Fuel() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 12, background: BG, display: 'grid', placeItems: 'center', fontSize: 17, flexShrink: 0 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 12, background: SURFACE_ALT, display: 'grid', placeItems: 'center', fontSize: 17, flexShrink: 0 }}>
                         {mealIcon(meal)}
                       </div>
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 900, color: BLACK }}>
+                        <div style={{ fontSize: 14, fontWeight: 900, color: WHITE }}>
                           {mealLabel(meal)}
                         </div>
                         <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>
@@ -882,9 +884,9 @@ export default function Fuel() {
                         width: 32,
                         height: 32,
                         borderRadius: 10,
-                        background: BG,
+                        background: SURFACE_ALT,
                         border: `1px solid ${BORDER}`,
-                        color: BLACK,
+                        color: WHITE,
                         display: 'grid',
                         placeItems: 'center',
                         cursor: 'pointer',
@@ -924,7 +926,7 @@ export default function Fuel() {
                               style={{
                                 fontSize: 13,
                                 fontWeight: 700,
-                                color: BLACK,
+                                color: WHITE,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
@@ -1030,10 +1032,10 @@ export default function Fuel() {
                   onClick={() => addWater(ml)}
                   style={{
                     padding: '11px 0',
-                    background: BG,
+                    background: SURFACE_ALT,
                     border: `1px solid ${BORDER}`,
                     borderRadius: 12,
-                    color: BLACK,
+                    color: WHITE,
                     fontSize: 11,
                     fontWeight: 800,
                     cursor: 'pointer',
@@ -1069,7 +1071,7 @@ export default function Fuel() {
             style={{
               width: '100%',
               maxWidth: 560,
-              background: WHITE,
+              background: SURFACE,
               borderRadius: '28px 28px 0 0',
               padding: '10px 20px max(32px, env(safe-area-inset-bottom))',
               boxSizing: 'border-box',
@@ -1082,7 +1084,7 @@ export default function Fuel() {
                 width: 40,
                 height: 5,
                 borderRadius: 99,
-                background: '#D8DAD3',
+                background: '#3A3A3A',
                 margin: '2px auto 20px',
               }}
             />
@@ -1149,7 +1151,7 @@ export default function Fuel() {
                       fontSize: 22,
                       fontWeight: 950,
                       letterSpacing: '-.03em',
-                      color: BLACK,
+                      color: WHITE,
                       marginTop: 2,
                     }}
                   >
@@ -1165,8 +1167,8 @@ export default function Fuel() {
                   height: 40,
                   borderRadius: 12,
                   border: `1px solid ${BORDER}`,
-                  background: BG,
-                  color: BLACK,
+                  background: SURFACE_ALT,
+                  color: WHITE,
                   display: 'grid',
                   placeItems: 'center',
                   cursor: 'pointer',
@@ -1255,7 +1257,7 @@ export default function Fuel() {
                     <div
                       style={{
                         fontSize: 11,
-                        color: '#888',
+                        color: MUTED,
                         marginTop: 3,
                       }}
                     >
@@ -1273,7 +1275,7 @@ export default function Fuel() {
                           padding: '2px 6px',
                           fontSize: 8,
                           fontWeight: 900,
-                          color: BLACK,
+                          color: WHITE,
                         }}
                       >
                         PRO
@@ -1289,7 +1291,7 @@ export default function Fuel() {
                     }
                     style={{
                       padding: '18px 14px',
-                      background: BG,
+                      background: SURFACE_ALT,
                       borderRadius: 18,
                       border: `1px solid ${BORDER}`,
                       cursor: 'pointer',
@@ -1307,7 +1309,7 @@ export default function Fuel() {
                       style={{
                         fontSize: 14,
                         fontWeight: 900,
-                        color: BLACK,
+                        color: WHITE,
                       }}
                     >
                       Galerie
@@ -1375,7 +1377,7 @@ export default function Fuel() {
                     onClick={() => setAddMode(item.mode)}
                     style={{
                       padding: '14px 16px',
-                      background: BG,
+                      background: SURFACE_ALT,
                       border: `1px solid ${BORDER}`,
                       borderRadius: 16,
                       cursor: 'pointer',
@@ -1390,7 +1392,7 @@ export default function Fuel() {
                         style={{
                           fontSize: 14,
                           fontWeight: 800,
-                          color: BLACK,
+                          color: WHITE,
                         }}
                       >
                         {item.label}
@@ -1455,7 +1457,7 @@ export default function Fuel() {
                       onClick={() => fileRef.current?.click()}
                       style={{
                         padding: 20,
-                        background: BG,
+                        background: SURFACE_ALT,
                         border: `2px dashed ${BORDER}`,
                         borderRadius: 16,
                         color: MUTED,
@@ -1471,7 +1473,7 @@ export default function Fuel() {
                       onClick={() => galleryRef.current?.click()}
                       style={{
                         padding: 20,
-                        background: BG,
+                        background: SURFACE_ALT,
                         border: `1px solid ${BORDER}`,
                         borderRadius: 16,
                         color: MUTED,
@@ -1494,7 +1496,7 @@ export default function Fuel() {
                   <div>
                     <div
                       style={{
-                        background: BG,
+                        background: SURFACE_ALT,
                         borderRadius: 16,
                         padding: 16,
                         marginBottom: 14,
@@ -1504,7 +1506,7 @@ export default function Fuel() {
                         style={{
                           fontSize: 16,
                           fontWeight: 800,
-                          color: BLACK,
+                          color: WHITE,
                           marginBottom: 12,
                         }}
                       >
@@ -1556,7 +1558,7 @@ export default function Fuel() {
                             key={label as string}
                             style={{
                               textAlign: 'center',
-                              background: WHITE,
+                              background: SURFACE,
                               borderRadius: 10,
                               padding: '10px 0',
                             }}
@@ -1565,7 +1567,7 @@ export default function Fuel() {
                               style={{
                                 fontSize: 18,
                                 fontWeight: 950,
-                                color: BLACK,
+                                color: WHITE,
                               }}
                             >
                               {value}
@@ -1587,7 +1589,7 @@ export default function Fuel() {
                         style={{
                           marginTop: 12,
                           fontSize: 13,
-                          color: '#69715F',
+                          color: '#A7A7A7',
                           fontStyle: 'italic',
                         }}
                       >
@@ -1657,14 +1659,15 @@ export default function Fuel() {
                   style={{
                     width: '100%',
                     padding: '14px 16px',
-                    background: BG,
+                    background: SURFACE_ALT,
                     border: `1px solid ${BORDER}`,
                     borderRadius: 14,
-                    color: BLACK,
+                    color: WHITE,
                     fontSize: 15,
                     marginBottom: 14,
                     boxSizing: 'border-box',
                     outline: 'none',
+                    caretColor: ACCENT,
                   }}
                 />
 
@@ -1695,7 +1698,7 @@ export default function Fuel() {
                         style={{
                           fontSize: 14,
                           fontWeight: 600,
-                          color: BLACK,
+                          color: WHITE,
                         }}
                       >
                         {food.name}
@@ -1720,7 +1723,7 @@ export default function Fuel() {
               <div>
                 <div
                   style={{
-                    background: BG,
+                    background: SURFACE_ALT,
                     borderRadius: 16,
                     padding: 16,
                     marginBottom: 16,
@@ -1730,7 +1733,7 @@ export default function Fuel() {
                     style={{
                       fontSize: 18,
                       fontWeight: 800,
-                      color: BLACK,
+                      color: WHITE,
                       marginBottom: 4,
                     }}
                   >
@@ -1797,15 +1800,16 @@ export default function Fuel() {
                     style={{
                       width: '100%',
                       padding: 14,
-                      background: BG,
+                      background: SURFACE_ALT,
                       border: `1px solid ${BORDER}`,
                       borderRadius: 14,
-                      color: BLACK,
+                      color: WHITE,
                       fontSize: 28,
                       fontWeight: 950,
                       textAlign: 'center',
                       boxSizing: 'border-box',
                       outline: 'none',
+                      caretColor: ACCENT,
                     }}
                   />
                 </div>
@@ -1832,7 +1836,7 @@ export default function Fuel() {
                           <div
                             key={label as string}
                             style={{
-                              background: BG,
+                              background: SURFACE_ALT,
                               borderRadius: 12,
                               padding: '12px 4px',
                               textAlign: 'center',
@@ -1902,9 +1906,11 @@ export default function Fuel() {
                     padding: 15,
                     borderRadius: 14,
                     border: `1px solid ${BORDER}`,
-                    background: BG,
+                    background: SURFACE_ALT,
                     fontSize: 16,
                     outline: 'none',
+                    color: WHITE,
+                    caretColor: ACCENT,
                   }}
                 />
 
@@ -1917,9 +1923,11 @@ export default function Fuel() {
                     padding: 15,
                     borderRadius: 14,
                     border: `1px solid ${BORDER}`,
-                    background: BG,
+                    background: SURFACE_ALT,
                     fontSize: 16,
                     outline: 'none',
+                    color: WHITE,
+                    caretColor: ACCENT,
                   }}
                 />
 
@@ -1975,7 +1983,7 @@ export default function Fuel() {
                     <div
                       style={{
                         padding: 16,
-                        background: BG,
+                        background: SURFACE_ALT,
                         borderRadius: 14,
                         marginBottom: 12,
                         fontSize: 14,
@@ -2066,11 +2074,13 @@ export default function Fuel() {
                       width: '100%',
                       boxSizing: 'border-box',
                       padding: 14,
-                      background: BG,
+                      background: SURFACE_ALT,
                       border: `1px solid ${BORDER}`,
                       borderRadius: 14,
                       fontSize: 15,
                       outline: 'none',
+                    color: WHITE,
+                    caretColor: ACCENT,
                     }}
                   />
                 ))}
