@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { BottomNav } from './Home';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../lib/AuthContext';
 import { ArrowLeft, Check } from 'lucide-react';
 
 const ACCENT = '#C8FF00';
-const BG     = '#F7F8F4';
+const BG     = '#0A0A0A';
+const CARD   = '#111111';
+const CARD_2 = '#171717';
 const WHITE  = '#FFFFFF';
 const BLACK  = '#0B0B0B';
-const MUTED  = '#7A7F76';
-const BORDER = '#E8EAE4';
-const LIME   = '#F0FFD0';
+const MUTED  = '#888888';
+const BORDER = '#262626';
 
 const FEATURES_FREE = [
   'Journal alimentaire (calories, macros, eau)',
@@ -27,7 +26,7 @@ const FEATURES_PRO = [
   'Scanner repas par photo IA',
   'Idées repas personnalisées IA',
   'Programme généré par IA',
-  'Coach NOX — ET MAINTENANT ?',
+  'Coach NOX',
   'Adaptations intelligentes',
   'Bilan hebdomadaire IA',
 ];
@@ -42,168 +41,357 @@ const FEATURES_PRO_PLUS = [
 ];
 
 export default function Subscribe() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const routeState = (location.state as any) || {};
   const onboardingFlow = Boolean(routeState.onboardingFlow);
-  const returnTo = routeState.returnTo || null;
+
   const [billing, setBilling] = useState<'monthly' | 'annual'>('annual');
   const [selected, setSelected] = useState<'pro' | 'pro_plus'>('pro');
-  const [loading, setLoading] = useState(false);
 
-  const startTrial = async () => {
-    if (!user || loading) return;
-    setLoading(true);
-    try {
-      const trialEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { error } = await supabase.from('profiles').update({
-        subscription_plan: selected,
-        trial_ends_at: trialEnd,
-        updated_at: new Date().toISOString(),
-      }).eq('id', user.id);
-      if (error) throw error;
-
-      if (onboardingFlow && returnTo === '/future') {
-        navigate('/future', {
-          replace: true,
-          state: { onboardingFlow: true, futureOffer: false, subscriptionActivated: true },
-        });
-        return;
-      }
-
-      navigate('/home', { replace: true });
-    } catch (error) {
-      console.error('NOX subscription activation error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const proPrice = billing === 'annual' ? '4,99 €' : '6,99 €';
+  const proPlusPrice = billing === 'annual' ? '7,49 €' : '9,99 €';
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, color: BLACK, paddingBottom: onboardingFlow ? 40 : 110 }}>
+    <div
+      style={{
+        minHeight: '100dvh',
+        background: BG,
+        color: WHITE,
+        paddingBottom: onboardingFlow
+          ? 40
+          : 'calc(132px + env(safe-area-inset-bottom))',
+      }}
+    >
       <div style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
-
-        <header style={{ padding: '20px 20px 0', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>
-          <button onClick={() => navigate(-1)} style={{ width: 40, height: 40, borderRadius: 14, border: `1px solid ${BORDER}`, background: WHITE, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
+        <header
+          style={{
+            padding: '20px 20px 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            marginBottom: 28,
+          }}
+        >
+          <button
+            onClick={() => navigate(-1)}
+            aria-label="Retour"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 14,
+              border: `1px solid ${BORDER}`,
+              background: CARD,
+              color: WHITE,
+              display: 'grid',
+              placeItems: 'center',
+              cursor: 'pointer',
+            }}
+          >
             <ArrowLeft size={18} />
           </button>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.1em' }}>ABONNEMENT</div>
+
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 900,
+              color: MUTED,
+              letterSpacing: '.1em',
+            }}
+          >
+            ABONNEMENT
           </div>
         </header>
 
         <main style={{ padding: '0 20px' }}>
-          <h1 style={{ margin: '0 0 8px', fontSize: 36, fontWeight: 950, letterSpacing: '-.05em', lineHeight: .95 }}>
-            NOX PRO.
+          <h1
+            style={{
+              margin: '0 0 8px',
+              fontSize: 36,
+              fontWeight: 950,
+              letterSpacing: '-.05em',
+              lineHeight: .95,
+            }}
+          >
+            NOX PRO<span style={{ color: ACCENT }}>.</span>
           </h1>
-          <p style={{ margin: '0 0 28px', fontSize: 14, color: MUTED, lineHeight: 1.5 }}>
-            Ta transformation, encore plus personnelle.
+
+          <p
+            style={{
+              margin: '0 0 28px',
+              fontSize: 14,
+              color: MUTED,
+              lineHeight: 1.5,
+            }}
+          >
+            Plus de personnalisation avec les fonctions IA de NOX.
           </p>
 
-          {/* Toggle mensuel / annuel */}
-          <div style={{ display: 'flex', background: '#ECEEE8', borderRadius: 16, padding: 4, marginBottom: 24 }}>
-            {(['monthly', 'annual'] as const).map(b => (
-              <button key={b} onClick={() => setBilling(b)} style={{
-                flex: 1, padding: '11px 0', borderRadius: 12, border: 0,
-                background: billing === b ? BLACK : 'transparent',
-                color: billing === b ? ACCENT : MUTED,
-                fontSize: 12, fontWeight: 850, cursor: 'pointer',
-              }}>
-                {b === 'monthly' ? 'Mensuel' : 'Annuel'}{b === 'annual' && billing === 'annual' ? ' · -30%' : ''}
-              </button>
-            ))}
+          <div
+            style={{
+              display: 'flex',
+              background: CARD,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 16,
+              padding: 4,
+              marginBottom: 24,
+            }}
+          >
+            {(['monthly', 'annual'] as const).map((b) => {
+              const active = billing === b;
+              return (
+                <button
+                  key={b}
+                  type="button"
+                  onClick={() => setBilling(b)}
+                  style={{
+                    flex: 1,
+                    padding: '11px 0',
+                    borderRadius: 12,
+                    border: 0,
+                    background: active ? ACCENT : 'transparent',
+                    color: active ? BLACK : MUTED,
+                    fontSize: 12,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {b === 'monthly' ? 'Mensuel' : 'Annuel'}
+                  {b === 'annual' && active ? ' · -30%' : ''}
+                </button>
+              );
+            })}
           </div>
 
-          {/* NOX Free */}
-          <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20, marginBottom: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 18, fontWeight: 950, color: BLACK }}>NOX Free</div>
-              <div style={{ fontSize: 20, fontWeight: 950, color: BLACK }}>0 €</div>
+          <section
+            style={{
+              background: CARD,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 20,
+              padding: 20,
+              marginBottom: 12,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <div style={{ fontSize: 18, fontWeight: 950 }}>NOX Free</div>
+              <div style={{ fontSize: 20, fontWeight: 950 }}>0 €</div>
             </div>
-            {FEATURES_FREE.map((f, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
+
+            {FEATURES_FREE.map((f) => (
+              <div
+                key={f}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '6px 0',
+                }}
+              >
                 <Check size={14} color={MUTED} />
                 <span style={{ fontSize: 12, color: MUTED }}>{f}</span>
               </div>
             ))}
-          </div>
+          </section>
 
-          {/* NOX Pro */}
-          <button onClick={() => setSelected('pro')} style={{
-            width: '100%', background: selected === 'pro' ? BLACK : WHITE,
-            border: `2px solid ${selected === 'pro' ? ACCENT : BORDER}`,
-            borderRadius: 20, padding: 20, marginBottom: 12, textAlign: 'left', cursor: 'pointer',
-            boxSizing: 'border-box',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+          <button
+            type="button"
+            onClick={() => setSelected('pro')}
+            style={{
+              width: '100%',
+              background: selected === 'pro' ? '#101400' : CARD,
+              border: `2px solid ${selected === 'pro' ? ACCENT : BORDER}`,
+              borderRadius: 20,
+              padding: 20,
+              marginBottom: 12,
+              textAlign: 'left',
+              cursor: 'pointer',
+              boxSizing: 'border-box',
+              color: WHITE,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                gap: 16,
+                marginBottom: 16,
+              }}
+            >
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <div style={{ fontSize: 18, fontWeight: 950, color: selected === 'pro' ? WHITE : BLACK }}>NOX Pro</div>
-                  <div style={{ background: ACCENT, borderRadius: 8, padding: '2px 8px', fontSize: 9, fontWeight: 900, color: BLACK }}>RECOMMANDÉ</div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginBottom: 4,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ fontSize: 18, fontWeight: 950 }}>NOX Pro</div>
+                  <div
+                    style={{
+                      background: ACCENT,
+                      borderRadius: 8,
+                      padding: '2px 8px',
+                      fontSize: 9,
+                      fontWeight: 900,
+                      color: BLACK,
+                    }}
+                  >
+                    RECOMMANDÉ
+                  </div>
                 </div>
-                <div style={{ fontSize: 11, color: selected === 'pro' ? MUTED : MUTED }}>Essai 30 jours gratuit</div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 22, fontWeight: 950, color: selected === 'pro' ? WHITE : BLACK }}>
-                  {billing === 'annual' ? '4,99 €' : '6,99 €'}
-                </div>
+
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontSize: 22, fontWeight: 950 }}>{proPrice}</div>
                 <div style={{ fontSize: 10, color: MUTED }}>/ mois</div>
               </div>
             </div>
-            {FEATURES_PRO.map((f, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0' }}>
-                <Check size={14} color={selected === 'pro' ? ACCENT : '#69B578'} />
-                <span style={{ fontSize: 12, color: selected === 'pro' ? '#ccc' : BLACK }}>{f}</span>
+
+            {FEATURES_PRO.map((f) => (
+              <div
+                key={f}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '5px 0',
+                }}
+              >
+                <Check size={14} color={ACCENT} />
+                <span style={{ fontSize: 12, color: '#CCCCCC' }}>{f}</span>
               </div>
             ))}
           </button>
 
-          {/* NOX Pro+ */}
-          <button onClick={() => setSelected('pro_plus')} style={{
-            width: '100%', background: selected === 'pro_plus' ? BLACK : WHITE,
-            border: `2px solid ${selected === 'pro_plus' ? ACCENT : BORDER}`,
-            borderRadius: 20, padding: 20, marginBottom: 24, textAlign: 'left', cursor: 'pointer',
-            boxSizing: 'border-box',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 950, color: selected === 'pro_plus' ? WHITE : BLACK, marginBottom: 4 }}>NOX Pro+</div>
-                <div style={{ fontSize: 11, color: MUTED }}>Essai 30 jours gratuit</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 22, fontWeight: 950, color: selected === 'pro_plus' ? WHITE : BLACK }}>
-                  {billing === 'annual' ? '7,49 €' : '9,99 €'}
-                </div>
+          <button
+            type="button"
+            onClick={() => setSelected('pro_plus')}
+            style={{
+              width: '100%',
+              background: selected === 'pro_plus' ? '#101400' : CARD,
+              border: `2px solid ${selected === 'pro_plus' ? ACCENT : BORDER}`,
+              borderRadius: 20,
+              padding: 20,
+              marginBottom: 24,
+              textAlign: 'left',
+              cursor: 'pointer',
+              boxSizing: 'border-box',
+              color: WHITE,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                gap: 16,
+                marginBottom: 16,
+              }}
+            >
+              <div style={{ fontSize: 18, fontWeight: 950 }}>NOX Pro+</div>
+
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontSize: 22, fontWeight: 950 }}>{proPlusPrice}</div>
                 <div style={{ fontSize: 10, color: MUTED }}>/ mois</div>
               </div>
             </div>
-            {FEATURES_PRO_PLUS.map((f, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0' }}>
-                <Check size={14} color={selected === 'pro_plus' ? ACCENT : '#69B578'} />
-                <span style={{ fontSize: 12, color: selected === 'pro_plus' ? '#ccc' : BLACK }}>{f}</span>
+
+            {FEATURES_PRO_PLUS.map((f) => (
+              <div
+                key={f}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '5px 0',
+                }}
+              >
+                <Check size={14} color={ACCENT} />
+                <span style={{ fontSize: 12, color: '#CCCCCC' }}>{f}</span>
               </div>
             ))}
           </button>
 
-          {/* CTA */}
-          <button onClick={startTrial} disabled={loading}
-            style={{ width: '100%', padding: 18, background: ACCENT, border: 0, borderRadius: 18, color: BLACK, fontWeight: 950, fontSize: 15, cursor: 'pointer', marginBottom: 16 }}>
-            {loading ? 'CHARGEMENT...' : `ESSAYER NOX ${selected === 'pro' ? 'PRO' : 'PRO+'} 30 JOURS`}
-          </button>
-
-          <div style={{ textAlign: 'center', fontSize: 11, color: MUTED, lineHeight: 1.6, marginBottom: 20 }}>
-            Sans engagement. Tu peux annuler à tout moment.<br />
-            Le paiement réel sera intégré prochainement via Stripe.
+          <div
+            style={{
+              background: CARD_2,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 18,
+              padding: '16px 18px',
+              marginBottom: 14,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 900,
+                color: ACCENT,
+                letterSpacing: '.07em',
+                marginBottom: 6,
+              }}
+            >
+              ABONNEMENTS
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: '#CCCCCC',
+                lineHeight: 1.55,
+              }}
+            >
+              Le paiement n’est pas encore disponible dans cette version.
+              Aucun abonnement ne sera activé depuis cet écran.
+            </div>
           </div>
 
-          {/* Légal */}
-          <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 16, fontSize: 11, color: MUTED, lineHeight: 1.6 }}>
-            En continuant, tu acceptes que l'abonnement se renouvelle automatiquement au tarif indiqué. Tu peux gérer ton abonnement depuis la page Profil. Les prix sont en euros TTC.
+          <button
+            type="button"
+            disabled
+            style={{
+              width: '100%',
+              padding: 18,
+              background: '#242424',
+              border: `1px solid ${BORDER}`,
+              borderRadius: 18,
+              color: '#666666',
+              fontWeight: 950,
+              fontSize: 15,
+              cursor: 'not-allowed',
+              marginBottom: 16,
+            }}
+          >
+            NOX {selected === 'pro' ? 'PRO' : 'PRO+'} — BIENTÔT DISPONIBLE
+          </button>
+
+          <div
+            style={{
+              background: CARD,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 16,
+              padding: 16,
+              fontSize: 11,
+              color: MUTED,
+              lineHeight: 1.6,
+            }}
+          >
+            Les prix affichés sont en euros TTC. Les conditions d’abonnement,
+            de renouvellement et d’annulation seront affichées lors de
+            l’activation du paiement.
           </div>
         </main>
       </div>
+
       {!onboardingFlow && <BottomNav active="moi" />}
     </div>
   );
