@@ -434,192 +434,99 @@ export default function Home() {
         : null;
 
   return (
-    <div style={{
+  <div
+    style={{
       minHeight: '100dvh',
       background: '#090B0A',
       color: '#FFFFFF',
-      paddingBottom: 'calc(118px + env(safe-area-inset-bottom))',
-    }}>
-      <main
-        className="nox-home-main"
-        style={{
-          width: '100%',
-          margin: '0 auto',
-          padding: '0 18px',
-          boxSizing: 'border-box',
-        }}
-      >
+      paddingBottom: 'calc(180px + env(safe-area-inset-bottom))',
+    }}
+  >
+    <main className="nox-home-main">
 
-        {/* AUJOURD'HUI */}
-        <header style={{ paddingTop: 48, paddingBottom: 26 }}>
-          <div style={{
-            color: '#777C79',
-            fontSize: 13,
-            fontWeight: 850,
-            letterSpacing: '.055em',
-            textTransform: 'uppercase',
-            marginBottom: 8,
-          }}>
-            {dateLabel}
-          </div>
-          <h1 style={{
-            margin: 0,
-            fontSize: 40,
-            lineHeight: .98,
-            letterSpacing: '-.05em',
-            fontWeight: 1000,
-          }}>
-            Aujourd’hui
-          </h1>
-          <div style={{
-            marginTop: 8,
-            color: '#B2B6B3',
-            fontSize: 14,
-            fontWeight: 650,
-          }}>
-            {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
-          </div>
-        </header>
+      {/* AUJOURD'HUI */}
+      <header className="nox-home-header">
+        <div style={{ color: '#777C79', fontSize: 13, fontWeight: 850, letterSpacing: '.055em', textTransform: 'uppercase', marginBottom: 9 }}>
+          {dateLabel}
+        </div>
+        <h1 style={{ margin: 0, fontSize: 'clamp(40px, 5vw, 48px)', lineHeight: 0.98, letterSpacing: '-.055em', fontWeight: 1000 }}>
+          Aujourd'hui
+        </h1>
+        <div style={{ marginTop: 10, color: '#A7ABA8', fontSize: 14, fontWeight: 650 }}>
+          {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
+        </div>
+      </header>
 
-        {/* TON PULSE */}
-        <section style={{ marginBottom: 34 }}>
-          <SectionHeader
-            title="Ton Pulse"
-            action={todayPulse ? 'Modifier' : 'Commencer'}
-            onAction={() => navigate('/pulse')}
-          />
-
-          {todayPulse ? (
-            <AppCard>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                minHeight: 132,
-              }}>
-                {[
-                  ['🌙', 'Sommeil', todayPulse.sleep_score],
-                  ['⚡', 'Énergie', todayPulse.energy_score],
-                  ['💪', 'Corps', todayPulse.body_score],
-                ].map(([emoji, label, value], index) => (
-                  <div
-                    key={String(label)}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderLeft: index ? '1px solid #4A4E4B' : undefined,
-                    }}
-                  >
-                    <div style={{ fontSize: 25, lineHeight: 1, marginBottom: 10 }}>{emoji}</div>
-                    <div style={{ fontSize: 31, lineHeight: 1, fontWeight: 1000 }}>
-                      {value}
-                      <span style={{ color: '#777C79', fontSize: 13, fontWeight: 800 }}>/5</span>
-                    </div>
-                    <div style={{
-                      marginTop: 9,
-                      color: '#C1C4C2',
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}>
-                      {label}
-                    </div>
+      {/* TON PULSE */}
+      <section className="nox-home-section">
+        <SectionHeader title="Ton Pulse" action={todayPulse ? 'Modifier' : 'Commencer'} onAction={() => navigate('/pulse')} />
+        {todayPulse ? (
+          <AppCard>
+            <div className="nox-pulse-grid">
+              {[
+                ['🌙', 'Sommeil', todayPulse.sleep_score],
+                ['⚡', 'Énergie', todayPulse.energy_score],
+                ['💪', 'Corps', todayPulse.body_score],
+              ].map(([emoji, label, value]) => (
+                <div key={String(label)} className="nox-pulse-item">
+                  <div style={{ width: 42, height: 42, borderRadius: 14, display: 'grid', placeItems: 'center', background: '#1B1E1C', fontSize: 21, lineHeight: 1, marginBottom: 14 }}>
+                    {emoji}
                   </div>
-                ))}
-              </div>
-            </AppCard>
-          ) : (
-            <AppCard style={{ padding: 22 }}>
-              <div style={{ fontSize: 21, fontWeight: 1000, marginBottom: 7 }}>
-                Comment tu vas aujourd’hui ?
-              </div>
-              <div style={{ color: '#B3B7B4', fontSize: 14, lineHeight: 1.45, marginBottom: 20 }}>
-                Sommeil, énergie et état du corps. Quelques secondes pour donner du contexte à NOX.
-              </div>
-              <LimeButton onClick={() => navigate('/pulse')}>FAIRE MON PULSE →</LimeButton>
-            </AppCard>
-          )}
-        </section>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+                    <span style={{ fontSize: 32, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.04em' }}>{value}</span>
+                    <span style={{ color: '#777C79', fontSize: 13, fontWeight: 800 }}>/5</span>
+                  </div>
+                  <div style={{ marginTop: 8, color: '#B8BCB9', fontSize: 12, fontWeight: 750 }}>{label}</div>
+                </div>
+              ))}
+            </div>
+          </AppCard>
+        ) : (
+          <AppCard style={{ padding: 26 }}>
+            <div style={{ fontSize: 22, fontWeight: 1000, letterSpacing: '-.025em', marginBottom: 8 }}>Comment tu vas aujourd'hui ?</div>
+            <div style={{ color: '#B3B7B4', fontSize: 14, lineHeight: 1.5, marginBottom: 22 }}>
+              Sommeil, énergie et état du corps. Quelques secondes pour donner du contexte à NOX.
+            </div>
+            <LimeButton onClick={() => navigate('/pulse')}>FAIRE MON PULSE →</LimeButton>
+          </AppCard>
+        )}
+      </section>
 
-        {/* PRIORITÉ */}
-        <section style={{ marginBottom: 34 }}>
-          <SectionHeader
-            title="Priorité du jour"
-            action={todayPulse
-              ? priority.confidence === 'high'
-                ? 'Élevée'
-                : priority.confidence === 'moderate'
-                  ? 'Modérée'
-                  : 'Faible'
-              : undefined}
-          />
-
-          <AppCard style={{ padding: 22 }}>
+      {/* PRIORITÉ */}
+      <section className="nox-home-section">
+        <SectionHeader title="Priorité du jour" action={todayPulse ? (priority.confidence === 'high' ? 'Élevée' : priority.confidence === 'moderate' ? 'Modérée' : 'Faible') : undefined} />
+        <AppCard style={{ padding: 0 }}>
+          <div className="nox-priority-content">
             {!todayPulse ? (
               <>
                 <div style={ui.bigTitle}>À préciser avec ton Pulse</div>
-                <div style={ui.body}>
-                  NOX attend tes trois signaux du matin avant de fixer la priorité de ta journée.
-                </div>
+                <div style={ui.body}>NOX attend tes trois signaux du matin avant de fixer la priorité de ta journée.</div>
               </>
             ) : priority.type === 'none' ? (
               <>
                 <div style={ui.bigTitle}>Tout va bien ✓</div>
-                <div style={ui.body}>
-                  NOX n’a pas de signal suffisant pour te demander de modifier quelque chose aujourd’hui.
-                </div>
+                <div style={ui.body}>NOX n'a pas de signal suffisant pour te demander de modifier quelque chose aujourd'hui.</div>
               </>
             ) : (
               <>
-                <div style={{
-                  display: 'inline-flex',
-                  padding: '7px 10px',
-                  borderRadius: 999,
-                  background: 'rgba(200,255,0,.12)',
-                  color: '#C8FF00',
-                  fontSize: 10,
-                  fontWeight: 950,
-                  letterSpacing: '.05em',
-                  marginBottom: 15,
-                }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', padding: '7px 11px', borderRadius: 999, background: 'rgba(200,255,0,.10)', color: '#C8FF00', fontSize: 10, fontWeight: 950, letterSpacing: '.055em', marginBottom: 17 }}>
                   NOX RECOMMANDE
                 </div>
-                <div style={ui.bigTitle}>{(priority as any).title}</div>
-                <div style={ui.body}>{(priority as any).action}</div>
+                <div style={{ ...ui.bigTitle, fontSize: 25, marginBottom: 9 }}>{(priority as any).title}</div>
+                <div style={{ ...ui.body, maxWidth: 590 }}>{(priority as any).action}</div>
               </>
             )}
 
             {todayPulse && (
-              <details style={{
-                marginTop: 21,
-                paddingTop: 17,
-                borderTop: '1px solid #4A4E4B',
-              }}>
-                <summary style={{
-                  cursor: 'pointer',
-                  color: '#C8FF00',
-                  fontSize: 12,
-                  fontWeight: 900,
-                  userSelect: 'none',
-                }}>
-                  Pourquoi ? ›
-                </summary>
-                <div style={{ marginTop: 12, color: '#B3B7B4', fontSize: 13, lineHeight: 1.5 }}>
-                  {priority.type !== 'none'
-                    ? (priority as any).reason
-                    : 'Tes signaux du matin sont équilibrés — aucune zone ne nécessite d’intervention aujourd’hui.'}
+              <details style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #444945' }}>
+                <summary style={{ cursor: 'pointer', color: '#C8FF00', fontSize: 12, fontWeight: 900, userSelect: 'none' }}>Pourquoi ? ›</summary>
+                <div style={{ marginTop: 13, color: '#B3B7B4', fontSize: 13, lineHeight: 1.55 }}>
+                  {priority.type !== 'none' ? (priority as any).reason : "Tes signaux du matin sont équilibrés — aucune zone ne nécessite d'intervention aujourd'hui."}
                 </div>
                 {priority.evidence.length > 0 && (
-                  <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+                  <div style={{ display: 'grid', gap: 8, marginTop: 14 }}>
                     {priority.evidence.map(ev => (
-                      <div key={ev.key} style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        gap: 12,
-                        padding: '10px 12px',
-                        borderRadius: 12,
-                        background: '#1A1D1B',
-                      }}>
+                      <div key={ev.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '11px 13px', borderRadius: 12, background: '#1A1D1B' }}>
                         <span style={{ color: '#8E938F', fontSize: 11 }}>{ev.label}</span>
                         <span style={{ fontSize: 11, fontWeight: 900 }}>{ev.value}</span>
                       </div>
@@ -630,354 +537,117 @@ export default function Home() {
             )}
 
             {todayPulse && priority.type === 'activity' && todaySession && (
-              <LimeButton onClick={() => navigate('/program')} style={{ marginTop: 21 }}>
-                COMMENCER MA SÉANCE →
-              </LimeButton>
+              <LimeButton onClick={() => navigate('/program')} style={{ marginTop: 24 }}>COMMENCER MA SÉANCE →</LimeButton>
             )}
-
             {todayPulse && priority.type === 'nutrition' && (
-              <LimeButton onClick={() => navigate('/fuel')} style={{ marginTop: 21 }}>
-                AJOUTER MON REPAS →
-              </LimeButton>
+              <LimeButton onClick={() => navigate('/fuel')} style={{ marginTop: 24 }}>AJOUTER MON REPAS →</LimeButton>
+            )}
+          </div>
+        </AppCard>
+      </section>
+
+      {/* MOUVEMENT */}
+      {todaySession && !todayWorkout && (
+        <section className="nox-home-section">
+          <SectionHeader title="Mouvement" action="Plus" onAction={() => navigate('/program')} />
+          <AppCard style={{ padding: 26 }}>
+            <div style={{ color: '#8E938F', fontSize: 11, fontWeight: 900, letterSpacing: '.06em', marginBottom: 9 }}>SÉANCE DU JOUR</div>
+            <div style={ui.bigTitle}>{todaySession.name}</div>
+            {todaySession.duration_minutes && (
+              <div style={{ ...ui.body, marginBottom: 22 }}>{todaySession.duration_minutes} min · {todaySession.exercises?.length ?? 0} exercices</div>
+            )}
+            <DarkButton onClick={() => navigate('/program')}>VOIR MA SÉANCE →</DarkButton>
+          </AppCard>
+        </section>
+      )}
+
+      {todayWorkout && (
+        <section className="nox-home-section">
+          <SectionHeader title="Mouvement" />
+          <AppCard style={{ padding: 24, display: 'flex', alignItems: 'center', gap: 15 }}>
+            <div style={{ width: 46, height: 46, borderRadius: 15, display: 'grid', placeItems: 'center', flexShrink: 0, background: 'rgba(200,255,0,.10)', color: '#C8FF00', fontSize: 19, fontWeight: 1000 }}>✓</div>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 950 }}>Séance terminée</div>
+              <div style={{ color: '#B3B7B4', fontSize: 13, marginTop: 4 }}>{todayWorkout.name}</div>
+            </div>
+          </AppCard>
+        </section>
+      )}
+
+      {/* NUTRITION */}
+      {(todayKcal > 0 || todayProt > 0) && (
+        <section className="nox-home-section">
+          <SectionHeader title="Nutrition" action="Plus" onAction={() => navigate('/fuel')} />
+          <AppCard style={{ padding: 18 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <Metric value={Math.round(todayKcal)} label={`kcal${caloriesTarget ? ` / ${caloriesTarget}` : ''}`} progress={caloriesTarget > 0 ? todayKcal / caloriesTarget : 0} />
+              <Metric value={`${Math.round(todayProt)}g`} label={`protéines${proteinTarget ? ` / ${proteinTarget}g` : ''}`} progress={proteinTarget > 0 ? todayProt / proteinTarget : 0} />
+            </div>
+          </AppCard>
+        </section>
+      )}
+
+      {/* CLÔTURE */}
+      {!todayClosure ? (
+        <section className="nox-home-section nox-home-last-section">
+          <SectionHeader title="Clôture de journée" />
+          <AppCard style={{ padding: 26 }}>
+            <div style={{ ...ui.bigTitle, fontSize: 24 }}>{todayPulse ? 'Ta journée touche à sa fin.' : 'Ton bilan viendra ici ce soir.'}</div>
+            <div style={{ ...ui.body, marginBottom: todayPulse ? 22 : 0 }}>
+              {todayPulse ? '30 secondes pour clôturer avec NOX.' : 'Commence par ton Pulse pour donner à NOX le contexte de ta journée.'}
+            </div>
+            {todayPulse && (
+              <DarkButton onClick={() => navigate('/closure', { state: { priorityTitle: priority.type !== 'none' ? (priority as any).title : null, priorityType: priority.type } })}>
+                CLÔTURER MA JOURNÉE →
+              </DarkButton>
             )}
           </AppCard>
         </section>
-
-        {/* MOUVEMENT */}
-        {todaySession && !todayWorkout && (
-          <section style={{ marginBottom: 34 }}>
-            <SectionHeader title="Mouvement" action="Plus" onAction={() => navigate('/program')} />
-            <AppCard style={{ padding: 22 }}>
-              <div style={{ color: '#8E938F', fontSize: 11, fontWeight: 900, letterSpacing: '.06em', marginBottom: 8 }}>
-                SÉANCE DU JOUR
-              </div>
-              <div style={ui.bigTitle}>{todaySession.name}</div>
-              {todaySession.duration_minutes && (
-                <div style={{ ...ui.body, marginBottom: 20 }}>
-                  {todaySession.duration_minutes} min · {todaySession.exercises?.length ?? 0} exercices
-                </div>
-              )}
-              <DarkButton onClick={() => navigate('/program')}>VOIR MA SÉANCE →</DarkButton>
-            </AppCard>
-          </section>
-        )}
-
-        {todayWorkout && (
-          <section style={{ marginBottom: 34 }}>
-            <SectionHeader title="Mouvement" />
-            <AppCard style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{
-                width: 44,
-                height: 44,
-                borderRadius: 15,
-                display: 'grid',
-                placeItems: 'center',
-                flexShrink: 0,
-                background: 'rgba(200,255,0,.12)',
-                color: '#C8FF00',
-                fontSize: 19,
-                fontWeight: 1000,
-              }}>✓</div>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 950 }}>Séance terminée</div>
-                <div style={{ color: '#B3B7B4', fontSize: 13, marginTop: 3 }}>{todayWorkout.name}</div>
-              </div>
-            </AppCard>
-          </section>
-        )}
-
-        {/* NUTRITION */}
-        {(todayKcal > 0 || todayProt > 0) && (
-          <section style={{ marginBottom: 34 }}>
-            <SectionHeader title="Nutrition" action="Plus" onAction={() => navigate('/fuel')} />
-            <AppCard style={{ padding: 16 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <Metric
-                  value={Math.round(todayKcal)}
-                  label={`kcal${caloriesTarget ? ` / ${caloriesTarget}` : ''}`}
-                  progress={caloriesTarget > 0 ? todayKcal / caloriesTarget : 0}
-                />
-                <Metric
-                  value={`${Math.round(todayProt)}g`}
-                  label={`protéines${proteinTarget ? ` / ${proteinTarget}g` : ''}`}
-                  progress={proteinTarget > 0 ? todayProt / proteinTarget : 0}
-                />
-              </div>
-            </AppCard>
-          </section>
-        )}
-
-        {/* CLÔTURE */}
-        {!todayClosure ? (
-          <section style={{ marginBottom: 28 }}>
-            <SectionHeader title="Clôture de journée" />
-            <AppCard style={{ padding: 22 }}>
-              <div style={ui.bigTitle}>
-                {todayPulse ? 'Ta journée touche à sa fin.' : 'Ton bilan viendra ici ce soir.'}
-              </div>
-              <div style={{ ...ui.body, marginBottom: todayPulse ? 20 : 0 }}>
-                {todayPulse
-                  ? '30 secondes pour clôturer avec NOX.'
-                  : 'Commence par ton Pulse pour donner à NOX le contexte de ta journée.'}
-              </div>
-              {todayPulse && (
-                <DarkButton
-                  onClick={() => navigate('/closure', {
-                    state: {
-                      priorityTitle: priority.type !== 'none' ? (priority as any).title : null,
-                      priorityType: priority.type,
-                    },
-                  })}
-                >
-                  CLÔTURER MA JOURNÉE →
-                </DarkButton>
-              )}
-            </AppCard>
-          </section>
-        ) : (
-          <section style={{ marginBottom: 28 }}>
-            <SectionHeader title="Clôture de journée" />
-            <AppCard style={{ padding: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-              <div>
-                <div style={{ color: '#C8FF00', fontSize: 13, fontWeight: 950 }}>Journée clôturée ✓</div>
-                <div style={{ color: '#B3B7B4', fontSize: 12, marginTop: 4 }}>NOX a enregistré ta journée.</div>
-              </div>
-              <button
-                onClick={() => setEditingClosure(true)}
-                style={{ border: 0, background: 'transparent', color: '#C8FF00', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}
-              >
-                Modifier
-              </button>
-            </AppCard>
-          </section>
-        )}
-      </main>
-
-      <BottomNav active="home" />
-
-      <style>{`
-        .nox-home-main {
-          max-width: 760px;
-        }
-
-        @media (max-width: 640px) {
-          .nox-home-main {
-            max-width: none;
-            padding-left: 16px !important;
-            padding-right: 16px !important;
-          }
-        }
-
-        @media (min-width: 641px) and (max-width: 900px) {
-          .nox-home-main {
-            max-width: 680px;
-          }
-        }
-
-        @media (min-width: 1100px) {
-          .nox-home-main {
-            max-width: 760px;
-          }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-/* Visuel de l'écran Aujourd'hui uniquement. La BottomNav reste celle de NOX. */
-
-const ui = {
-  bigTitle: {
-    marginBottom: 8,
-    color: '#FFFFFF',
-    fontSize: 23,
-    lineHeight: 1.08,
-    letterSpacing: '-.035em',
-    fontWeight: 1000,
-  } as React.CSSProperties,
-  body: {
-    color: '#B3B7B4',
-    fontSize: 14,
-    lineHeight: 1.5,
-  } as React.CSSProperties,
-};
-
-function SectionHeader({
-  title,
-  action,
-  onAction,
-}: {
-  title: string;
-  action?: string;
-  onAction?: () => void;
-}) {
-  return (
-    <div style={{
-      minHeight: 34,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 14,
-      marginBottom: 12,
-    }}>
-      <h2 style={{
-        margin: 0,
-        color: '#FFFFFF',
-        fontSize: 27,
-        lineHeight: 1,
-        letterSpacing: '-.04em',
-        fontWeight: 1000,
-      }}>
-        {title}
-      </h2>
-
-      {action && (
-        onAction ? (
-          <button
-            onClick={onAction}
-            style={{
-              border: 0,
-              padding: 0,
-              background: 'transparent',
-              color: '#C8FF00',
-              fontSize: 13,
-              fontWeight: 900,
-              cursor: 'pointer',
-            }}
-          >
-            {action}
-          </button>
-        ) : (
-          <span style={{
-            color: '#C8FF00',
-            fontSize: 11,
-            fontWeight: 900,
-            textTransform: 'uppercase',
-          }}>
-            {action}
-          </span>
-        )
+      ) : (
+        <section className="nox-home-section nox-home-last-section">
+          <SectionHeader title="Clôture de journée" />
+          <AppCard style={{ padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+            <div>
+              <div style={{ color: '#C8FF00', fontSize: 13, fontWeight: 950 }}>Journée clôturée ✓</div>
+              <div style={{ color: '#B3B7B4', fontSize: 12, marginTop: 4 }}>NOX a enregistré ta journée.</div>
+            </div>
+            <button onClick={() => setEditingClosure(true)} style={{ border: 0, background: 'transparent', color: '#C8FF00', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Modifier</button>
+          </AppCard>
+        </section>
       )}
-    </div>
-  );
-}
+    </main>
 
-function AppCard({
-  children,
-  style,
-}: {
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <div style={{
-      overflow: 'hidden',
-      background: '#252826',
-      border: '2px solid #5B605C',
-      borderRadius: 22,
-      boxSizing: 'border-box',
-      ...style,
-    }}>
-      {children}
-    </div>
-  );
-}
+    <BottomNav active="home" />
 
-function LimeButton({
-  children,
-  onClick,
-  style,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        width: '100%',
-        minHeight: 54,
-        border: 0,
-        borderRadius: 16,
-        background: '#C8FF00',
-        color: '#080A09',
-        fontSize: 13,
-        fontWeight: 1000,
-        cursor: 'pointer',
-        ...style,
-      }}
-    >
-      {children}
-    </button>
-  );
-}
+    <style>{`
+      .nox-home-main {
+        width: 100%;
+        max-width: 760px;
+        margin: 0 auto;
+        padding-left: 18px;
+        padding-right: 18px;
+        box-sizing: border-box;
+      }
+      .nox-home-header { padding-top: 54px; padding-bottom: 38px; }
+      .nox-home-section { margin-bottom: 46px; }
+      .nox-home-last-section { margin-bottom: 40px; }
+      .nox-priority-content { padding: 28px; }
+      .nox-pulse-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 18px; }
+      .nox-pulse-item { min-height: 122px; padding: 16px 12px; box-sizing: border-box; border-radius: 16px; background: #1e211f; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
-function DarkButton({
-  children,
-  onClick,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        width: '100%',
-        minHeight: 52,
-        border: '1.5px solid #606561',
-        borderRadius: 15,
-        background: '#303330',
-        color: '#FFFFFF',
-        fontSize: 13,
-        fontWeight: 950,
-        cursor: 'pointer',
-      }}
-    >
-      {children}
-    </button>
-  );
-}
+      @media (max-width: 640px) {
+        .nox-home-main { max-width: none; padding-left: 18px; padding-right: 18px; }
+        .nox-home-header { padding-top: 36px; padding-bottom: 32px; }
+        .nox-home-section { margin-bottom: 38px; }
+        .nox-priority-content { padding: 22px; }
+        .nox-pulse-grid { gap: 7px; padding: 10px; }
+        .nox-pulse-item { min-height: 116px; padding: 14px 6px; border-radius: 15px; }
+      }
 
-function Metric({
-  value,
-  label,
-  progress,
-}: {
-  value: string | number;
-  label: string;
-  progress: number;
-}) {
-  return (
-    <div style={{
-      minWidth: 0,
-      padding: '17px 14px',
-      borderRadius: 16,
-      background: '#303330',
-    }}>
-      <div style={{ fontSize: 25, lineHeight: 1, fontWeight: 1000 }}>{value}</div>
-      <div style={{
-        marginTop: 6,
-        color: '#B3B7B4',
-        fontSize: 11,
-        fontWeight: 700,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-      }}>
-        {label}
-      </div>
-      {progress > 0 && (
-        <div style={{ height: 5, marginTop: 13, overflow: 'hidden', borderRadius: 999, background: '#555A56' }}>
-          <div style={{
-            width: `${Math.min(100, Math.max(0, progress * 100))}%`,
-            height: '100%',
-            borderRadius: 999,
-            background: '#C8FF00',
-          }} />
-        </div>
-      )}
-    </div>
-  );
+      @media (min-width: 641px) and (max-width: 900px) {
+        .nox-home-main { max-width: 680px; }
+      }
+    `}</style>
+  </div>
+);
 }
