@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity, Camera, ChevronRight, CircleUserRound, Droplets,
-  Dumbbell, Plus, Scale, Utensils, X,
+  Dumbbell, FileText, Moon, Plus, Scale, Smile, Utensils, X,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
@@ -41,29 +41,35 @@ function QuickAddModal({ open, onClose }: { open: boolean; onClose: () => void }
   if (!open) return null;
 
   const actions = [
-    { label: 'Repas', icon: Utensils, path: '/food-scan' },
-    { label: 'Eau', icon: Droplets, path: '/fuel' },
-    { label: 'Activité', icon: Dumbbell, path: '/program' },
-    { label: 'Poids', icon: Scale, path: '/body' },
-    { label: 'Photo', icon: Camera, path: '/progress' },
+    { label: 'Repas',           icon: Utensils,  path: '/food-scan', color: '#FF6B35' },
+    { label: 'Mouvement/Sport', icon: Dumbbell,  path: '/movement',  color: '#C8FF00' },
+    { label: 'Poids',           icon: Scale,     path: '/body',      color: '#64B5F6' },
+    { label: 'Sommeil',         icon: Moon,      path: '/sleep',     color: '#9C89FF' },
+    { label: 'Humeur/Stress',   icon: Smile,     path: '/mood',      color: '#FFD93D' },
+    { label: 'Eau',             icon: Droplets,  path: '/fuel',      color: '#4FC3F7' },
+    { label: 'Note rapide',     icon: FileText,  path: '/coach',     color: '#A5D6A7' },
+    { label: 'Photo',           icon: Camera,    path: '/progress',  color: '#F48FB1' },
   ];
 
   return (
     <div className="nox-modal-backdrop" onClick={onClose}>
-      <div className="nox-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="nox-modal" onClick={(e) => e.stopPropagation()} style={{ paddingBottom: 32 }}>
         <div className="nox-modal__handle" />
         <div className="nox-modal__header">
           <div>
-            <div className="nox-eyebrow">DONNER UNE INFO À NOX</div>
-            <h2>Qu’est-ce qui vient de se passer ?</h2>
+            <div className="nox-eyebrow">AJOUTER</div>
+            <h2 style={{ margin: 0, fontSize: 26, fontWeight: 1000, letterSpacing: '-.03em' }}>Qu'est-ce qui vient de se passer ?</h2>
           </div>
           <button className="nox-icon-button" onClick={onClose} aria-label="Fermer"><X size={19} /></button>
         </div>
-        <div className="nox-modal__grid">
-          {actions.map(({ label, icon: Icon, path }) => (
-            <button key={label} className="nox-modal-action" onClick={() => { onClose(); navigate(path); }}>
-              <span><Icon size={20} /></span>
-              {label}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, padding: '20px 0 0' }}>
+          {actions.map(({ label, icon: Icon, path, color }) => (
+            <button key={label} onClick={() => { onClose(); navigate(path); }}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '16px 8px', border: 0, borderRadius: 20, background: '#1A1A1A', cursor: 'pointer', color: '#FFFFFF' }}>
+              <span style={{ width: 48, height: 48, borderRadius: 16, background: `${color}22`, display: 'grid', placeItems: 'center' }}>
+                <Icon size={22} color={color} strokeWidth={2} />
+              </span>
+              <span style={{ fontSize: 10, fontWeight: 800, color: '#AAAAAA', textAlign: 'center', lineHeight: 1.3 }}>{label}</span>
             </button>
           ))}
         </div>
@@ -71,6 +77,7 @@ function QuickAddModal({ open, onClose }: { open: boolean; onClose: () => void }
     </div>
   );
 }
+
 
 export function BottomNav({ active }: { active: NavActive | string }) {
   const navigate = useNavigate();
@@ -80,7 +87,7 @@ export function BottomNav({ active }: { active: NavActive | string }) {
     { id: 'home', label: "Aujourd'hui", path: '/home' },
     { id: 'nutrition', label: 'Nutrition', path: '/fuel' },
     { id: 'plus', label: '', path: '' },
-    { id: 'progress', label: 'Mon NOX', path: '/progress' },
+    { id: 'mon-nox', label: 'Mon NOX', path: '/mon-nox' },
     { id: 'moi', label: 'Moi', path: '/profile' },
   ];
 
