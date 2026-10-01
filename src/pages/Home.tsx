@@ -434,7 +434,7 @@ export default function Home() {
         : null;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0A0A0A', color: '#FFFFFF', paddingBottom: 100 }}>
+    <div style={{ minHeight: '100dvh', background: '#0A0A0A', color: '#FFFFFF', paddingBottom: 'calc(132px + env(safe-area-inset-bottom))' }}>
       <main style={{ maxWidth: 560, margin: '0 auto', padding: '0 20px' }}>
 
         {/* HEADER */}
@@ -482,9 +482,8 @@ export default function Home() {
           </section>
         )}
 
-        {/* PRIORITÉ DU JOUR */}
-        {todayPulse && (
-          <section style={{
+        {/* PRIORITÉ DU JOUR — reste visible avant le Pulse */}
+        <section style={{
             background: priority.type === 'none' ? '#111111' : '#0F1A00',
             border: priority.type === 'none' ? '1px solid #222222' : '1px solid #3A5200',
             borderRadius: 26, padding: '22px 20px', marginBottom: 14,
@@ -498,7 +497,14 @@ export default function Home() {
               </div>
             </div>
 
-            {priority.type === 'none' ? (
+            {!todayPulse ? (
+              <>
+                <div style={{ fontSize: 24, fontWeight: 1000, letterSpacing: '-.04em', marginBottom: 10 }}>À préciser avec ton Pulse</div>
+                <div style={{ fontSize: 13, color: '#888888', lineHeight: 1.55 }}>
+                  NOX attend tes 3 signaux du matin avant de fixer la priorité de ta journée.
+                </div>
+              </>
+            ) : priority.type === 'none' ? (
               <>
                 <div style={{ fontSize: 24, fontWeight: 1000, letterSpacing: '-.04em', marginBottom: 10 }}>Tout va bien ✓</div>
                 <div style={{ fontSize: 13, color: '#888888', lineHeight: 1.55 }}>NOX n'a pas de signal suffisant pour te demander de modifier quelque chose aujourd'hui. Continue normalement.</div>
@@ -514,7 +520,7 @@ export default function Home() {
               </>
             )}
 
-            <details style={{ borderTop: '1px solid #222222', paddingTop: 14 }}>
+            {todayPulse && <details style={{ borderTop: '1px solid #222222', paddingTop: 14 }}>
               <summary style={{ cursor: 'pointer', fontSize: 11, fontWeight: 900, color: '#C8FF00', letterSpacing: '.05em', userSelect: 'none' }}>
                 POURQUOI ? ›
               </summary>
@@ -531,22 +537,21 @@ export default function Home() {
                   ))}
                 </div>
               )}
-            </details>
+            </details>}
 
-            {priority.type === 'activity' && todaySession && (
+            {todayPulse && priority.type === 'activity' && todaySession && (
               <button onClick={() => navigate('/program')}
                 style={{ width: '100%', padding: 16, marginTop: 16, border: 0, borderRadius: 16, background: '#C8FF00', color: '#0A0A0A', fontWeight: 1000, fontSize: 13, cursor: 'pointer' }}>
                 COMMENCER MA SÉANCE →
               </button>
             )}
-            {priority.type === 'nutrition' && (
+            {todayPulse && priority.type === 'nutrition' && (
               <button onClick={() => navigate('/fuel')}
                 style={{ width: '100%', padding: 16, marginTop: 16, border: 0, borderRadius: 16, background: '#C8FF00', color: '#0A0A0A', fontWeight: 1000, fontSize: 13, cursor: 'pointer' }}>
                 AJOUTER MON REPAS →
               </button>
             )}
           </section>
-        )}
 
         {/* SÉANCE DU JOUR — uniquement si pertinent */}
         {todaySession && !todayWorkout && (
@@ -613,20 +618,28 @@ export default function Home() {
         )}
 
         {/* CLÔTURE DU JOUR → page dédiée */}
-        {todayPulse && !todayClosure && (
+        {!todayClosure && (
           <section style={{ background: '#111111', border: '1px solid #222222', borderRadius: 26, padding: '20px 20px', marginBottom: 14 }}>
             <div style={{ fontSize: 11, fontWeight: 900, color: '#888888', letterSpacing: '.09em', marginBottom: 10 }}>CLÔTURE DE JOURNÉE</div>
-            <div style={{ fontSize: 17, fontWeight: 950, marginBottom: 6 }}>Ta journée touche à sa fin.</div>
-            <div style={{ fontSize: 13, color: '#666666', marginBottom: 18 }}>30 secondes pour clôturer avec NOX.</div>
-            <button onClick={() => navigate('/closure', {
-              state: {
-                priorityTitle: priority.type !== 'none' ? (priority as any).title : null,
-                priorityType:  priority.type,
-              }
-            })}
-              style={{ width: '100%', padding: 16, border: 0, borderRadius: 16, background: '#C8FF00', color: '#0A0A0A', fontWeight: 1000, fontSize: 14, cursor: 'pointer' }}>
-              CLÔTURER MA JOURNÉE →
-            </button>
+            <div style={{ fontSize: 17, fontWeight: 950, marginBottom: 6 }}>
+              {todayPulse ? 'Ta journée touche à sa fin.' : 'Ton bilan viendra ici ce soir.'}
+            </div>
+            <div style={{ fontSize: 13, color: '#666666', marginBottom: todayPulse ? 18 : 0 }}>
+              {todayPulse
+                ? '30 secondes pour clôturer avec NOX.'
+                : 'Commence par ton Pulse pour donner à NOX le contexte de ta journée.'}
+            </div>
+            {todayPulse && (
+              <button onClick={() => navigate('/closure', {
+                state: {
+                  priorityTitle: priority.type !== 'none' ? (priority as any).title : null,
+                  priorityType: priority.type,
+                }
+              })}
+                style={{ width: '100%', padding: 16, border: 0, borderRadius: 16, background: '#C8FF00', color: '#0A0A0A', fontWeight: 1000, fontSize: 14, cursor: 'pointer' }}>
+                CLÔTURER MA JOURNÉE →
+              </button>
+            )}
           </section>
         )}
 
