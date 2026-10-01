@@ -41,35 +41,106 @@ function QuickAddModal({ open, onClose }: { open: boolean; onClose: () => void }
   if (!open) return null;
 
   const actions = [
-    { label: 'Repas',           icon: Utensils,  path: '/food-scan', color: '#FF6B35' },
-    { label: 'Mouvement/Sport', icon: Dumbbell,  path: '/movement',  color: '#C8FF00' },
-    { label: 'Poids',           icon: Scale,     path: '/body',      color: '#64B5F6' },
-    { label: 'Sommeil',         icon: Moon,      path: '/sleep',     color: '#9C89FF' },
-    { label: 'Humeur/Stress',   icon: Smile,     path: '/mood',      color: '#FFD93D' },
-    { label: 'Eau',             icon: Droplets,  path: '/fuel',      color: '#4FC3F7' },
-    { label: 'Note rapide',     icon: FileText,  path: '/coach',     color: '#A5D6A7' },
-    { label: 'Photo',           icon: Camera,    path: '/mon-nox',   color: '#F48FB1' },
+    { label: 'Repas',           icon: Utensils, path: '/food-scan', color: '#FF6B35' },
+    { label: 'Mouvement/Sport', icon: Dumbbell, path: '/movement',  color: '#C8FF00' },
+    { label: 'Poids',           icon: Scale,    path: '/body',      color: '#64B5F6' },
+    { label: 'Sommeil',         icon: Moon,     path: '/sleep',     color: '#9C89FF' },
+    { label: 'Humeur/Stress',   icon: Smile,    path: '/mood',      color: '#FFD93D' },
+    { label: 'Eau',             icon: Droplets, path: '/fuel',      color: '#4FC3F7' },
+    { label: 'Note rapide',     icon: FileText, path: '/coach',     color: '#A5D6A7' },
+    { label: 'Photo',           icon: Camera,   path: '/mon-nox',   color: '#F48FB1' },
   ];
 
   return (
-    <div className="nox-modal-backdrop" onClick={onClose}>
-      <div className="nox-modal" onClick={(e) => e.stopPropagation()} style={{ paddingBottom: 32 }}>
-        <div className="nox-modal__handle" />
-        <div className="nox-modal__header">
+    <div
+      role="presentation"
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,.72)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        padding: '0 12px',
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Ajouter"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: 620,
+          maxHeight: '86dvh',
+          overflowY: 'auto',
+          boxSizing: 'border-box',
+          background: '#111111',
+          border: '1px solid #262626',
+          borderRadius: '28px 28px 0 0',
+          padding: '10px 20px calc(24px + env(safe-area-inset-bottom))',
+          boxShadow: '0 -24px 80px rgba(0,0,0,.55)',
+        }}
+      >
+        <div style={{ width: 42, height: 4, borderRadius: 999, background: '#3A3A3A', margin: '0 auto 18px' }} />
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
           <div>
-            <div className="nox-eyebrow">AJOUTER</div>
-            <h2 style={{ margin: 0, fontSize: 26, fontWeight: 1000, letterSpacing: '-.03em' }}>Qu'est-ce qui vient de se passer ?</h2>
+            <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: '.12em', color: '#777777', marginBottom: 6 }}>AJOUTER</div>
+            <h2 style={{ margin: 0, fontSize: 26, lineHeight: 1.05, fontWeight: 1000, letterSpacing: '-.03em', color: '#FFFFFF' }}>
+              Qu'est-ce qui vient de se passer ?
+            </h2>
           </div>
-          <button className="nox-icon-button" onClick={onClose} aria-label="Fermer"><X size={19} /></button>
+          <button
+            onClick={onClose}
+            aria-label="Fermer"
+            style={{
+              flex: '0 0 auto',
+              width: 40,
+              height: 40,
+              display: 'grid',
+              placeItems: 'center',
+              borderRadius: 14,
+              border: '1px solid #2A2A2A',
+              background: '#1A1A1A',
+              color: '#FFFFFF',
+              cursor: 'pointer',
+            }}
+          >
+            <X size={19} />
+          </button>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, padding: '20px 0 0' }}>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10, paddingTop: 20 }}>
           {actions.map(({ label, icon: Icon, path, color }) => (
-            <button key={label} onClick={() => { onClose(); navigate(path); }}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '16px 8px', border: 0, borderRadius: 20, background: '#1A1A1A', cursor: 'pointer', color: '#FFFFFF' }}>
-              <span style={{ width: 48, height: 48, borderRadius: 16, background: `${color}22`, display: 'grid', placeItems: 'center' }}>
-                <Icon size={22} color={color} strokeWidth={2} />
+            <button
+              key={label}
+              onClick={() => { onClose(); navigate(path); }}
+              style={{
+                minWidth: 0,
+                minHeight: 104,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 9,
+                padding: '14px 6px',
+                border: '1px solid #242424',
+                borderRadius: 18,
+                background: '#1A1A1A',
+                cursor: 'pointer',
+                color: '#FFFFFF',
+              }}
+            >
+              <span style={{ width: 44, height: 44, borderRadius: 14, background: `${color}22`, display: 'grid', placeItems: 'center' }}>
+                <Icon size={21} color={color} strokeWidth={2} />
               </span>
-              <span style={{ fontSize: 10, fontWeight: 800, color: '#AAAAAA', textAlign: 'center', lineHeight: 1.3 }}>{label}</span>
+              <span style={{ maxWidth: '100%', fontSize: 10, fontWeight: 800, color: '#AAAAAA', textAlign: 'center', lineHeight: 1.25 }}>
+                {label}
+              </span>
             </button>
           ))}
         </div>
@@ -78,36 +149,100 @@ function QuickAddModal({ open, onClose }: { open: boolean; onClose: () => void }
   );
 }
 
-
 export function BottomNav({ active }: { active: NavActive | string }) {
   const navigate = useNavigate();
   const [showAdd, setShowAdd] = useState(false);
 
   const tabs = [
-    { id: 'home', label: "Aujourd'hui", path: '/home' },
-    { id: 'nutrition', label: 'Nutrition', path: '/fuel' },
-    { id: 'plus', label: '', path: '' },
-    { id: 'mon-nox', label: 'Mon NOX', path: '/mon-nox' },
-    { id: 'moi', label: 'Moi', path: '/profile' },
+    { id: 'home', label: "Aujourd'hui", path: '/home', icon: Activity },
+    { id: 'nutrition', label: 'Nutrition', path: '/fuel', icon: Utensils },
+    { id: 'plus', label: '', path: '', icon: Plus },
+    { id: 'mon-nox', label: 'Mon NOX', path: '/mon-nox', icon: CircleUserRound },
+    { id: 'moi', label: 'Moi', path: '/profile', icon: CircleUserRound },
   ];
 
   return (
     <>
       <QuickAddModal open={showAdd} onClose={() => setShowAdd(false)} />
-      <nav className="nox-mobile-nav">
-        {tabs.map((tab) => tab.id === 'plus' ? (
-          <button key="plus" className="nox-mobile-nav__plus" onClick={() => setShowAdd(true)} aria-label="Ajouter">
-            <Plus size={24} strokeWidth={2.8} />
-          </button>
-        ) : (
-          <button
-            key={tab.id}
-            className={`nox-mobile-nav__item ${active === tab.id ? 'is-active' : ''}`}
-            onClick={() => navigate(tab.path)}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <nav
+        aria-label="Navigation principale"
+        style={{
+          position: 'fixed',
+          left: '50%',
+          bottom: 0,
+          transform: 'translateX(-50%)',
+          zIndex: 900,
+          width: 'min(100%, 620px)',
+          boxSizing: 'border-box',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          alignItems: 'end',
+          gap: 2,
+          padding: '8px 10px calc(8px + env(safe-area-inset-bottom))',
+          background: 'rgba(10,10,10,.96)',
+          borderTop: '1px solid #242424',
+          boxShadow: '0 -12px 40px rgba(0,0,0,.35)',
+          backdropFilter: 'blur(18px)',
+          WebkitBackdropFilter: 'blur(18px)',
+        }}
+      >
+        {tabs.map((tab) => {
+          if (tab.id === 'plus') {
+            return (
+              <button
+                key="plus"
+                onClick={() => setShowAdd(true)}
+                aria-label="Ajouter"
+                style={{
+                  width: 52,
+                  height: 52,
+                  justifySelf: 'center',
+                  alignSelf: 'center',
+                  display: 'grid',
+                  placeItems: 'center',
+                  marginTop: -24,
+                  borderRadius: 18,
+                  border: '1px solid #D7FF45',
+                  background: '#C8FF00',
+                  color: '#0A0A0A',
+                  cursor: 'pointer',
+                  boxShadow: '0 10px 28px rgba(200,255,0,.18)',
+                }}
+              >
+                <Plus size={25} strokeWidth={3} />
+              </button>
+            );
+          }
+
+          const Icon = tab.icon;
+          const selected = active === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => navigate(tab.path)}
+              aria-current={selected ? 'page' : undefined}
+              style={{
+                minWidth: 0,
+                minHeight: 52,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                padding: '5px 2px',
+                border: 0,
+                background: 'transparent',
+                color: selected ? '#C8FF00' : '#777777',
+                cursor: 'pointer',
+              }}
+            >
+              <Icon size={19} strokeWidth={selected ? 2.5 : 2} />
+              <span style={{ fontSize: 9, lineHeight: 1, fontWeight: selected ? 900 : 700, whiteSpace: 'nowrap' }}>
+                {tab.label}
+              </span>
+            </button>
+          );
+        })}
       </nav>
     </>
   );
@@ -510,7 +645,6 @@ export default function Home() {
 
       </main>
 
-      <QuickAddModal open={showAdd} onClose={() => setShowAdd(false)} />
       <BottomNav active="home" />
     </div>
   );
