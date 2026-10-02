@@ -5,13 +5,13 @@ import { useAuth } from '../lib/AuthContext';
 import { todayLocalDate } from '../lib/localDate';
 import { BottomNav } from './Home';
 
-const BG    = '#0A0A0A';
-const CARD  = '#111111';
-const CARD2 = '#161616';
+const BG    = '#090B0A';
+const CARD  = '#232624';
+const CARD2 = '#191C1A';
 const WHITE = '#FFFFFF';
 const LIME  = '#C8FF00';
-const MUTED = '#666666';
-const BORDER= '#1E1E1E';
+const MUTED = '#A5AAA6';
+const BORDER= '#4A4F4B';
 
 // ── Readiness déterministe depuis Pulse + activité récente ────────────────────
 type ReadinessResult = {
@@ -133,26 +133,26 @@ export default function Recovery() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, color: WHITE, paddingBottom: 100 }}>
-      <main style={{ maxWidth: 560, margin: '0 auto', padding: '0 20px' }}>
+    <div style={{ minHeight: '100vh', background: BG, color: WHITE, paddingBottom: 'calc(160px + env(safe-area-inset-bottom))' }}>
+      <main style={{ maxWidth: 760, margin: '0 auto', padding: '0 16px' }}>
 
         {/* Header */}
         <div style={{ paddingTop: 52, paddingBottom: 24 }}>
           <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.1em', marginBottom: 6 }}>RÉCUPÉRATION</div>
-          <h1 style={{ margin: 0, fontSize: 34, fontWeight: 1000, letterSpacing: '-.05em', lineHeight: .95 }}>
+          <h1 style={{ margin: 0, fontSize: 'clamp(34px,5vw,46px)', fontWeight: 850, letterSpacing: '-.04em', lineHeight: .98 }}>
             Comment<br />tu te portes ?
           </h1>
         </div>
 
         {/* Pas de Pulse */}
         {!pulse && (
-          <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '22px 20px', marginBottom: 14 }}>
+          <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: '22px 20px', marginBottom: 14 }}>
             <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 8 }}>Pulse du matin manquant</div>
             <div style={{ fontSize: 13, color: MUTED, marginBottom: 18, lineHeight: 1.55 }}>
               Renseigne ton Pulse pour que NOX puisse évaluer ta récupération d'aujourd'hui.
             </div>
             <button onClick={() => navigate('/pulse')}
-              style={{ width: '100%', padding: 16, border: 0, borderRadius: 16, background: LIME, color: '#0A0A0A', fontWeight: 1000, fontSize: 14, cursor: 'pointer' }}>
+              style={{ width: '100%', padding: 16, border: 0, borderRadius: 14, background: LIME, color: '#0A0A0A', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
               FAIRE MON PULSE →
             </button>
           </section>
@@ -160,7 +160,7 @@ export default function Recovery() {
 
         {/* Readiness */}
         {readiness && (
-          <section style={{ background: readiness.level === 'good' ? '#0F1A00' : readiness.level === 'moderate' ? '#1A1500' : '#1A0500', border: `1px solid ${readiness.color}33`, borderRadius: 22, padding: '22px 20px', marginBottom: 14 }}>
+          <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: '22px 20px', marginBottom: 14 }}>
             <div style={{ fontSize: 10, fontWeight: 900, color: readiness.color, letterSpacing: '.1em', marginBottom: 12 }}>
               TON ÉTAT AUJOURD'HUI
             </div>
@@ -173,7 +173,7 @@ export default function Recovery() {
 
         {/* Signaux — Pulse du jour */}
         {pulse && (
-          <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '18px 20px', marginBottom: 14 }}>
+          <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: '18px 20px', marginBottom: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em' }}>SIGNAUX DU MATIN</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -187,7 +187,7 @@ export default function Recovery() {
                 { label: 'Énergie', value: pulse.energy_score, emoji: '⚡', color: '#FFD93D' },
                 { label: 'Corps',   value: pulse.body_score,   emoji: '💪', color: '#4FC3F7' },
               ].map(({ label, value, emoji, color }) => (
-                <div key={label} style={{ background: CARD2, borderRadius: 16, padding: '14px 10px', textAlign: 'center' }}>
+                <div key={label} style={{ background: CARD2, borderRadius: 14, padding: '14px 10px', textAlign: 'center' }}>
                   <div style={{ fontSize: 18, marginBottom: 6 }}>{emoji}</div>
                   <div style={{ fontSize: 24, fontWeight: 1000, color: WHITE }}>{value}</div>
                   <div style={{ fontSize: 9, color, fontWeight: 800, marginTop: 2 }}>/5</div>
@@ -204,16 +204,15 @@ export default function Recovery() {
 
         {/* Dernière activité */}
         {(lastWorkout || lastMovement) && (
-          <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '18px 20px', marginBottom: 14 }}>
+          <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: '18px 20px', marginBottom: 14 }}>
             <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em', marginBottom: 14 }}>ACTIVITÉ RÉCENTE</div>
 
             {lastWorkout && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: CARD2, borderRadius: 16, marginBottom: lastMovement ? 8 : 0 }}>
-                <span style={{ fontSize: 22 }}>🏋️</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: CARD2, borderRadius: 14, marginBottom: lastMovement ? 8 : 0 }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 900, color: WHITE }}>{lastWorkout.name || 'Séance'}</div>
                   <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
-                    {lastWorkout.session_feedback === 'hard' ? '🔥 Difficile' : lastWorkout.session_feedback === 'easy' ? '😎 Facile' : lastWorkout.session_feedback ? '💪 Bien' : ''
+                    {lastWorkout.session_feedback === 'hard' ? 'Difficile' : lastWorkout.session_feedback === 'easy' ? 'Facile' : lastWorkout.session_feedback ? 'Bien' : ''
                     }
                     {lastWorkout.finished_at && ` · ${Math.floor((Date.now() - new Date(lastWorkout.finished_at).getTime()) / 86400000)}j`}
                   </div>
@@ -223,9 +222,8 @@ export default function Recovery() {
             )}
 
             {lastMovement && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: CARD2, borderRadius: 16 }}>
-                <span style={{ fontSize: 22 }}>🏃</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: CARD2, borderRadius: 14 }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 900, color: WHITE }}>{lastMovement.sport}</div>
                   <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
                     {lastMovement.duration_min} min · {intensityLabel[lastMovement.intensity] || lastMovement.intensity}
@@ -238,18 +236,17 @@ export default function Recovery() {
         )}
 
         {/* Appareils connectés */}
-        <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '18px 20px', marginBottom: 14 }}>
+        <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: '18px 20px', marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em', marginBottom: 8 }}>APPAREILS CONNECTÉS</div>
           <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.55, marginBottom: 16 }}>
             Les données d'un appareil permettront à NOX de distinguer ce que tu ressens de ce qui est réellement mesuré.
           </div>
           {[
-            { name: 'Apple Health / HealthKit', icon: '🍎' },
-            { name: 'Google Fit / Health Connect', icon: '🔵' },
-            { name: 'Garmin, WHOOP, Oura…', icon: '⌚' },
-          ].map(({ name, icon }) => (
-            <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: CARD2, borderRadius: 14, marginBottom: 8, opacity: .55 }}>
-              <span style={{ fontSize: 20 }}>{icon}</span>
+            { name: 'Apple Health / HealthKit' },
+            { name: 'Google Fit / Health Connect' },
+            { name: 'Garmin, WHOOP, Oura…' },
+          ].map(({ name }) => (
+            <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: CARD2, border: `1px solid ${BORDER}`, borderRadius: 14, marginBottom: 8, opacity: .65 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 800, color: WHITE }}>{name}</div>
                 <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Bientôt disponible</div>
