@@ -47,7 +47,7 @@ function parseAction(text: string, navigate: (p: string) => void): NoxAction {
   if (lower.includes('recette') || lower.includes('manger'))
     return { type: 'navigate', label: 'VOIR LES IDEES', path: '/fuel' };
   if (lower.includes('progression') || lower.includes('progres'))
-    return { type: 'navigate', label: 'VOIR MES PROGRES', path: '/progress' };
+    return { type: 'navigate', label: 'VOIR MES PROGRES', path: '/mon-nox' };
   return null;
 }
 
