@@ -4,13 +4,13 @@ import { BottomNav } from './Home';
 import { ArrowLeft, Check } from 'lucide-react';
 
 const ACCENT = '#C8FF00';
-const BG     = '#0A0A0A';
-const CARD   = '#111111';
-const CARD_2 = '#171717';
+const BG     = '#090B0A';
+const CARD   = '#232624';
+const CARD_2 = '#191C1A';
 const WHITE  = '#FFFFFF';
 const BLACK  = '#0B0B0B';
-const MUTED  = '#888888';
-const BORDER = '#262626';
+const MUTED  = '#A5AAA6';
+const BORDER = '#4A4F4B';
 
 const FEATURES_FREE = [
   'Journal alimentaire (calories, macros, eau)',
@@ -61,13 +61,13 @@ export default function Subscribe() {
         color: WHITE,
         paddingBottom: onboardingFlow
           ? 40
-          : 'calc(132px + env(safe-area-inset-bottom))',
+          : 'calc(160px + env(safe-area-inset-bottom))',
       }}
     >
-      <div style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
+      <div style={{ width: '100%', maxWidth: 760, margin: '0 auto' }}>
         <header
           style={{
-            padding: '20px 20px 0',
+            padding: '30px 16px 0',
             display: 'flex',
             alignItems: 'center',
             gap: 14,
@@ -104,14 +104,14 @@ export default function Subscribe() {
           </div>
         </header>
 
-        <main style={{ padding: '0 20px' }}>
+        <main style={{ padding: '0 16px' }}>
           <h1
             style={{
               margin: '0 0 8px',
-              fontSize: 36,
-              fontWeight: 950,
-              letterSpacing: '-.05em',
-              lineHeight: .95,
+              fontSize: 'clamp(34px,5vw,46px)',
+              fontWeight: 850,
+              letterSpacing: '-.04em',
+              lineHeight: .98,
             }}
           >
             NOX PRO<span style={{ color: ACCENT }}>.</span>
@@ -206,8 +206,8 @@ export default function Subscribe() {
             onClick={() => setSelected('pro')}
             style={{
               width: '100%',
-              background: selected === 'pro' ? '#101400' : CARD,
-              border: `2px solid ${selected === 'pro' ? ACCENT : BORDER}`,
+              background: CARD,
+              border: `1px solid ${selected === 'pro' ? ACCENT : BORDER}`,
               borderRadius: 20,
               padding: 20,
               marginBottom: 12,
@@ -237,18 +237,6 @@ export default function Subscribe() {
                   }}
                 >
                   <div style={{ fontSize: 18, fontWeight: 950 }}>NOX Pro</div>
-                  <div
-                    style={{
-                      background: ACCENT,
-                      borderRadius: 8,
-                      padding: '2px 8px',
-                      fontSize: 9,
-                      fontWeight: 900,
-                      color: BLACK,
-                    }}
-                  >
-                    RECOMMANDÉ
-                  </div>
                 </div>
               </div>
 
@@ -269,7 +257,7 @@ export default function Subscribe() {
                 }}
               >
                 <Check size={14} color={ACCENT} />
-                <span style={{ fontSize: 12, color: '#CCCCCC' }}>{f}</span>
+                <span style={{ fontSize: 12, color: '#A5AAA6' }}>{f}</span>
               </div>
             ))}
           </button>
@@ -279,8 +267,8 @@ export default function Subscribe() {
             onClick={() => setSelected('pro_plus')}
             style={{
               width: '100%',
-              background: selected === 'pro_plus' ? '#101400' : CARD,
-              border: `2px solid ${selected === 'pro_plus' ? ACCENT : BORDER}`,
+              background: CARD,
+              border: `1px solid ${selected === 'pro_plus' ? ACCENT : BORDER}`,
               borderRadius: 20,
               padding: 20,
               marginBottom: 24,
@@ -318,7 +306,7 @@ export default function Subscribe() {
                 }}
               >
                 <Check size={14} color={ACCENT} />
-                <span style={{ fontSize: 12, color: '#CCCCCC' }}>{f}</span>
+                <span style={{ fontSize: 12, color: '#A5AAA6' }}>{f}</span>
               </div>
             ))}
           </button>
@@ -327,7 +315,7 @@ export default function Subscribe() {
             style={{
               background: CARD_2,
               border: `1px solid ${BORDER}`,
-              borderRadius: 18,
+              borderRadius: 14,
               padding: '16px 18px',
               marginBottom: 14,
             }}
@@ -346,7 +334,7 @@ export default function Subscribe() {
             <div
               style={{
                 fontSize: 13,
-                color: '#CCCCCC',
+                color: '#A5AAA6',
                 lineHeight: 1.55,
               }}
             >
@@ -361,10 +349,10 @@ export default function Subscribe() {
             style={{
               width: '100%',
               padding: 18,
-              background: '#242424',
+              background: '#191C1A',
               border: `1px solid ${BORDER}`,
-              borderRadius: 18,
-              color: '#666666',
+              borderRadius: 14,
+              color: '#747A76',
               fontWeight: 950,
               fontSize: 15,
               cursor: 'not-allowed',
