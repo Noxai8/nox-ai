@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Activity, Camera, ChevronRight, CircleUserRound, Droplets,
-  Dumbbell, FileText, Moon, Plus, Scale, Smile, Utensils, X,
+  Activity, BatteryCharging, Camera, ChevronRight, CircleUserRound, Droplets,
+  Dumbbell, FileText, Moon, PersonStanding, Plus, Scale, Smile, Target, Utensils, X,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
@@ -278,7 +278,7 @@ export default function Home() {
       supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
       supabase.from('workout_programs').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
       supabase.from('nutrition_targets').select('*').eq('user_id', user.id).maybeSingle(),
-      supabase.from('food_entries').select('calories, protein').eq('user_id', user.id).gte('created_at', start).lte('created_at', end),
+      supabase.from('food_entries').select('*').eq('user_id', user.id).gte('created_at', start).lte('created_at', end),
     ]);
 
     setProfile(prof);
@@ -345,10 +345,15 @@ export default function Home() {
   };
 
   const firstName = profile?.first_name || profile?.display_name?.split(' ')[0] || '';
-  const caloriesTarget = Number(targets?.calories || 2200);
-  const proteinTarget = Number(targets?.protein_g || targets?.protein || 160);
+  const caloriesTarget = Number(targets?.calories || 0);
+  const proteinTarget = Number(targets?.protein_g || targets?.protein || 0);
+  const carbsTarget = Number(targets?.carbs_g || targets?.carbs || 0);
+  const fatTarget = Number(targets?.fat_g || targets?.fat || 0);
   const todayKcal = todayFood.reduce((sum, entry) => sum + Number(entry.calories || 0), 0);
-  const todayProt = todayFood.reduce((sum, entry) => sum + Number(entry.protein || 0), 0);
+  const todayProt = todayFood.reduce((sum, entry) => sum + Number(entry.protein || entry.protein_g || 0), 0);
+  const todayCarbs = todayFood.reduce((sum, entry) => sum + Number(entry.carbs || entry.carbs_g || entry.carbohydrates || 0), 0);
+  const todayFat = todayFood.reduce((sum, entry) => sum + Number(entry.fat || entry.fat_g || entry.fats || 0), 0);
+  const caloriesRemaining = caloriesTarget > 0 ? Math.max(0, caloriesTarget - todayKcal) : null;
   const sessions = program?.program_json?.sessions || [];
   const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
   const todaySession = sessions.find((session: any) =>
@@ -433,223 +438,260 @@ export default function Home() {
       : priority.type === 'activity' ? 'COMMENCER MA SÉANCE'
         : null;
 
+  const pulseItems = todayPulse ? [
+    { label: 'Sommeil', value: Number(todayPulse.sleep_score), Icon: Moon },
+    { label: 'Énergie', value: Number(todayPulse.energy_score), Icon: BatteryCharging },
+    { label: 'Corps', value: Number(todayPulse.body_score), Icon: PersonStanding },
+  ] : [];
+
   return (
-  <div
-    style={{
-      minHeight: '100dvh',
-      background: '#090B0A',
-      color: '#FFFFFF',
-      paddingBottom: 'calc(180px + env(safe-area-inset-bottom))',
-    }}
-  >
-    <main className="nox-home-main">
-
-      {/* AUJOURD'HUI */}
-      <header className="nox-home-header">
-        <div style={{ color: '#777C79', fontSize: 13, fontWeight: 850, letterSpacing: '.055em', textTransform: 'uppercase', marginBottom: 9 }}>
-          {dateLabel}
-        </div>
-        <h1 style={{ margin: 0, fontSize: 'clamp(40px, 5vw, 48px)', lineHeight: 0.98, letterSpacing: '-.055em', fontWeight: 1000 }}>
-          Aujourd'hui
-        </h1>
-        <div style={{ marginTop: 10, color: '#A7ABA8', fontSize: 14, fontWeight: 650 }}>
-          {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
-        </div>
-      </header>
-
-      {/* TON PULSE */}
-      <section className="nox-home-section">
-        <SectionHeader title="Ton Pulse" action={todayPulse ? 'Modifier' : 'Commencer'} onAction={() => navigate('/pulse')} />
-        {todayPulse ? (
-          <AppCard>
-            <div className="nox-pulse-grid">
-              {[
-                ['🌙', 'Sommeil', todayPulse.sleep_score],
-                ['⚡', 'Énergie', todayPulse.energy_score],
-                ['💪', 'Corps', todayPulse.body_score],
-              ].map(([emoji, label, value]) => (
-                <div key={String(label)} className="nox-pulse-item">
-                  <div style={{ width: 42, height: 42, borderRadius: 14, display: 'grid', placeItems: 'center', background: '#1B1E1C', fontSize: 21, lineHeight: 1, marginBottom: 14 }}>
-                    {emoji}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
-                    <span style={{ fontSize: 32, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.04em' }}>{value}</span>
-                    <span style={{ color: '#777C79', fontSize: 13, fontWeight: 800 }}>/5</span>
-                  </div>
-                  <div style={{ marginTop: 8, color: '#B8BCB9', fontSize: 12, fontWeight: 750 }}>{label}</div>
-                </div>
-              ))}
-            </div>
-          </AppCard>
-        ) : (
-          <AppCard style={{ padding: 26 }}>
-            <div style={{ fontSize: 22, fontWeight: 1000, letterSpacing: '-.025em', marginBottom: 8 }}>Comment tu vas aujourd'hui ?</div>
-            <div style={{ color: '#B3B7B4', fontSize: 14, lineHeight: 1.5, marginBottom: 22 }}>
-              Sommeil, énergie et état du corps. Quelques secondes pour donner du contexte à NOX.
-            </div>
-            <LimeButton onClick={() => navigate('/pulse')}>FAIRE MON PULSE →</LimeButton>
-          </AppCard>
-        )}
-      </section>
-
-      {/* PRIORITÉ */}
-      <section className="nox-home-section">
-        <SectionHeader title="Priorité du jour" action={todayPulse ? (priority.confidence === 'high' ? 'Élevée' : priority.confidence === 'moderate' ? 'Modérée' : 'Faible') : undefined} />
-        <AppCard style={{ padding: 0 }}>
-          <div className="nox-priority-content">
-            {!todayPulse ? (
-              <>
-                <div style={ui.bigTitle}>À préciser avec ton Pulse</div>
-                <div style={ui.body}>NOX attend tes trois signaux du matin avant de fixer la priorité de ta journée.</div>
-              </>
-            ) : priority.type === 'none' ? (
-              <>
-                <div style={ui.bigTitle}>Tout va bien ✓</div>
-                <div style={ui.body}>NOX n'a pas de signal suffisant pour te demander de modifier quelque chose aujourd'hui.</div>
-              </>
-            ) : (
-              <>
-                <div style={{ display: 'inline-flex', alignItems: 'center', padding: '7px 11px', borderRadius: 999, background: 'rgba(200,255,0,.10)', color: '#C8FF00', fontSize: 10, fontWeight: 950, letterSpacing: '.055em', marginBottom: 17 }}>
-                  NOX RECOMMANDE
-                </div>
-                <div style={{ ...ui.bigTitle, fontSize: 25, marginBottom: 9 }}>{(priority as any).title}</div>
-                <div style={{ ...ui.body, maxWidth: 590 }}>{(priority as any).action}</div>
-              </>
-            )}
-
-            {todayPulse && (
-              <details style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #444945' }}>
-                <summary style={{ cursor: 'pointer', color: '#C8FF00', fontSize: 12, fontWeight: 900, userSelect: 'none' }}>Pourquoi ? ›</summary>
-                <div style={{ marginTop: 13, color: '#B3B7B4', fontSize: 13, lineHeight: 1.55 }}>
-                  {priority.type !== 'none' ? (priority as any).reason : "Tes signaux du matin sont équilibrés — aucune zone ne nécessite d'intervention aujourd'hui."}
-                </div>
-                {priority.evidence.length > 0 && (
-                  <div style={{ display: 'grid', gap: 8, marginTop: 14 }}>
-                    {priority.evidence.map(ev => (
-                      <div key={ev.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '11px 13px', borderRadius: 12, background: '#1A1D1B' }}>
-                        <span style={{ color: '#8E938F', fontSize: 11 }}>{ev.label}</span>
-                        <span style={{ fontSize: 11, fontWeight: 900 }}>{ev.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </details>
-            )}
-
-            {todayPulse && priority.type === 'activity' && todaySession && (
-              <LimeButton onClick={() => navigate('/program')} style={{ marginTop: 24 }}>COMMENCER MA SÉANCE →</LimeButton>
-            )}
-            {todayPulse && priority.type === 'nutrition' && (
-              <LimeButton onClick={() => navigate('/fuel')} style={{ marginTop: 24 }}>AJOUTER MON REPAS →</LimeButton>
-            )}
+    <div
+      style={{
+        minHeight: '100dvh',
+        background: '#080A09',
+        color: '#FFFFFF',
+        paddingBottom: 'calc(126px + env(safe-area-inset-bottom))',
+      }}
+    >
+      <main className="nox-home-main">
+        <header className="nox-home-header">
+          <div style={{ color: '#858986', fontSize: 12, fontWeight: 900, letterSpacing: '.13em', textTransform: 'uppercase', marginBottom: 10 }}>
+            {dateLabel}
           </div>
-        </AppCard>
-      </section>
+          <h1 style={{ margin: 0, fontSize: 'clamp(42px, 7vw, 58px)', lineHeight: .95, letterSpacing: '-.06em', fontWeight: 1000 }}>
+            Aujourd'hui
+          </h1>
+          <div style={{ marginTop: 16, color: '#F2F2F2', fontSize: 16, fontWeight: 850 }}>
+            {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
+          </div>
+          <div style={{ marginTop: 4, color: '#8E938F', fontSize: 14 }}>
+            Prêt à avancer ? Voici ton suivi du jour.
+          </div>
+        </header>
 
-      {/* MOUVEMENT */}
-      {todaySession && !todayWorkout && (
         <section className="nox-home-section">
-          <SectionHeader title="Mouvement" action="Plus" onAction={() => navigate('/program')} />
-          <AppCard style={{ padding: 26 }}>
-            <div style={{ color: '#8E938F', fontSize: 11, fontWeight: 900, letterSpacing: '.06em', marginBottom: 9 }}>SÉANCE DU JOUR</div>
-            <div style={ui.bigTitle}>{todaySession.name}</div>
-            {todaySession.duration_minutes && (
-              <div style={{ ...ui.body, marginBottom: 22 }}>{todaySession.duration_minutes} min · {todaySession.exercises?.length ?? 0} exercices</div>
-            )}
-            <DarkButton onClick={() => navigate('/program')}>VOIR MA SÉANCE →</DarkButton>
-          </AppCard>
+          <SectionHeader title="Ton Pulse" action={todayPulse ? 'Modifier ›' : 'Commencer ›'} onAction={() => navigate('/pulse')} />
+          {todayPulse ? (
+            <AppCard style={{ padding: 12 }}>
+              <div className="nox-pulse-grid">
+                {pulseItems.map(({ label, value, Icon }) => (
+                  <div key={label} className="nox-pulse-item">
+                    <div className="nox-pulse-icon"><Icon size={25} strokeWidth={2.25} /></div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+                        <span style={{ fontSize: 32, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.045em' }}>{value}</span>
+                        <span style={{ color: '#747975', fontSize: 13, fontWeight: 900 }}>/5</span>
+                      </div>
+                      <div style={{ marginTop: 6, color: '#D0D3D1', fontSize: 12, fontWeight: 800 }}>{label}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </AppCard>
+          ) : (
+            <AppCard style={{ padding: 24 }}>
+              <div style={{ fontSize: 22, fontWeight: 1000, letterSpacing: '-.03em', marginBottom: 8 }}>Comment tu vas aujourd'hui ?</div>
+              <div style={{ color: '#A7ACA8', fontSize: 14, lineHeight: 1.5, marginBottom: 20 }}>
+                Sommeil, énergie et état du corps. Quelques secondes pour donner du contexte à NOX.
+              </div>
+              <LimeButton onClick={() => navigate('/pulse')}>FAIRE MON PULSE →</LimeButton>
+            </AppCard>
+          )}
         </section>
-      )}
 
-      {todayWorkout && (
         <section className="nox-home-section">
-          <SectionHeader title="Mouvement" />
-          <AppCard style={{ padding: 24, display: 'flex', alignItems: 'center', gap: 15 }}>
-            <div style={{ width: 46, height: 46, borderRadius: 15, display: 'grid', placeItems: 'center', flexShrink: 0, background: 'rgba(200,255,0,.10)', color: '#C8FF00', fontSize: 19, fontWeight: 1000 }}>✓</div>
-            <div>
-              <div style={{ fontSize: 17, fontWeight: 950 }}>Séance terminée</div>
-              <div style={{ color: '#B3B7B4', fontSize: 13, marginTop: 4 }}>{todayWorkout.name}</div>
+          <SectionHeader title="Nutrition aujourd'hui" action="Voir détails ›" onAction={() => navigate('/fuel')} />
+          <AppCard style={{ padding: 0, borderColor: 'rgba(200,255,0,.24)' }}>
+            <div className="nox-nutrition-card">
+              <div className="nox-calorie-ring" style={{
+                ['--progress' as any]: caloriesTarget > 0 ? `${Math.min(100, Math.round((todayKcal / caloriesTarget) * 100)) * 3.6}deg` : '0deg',
+              }}>
+                <div className="nox-calorie-ring-inner">
+                  <Utensils size={21} color="#C8FF00" />
+                  <div style={{ fontSize: 34, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.05em', marginTop: 8 }}>
+                    {caloriesRemaining !== null ? Math.round(caloriesRemaining) : '—'}
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 900, marginTop: 5 }}>
+                    {caloriesRemaining !== null ? 'kcal restantes' : 'objectif à définir'}
+                  </div>
+                  {caloriesTarget > 0 && <div style={{ fontSize: 11, color: '#777D79', marginTop: 4 }}>sur {Math.round(caloriesTarget)}</div>}
+                </div>
+              </div>
+
+              <div className="nox-macro-list">
+                <MacroRow icon={<Utensils size={17} />} value={Math.round(todayKcal)} target={caloriesTarget} unit="kcal" accent="#C8FF00" />
+                {proteinTarget > 0 && <MacroRow icon={<Dumbbell size={17} />} value={Math.round(todayProt)} target={proteinTarget} unit="g protéines" accent="#45BFFF" />}
+                {carbsTarget > 0 && <MacroRow icon={<Activity size={17} />} value={Math.round(todayCarbs)} target={carbsTarget} unit="g glucides" accent="#FF9D32" />}
+                {fatTarget > 0 && <MacroRow icon={<Droplets size={17} />} value={Math.round(todayFat)} target={fatTarget} unit="g lipides" accent="#9C62FF" />}
+              </div>
+
+              <div className="nox-nutrition-goal">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#C8FF00', fontSize: 10, fontWeight: 950, letterSpacing: '.05em' }}>
+                  <Target size={17} /> OBJECTIF DU JOUR
+                </div>
+                <div style={{ fontSize: 18, lineHeight: 1.15, fontWeight: 1000, marginTop: 16 }}>
+                  {caloriesTarget > 0 ? (todayKcal <= caloriesTarget ? 'Rester dans ta cible' : 'Cible dépassée') : 'Définis ta cible'}
+                </div>
+                <div style={{ color: '#A8ACA9', fontSize: 13, lineHeight: 1.5, marginTop: 9 }}>
+                  {caloriesRemaining !== null
+                    ? todayKcal <= caloriesTarget
+                      ? `Il te reste ${Math.round(caloriesRemaining)} kcal pour atteindre ton objectif aujourd'hui.`
+                      : `Tu as consommé ${Math.round(todayKcal - caloriesTarget)} kcal au-delà de ta cible actuelle.`
+                    : 'Ajoute un objectif nutritionnel pour afficher tes calories restantes.'}
+                </div>
+              </div>
             </div>
           </AppCard>
         </section>
-      )}
 
-      {/* NUTRITION */}
-      {(todayKcal > 0 || todayProt > 0) && (
+        {todayPulse && (
+          <section className="nox-home-section">
+            <AppCard style={{ padding: 24 }}>
+              <div className="nox-now-row">
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: '#9EA39F', fontSize: 11, fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+                    <span style={{ color: '#C8FF00' }}>✦</span> NOX maintenant
+                  </div>
+                  <div style={{ fontSize: 22, lineHeight: 1.1, fontWeight: 1000, letterSpacing: '-.035em' }}>{priorityTitle}</div>
+                  <div style={{ color: '#B3B7B4', fontSize: 14, lineHeight: 1.55, marginTop: 8 }}>{priorityAction}</div>
+                </div>
+                <details className="nox-now-details">
+                  <summary>Pourquoi ? ›</summary>
+                  <div>{priorityReason}</div>
+                </details>
+              </div>
+            </AppCard>
+          </section>
+        )}
+
         <section className="nox-home-section">
-          <SectionHeader title="Nutrition" action="Plus" onAction={() => navigate('/fuel')} />
+          <SectionHeader title="Priorité du jour" action={todayPulse ? (priority.confidence === 'high' ? 'Élevée' : priority.confidence === 'moderate' ? 'Modérée' : 'Faible') : undefined} />
           <AppCard style={{ padding: 18 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <Metric value={Math.round(todayKcal)} label={`kcal${caloriesTarget ? ` / ${caloriesTarget}` : ''}`} progress={caloriesTarget > 0 ? todayKcal / caloriesTarget : 0} />
-              <Metric value={`${Math.round(todayProt)}g`} label={`protéines${proteinTarget ? ` / ${proteinTarget}g` : ''}`} progress={proteinTarget > 0 ? todayProt / proteinTarget : 0} />
+            <div className="nox-compact-row">
+              <div className="nox-square-icon"><Target size={24} /></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {todayPulse && priority.type !== 'none' && <div style={{ color: '#C8FF00', fontSize: 9, fontWeight: 950, letterSpacing: '.055em', marginBottom: 5 }}>NOX RECOMMANDE</div>}
+                <div style={{ fontSize: 20, fontWeight: 1000, letterSpacing: '-.03em' }}>
+                  {!todayPulse ? 'À préciser avec ton Pulse' : priorityTitle}
+                </div>
+                <div style={{ color: '#A7ACA8', fontSize: 13, lineHeight: 1.45, marginTop: 5 }}>
+                  {!todayPulse ? 'NOX attend tes trois signaux du matin avant de fixer la priorité de ta journée.' : priorityAction}
+                </div>
+              </div>
+              {actionLabel && <button className="nox-round-arrow" onClick={mainAction}><ChevronRight size={20} /></button>}
             </div>
           </AppCard>
         </section>
-      )}
 
-      {/* CLÔTURE */}
-      {!todayClosure ? (
-        <section className="nox-home-section nox-home-last-section">
-          <SectionHeader title="Clôture de journée" />
-          <AppCard style={{ padding: 26 }}>
-            <div style={{ ...ui.bigTitle, fontSize: 24 }}>{todayPulse ? 'Ta journée touche à sa fin.' : 'Ton bilan viendra ici ce soir.'}</div>
-            <div style={{ ...ui.body, marginBottom: todayPulse ? 22 : 0 }}>
-              {todayPulse ? '30 secondes pour clôturer avec NOX.' : 'Commence par ton Pulse pour donner à NOX le contexte de ta journée.'}
-            </div>
-            {todayPulse && (
-              <DarkButton onClick={() => navigate('/closure', { state: { priorityTitle: priority.type !== 'none' ? (priority as any).title : null, priorityType: priority.type } })}>
-                CLÔTURER MA JOURNÉE →
-              </DarkButton>
-            )}
-          </AppCard>
-        </section>
-      ) : (
-        <section className="nox-home-section nox-home-last-section">
-          <SectionHeader title="Clôture de journée" />
-          <AppCard style={{ padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-            <div>
-              <div style={{ color: '#C8FF00', fontSize: 13, fontWeight: 950 }}>Journée clôturée ✓</div>
-              <div style={{ color: '#B3B7B4', fontSize: 12, marginTop: 4 }}>NOX a enregistré ta journée.</div>
-            </div>
-            <button onClick={() => setEditingClosure(true)} style={{ border: 0, background: 'transparent', color: '#C8FF00', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Modifier</button>
-          </AppCard>
-        </section>
-      )}
-    </main>
+        {todaySession && !todayWorkout && (
+          <section className="nox-home-section">
+            <SectionHeader title="Mouvement" action="Plus" onAction={() => navigate('/program')} />
+            <AppCard style={{ padding: 18 }}>
+              <div className="nox-compact-row">
+                <div className="nox-square-icon nox-square-icon--neutral"><Dumbbell size={25} /></div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: '#8E938F', fontSize: 10, fontWeight: 900, letterSpacing: '.07em', marginBottom: 6 }}>SÉANCE DU JOUR</div>
+                  <div style={{ fontSize: 22, fontWeight: 1000, letterSpacing: '-.035em' }}>{todaySession.name}</div>
+                  {todaySession.duration_minutes && <div style={{ color: '#A7ACA8', fontSize: 13, marginTop: 5 }}>{todaySession.duration_minutes} min · {todaySession.exercises?.length ?? 0} exercices</div>}
+                </div>
+                <button className="nox-session-button" onClick={() => navigate('/program')}>VOIR MA SÉANCE →</button>
+              </div>
+            </AppCard>
+          </section>
+        )}
 
-    <BottomNav active="home" />
+        {todayWorkout && (
+          <section className="nox-home-section">
+            <SectionHeader title="Mouvement" />
+            <AppCard style={{ padding: 20 }}>
+              <div className="nox-compact-row">
+                <div className="nox-square-icon"><Dumbbell size={24} /></div>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 1000 }}>Séance terminée</div>
+                  <div style={{ color: '#A7ACA8', fontSize: 13, marginTop: 4 }}>{todayWorkout.name}</div>
+                </div>
+              </div>
+            </AppCard>
+          </section>
+        )}
 
-    <style>{`
-      .nox-home-main {
-        width: 100%;
-        max-width: 760px;
-        margin: 0 auto;
-        padding-left: 18px;
-        padding-right: 18px;
-        box-sizing: border-box;
-      }
-      .nox-home-header { padding-top: 54px; padding-bottom: 38px; }
-      .nox-home-section { margin-bottom: 46px; }
-      .nox-home-last-section { margin-bottom: 40px; }
-      .nox-priority-content { padding: 28px; }
-      .nox-pulse-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 18px; }
-      .nox-pulse-item { min-height: 122px; padding: 16px 12px; box-sizing: border-box; border-radius: 16px; background: #1e211f; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        {!todayClosure ? (
+          <section className="nox-home-section nox-home-last-section">
+            <SectionHeader title="Clôture de journée" />
+            <AppCard style={{ padding: 18 }}>
+              <div className="nox-compact-row">
+                <div className="nox-square-icon"><Activity size={24} /></div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 20, fontWeight: 1000, letterSpacing: '-.03em' }}>{todayPulse ? 'Ta journée touche à sa fin.' : 'Ton bilan viendra ici ce soir.'}</div>
+                  <div style={{ color: '#A7ACA8', fontSize: 13, marginTop: 5 }}>{todayPulse ? '30 secondes pour clôturer avec NOX.' : 'Commence par ton Pulse pour donner à NOX le contexte de ta journée.'}</div>
+                </div>
+                {todayPulse && <button className="nox-round-arrow" onClick={() => navigate('/closure', { state: { priorityTitle: priority.type !== 'none' ? (priority as any).title : null, priorityType: priority.type } })}><ChevronRight size={20} /></button>}
+              </div>
+            </AppCard>
+          </section>
+        ) : (
+          <section className="nox-home-section nox-home-last-section">
+            <SectionHeader title="Clôture de journée" />
+            <AppCard style={{ padding: 20 }}>
+              <div className="nox-compact-row">
+                <div className="nox-square-icon"><Activity size={24} /></div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: '#C8FF00', fontSize: 14, fontWeight: 950 }}>Journée clôturée ✓</div>
+                  <div style={{ color: '#A7ACA8', fontSize: 12, marginTop: 4 }}>NOX a enregistré ta journée.</div>
+                </div>
+                <button onClick={() => setEditingClosure(true)} style={{ border: 0, background: 'transparent', color: '#C8FF00', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Modifier</button>
+              </div>
+            </AppCard>
+          </section>
+        )}
+      </main>
 
-      @media (max-width: 640px) {
-        .nox-home-main { max-width: none; padding-left: 18px; padding-right: 18px; }
-        .nox-home-header { padding-top: 36px; padding-bottom: 32px; }
-        .nox-home-section { margin-bottom: 38px; }
-        .nox-priority-content { padding: 22px; }
-        .nox-pulse-grid { gap: 7px; padding: 10px; }
-        .nox-pulse-item { min-height: 116px; padding: 14px 6px; border-radius: 15px; }
-      }
+      <BottomNav active="home" />
 
-      @media (min-width: 641px) and (max-width: 900px) {
-        .nox-home-main { max-width: 680px; }
-      }
-    `}</style>
-  </div>
-);
+      <style>{`
+        .nox-home-main { width:100%; max-width:920px; margin:0 auto; padding:0 22px; box-sizing:border-box; }
+        .nox-home-header { padding-top:42px; padding-bottom:30px; }
+        .nox-home-section { margin-bottom:18px; }
+        .nox-home-last-section { margin-bottom:38px; }
+        .nox-pulse-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+        .nox-pulse-item { min-height:104px; padding:15px 16px; border:1px solid #2A2E2C; border-radius:18px; background:linear-gradient(145deg,#171A18,#121513); display:flex; align-items:center; gap:15px; }
+        .nox-pulse-icon { width:50px; height:50px; flex:0 0 auto; display:grid; place-items:center; border-radius:50%; color:#C8FF00; background:rgba(200,255,0,.08); }
+        .nox-nutrition-card { display:grid; grid-template-columns:210px minmax(240px,1fr) 220px; gap:24px; align-items:center; padding:22px; background:radial-gradient(circle at 12% 40%,rgba(200,255,0,.055),transparent 34%); }
+        .nox-calorie-ring { --progress:0deg; width:170px; height:170px; margin:auto; border-radius:50%; display:grid; place-items:center; background:conic-gradient(#C8FF00 var(--progress),#2A2E2C 0); position:relative; }
+        .nox-calorie-ring::after { content:''; position:absolute; inset:12px; border-radius:50%; background:#111513; }
+        .nox-calorie-ring-inner { position:relative; z-index:1; text-align:center; }
+        .nox-macro-list { display:grid; gap:14px; }
+        .nox-nutrition-goal { align-self:stretch; padding:20px; border-radius:18px; border:1px solid #2A2E2C; background:rgba(255,255,255,.018); }
+        .nox-now-row { display:flex; align-items:center; gap:24px; }
+        .nox-now-details { flex:0 0 auto; max-width:240px; }
+        .nox-now-details summary { list-style:none; cursor:pointer; border:1px solid rgba(200,255,0,.38); border-radius:999px; padding:11px 18px; color:#C8FF00; font-size:12px; font-weight:950; text-align:center; }
+        .nox-now-details div { margin-top:12px; color:#A7ACA8; font-size:12px; line-height:1.5; }
+        .nox-compact-row { display:flex; align-items:center; gap:16px; }
+        .nox-square-icon { width:56px; height:56px; flex:0 0 auto; border-radius:16px; display:grid; place-items:center; color:#C8FF00; background:rgba(200,255,0,.09); }
+        .nox-square-icon--neutral { color:#FFF; background:#1D201E; }
+        .nox-round-arrow { width:42px; height:42px; flex:0 0 auto; border-radius:50%; border:1px solid #2D312E; background:#151816; color:#FFF; display:grid; place-items:center; cursor:pointer; }
+        .nox-session-button { flex:0 0 auto; border:0; border-radius:14px; background:#C8FF00; color:#090B0A; padding:13px 18px; font-size:11px; font-weight:1000; cursor:pointer; }
+        @media (max-width:760px) {
+          .nox-home-main { padding:0 16px; }
+          .nox-home-header { padding-top:34px; }
+          .nox-pulse-item { padding:14px 8px; flex-direction:column; text-align:center; gap:9px; }
+          .nox-pulse-icon { width:44px; height:44px; }
+          .nox-nutrition-card { grid-template-columns:1fr; gap:20px; }
+          .nox-calorie-ring { width:160px; height:160px; }
+          .nox-nutrition-goal { text-align:left; }
+          .nox-now-row { align-items:flex-start; flex-direction:column; }
+          .nox-now-details { width:100%; max-width:none; }
+          .nox-compact-row { align-items:center; }
+          .nox-session-button { padding:12px; }
+        }
+        @media (max-width:430px) {
+          .nox-session-button { font-size:0; width:42px; height:42px; border-radius:50%; padding:0; }
+          .nox-session-button::after { content:'›'; font-size:24px; }
+        }
+      `}</style>
+    </div>
+  );
+
 }
 
 // ── Composants helper ──────────────────────────────────────────────────────────
@@ -686,7 +728,7 @@ function SectionHeader({ title, action, onAction }: { title: string; action?: st
 
 function AppCard({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <div style={{ background: '#151917', borderRadius: 22, overflow: 'hidden', ...style }}>
+    <div style={{ background: 'linear-gradient(145deg,#141816,#101311)', border: '1px solid #242925', borderRadius: 22, overflow: 'hidden', ...style }}>
       {children}
     </div>
   );
@@ -707,6 +749,28 @@ function DarkButton({ children, onClick, style }: { children: React.ReactNode; o
     </button>
   );
 }
+
+
+function MacroRow({ icon, value, target, unit, accent }: { icon: React.ReactNode; value: number; target: number; unit: string; accent: string }) {
+  const progress = target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 0;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '42px 1fr 42px', alignItems: 'center', gap: 12 }}>
+      <div style={{ width: 40, height: 40, borderRadius: 13, display: 'grid', placeItems: 'center', color: accent, background: `${accent}16` }}>
+        {icon}
+      </div>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 900 }}>
+          {value.toLocaleString('fr-FR')} <span style={{ color: '#8E938F', fontWeight: 700 }}>/ {target.toLocaleString('fr-FR')} {unit}</span>
+        </div>
+        <div style={{ height: 7, marginTop: 8, borderRadius: 999, background: '#282C29', overflow: 'hidden' }}>
+          <div style={{ width: `${progress}%`, height: '100%', borderRadius: 999, background: accent }} />
+        </div>
+      </div>
+      <div style={{ color: '#A7ACA8', fontSize: 12, fontWeight: 800, textAlign: 'right' }}>{progress}%</div>
+    </div>
+  );
+}
+
 
 function Metric({ value, label, progress }: { value: string | number; label: string; progress?: number }) {
   return (
