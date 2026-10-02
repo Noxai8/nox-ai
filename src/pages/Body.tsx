@@ -5,10 +5,10 @@ import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 import TutorialTooltip from '../components/TutorialTooltip';
 
-const ACCENT = '#B7FF00';
-const BG = '#F6F7F2';
-const SURFACE = '#FFFFFF';
-const BORDER = '#E8EAE2';
+const ACCENT = '#C8FF00';
+const BG = '#090B0A';
+const SURFACE = '#232624';
+const BORDER = '#4A4F4B';
 
 type Tab = 'progress' | 'activity' | 'photos';
 type ActivityMode = 'manual' | 'scan' | 'confirm';
@@ -548,7 +548,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
   };
 
   const activityInput = (key: keyof ActivityForm, label: string, unit?: string, placeholder = '') => (
-    <label style={{ display: 'block', background: '#F7F8F4', border: `1px solid ${BORDER}`, borderRadius: 14, padding: 12 }}>
+    <label style={{ display: 'block', background: '#191C1A', border: `1px solid ${BORDER}`, borderRadius: 14, padding: 12 }}>
       <div style={{ fontSize: 9.5, color: '#777', fontWeight: 850, textTransform: 'uppercase' }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'center', marginTop: 5 }}>
         <input
@@ -557,7 +557,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
           placeholder={placeholder}
           type={key === 'activity_type' || key === 'notes' ? 'text' : 'number'}
           inputMode={key === 'activity_type' || key === 'notes' ? undefined : 'decimal'}
-          style={{ width: '100%', minWidth: 0, border: 0, outline: 0, background: 'transparent', color: '#090909', fontSize: 16, fontWeight: 850 }}
+          style={{ width: '100%', minWidth: 0, border: 0, outline: 0, background: 'transparent', color: '#FFFFFF', fontSize: 16, fontWeight: 850 }}
         />
         {unit && <span style={{ color: '#555', fontSize: 10 }}>{unit}</span>}
       </div>
@@ -567,15 +567,15 @@ const photoInputRef = useRef<HTMLInputElement>(null);
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: BG, display: 'grid', placeItems: 'center' }}>
-        <div style={{ color: '#090909', fontWeight: 950, letterSpacing: '.1em' }}>NOX <span style={{ color: ACCENT }}>●</span></div>
+        <div style={{ color: '#FFFFFF', fontWeight: 950, letterSpacing: '.1em' }}>NOX <span style={{ color: ACCENT }}>●</span></div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, color: '#090909', paddingBottom: 100 }}>
-      <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
-        <header style={{ padding: '24px 20px 18px' }}>
+    <div style={{ minHeight: '100vh', background: BG, color: '#FFFFFF', paddingBottom: 'calc(160px + env(safe-area-inset-bottom))' }}>
+      <main style={{ width: '100%', maxWidth: 760, margin: '0 auto' }}>
+        <header style={{ padding: '30px 16px 18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -587,7 +587,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
             <button onClick={() => setShowAdd(true)} style={{ border: 0, borderRadius: 13, background: ACCENT, color: '#050505', padding: '11px 15px', fontSize: 11, fontWeight: 950, letterSpacing: '.04em', cursor: 'pointer' }}>+ CHECK-IN</button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', background: '#EDEEE9', padding: 4, borderRadius: 15, marginTop: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', background: '#191C1A', padding: 4, borderRadius: 15, marginTop: 20 }}>
             {([
               ['progress', 'PROGRESSION'],
               ['activity', 'ACTIVITÉ'],
@@ -595,14 +595,14 @@ const photoInputRef = useRef<HTMLInputElement>(null);
             ] as [Tab, string][]).map(([id, label]) => (
               <button key={id} onClick={() => setTab(id)} style={{
                 border: 0, borderRadius: 11, padding: '10px 3px', cursor: 'pointer',
-                background: tab === id ? '#FFFFFF' : 'transparent',
-                color: tab === id ? '#090909' : '#777B72', fontSize: 9.5, fontWeight: 900, letterSpacing: '.035em'
+                background: tab === id ? ACCENT : 'transparent',
+                color: tab === id ? '#090B0A' : '#A5AAA6', fontSize: 9.5, fontWeight: 900, letterSpacing: '.035em'
               }}>{label}</button>
             ))}
           </div>
         </header>
 
-        <section style={{ padding: 20 }}>
+        <section style={{ padding: '20px 16px' }}>
           {tab === 'progress' && (
             <>
               {latest ? (
@@ -635,7 +635,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
                     ))}
                   </div>
 
-                  <div style={{ borderRadius: 15, padding: '12px 10px 4px', background: '#F7F8F4', border: `1px solid ${BORDER}` }}>
+                  <div style={{ borderRadius: 15, padding: '12px 10px 4px', background: '#191C1A', border: `1px solid ${BORDER}` }}>
                     {weightLogs.length >= 2 ? <MiniChart /> : (
                       <div style={{ height: 80, display: 'grid', placeItems: 'center', color: '#555', fontSize: 11.5 }}>Encore un check-in pour afficher ta courbe</div>
                     )}
@@ -683,7 +683,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
                       { key: 'arms_cm', label: 'Bras' },
                       { key: 'thighs_cm', label: 'Cuisses' },
                     ].filter(m => log[m.key]).map(({ key, label }) => (
-                      <div key={key} style={{ background: '#F7F8F4', border: `1px solid ${BORDER}`, borderRadius: 13, padding: 13 }}>
+                      <div key={key} style={{ background: '#191C1A', border: `1px solid ${BORDER}`, borderRadius: 13, padding: 13 }}>
                         <div style={{ fontSize: 18, fontWeight: 950 }}>{log[key]} <span style={{ fontSize: 10, color: '#666' }}>cm</span></div>
                         <div style={{ fontSize: 9.5, color: '#777', marginTop: 4, textTransform: 'uppercase', fontWeight: 800 }}>{label}</div>
                       </div>
@@ -713,7 +713,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
 
               <div style={{ display: 'grid', gap: 10 }}>
                 <button onClick={openManualActivity} style={{ border: 0, borderRadius: 16, background: ACCENT, color: '#050505', padding: 15, fontSize: 11.5, fontWeight: 950, cursor: 'pointer' }}>+ SAISIR UNE ACTIVITÉ</button>
-                <button onClick={openScanActivity} style={{ borderRadius: 16, border: `1px solid ${BORDER}`, background: SURFACE, color: '#090909', padding: 15, fontSize: 11.5, fontWeight: 950, cursor: 'pointer' }}>SCANNER L'ÉCRAN D'UNE MACHINE</button>
+                <button onClick={openScanActivity} style={{ borderRadius: 16, border: `1px solid ${BORDER}`, background: SURFACE, color: '#FFFFFF', padding: 15, fontSize: 11.5, fontWeight: 950, cursor: 'pointer' }}>SCANNER L'ÉCRAN D'UNE MACHINE</button>
               </div>
 
               {activityError && !showActivity && (
@@ -775,7 +775,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
                   }} />
                 <button onClick={() => photoInputRef.current?.click()} disabled={photoUploading}
                   style={{ width: '100%', padding: 16, background: photoUploading ? SURFACE : ACCENT, border: 'none', borderRadius: 14, color: photoUploading ? '#555' : '#000', fontWeight: 900, fontSize: 14, cursor: 'pointer', touchAction: 'manipulation', marginBottom: 8 }}>
-                  {photoUploading ? '⏳ Upload en cours...' : '📸 AJOUTER UNE PHOTO'}
+                  {photoUploading ? 'UPLOAD EN COURS...' : 'AJOUTER UNE PHOTO'}
                 </button>
                 <div style={{ fontSize: 11, color: '#555', textAlign: 'center' }}>Tes photos sont privées — stockées sur ton compte uniquement</div>
               </div>
@@ -783,7 +783,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
               {/* Galerie */}
               {bodyPhotos.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: '#555' }}>
-                  <div style={{ fontSize: 48, marginBottom: 12 }}>📸</div>
+                  
                   <div style={{ fontSize: 14 }}>Pas encore de photos</div>
                   <div style={{ fontSize: 12, marginTop: 6 }}>Ajoute ta première photo de progression</div>
                 </div>
@@ -816,14 +816,14 @@ const photoInputRef = useRef<HTMLInputElement>(null);
 
       {showAdd && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.48)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: 560, background: '#FFFFFF', border: `1px solid ${BORDER}`, borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px calc(24px + env(safe-area-inset-bottom))', maxHeight: 'calc(100dvh - 16px)', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', boxSizing: 'border-box' }}>
+          <div style={{ width: '100%', maxWidth: 760, background: SURFACE, border: `1px solid ${BORDER}`, borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px calc(24px + env(safe-area-inset-bottom))', maxHeight: 'calc(100dvh - 16px)', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', boxSizing: 'border-box' }}>
             <div style={{ width: 38, height: 4, background: '#2b2b2b', borderRadius: 999, margin: '2px auto 17px' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div>
                 <div style={{ fontSize: 10, color: ACCENT, fontWeight: 900, letterSpacing: '.1em' }}>BODY</div>
                 <div style={{ fontSize: 19, fontWeight: 950, marginTop: 3 }}>NOUVEAU CHECK-IN</div>
               </div>
-              <button onClick={() => setShowAdd(false)} style={{ width: 36, height: 36, borderRadius: 12, border: `1px solid ${BORDER}`, background: '#F4F5F0', color: '#090909', fontSize: 21, cursor: 'pointer' }}>×</button>
+              <button onClick={() => setShowAdd(false)} style={{ width: 36, height: 36, borderRadius: 12, border: `1px solid ${BORDER}`, background: '#191C1A', color: '#FFFFFF', fontSize: 21, cursor: 'pointer' }}>×</button>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>
@@ -835,10 +835,10 @@ const photoInputRef = useRef<HTMLInputElement>(null);
                 { key: 'arms_cm', label: 'Bras', unit: 'cm', placeholder: '—' },
                 { key: 'thighs_cm', label: 'Cuisses', unit: 'cm', placeholder: '—' },
               ].map(({ key, label, unit, placeholder }) => (
-                <label key={key} style={{ display: 'block', background: '#F7F8F4', border: `1px solid ${BORDER}`, borderRadius: 14, padding: 12 }}>
+                <label key={key} style={{ display: 'block', background: '#191C1A', border: `1px solid ${BORDER}`, borderRadius: 14, padding: 12 }}>
                   <div style={{ fontSize: 9.5, color: '#777', fontWeight: 850, textTransform: 'uppercase' }}>{label}</div>
                   <div style={{ display: 'flex', alignItems: 'center', marginTop: 5 }}>
-                    <input value={(form as any)[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} type="number" inputMode="decimal" style={{ width: '100%', minWidth: 0, border: 0, outline: 0, background: 'transparent', color: '#090909', fontSize: 18, fontWeight: 900 }} />
+                    <input value={(form as any)[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} type="number" inputMode="decimal" style={{ width: '100%', minWidth: 0, border: 0, outline: 0, background: 'transparent', color: '#FFFFFF', fontSize: 18, fontWeight: 900 }} />
                     <span style={{ color: '#555', fontSize: 10 }}>{unit}</span>
                   </div>
                 </label>
@@ -847,19 +847,19 @@ const photoInputRef = useRef<HTMLInputElement>(null);
 
             <label style={{ display: 'block', marginTop: 10 }}>
               <div style={{ fontSize: 9.5, color: '#777', fontWeight: 850, textTransform: 'uppercase', marginBottom: 6 }}>Note</div>
-              <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Comment tu te sens aujourd'hui ?" type="text" style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${BORDER}`, outline: 0, background: '#F7F8F4', color: '#090909', borderRadius: 14, padding: '13px 14px', fontSize: 13 }} />
+              <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Comment tu te sens aujourd'hui ?" type="text" style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${BORDER}`, outline: 0, background: '#191C1A', color: '#FFFFFF', borderRadius: 14, padding: '13px 14px', fontSize: 13 }} />
             </label>
 
             {saveError && <div role="alert" style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(255,95,95,.08)', border: '1px solid rgba(255,95,95,.22)', color: '#ff8a8a', fontSize: 11.5, lineHeight: 1.45 }}>{saveError}</div>}
-            {saveSuccess && <div style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.22)', color: ACCENT, fontSize: 11.5, fontWeight: 850 }}>Check-in enregistré ✓</div>}
-            <button onClick={save} disabled={saving} style={{ position: 'sticky', bottom: 0, zIndex: 2, width: '100%', border: 0, borderRadius: 14, background: saving ? '#2a2a2a' : ACCENT, color: saving ? '#777' : '#050505', padding: 15, marginTop: 16, fontSize: 12, fontWeight: 950, letterSpacing: '.04em', cursor: saving ? 'wait' : 'pointer', boxShadow: '0 -10px 24px rgba(255,255,255,.92)' }}>{saving ? 'ENREGISTREMENT...' : 'ENREGISTRER LE CHECK-IN'}</button>
+            {saveSuccess && <div style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.22)', color: ACCENT, fontSize: 11.5, fontWeight: 850 }}>Check-in enregistré</div>}
+            <button onClick={save} disabled={saving} style={{ position: 'sticky', bottom: 0, zIndex: 2, width: '100%', border: 0, borderRadius: 14, background: saving ? '#2a2a2a' : ACCENT, color: saving ? '#777' : '#050505', padding: 15, marginTop: 16, fontSize: 12, fontWeight: 950, letterSpacing: '.04em', cursor: saving ? 'wait' : 'pointer', boxShadow: '0 -10px 24px rgba(9,11,10,.92)' }}>{saving ? 'ENREGISTREMENT...' : 'ENREGISTRER LE CHECK-IN'}</button>
           </div>
         </div>
       )}
 
       {showActivity && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.48)', backdropFilter: 'blur(8px)', zIndex: 210, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: 560, background: '#FFFFFF', border: `1px solid ${BORDER}`, borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px max(24px, env(safe-area-inset-bottom))', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ width: '100%', maxWidth: 760, background: SURFACE, border: `1px solid ${BORDER}`, borderBottom: 0, borderRadius: '24px 24px 0 0', padding: '10px 20px max(24px, env(safe-area-inset-bottom))', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ width: 38, height: 4, background: '#2b2b2b', borderRadius: 999, margin: '2px auto 17px' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
               <div>
@@ -868,7 +868,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
                   {activityMode === 'scan' ? 'SCANNER UNE MACHINE' : activityMode === 'confirm' ? 'CONFIRMER LES DONNÉES' : 'NOUVELLE ACTIVITÉ'}
                 </div>
               </div>
-              <button onClick={() => setShowActivity(false)} style={{ width: 36, height: 36, borderRadius: 12, border: `1px solid ${BORDER}`, background: '#F4F5F0', color: '#090909', fontSize: 21, cursor: 'pointer' }}>×</button>
+              <button onClick={() => setShowActivity(false)} style={{ width: 36, height: 36, borderRadius: 12, border: `1px solid ${BORDER}`, background: '#191C1A', color: '#FFFFFF', fontSize: 21, cursor: 'pointer' }}>×</button>
             </div>
 
             {activityMode === 'scan' && (
@@ -913,7 +913,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
             )}
 
             {activityError && <div role="alert" style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(255,95,95,.08)', border: '1px solid rgba(255,95,95,.22)', color: '#ff8a8a', fontSize: 11.5, lineHeight: 1.45 }}>{activityError}</div>}
-            {activitySuccess && <div style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.22)', color: ACCENT, fontSize: 11.5, fontWeight: 850 }}>Activité enregistrée ✓</div>}
+            {activitySuccess && <div style={{ marginTop: 12, borderRadius: 12, padding: '10px 12px', background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.22)', color: ACCENT, fontSize: 11.5, fontWeight: 850 }}>Activité enregistrée</div>}
           </div>
         </div>
       )}
