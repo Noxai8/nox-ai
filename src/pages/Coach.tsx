@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { todayLocalDate } from '../lib/localDate';
 import { BottomNav } from './Home';
 import { usePlan } from '../lib/usePlan';
 import PaywallCard from '../components/PaywallCard';
@@ -110,7 +111,7 @@ export default function Coach() {
     );
 
     // Habitudes : même stockage local que Habits.tsx.
-    const todayKey = new Date().toISOString().slice(0, 10);
+    const todayKey = todayLocalDate();
     let habitDone: string[] = [];
     let customHabits: any[] = [];
     try {
