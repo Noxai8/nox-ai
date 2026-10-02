@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { localDateFromDate, todayLocalDate } from '../lib/localDate';
 import { BottomNav } from './Home';
 
 const ACCENT = '#c8ff00';
@@ -29,8 +30,10 @@ export default function Pantry() {
     setItems(data || []);
 
     // Alertes expiration dans les 3 prochains jours
-    const soon = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
-    const today = new Date().toISOString().slice(0, 10);
+    const soonDate = new Date();
+    soonDate.setDate(soonDate.getDate() + 3);
+    const soon = localDateFromDate(soonDate);
+    const today = todayLocalDate();
     const expiring = (data || []).filter(i => i.expiry_date && i.expiry_date <= soon && i.expiry_date >= today);
     setAlerts(expiring);
   };
@@ -80,8 +83,11 @@ export default function Pantry() {
   const filtered = cat === 'Tous' ? items : items.filter(i => i.category === cat);
 
   const getDaysUntilExpiry = (date: string) => {
-    const days = Math.floor((new Date(date).getTime() - Date.now()) / 86400000);
-    return days;
+    const [y, m, d] = date.split('-').map(Number);
+    const expiry = new Date(y, m - 1, d);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Math.round((expiry.getTime() - today.getTime()) / 86400000);
   };
 
   const getExpiryColor = (date: string) => {
