@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { todayLocalDate, formatLocalDate } from '../lib/localDate';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BatteryCharging, Check, Info, Moon, PersonStanding } from 'lucide-react';
 
 const BG      = '#0A0A0A';
 const WHITE   = '#FFFFFF';
@@ -11,8 +11,8 @@ const BLACK   = '#0B0B0B';
 const ACCENT  = '#C8FF00';
 const MUTED   = '#8C8C8C';
 const SURFACE = '#111111';
-const ALT     = '#1A1A1A';
-const BORDER  = '#262626';
+const ALT     = '#181818';
+const BORDER  = '#292929';
 
 type PulseData = {
   sleep_score: number;
@@ -20,54 +20,121 @@ type PulseData = {
   body_score: number;
 };
 
+type Dimension = 'sleep' | 'energy' | 'body';
+
 const SCORES = [1, 2, 3, 4, 5] as const;
 
-const LABELS: Record<string, Record<number, string>> = {
-  sleep:  { 1: 'Très courte', 2: 'Courte', 3: 'Correcte', 4: 'Bonne', 5: 'Excellente' },
-  energy: { 1: 'Épuisé', 2: 'Fatigué', 3: 'Correct', 4: 'Énergique', 5: 'Au top' },
-  body:   { 1: 'Courbaturé', 2: 'Lourd', 3: 'Correct', 4: 'Bien', 5: 'Frais' },
+const LABELS: Record<Dimension, Record<number, string>> = {
+  sleep:  { 1: 'Très mauvaise', 2: 'Mauvaise', 3: 'Correcte', 4: 'Bonne', 5: 'Excellente' },
+  energy: { 1: 'Très faible', 2: 'Faible', 3: 'Correcte', 4: 'Bonne', 5: 'Excellente' },
+  body:   { 1: 'Très fatigué', 2: 'Fatigué', 3: 'Correct', 4: 'Bien', 5: 'Top' },
 };
 
-function ScoreRow({
-  label, sublabel, dimension, value, onChange,
+const DIMENSIONS: Record<Dimension, {
+  title: string;
+  subtitle: string;
+  Icon: typeof Moon;
+}> = {
+  sleep: {
+    title: 'Sommeil',
+    subtitle: 'Comment était ta nuit ?',
+    Icon: Moon,
+  },
+  energy: {
+    title: 'Énergie',
+    subtitle: 'Comment tu te sens en ce moment ?',
+    Icon: BatteryCharging,
+  },
+  body: {
+    title: 'Corps',
+    subtitle: 'Récupération physique, douleurs ?',
+    Icon: PersonStanding,
+  },
+};
+
+function ScoreCard({
+  dimension,
+  value,
+  onChange,
 }: {
-  label: string;
-  sublabel: string;
-  dimension: string;
+  dimension: Dimension;
   value: number;
   onChange: (v: number) => void;
 }) {
+  const { title, subtitle, Icon } = DIMENSIONS[dimension];
+
   return (
-    <div style={{
-      padding: 18,
-      marginBottom: 12,
-      borderRadius: 20,
-      background: SURFACE,
+    <section style={{
+      padding: '22px 20px 26px',
+      marginBottom: 16,
+      borderRadius: 26,
+      background: 'linear-gradient(145deg, #121312 0%, #0F100F 100%)',
       border: `1px solid ${BORDER}`,
+      boxShadow: '0 18px 50px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.018)',
     }}>
       <div style={{
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'baseline',
+        alignItems: 'center',
         gap: 16,
-        marginBottom: 14,
+        marginBottom: 22,
       }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 900, color: WHITE }}>{label}</div>
-          <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>{sublabel}</div>
-        </div>
         <div style={{
-          fontSize: 12,
-          fontWeight: 800,
-          color: value ? ACCENT : MUTED,
-          textAlign: 'right',
-          whiteSpace: 'nowrap',
+          width: 58,
+          height: 58,
+          borderRadius: 18,
+          display: 'grid',
+          placeItems: 'center',
+          flexShrink: 0,
+          color: ACCENT,
+          background: 'linear-gradient(145deg, rgba(200,255,0,.12), rgba(200,255,0,.045))',
+          border: '1px solid rgba(200,255,0,.10)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,.04)',
         }}>
-          {value ? LABELS[dimension][value] : '—'}
+          <Icon size={27} strokeWidth={2.3} />
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontSize: 20,
+            lineHeight: 1.1,
+            fontWeight: 950,
+            letterSpacing: '-.035em',
+            color: WHITE,
+          }}>
+            {title}
+          </div>
+          <div style={{
+            fontSize: 13,
+            color: '#9A9A9A',
+            marginTop: 7,
+            lineHeight: 1.35,
+          }}>
+            {subtitle}
+          </div>
+        </div>
+
+        <div
+          aria-hidden="true"
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: '50%',
+            border: '1px solid #555',
+            color: '#777',
+            display: 'grid',
+            placeItems: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <Info size={14} />
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+        gap: 9,
+      }}>
         {SCORES.map((n) => {
           const selected = value === n;
           return (
@@ -75,28 +142,48 @@ function ScoreRow({
               key={n}
               type="button"
               aria-pressed={selected}
-              aria-label={`${label} ${n} sur 5 — ${LABELS[dimension][n]}`}
+              aria-label={`${title} ${n} sur 5 — ${LABELS[dimension][n]}`}
               onClick={() => onChange(n)}
               style={{
-                flex: 1,
                 minWidth: 0,
-                height: 48,
-                border: selected ? `1px solid ${ACCENT}` : `1px solid ${BORDER}`,
-                borderRadius: 14,
-                background: selected ? ACCENT : ALT,
-                color: selected ? BLACK : '#B5B5B5',
-                fontWeight: selected ? 1000 : 800,
-                fontSize: 17,
+                minHeight: 92,
+                padding: '12px 5px 10px',
+                borderRadius: 18,
+                border: selected ? `1px solid ${ACCENT}` : '1px solid #2C2C2C',
+                background: selected
+                  ? 'linear-gradient(145deg, #D8FF38 0%, #BFFF00 100%)'
+                  : 'linear-gradient(145deg, #1B1B1B 0%, #161616 100%)',
+                color: selected ? BLACK : '#D1D1D1',
+                boxShadow: selected
+                  ? '0 0 0 1px rgba(200,255,0,.10), 0 10px 28px rgba(200,255,0,.15)'
+                  : 'inset 0 1px 0 rgba(255,255,255,.02)',
                 cursor: 'pointer',
-                transition: 'background .12s, color .12s, border-color .12s, transform .12s',
+                transition: 'transform .14s ease, background .14s ease, border-color .14s ease, box-shadow .14s ease',
               }}
             >
-              {n}
+              <div style={{
+                fontSize: 23,
+                fontWeight: 1000,
+                lineHeight: 1,
+                letterSpacing: '-.04em',
+              }}>
+                {n}
+              </div>
+              <div style={{
+                marginTop: 10,
+                fontSize: 10.5,
+                lineHeight: 1.15,
+                fontWeight: selected ? 850 : 650,
+                color: selected ? BLACK : '#B7B7B7',
+                overflowWrap: 'anywhere',
+              }}>
+                {LABELS[dimension][n]}
+              </div>
             </button>
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -181,86 +268,91 @@ export default function Pulse() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', background: BG, color: WHITE }}>
-      <div style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
+    <div style={{
+      minHeight: '100dvh',
+      background: `
+        radial-gradient(circle at 50% -15%, rgba(255,255,255,.045), transparent 34%),
+        ${BG}
+      `,
+      color: WHITE,
+    }}>
+      <div style={{ width: '100%', maxWidth: 720, margin: '0 auto' }}>
         <header style={{
-          padding: '24px 20px 0',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-          marginBottom: 28,
+          padding: '42px 28px 0',
+          display: 'grid',
+          gridTemplateColumns: '56px minmax(0,1fr)',
+          gap: 24,
+          alignItems: 'start',
+          marginBottom: 34,
         }}>
           <button
             type="button"
             onClick={() => navigate(-1)}
             aria-label="Retour"
             style={{
-              width: 42,
-              height: 42,
-              borderRadius: 14,
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
               border: `1px solid ${BORDER}`,
-              background: SURFACE,
+              background: 'linear-gradient(145deg, #111, #0D0D0D)',
               color: WHITE,
               display: 'grid',
               placeItems: 'center',
               cursor: 'pointer',
-              flexShrink: 0,
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.03)',
             }}
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={25} />
           </button>
 
-          <div>
+          <div style={{ paddingTop: 2 }}>
             <div style={{
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 900,
-              color: MUTED,
-              letterSpacing: '.12em',
-              marginBottom: 3,
+              color: '#A2A2A2',
+              letterSpacing: '.18em',
+              marginBottom: 8,
             }}>
               {existing ? 'MODIFIER TON PULSE' : 'PULSE DU MATIN'}
             </div>
             <h1 style={{
               margin: 0,
-              fontSize: 24,
-              fontWeight: 950,
-              letterSpacing: '-.04em',
+              fontSize: 'clamp(34px, 7vw, 46px)',
+              lineHeight: 1,
+              fontWeight: 1000,
+              letterSpacing: '-.055em',
               color: WHITE,
+              textTransform: 'none',
             }}>
               {formatLocalDate(today)}
             </h1>
+            <p style={{
+              margin: '24px 0 0',
+              fontSize: 16,
+              color: '#A0A0A0',
+              lineHeight: 1.55,
+              maxWidth: 500,
+            }}>
+              En 3 signaux, NOX comprend ton état du jour.<br />
+              Ça prend 10 secondes.
+            </p>
           </div>
         </header>
 
-        <main style={{ padding: '0 20px 48px' }}>
-          <p style={{
-            margin: '0 0 24px',
-            fontSize: 14,
-            color: MUTED,
-            lineHeight: 1.6,
-          }}>
-            En 3 signaux, NOX comprend ton état du jour. Ça prend 10 secondes.
-          </p>
-
-          <ScoreRow
-            label="Sommeil"
-            sublabel="Comment était ta nuit ?"
+        <main style={{ padding: '0 28px 54px' }}>
+          <ScoreCard
             dimension="sleep"
             value={sleep}
             onChange={setSleep}
           />
 
-          <ScoreRow
-            label="Énergie"
-            sublabel="Comment tu te sens en ce moment ?"
+          <ScoreCard
             dimension="energy"
             value={energy}
             onChange={setEnergy}
           />
 
-          <ScoreRow
-            label="Corps"
-            sublabel="Récupération physique, douleurs ?"
+          <ScoreCard
             dimension="body"
             value={body}
             onChange={setBody}
@@ -268,13 +360,13 @@ export default function Pulse() {
 
           {error && (
             <div style={{
-              padding: '12px 14px',
-              borderRadius: 14,
+              padding: '13px 15px',
+              borderRadius: 15,
               background: '#241313',
               border: '1px solid #6B2B2B',
               color: '#FFB8B8',
               fontSize: 12,
-              margin: '16px 0',
+              margin: '4px 0 16px',
             }}>
               {error}
             </div>
@@ -286,49 +378,74 @@ export default function Pulse() {
             disabled={!canSave || saving}
             style={{
               width: '100%',
-              minHeight: 58,
-              marginTop: 8,
-              padding: '16px 18px',
-              border: saved ? '1px solid #69B578' : canSave ? `1px solid ${ACCENT}` : `1px solid ${BORDER}`,
-              borderRadius: 18,
-              background: saved ? '#17351F' : canSave ? ACCENT : ALT,
-              color: saved ? '#9BE6AA' : canSave ? BLACK : '#666666',
-              fontWeight: 950,
-              fontSize: 14,
+              minHeight: 72,
+              marginTop: 10,
+              padding: '16px 22px',
+              border: saved
+                ? '1px solid #69B578'
+                : canSave
+                  ? `1px solid ${ACCENT}`
+                  : `1px solid ${BORDER}`,
+              borderRadius: 28,
+              background: saved
+                ? '#17351F'
+                : canSave
+                  ? 'linear-gradient(90deg, #D8FF38 0%, #BFFF00 100%)'
+                  : ALT,
+              color: saved ? '#9BE6AA' : canSave ? BLACK : '#686868',
+              fontWeight: 1000,
+              fontSize: 16,
               cursor: canSave && !saving ? 'pointer' : 'not-allowed',
-              display: 'flex',
+              display: 'grid',
+              gridTemplateColumns: '44px 1fr 44px',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              transition: 'background .2s, color .2s, border-color .2s',
+              gap: 8,
+              transition: 'background .2s, color .2s, border-color .2s, transform .15s',
+              boxShadow: canSave && !saved ? '0 16px 42px rgba(200,255,0,.10)' : 'none',
             }}
           >
-            {saved ? (
-              <>
-                <Check size={18} />
-                PULSE ENREGISTRÉ
-              </>
-            ) : saving ? (
-              'ENREGISTREMENT…'
-            ) : existing ? (
-              'METTRE À JOUR'
-            ) : (
-              'VALIDER MON PULSE'
-            )}
+            <span />
+            <span>
+              {saved
+                ? 'PULSE ENREGISTRÉ'
+                : saving
+                  ? 'ENREGISTREMENT…'
+                  : existing
+                    ? 'METTRE À JOUR'
+                    : 'VALIDER MON PULSE'}
+            </span>
+            <span style={{
+              width: 42,
+              height: 42,
+              borderRadius: '50%',
+              display: 'grid',
+              placeItems: 'center',
+              justifySelf: 'end',
+              background: canSave && !saved ? BLACK : 'transparent',
+              color: canSave && !saved ? ACCENT : 'currentColor',
+            }}>
+              {saved ? <Check size={20} /> : <ArrowRight size={22} />}
+            </span>
           </button>
 
           {!canSave && (
             <div style={{
-              marginTop: 12,
+              marginTop: 17,
               textAlign: 'center',
-              fontSize: 11,
-              color: MUTED,
+              fontSize: 12,
+              color: '#777',
             }}>
               Réponds aux 3 questions pour valider.
             </div>
           )}
         </main>
       </div>
+
+      <style>{`
+        @media (max-width: 560px) {
+          .nox-pulse-score-label { font-size: 9px; }
+        }
+      `}</style>
     </div>
   );
 }
