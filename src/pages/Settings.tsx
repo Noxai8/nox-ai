@@ -5,11 +5,11 @@ import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 import { ArrowLeft, ChevronDown, ChevronRight, ChevronUp, UserRound } from 'lucide-react';
 
-const BG = '#0A0A0A';
-const WHITE = '#111111';
+const BG = '#090B0A';
+const WHITE = '#232624';
 const BLACK = '#FFFFFF';
-const MUTED = '#8C8C8C';
-const BORDER = '#262626';
+const MUTED = '#A5AAA6';
+const BORDER = '#4A4F4B';
 const ACCENT = '#C8FF00';
 
 type Profile = {
@@ -209,7 +209,7 @@ export default function Settings() {
     minHeight: 54,
     borderRadius: 15,
     border: `1px solid ${BORDER}`,
-    background: '#1A1A1A',
+    background: '#191C1A',
     padding: '0 15px',
     color: '#FFFFFF',
     fontSize: 16,
@@ -271,15 +271,15 @@ export default function Settings() {
         minHeight: '100dvh',
         background: BG,
         color: BLACK,
-        paddingBottom: 'calc(132px + env(safe-area-inset-bottom))',
+        paddingBottom: 'calc(160px + env(safe-area-inset-bottom))',
       }}
     >
       <main
         style={{
           width: '100%',
-          maxWidth: 620,
+          maxWidth: 760,
           margin: '0 auto',
-          padding: '24px 18px 40px',
+          padding: '30px 16px 40px',
           boxSizing: 'border-box',
         }}
       >
@@ -323,9 +323,10 @@ export default function Settings() {
             <h1
               style={{
                 margin: '2px 0 0',
-                fontSize: 30,
-                fontWeight: 950,
-                letterSpacing: '-0.045em',
+                fontSize: 'clamp(34px,5vw,46px)',
+                fontWeight: 850,
+                letterSpacing: '-0.04em',
+                lineHeight: 0.98,
               }}
             >
               Moi
@@ -337,7 +338,7 @@ export default function Settings() {
           style={{
             background: WHITE,
             border: `1px solid ${BORDER}`,
-            borderRadius: 24,
+            borderRadius: 20,
             padding: 20,
             marginBottom: 14,
           }}
@@ -388,7 +389,7 @@ export default function Settings() {
           style={{
             background: WHITE,
             border: `1px solid ${BORDER}`,
-            borderRadius: 24,
+            borderRadius: 20,
             padding: '0 18px',
             marginBottom: 14,
           }}
@@ -570,7 +571,7 @@ export default function Settings() {
                         color: ACCENT,
                       }}
                     >
-                      Informations enregistrées ✓
+                      Informations enregistrées
                     </div>
                   )}
 
@@ -621,7 +622,7 @@ export default function Settings() {
           style={{
             background: WHITE,
             border: `1px solid ${BORDER}`,
-            borderRadius: 24,
+            borderRadius: 20,
             padding: '0 18px',
             marginBottom: 14,
           }}
@@ -658,7 +659,7 @@ export default function Settings() {
           style={{
             background: WHITE,
             border: `1px solid ${BORDER}`,
-            borderRadius: 24,
+            borderRadius: 20,
             padding: '0 18px',
           }}
         >
