@@ -708,10 +708,13 @@ export default function Fuel() {
             position: 'fixed',
             inset: 0,
             background: 'rgba(0,0,0,.5)',
-            zIndex: 300,
+            zIndex: 10000,
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'center',
+            padding: '16px 16px max(16px, env(safe-area-inset-bottom))',
+            boxSizing: 'border-box',
+            overflow: 'hidden',
           }}
         >
           <div
@@ -720,11 +723,13 @@ export default function Fuel() {
               width: '100%',
               maxWidth: 560,
               background: SURFACE,
-              borderRadius: '28px 28px 0 0',
-              padding: '10px 20px max(32px, env(safe-area-inset-bottom))',
+              borderRadius: 28,
+              padding: '10px 20px max(28px, env(safe-area-inset-bottom))',
               boxSizing: 'border-box',
-              maxHeight: '88vh',
+              maxHeight: 'calc(100dvh - 32px)',
               overflowY: 'auto',
+              overscrollBehavior: 'contain',
+              WebkitOverflowScrolling: 'touch',
             }}
           >
             <div
