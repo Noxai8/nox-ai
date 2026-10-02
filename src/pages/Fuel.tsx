@@ -780,9 +780,6 @@ export default function Fuel() {
 
         @media(max-width:640px){.nox-ai-shell{padding:28px 15px calc(155px + env(safe-area-inset-bottom))}.nox-ai-top h1{font-size:34px}.nox-ai-hero,.nox-ai-grid{grid-template-columns:1fr}.nox-ai-card{min-height:178px}.nox-ai-small{min-height:165px}.nox-nutrition-shell{padding:28px 15px calc(155px + env(safe-area-inset-bottom))}.nox-nutrition-title-row h1{font-size:34px}.nox-dashboard-card{padding:19px}.nox-dashboard-top{align-items:flex-start}.nox-kcal-number{font-size:48px}.nox-kcal-context{display:grid;gap:8px}.nox-kcal-context div{gap:1px}.nox-week-chart{gap:5px;height:135px}.nox-week-bar{max-width:31px}.nox-macro-grid{gap:7px}.nox-macro-tile{padding:14px 11px}.nox-macro-value{font-size:24px}.nox-water-buttons{grid-template-columns:1fr 1fr}}
       `}</style>
-nox-macro-value{font-size:24px}.nox-water-buttons{grid-template-columns:1fr 1fr}}
-      `}</style>
-
       {/* =========================================================
           MODALE AJOUT
           ========================================================= */}
