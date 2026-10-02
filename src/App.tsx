@@ -40,7 +40,6 @@ const Recipes = lazy(() => import('./pages/Recipes'));
 const MealPlanner = lazy(() => import('./pages/MealPlanner'));
 const FoodScan = lazy(() => import('./pages/FoodScan'));
 const TrainingCalendar = lazy(() => import('./pages/TrainingCalendar'));
-const Progress = lazy(() => import('./pages/Progress'));
 const SocialProfile = lazy(() => import('./pages/SocialProfile'));
 const NoxCalendar = lazy(() => import('./pages/NoxCalendar'));
 const Pantry = lazy(() => import('./pages/Pantry'));
@@ -248,15 +247,6 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <Body />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/progress"
-          element={
-            <ProtectedRoute>
-              <Progress />
             </ProtectedRoute>
           }
         />
