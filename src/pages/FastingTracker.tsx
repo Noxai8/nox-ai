@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { todayLocalDate } from '../lib/localDate';
 import { BottomNav } from './Home';
 
 const ACCENT = '#c8ff00';
@@ -42,7 +43,7 @@ export default function FastingTracker() {
       }
     }
     // Eau du jour
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayLocalDate();
     const water = localStorage.getItem('nox_water_' + user.id + '_' + today);
     if (water) setWaterIntake(parseInt(water));
   }, [user]);
@@ -74,7 +75,7 @@ export default function FastingTracker() {
   const addWater = (ml: number) => {
     const newVal = waterIntake + ml;
     setWaterIntake(newVal);
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayLocalDate();
     localStorage.setItem('nox_water_' + user!.id + '_' + today, String(newVal));
   };
 
