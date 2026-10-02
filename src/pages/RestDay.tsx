@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BottomNav } from './Home';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { todayLocalDate } from '../lib/localDate';
 
 const ACCENT = '#c8ff00';
 const BG = '#0a0a0a';
@@ -22,13 +23,13 @@ export default function RestDay() {
       .then(({ data }) => {
         setProfile(data);
         // Vérifier si le repos a déjà été revendiqué aujourd'hui
-        const today = new Date().toISOString().split('T')[0];
+        const today = todayLocalDate();
         if (data?.last_rest_claimed === today) setAlreadyClaimed(true);
       });
   }, [user]);
 
   const claimRestXP = async () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayLocalDate();
     const restXP = 25; // Repos = 25 XP (vs 50 pour séance)
     await supabase.from('profiles').update({
       xp: (profile?.xp || 0) + restXP,
