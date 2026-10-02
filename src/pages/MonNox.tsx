@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ArrowRight, ChevronRight, Dumbbell, Leaf, MessageCircle, Utensils } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 import NoxCompanion from '../components/NoxCompanion';
+import { usePlan } from '../lib/usePlan';
 
-const BG     = '#0A0A0A';
-const CARD   = '#111111';
-const CARD2  = '#161616';
-const WHITE  = '#FFFFFF';
-const LIME   = '#C8FF00';
-const MUTED  = '#666666';
-const BORDER = '#1E1E1E';
+const BG = '#090B0A';
+const CARD = '#232624';
+const CARD2 = '#191C1A';
+const WHITE = '#FFFFFF';
+const LIME = '#C8FF00';
+const SECONDARY = '#A5AAA6';
+const MUTED = '#747A76';
+const BORDER = '#4A4F4B';
 
+type MainTab = 'coach' | 'memoire' | 'progres';
 type MemoryTab = 'sait' | 'observe' | 'ne-sait-pas';
 
 function getNoxStage(days: number): number {
@@ -40,6 +43,8 @@ export default function MonNox() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const { isPro } = usePlan();
+  const [mainTab,       setMainTab]       = useState<MainTab>('coach');
   const [tab,           setTab]           = useState<MemoryTab>('sait');
   const [observedDays,  setObservedDays]  = useState(0);
   const [totalPulses,   setTotalPulses]   = useState(0);
@@ -93,18 +98,15 @@ export default function MonNox() {
   ].filter(Boolean);
 
   const observeItems: string[] = [
-    totalPulses >= 5   ? 'Tes niveaux d\'énergie varient peu en début de semaine.' : '',
-    totalWorkouts >= 3 ? 'Ta fréquence d\'entraînement se stabilise.' : '',
-    avgBody !== null   ? `Ton état physique moyen (14 j) : ${avgBody}/5.` : '',
-    observedDays >= 14 ? 'NOX commence à détecter des patterns dans tes journées.' : '',
+    avgBody !== null ? `Ton état physique moyen sur les 14 derniers Pulse : ${avgBody}/5.` : '',
   ].filter(Boolean);
 
   const neSaitPasItems: string[] = [
     totalPulses < 14   ? 'Tes rythmes de sommeil sur la durée.' : '',
     totalWorkouts < 10 ? 'Tes préférences d\'exercice réelles.' : '',
-    'La relation entre ta nutrition et ton énergie.',
+    'La relation éventuelle entre ta nutrition et ton énergie.',
     observedDays < 30  ? 'Tes tendances hebdomadaires.' : '',
-    'L\'impact des repas tardifs sur ton sommeil.',
+    'L\'impact éventuel des horaires de repas sur ton sommeil.',
   ].filter(Boolean);
 
   const tabs: { id: MemoryTab; label: string; color: string; items: string[] }[] = [
@@ -124,139 +126,99 @@ export default function MonNox() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, color: WHITE, paddingBottom: 100 }}>
-      <main style={{ maxWidth: 560, margin: '0 auto', padding: '0 20px' }}>
+    <div style={{ minHeight: '100vh', background: BG, color: WHITE, paddingBottom: 'calc(160px + env(safe-area-inset-bottom))' }}>
+      <main style={{ width: '100%', maxWidth: 760, margin: '0 auto', padding: '38px 16px 0', boxSizing: 'border-box' }}>
+        <header style={{ marginBottom: 24 }}>
+          <h1 style={{ margin: 0, fontSize: 'clamp(34px,5vw,46px)', fontWeight: 850, letterSpacing: '-.04em', lineHeight: .98 }}>Mon NOX</h1>
+          <p style={{ margin: '10px 0 0', color: SECONDARY, fontSize: 14, lineHeight: 1.5 }}>
+            {observedDays > 0 ? `${observedDays} journée${observedDays !== 1 ? 's' : ''} observée${observedDays !== 1 ? 's' : ''}` : "NOX commence à apprendre comment tu fonctionnes."}
+          </p>
+        </header>
 
-        {/* Header compagnon */}
-        <div style={{ paddingTop: 48, textAlign: 'center' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-            <NoxCompanion observedDays={observedDays} size="lg" />
-          </div>
-          <div style={{ fontSize: 11, fontWeight: 900, color: LIME, letterSpacing: '.1em', marginBottom: 4 }}>
-            STADE {stage} — {getStageLabel(stage).toUpperCase()}
-          </div>
-          <div style={{ fontSize: 30, fontWeight: 1000, letterSpacing: '-.04em' }}>Mon NOX</div>
-          <div style={{ color: MUTED, fontSize: 13, marginTop: 5, marginBottom: 24 }}>
-            {observedDays} journée{observedDays !== 1 ? 's' : ''} observée{observedDays !== 1 ? 's' : ''}
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, padding: 5, background: CARD2, border: `1px solid ${BORDER}`, borderRadius: 16, marginBottom: 18 }}>
+          {([['coach','Coach'],['memoire','Mémoire'],['progres','Progrès']] as [MainTab,string][]).map(([id,label]) => (
+            <button key={id} onClick={() => setMainTab(id)} style={{ border: 0, borderRadius: 12, padding: '11px 8px', background: mainTab === id ? LIME : 'transparent', color: mainTab === id ? BG : SECONDARY, fontWeight: 850, fontSize: 13, cursor: 'pointer' }}>{label}</button>
+          ))}
         </div>
 
-        {/* Progression */}
-        <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, padding: '18px 20px', marginBottom: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em' }}>VERS LE PROCHAIN STADE</div>
-            <div style={{ fontSize: 11, fontWeight: 900, color: LIME }}>{milestone.label}</div>
-          </div>
-          <div style={{ height: 5, background: '#1E1E1E', borderRadius: 999, overflow: 'hidden', marginBottom: 16 }}>
-            <div style={{ width: `${progress}%`, height: '100%', background: LIME, borderRadius: 999, transition: 'width .8s ease' }} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-            {[
-              { value: observedDays, label: 'JOURNÉES' },
-              { value: totalPulses,  label: 'PULSES' },
-              { value: totalWorkouts, label: 'SÉANCES' },
-            ].map(({ value, label }) => (
-              <div key={label} style={{ background: CARD2, borderRadius: 16, padding: '14px 10px', textAlign: 'center' }}>
-                <div style={{ fontSize: 26, fontWeight: 1000 }}>{value}</div>
-                <div style={{ fontSize: 9, color: MUTED, fontWeight: 800, marginTop: 4, letterSpacing: '.06em' }}>{label}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Ce que NOX sait de toi */}
-        <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, padding: '18px 20px', marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em', marginBottom: 14 }}>
-            CE QUE NOX SAIT DE TOI
-          </div>
-
-          {/* Onglets */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 18 }}>
-            {tabs.map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                style={{ padding: '10px 6px', borderRadius: 12, border: `1px solid ${tab === t.id ? t.color + '44' : BORDER}`, background: tab === t.id ? t.color + '14' : 'transparent', color: tab === t.id ? t.color : MUTED, fontSize: 10, fontWeight: 900, cursor: 'pointer', lineHeight: 1.3, textAlign: 'center' }}>
-                {t.label}
+        {mainTab === 'coach' && (
+          <>
+            <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20, marginBottom: 18 }}>
+              <div style={{ fontSize: 25, fontWeight: 850, letterSpacing: '-.03em', lineHeight: 1.08, maxWidth: 520 }}>Dis-moi ce qui te préoccupe aujourd'hui.</div>
+              <div style={{ color: SECONDARY, fontSize: 14, marginTop: 8 }}>Je t'aide à avancer.</div>
+              <button onClick={() => navigate(isPro ? '/coach' : '/subscribe')} style={{ width: '100%', marginTop: 20, padding: '14px 14px 14px 16px', background: CARD2, border: '1px solid #414642', borderRadius: 14, color: SECONDARY, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left', fontSize: 14 }}>
+                <span>{isPro ? 'Pose ta question...' : 'Coach conversationnel · Pro'}</span>
+                <span style={{ width: 34, height: 34, borderRadius: 999, background: LIME, color: BG, display: 'grid', placeItems: 'center', flexShrink: 0 }}><ArrowRight size={18} strokeWidth={2.5}/></span>
               </button>
-            ))}
-          </div>
+            </section>
 
-          {/* Contenu onglet */}
-          {activeTab.items.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {activeTab.items.map((item, i) => (
-                <div key={i} style={{ display: 'flex', gap: 10, fontSize: 13, color: '#CCCCCC', lineHeight: 1.55, padding: '10px 12px', background: CARD2, borderRadius: 14 }}>
-                  <span style={{ color: activeTab.color, fontWeight: 900, fontSize: 14, marginTop: 1, flexShrink: 0 }}>
-                    {tab === 'ne-sait-pas' ? '○' : '✓'}
-                  </span>
-                  {item}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ fontSize: 13, color: MUTED, textAlign: 'center', padding: '20px 0' }}>
-              {tab === 'sait' ? 'Continue à utiliser NOX pour que je te connaisse mieux.' :
-               tab === 'observe' ? 'Il faut quelques journées de plus pour que NOX commence à observer tes patterns.' :
-               'Tout va bien — NOX n\'a pas de zone d\'incertitude à signaler.'}
-            </div>
-          )}
-        </section>
+            <section style={{ marginBottom: 24 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+                {[
+                  { label: 'Nutrition', path: '/fuel', icon: Utensils },
+                  { label: 'Mouvement', path: '/movement', icon: Dumbbell },
+                  { label: 'Récupération', path: '/recovery', icon: Leaf },
+                  { label: 'Parler à NOX', path: isPro ? '/coach' : '/subscribe', icon: MessageCircle },
+                ].map(({label,path,icon:Icon}) => (
+                  <button key={label} onClick={() => navigate(path)} style={{ minHeight: 76, padding: 16, background: CARD, border: `1px solid ${BORDER}`, borderRadius: 18, color: WHITE, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left', fontWeight: 800 }}>
+                    <Icon size={19} color={LIME}/><span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
 
-        {/* Moyennes Pulse */}
-        {(avgSleep !== null || avgEnergy !== null || avgBody !== null) && (
-          <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, padding: '18px 20px', marginBottom: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em', marginBottom: 14 }}>
-              TES MOYENNES (14 DERNIERS JOURS)
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-              {[
-                { label: 'Sommeil', value: avgSleep, emoji: '🌙', color: '#9C89FF' },
-                { label: 'Énergie', value: avgEnergy, emoji: '⚡', color: '#FFD93D' },
-                { label: 'Corps',   value: avgBody,   emoji: '💪', color: '#4FC3F7' },
-              ].filter(x => x.value !== null).map(({ label, value, emoji, color }) => (
-                <div key={label} style={{ background: CARD2, borderRadius: 16, padding: '14px 10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, marginBottom: 6 }}>{emoji}</div>
-                  <div style={{ fontSize: 22, fontWeight: 1000, color: WHITE }}>{value}</div>
-                  <div style={{ fontSize: 9, color, fontWeight: 800, marginTop: 2 }}>/5</div>
-                  <div style={{ fontSize: 10, color: MUTED, fontWeight: 700, marginTop: 6 }}>{label}</div>
-                </div>
-              ))}
-            </div>
-          </section>
+            <section>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div style={{ fontSize: 18, fontWeight: 850 }}>Idées du jour</div>
+                {isPro && <button onClick={() => navigate('/coach')} style={{ background: 'transparent', border: 0, color: LIME, fontWeight: 800, cursor: 'pointer' }}>Voir tout →</button>}
+              </div>
+              <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, overflow: 'hidden' }}>
+                {["Comment améliorer mon énergie ?", 'Planifier ma semaine', 'Gérer une journée difficile'].map((label, i, arr) => (
+                  <button key={label} onClick={() => navigate(isPro ? '/coach' : '/subscribe')} style={{ width: '100%', padding: '17px 18px', background: 'transparent', border: 0, borderBottom: i < arr.length - 1 ? '1px solid #414642' : 'none', color: WHITE, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', textAlign: 'left', fontSize: 14, fontWeight: 700 }}>
+                    <span>{label}</span><ChevronRight size={18} color={MUTED}/>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </>
         )}
 
-        {/* Weekly Review */}
-        <button onClick={() => navigate('/weekly-review')}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, color: WHITE, cursor: 'pointer', marginBottom: 10, textAlign: 'left' }}>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 900, color: '#FFD93D', letterSpacing: '.08em', marginBottom: 5 }}>BILAN HEBDOMADAIRE</div>
-            <div style={{ fontSize: 15, fontWeight: 900 }}>Ta semaine avec NOX</div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>Pulse · nutrition · mouvement · priorités</div>
-          </div>
-          <ChevronRight size={20} color={MUTED} />
-        </button>
+        {mainTab === 'memoire' && (
+          <>
+            <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20, marginBottom: 14 }}>
+              <div style={{ fontSize: 20, fontWeight: 850, marginBottom: 6 }}>Ce que NOX comprend de toi</div>
+              <div style={{ fontSize: 13, color: SECONDARY, lineHeight: 1.5 }}>Uniquement à partir des données réellement enregistrées.</div>
+            </section>
+            <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 18 }}>
+                {tabs.map(t => <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: '10px 6px', borderRadius: 12, border: `1px solid ${tab === t.id ? LIME : '#414642'}`, background: tab === t.id ? CARD2 : 'transparent', color: tab === t.id ? WHITE : MUTED, fontSize: 10, fontWeight: 850, cursor: 'pointer', lineHeight: 1.25 }}>{t.label}</button>)}
+              </div>
+              <div style={{ fontSize: 10, color: MUTED, fontWeight: 850, letterSpacing: '.08em', marginBottom: 10 }}>CONFIANCE · {tab === 'sait' ? 'ÉLEVÉE' : tab === 'observe' ? 'MODÉRÉE' : 'FAIBLE'}</div>
+              {activeTab.items.length ? activeTab.items.map((item,i) => <div key={i} style={{ padding: '13px 0', borderTop: i ? '1px solid #414642' : 'none', color: SECONDARY, fontSize: 14, lineHeight: 1.5 }}>{item}</div>) : <div style={{ color: MUTED, fontSize: 14, lineHeight: 1.5 }}>Je n'ai pas encore assez d'historique pour afficher quelque chose ici.</div>}
+            </section>
+          </>
+        )}
 
-        {/* NOX Future */}
-        <button onClick={() => navigate('/future')}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, color: WHITE, cursor: 'pointer', marginBottom: 10, textAlign: 'left' }}>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 900, color: LIME, letterSpacing: '.08em', marginBottom: 5 }}>NOX FUTURE</div>
-            <div style={{ fontSize: 15, fontWeight: 900 }}>Voir ton évolution possible</div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>Scénarios à 30, 90 jours et 6 mois</div>
-          </div>
-          <ChevronRight size={20} color={MUTED} />
-        </button>
+        {mainTab === 'progres' && (
+          <>
+            <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20, marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'center', minHeight: 210, alignItems: 'center' }}><NoxCompanion observedDays={observedDays} size="lg" /></div>
+              <div style={{ fontSize: 11, color: LIME, fontWeight: 850, letterSpacing: '.08em' }}>STADE {stage} · {getStageLabel(stage).toUpperCase()}</div>
+              <div style={{ marginTop: 8, fontSize: 22, fontWeight: 850 }}>NOX évolue avec le temps observé.</div>
+              <div style={{ color: SECONDARY, fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>Jamais selon ta performance.</div>
+              <div style={{ height: 5, background: CARD2, borderRadius: 999, overflow: 'hidden', marginTop: 18 }}><div style={{ width: `${progress}%`, height: '100%', background: LIME, borderRadius: 999 }} /></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, color: MUTED, fontSize: 11 }}><span>{observedDays} jours observés</span><span>{milestone.label}</span></div>
+            </section>
 
-        {/* Coach */}
-        <button onClick={() => navigate('/coach')}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, color: WHITE, cursor: 'pointer', marginBottom: 14, textAlign: 'left' }}>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 900, color: '#9C89FF', letterSpacing: '.08em', marginBottom: 5 }}>NOX COACH</div>
-            <div style={{ fontSize: 15, fontWeight: 900 }}>Parler à NOX</div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>Pose une question, explore ta progression</div>
-          </div>
-          <ChevronRight size={20} color={MUTED} />
-        </button>
+            <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20, marginBottom: 14 }}>
+              <div style={{ fontSize: 16, fontWeight: 850, marginBottom: 16 }}>Évolution</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>{['J1','J7','J30','J90','1 an'].map((label,i) => { const thresholds=[1,7,30,90,365]; const reached=observedDays>=thresholds[i]; return <div key={label} style={{ textAlign:'center' }}><div style={{ width: 10,height:10,borderRadius:99,background:reached?LIME:'#414642',margin:'0 auto 8px' }}/><div style={{ fontSize:10,color:reached?WHITE:MUTED,fontWeight:800 }}>{label}</div></div> })}</div>
+            </section>
 
+            <button onClick={() => navigate('/weekly-review')} style={{ width:'100%', padding:'18px 20px', background:CARD, border:`1px solid ${BORDER}`, borderRadius:20, color:WHITE, display:'flex', justifyContent:'space-between', alignItems:'center', cursor:'pointer', marginBottom:10, textAlign:'left' }}><span><strong style={{display:'block',fontSize:15}}>Bilan hebdomadaire</strong><span style={{display:'block',color:SECONDARY,fontSize:12,marginTop:4}}>Ce que tes données permettent réellement d'observer.</span></span><ChevronRight size={19} color={MUTED}/></button>
+            <button onClick={() => navigate('/future')} style={{ width:'100%', padding:'18px 20px', background:CARD, border:`1px solid ${BORDER}`, borderRadius:20, color:WHITE, display:'flex', justifyContent:'space-between', alignItems:'center', cursor:'pointer', textAlign:'left' }}><span><strong style={{display:'block',fontSize:15}}>NOX Future</strong><span style={{display:'block',color:SECONDARY,fontSize:12,marginTop:4}}>Scénarios illustratifs selon les données disponibles.</span></span><ChevronRight size={19} color={MUTED}/></button>
+          </>
+        )}
       </main>
       <BottomNav active="mon-nox" />
     </div>
