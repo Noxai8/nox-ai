@@ -53,9 +53,9 @@ cursor.setDate(cursor.getDate() - 1);
 return streak;
 }
 const ACCENT = '#C8FF00';
-const BG = '#F7F8F4';
-const SURFACE = '#FFFFFF';
-const BORDER = '#E8EAE2';
+const BG = '#090B0A';
+const SURFACE = '#232624';
+const BORDER = '#4A4F4B';
 function resolvedNoxExercise(exercise: any) {
   return resolveNoxExercise({
     exercise_id: exercise?.exercise_id,
@@ -967,7 +967,7 @@ try {
 };
 // ─── LOADING ────────────────────────────────────────────────
 if (loading) return (
-<div style={{ minHeight: '100vh', background: '#F7F8F4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+<div style={{ minHeight: '100vh', background: '#090B0A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
 <NoxBrand />
 <div style={{ width: 38, height: 38, border: '3px solid #ECECE7', borderTop: '3px solid ' + ACCENT, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
 <div style={{ color: '#77776F', fontSize: 12, fontWeight: 700 }}>Chargement de la séance...</div>
@@ -975,7 +975,7 @@ if (loading) return (
 </div>
 );
 if (!exercises.length) return (
-<div style={{ minHeight: '100vh', background: '#F7F8F4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center' }}>
+<div style={{ minHeight: '100vh', background: '#090B0A', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center' }}>
 <NoxBrand />
 <div style={{ width: 72, height: 72, marginTop: 34, borderRadius: 22, background: '#F3F3EF', display: 'grid', placeItems: 'center', fontSize: 28, fontWeight: 1000, color: ACCENT }}>N</div>
 <div style={{ fontSize: 22, fontWeight: 1000, color: '#111', marginTop: 18, marginBottom: 8 }}>Séance introuvable</div>
@@ -989,8 +989,8 @@ CRÉER UN PROGRAMME →
 // ─── DONE ───────────────────────────────────────────────────
 if (showCooldown && currentStretch) {
   return (
-    <div style={{ minHeight: '100vh', background: '#080808', color: '#FFFFFF', display: 'flex', justifyContent: 'center' }}>
-      <main style={{ width: '100%', maxWidth: 560, minHeight: '100vh', padding: '34px 20px 28px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: '#090B0A', color: '#FFFFFF', display: 'flex', justifyContent: 'center' }}>
+      <main style={{ width: '100%', maxWidth: 760, minHeight: '100vh', padding: '34px 20px 28px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', justifyContent: 'center' }}><NoxBrand compact dark /></div>
 
         <div style={{ marginTop: 42 }}>
@@ -1003,10 +1003,10 @@ if (showCooldown && currentStretch) {
           <div style={{ width: `${((cooldownIdx + 1) / cooldownStretches.length) * 100}%`, height: '100%', background: ACCENT, borderRadius: 999, transition: 'width .3s ease' }} />
         </div>
 
-        <section style={{ background: '#111111', border: '1px solid #242424', borderRadius: 28, padding: 22 }}>
+        <section style={{ background: '#232624', border: '1px solid #4A4F4B', borderRadius: 28, padding: 22 }}>
           <div style={{ color: '#777', fontSize: 10, fontWeight: 900, letterSpacing: '.1em' }}>ÉTIREMENT {cooldownIdx + 1}/{cooldownStretches.length}</div>
           <div style={{ fontSize: 27, fontWeight: 1000, marginTop: 8, letterSpacing: '-.035em' }}>{currentStretch.name}</div>
-          <div style={{ marginTop: 18, height: 250, borderRadius: 20, overflow: 'hidden', background: '#080808', border: '1px solid #242424', display: 'grid', placeItems: 'center' }}>
+          <div style={{ marginTop: 18, height: 250, borderRadius: 20, overflow: 'hidden', background: '#090B0A', border: '1px solid #242424', display: 'grid', placeItems: 'center' }}>
             <img src={currentStretch.image} alt={currentStretch.name}
               style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', display: 'block' }} />
           </div>
@@ -1034,7 +1034,7 @@ if (showCooldown && currentStretch) {
           ) : (
             <button type="button" onClick={() => void nextCooldownStretch()}
               style={{ width: '100%', padding: 18, border: 0, borderRadius: 18, background: ACCENT, color: '#080808', fontSize: 14, fontWeight: 1000, cursor: 'pointer' }}>
-              {cooldownIdx >= cooldownStretches.length - 1 ? 'TERMINER LA SÉANCE ✓' : 'ÉTIREMENT SUIVANT →'}
+              {cooldownIdx >= cooldownStretches.length - 1 ? 'TERMINER LA SÉANCE' : 'ÉTIREMENT SUIVANT →'}
             </button>
           )}
           <button type="button" onClick={() => void skipCooldown()}
@@ -1058,8 +1058,8 @@ if (done) {
   const completedExerciseCount = completedExerciseNames.size;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F7F8F4', color: '#0B0B0B', display: 'flex', justifyContent: 'center' }}>
-      <main style={{ width: '100%', maxWidth: 560, minHeight: '100vh', padding: '54px 20px 28px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: '#090B0A', color: '#0B0B0B', display: 'flex', justifyContent: 'center' }}>
+      <main style={{ width: '100%', maxWidth: 760, minHeight: '100vh', padding: '54px 20px 28px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
 
         {showFinishConfetti && (
           <div aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none', overflow: 'hidden' }}>
@@ -1127,7 +1127,7 @@ if (done) {
           </div>
         )}
 
-        <section style={{ background: '#FFFFFF', border: '1px solid #E6E8E0', borderRadius: 22, padding: 18, marginBottom: 14 }}>
+        <section style={{ background: '#232624', border: '1px solid #4A4F4B', borderRadius: 22, padding: 18, marginBottom: 14 }}>
           <div style={{ fontSize: 10, fontWeight: 1000, color: '#111', letterSpacing: '.08em', marginBottom: 6 }}>COMMENT TU TE SENS ?</div>
           <div style={{ fontSize: 12.5, color: '#77776F', lineHeight: 1.45 }}>Ton ressenti aidera NOX à adapter la récupération et tes prochaines séances.</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 15 }}>
@@ -1145,9 +1145,9 @@ if (done) {
                   onClick={() => void saveSessionFeedback(option.value)}
                   style={{
                     height: 44, borderRadius: 13,
-                    border: selected ? `2px solid ${ACCENT}` : '1px solid #E6E8E0',
-                    background: selected ? '#F2FFD0' : '#F7F8F4',
-                    color: '#111', fontSize: 10, fontWeight: 950,
+                    border: selected ? `2px solid ${ACCENT}` : '1px solid #414642',
+                    background: selected ? '#191C1A' : '#191C1A',
+                    color: '#FFFFFF', fontSize: 10, fontWeight: 950,
                     cursor: feedbackSaving ? 'wait' : 'pointer',
                     opacity: feedbackSaving && !selected ? 0.55 : 1,
                     transition: 'background .15s ease, border .15s ease, opacity .15s ease',
@@ -1162,7 +1162,7 @@ if (done) {
             <div style={{ marginTop: 10, fontSize: 10.5, color: '#929292', fontWeight: 750 }}>Enregistrement…</div>
           )}
           {!feedbackSaving && sessionFeedback && (
-            <div style={{ marginTop: 10, fontSize: 10.5, color: '#59604F', fontWeight: 850 }}>Ressenti enregistré ✓</div>
+            <div style={{ marginTop: 10, fontSize: 10.5, color: '#59604F', fontWeight: 850 }}>Ressenti enregistré</div>
           )}
           {feedbackError && (
             <div style={{ marginTop: 10, padding: '9px 11px', borderRadius: 11, background: '#FFF2F2', border: '1px solid #FFB8B8', color: '#9B1C1C', fontSize: 10.5, lineHeight: 1.4, fontWeight: 750 }}>
@@ -1201,7 +1201,7 @@ const exerciseProgress = ((currentIdx + (currentSet - 1) / totalSets) / exercise
 return (
 <div style={{
 minHeight: '100vh',
-background: '#080808',
+background: '#090B0A',
 color: '#FFFFFF',
 display: 'flex',
 flexDirection: 'column',
@@ -1209,10 +1209,10 @@ transition: 'background .25s ease, color .25s ease',
 }}>
 <main style={{
 width: '100%',
-maxWidth: 560,
+maxWidth: 760,
 minHeight: '100vh',
 margin: '0 auto',
-background: '#080808',
+background: '#090B0A',
 display: 'flex',
 flexDirection: 'column',
 }}>
@@ -1264,7 +1264,7 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
     )}
 
     {stagnation?.stagnating && !resting && (
-      <div style={{ margin: '0 20px 12px', background: '#111111', border: '1px solid #242424', borderRadius: 13, padding: '11px 13px' }}>
+      <div style={{ margin: '0 20px 12px', background: '#232624', border: '1px solid #4A4F4B', borderRadius: 13, padding: '11px 13px' }}>
         <div style={{ fontSize: 9.5, color: '#FFFFFF', fontWeight: 1000, textTransform: 'uppercase', letterSpacing: '.07em' }}>ANALYSE NOX</div>
         <div style={{ fontSize: 11, color: '#929292', marginTop: 4, lineHeight: 1.45 }}>{stagnation.suggestion}</div>
       </div>
@@ -1291,7 +1291,7 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
     {/* Comeback Mode Banner */}
     {comebackMode && (
       <div style={{ margin: '0 20px 12px', background: '#ffaa0011', border: '1px solid #ffaa0033', borderRadius: 14, padding: '12px 16px' }}>
-        <div style={{ fontSize: 11, color: '#ffaa00', fontWeight: 800, marginBottom: 4 }}>🔥 COMEBACK MODE</div>
+        <div style={{ fontSize: 11, color: '#ffaa00', fontWeight: 800, marginBottom: 4 }}>COMEBACK MODE</div>
         <div style={{ fontSize: 12, color: '#888' }}>Reprise après une pause — charges réduites de 20% recommandées pour les 2 premières séances.</div>
         <button onClick={() => setComebackMode(false)} style={{ marginTop: 8, background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 11 }}>Ignorer</button>
       </div>
@@ -1304,7 +1304,7 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
           <div style={{ fontSize: 10, fontWeight: 900, color: '#0B0B0B', letterSpacing: '.1em', marginBottom: 2 }}>NOUVEAU RECORD</div>
           <div style={{ fontSize: 15, fontWeight: 950, color: '#0B0B0B' }}>{newPR.name} — {newPR.weight}kg × {newPR.reps}</div>
         </div>
-        <div style={{ fontSize: 28 }}>⚡</div>
+        <div style={{ fontSize: 28 }}></div>
       </div>
     )}
 
@@ -1349,7 +1349,7 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
         <section style={{ marginTop: 12, marginBottom: 14, padding: 16, borderRadius: 22, border: '1px solid #242424', background: '#111111' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 14 }}>
             <div>
-              <div style={{ color: ACCENT, fontSize: 10, fontWeight: 1000, letterSpacing: '.1em' }}>⚡ COMMENT FAIRE ?</div>
+              <div style={{ color: ACCENT, fontSize: 10, fontWeight: 1000, letterSpacing: '.1em' }}>COMMENT FAIRE ?</div>
               <div style={{ color: '#777', fontSize: 10, fontWeight: 800, marginTop: 4 }}>Niveau : {exerciseDifficulty}</div>
             </div>
           </div>
@@ -1383,10 +1383,10 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
 
           {guideTab === 'tips' && (
             <div style={{ padding: 14, borderRadius: 18, background: 'rgba(200,255,0,.06)', border: '1px solid rgba(200,255,0,.30)' }}>
-              <div style={{ color: ACCENT, fontSize: 10, fontWeight: 1000, marginBottom: 12 }}>💡 TIPS NOX</div>
+              <div style={{ color: ACCENT, fontSize: 10, fontWeight: 1000, marginBottom: 12 }}>TIPS NOX</div>
               {exerciseTips.slice(0, 4).map((tip, index) => (
                 <div key={index} style={{ display: 'flex', gap: 9, marginTop: index ? 10 : 0, color: '#D0D0D0', fontSize: 11, lineHeight: 1.45 }}>
-                  <span style={{ color: ACCENT, fontWeight: 1000 }}>✓</span><span>{tip}</span>
+                  <span style={{ color: ACCENT, fontWeight: 1000 }}>•</span><span>{tip}</span>
                 </div>
               ))}
             </div>
@@ -1432,7 +1432,7 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
                 disabled={noteSaving}
                 style={{ width: '100%', marginTop: 8, padding: 13, border: 0, borderRadius: 12, background: '#C8FF00', color: '#080808', fontWeight: 1000, cursor: noteSaving ? 'default' : 'pointer', opacity: noteSaving ? 0.6 : 1 }}
               >
-                {noteSaving ? 'ENREGISTREMENT...' : noteSaved ? '✓ NOTE ENREGISTRÉE' : 'ENREGISTRER LA NOTE'}
+                {noteSaving ? 'ENREGISTREMENT...' : noteSaved ? 'NOTE ENREGISTRÉE' : 'ENREGISTRER LA NOTE'}
               </button>
             </div>
           )}
@@ -1442,8 +1442,8 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
           {tags.map((tag, i) => <span key={tag} style={{ padding: '7px 11px', background: i === 0 ? '#F3FFE1' : '#F1F1EE', border: i === 0 ? `1px solid ${ACCENT}` : '1px solid transparent', borderRadius: 999, color: '#55554F', fontSize: 10.5, fontWeight: 800 }}>{tag}</span>)}
         </div>}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '14px 16px', borderRadius: 20, background: '#111111', border: '1px solid #242424', marginBottom: 17 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 14, background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 20 }}>🎯</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '14px 16px', borderRadius: 20, background: '#232624', border: '1px solid #4A4F4B', marginBottom: 17 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 14, background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 20 }}></div>
           <div><div style={{ fontSize: 9.5, color: '#929292', fontWeight: 950, letterSpacing: '.07em' }}>OBJECTIF DU JOUR</div>
           <div style={{ fontSize: 19, color: '#FFFFFF', fontWeight: 1000, marginTop: 2 }}>
   {trackingMode === 'timed' ? (ex?.reps || `${targetSeconds} sec`) : `${ex?.reps || '8–12'} répétitions`}
@@ -1457,7 +1457,7 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
             <span style={{ display: 'flex', gap: 6 }}>{Array.from({ length: totalSets }).map((_, i) => <i key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < currentSet ? ACCENT : '#303030', display: 'block' }} />)}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#161616', display: 'grid', placeItems: 'center' }}>🏆</div>
+            <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#161616', display: 'grid', placeItems: 'center' }}></div>
             <div><div style={{ fontSize: 10.5, fontWeight: 950 }}>Tu avances bien !</div><div style={{ fontSize: 9.5, color: '#929292' }}>Reste concentré.</div></div>
           </div>
         </div>
@@ -1478,7 +1478,7 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
         )}
 
         {trackingMode === 'timed' && (
-          <div style={{ padding: 22, marginBottom: 14, background: '#111111', border: '1px solid #242424', borderRadius: 20, textAlign: 'center' }}>
+          <div style={{ padding: 22, marginBottom: 14, background: '#232624', border: '1px solid #4A4F4B', borderRadius: 20, textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: '#929292', fontWeight: 900, letterSpacing: '.08em', marginBottom: 8 }}>MINUTEUR</div>
             {countdown !== null ? (
               <div style={{ fontSize: 96, lineHeight: 1, fontWeight: 1000, color: ACCENT, marginBottom: 18, animation: 'countPulse .5s ease-out' }}>
@@ -1491,7 +1491,7 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
             )}
             <button type="button" onClick={toggleExerciseTimer} disabled={exerciseTimer === 0 && countdown === null}
               style={{ width: '100%', padding: 15, border: 0, borderRadius: 14, background: exerciseTimer === 0 && countdown === null ? '#202020' : ACCENT, color: exerciseTimer === 0 && countdown === null ? '#777777' : '#080808', fontWeight: 1000, cursor: exerciseTimer === 0 && countdown === null ? 'default' : 'pointer' }}>
-              {exerciseTimer === 0 && countdown === null ? '✓ TERMINÉ' : countdown !== null ? 'ANNULER' : exerciseTimerRunning ? 'PAUSE' : 'DÉMARRER'}
+              {exerciseTimer === 0 && countdown === null ? 'TERMINÉ' : countdown !== null ? 'ANNULER' : exerciseTimerRunning ? 'PAUSE' : 'DÉMARRER'}
             </button>
           </div>
         )}
@@ -1505,7 +1505,7 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
           return (
             <button onClick={validateSet} disabled={!canValidate}
               style={{ width: '100%', padding: 18, background: canValidate ? ACCENT : '#1C1C1C', border: 'none', borderRadius: 18, color: canValidate ? '#080808' : '#666666', fontWeight: 1000, fontSize: 15, cursor: canValidate ? 'pointer' : 'not-allowed', marginBottom: 14 }}>
-              {savingSet ? 'ENREGISTREMENT...' : 'VALIDER LA SÉRIE ✓'}
+              {savingSet ? 'ENREGISTREMENT...' : 'VALIDER LA SÉRIE'}
             </button>
           );
         })()}
@@ -1529,7 +1529,7 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
           <div style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(0,0,0,.92)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: '0 20px 44px' }}>
             <div style={{ width: '100%', maxWidth: 440 }}>
               <div style={{ textAlign: 'center', marginBottom: 28 }}>
-                <div style={{ color: ACCENT, fontSize: 11, fontWeight: 1000, letterSpacing: '.1em', marginBottom: 8 }}>EXERCICE TERMINÉ ✓</div>
+                <div style={{ color: ACCENT, fontSize: 11, fontWeight: 1000, letterSpacing: '.1em', marginBottom: 8 }}>EXERCICE TERMINÉ</div>
                 <div style={{ color: '#FFFFFF', fontSize: 26, fontWeight: 1000, letterSpacing: '-.04em' }}>{ex?.name}</div>
                 <div style={{ color: '#777', fontSize: 13, marginTop: 6 }}>Comment s'est passé cet exercice ?</div>
               </div>
@@ -1537,8 +1537,8 @@ fontSize: 27, lineHeight: 1, display: 'grid', placeItems: 'center', padding: 0,
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 9, marginBottom: 16 }}>
                 {[
                   { value: 'Facile', emoji: '😎', desc: 'Trop facile' },
-                  { value: 'Bien', emoji: '💪', desc: 'Juste bien' },
-                  { value: 'Difficile', emoji: '🔥', desc: 'Challenge' },
+                  { value: 'Bien', emoji: '', desc: 'Juste bien' },
+                  { value: 'Difficile', emoji: '', desc: 'Challenge' },
                 ].map(({ value, emoji, desc }) => (
                   <button key={value} type="button"
                     onClick={() => setExerciseDifficultyFeedback(exerciseDifficultyFeedback === value ? '' : value)}
@@ -1635,7 +1635,7 @@ function NumberField({
 function exerciseCoachCopy(exercise: any): string {
   const nox = resolvedNoxExercise(exercise);
   const tips = nox ? getNoxExerciseCoachTips(nox.id) : [];
-  return tips[0] || 'Chaque répétition compte. Reste propre et concentré. 💪';
+  return tips[0] || 'Chaque répétition compte. Reste propre et concentré. ';
 }
 
 function demoSteps(exercise: any): { title: string; cue: string }[] {
@@ -1703,7 +1703,7 @@ function NoxExerciseCover({ exercise, tags }: { exercise: any; tags: string[] })
         <span style={{ background: '#1C1C1C', borderRadius: 999, padding: '6px 10px', fontSize: 9, color: '#B0B0B0', fontWeight: 900, textTransform: 'uppercase' }}>{equipment}</span>
       </div>
 
-      <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', maxHeight: 390, minHeight: 235, display: 'grid', placeItems: 'center', background: '#080808', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', maxHeight: 390, minHeight: 235, display: 'grid', placeItems: 'center', background: '#090B0A', overflow: 'hidden' }}>
         {(() => {
           const exerciseName = nox?.name || exercise?.name;
 
@@ -1722,7 +1722,7 @@ function NoxExerciseCover({ exercise, tags }: { exercise: any; tags: string[] })
           }
           return (
             <div style={{ display: 'grid', placeItems: 'center', gap: 14, textAlign: 'center', padding: 32 }}>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#1a1a1a', display: 'grid', placeItems: 'center', fontSize: 30 }}>💪</div>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#1a1a1a', display: 'grid', placeItems: 'center', fontSize: 30 }}></div>
               <div style={{ fontSize: 12, color: '#666', fontWeight: 600, lineHeight: 1.5 }}>
                 {getExerciseMuscles(exerciseName)}
               </div>
@@ -1854,7 +1854,7 @@ function DemoNox({ exercise, tags, onClose }: { exercise: any; tags: string[]; o
             ? <button type="button" onClick={() => setActiveStep(step => Math.min(2, step + 1))}
                 style={{ minHeight: 56, borderRadius: 18, border: 'none', background: ACCENT, color: '#111', fontWeight: 1000, cursor: 'pointer' }}>SUIVANT →</button>
             : <button type="button" onClick={onClose}
-                style={{ minHeight: 56, borderRadius: 18, border: 'none', background: ACCENT, color: '#111', fontWeight: 1000, cursor: 'pointer' }}>J\'AI COMPRIS ✓</button>}
+                style={{ minHeight: 56, borderRadius: 18, border: 'none', background: ACCENT, color: '#111', fontWeight: 1000, cursor: 'pointer' }}>J\'AI COMPRIS</button>}
         </div>
 
         {activeStep === 2 && (
@@ -1862,7 +1862,7 @@ function DemoNox({ exercise, tags, onClose }: { exercise: any; tags: string[]; o
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9, marginBottom: 10 }}>
               <div style={{ background: '#F7FFE7', borderRadius: 20, padding: 14 }}>
                 <div style={{ fontSize: 12, fontWeight: 1000, marginBottom: 10 }}>CONSEILS</div>
-                {coachTips.slice(0, 4).map(tip => <div key={tip} style={{ display: 'grid', gridTemplateColumns: '20px 1fr', gap: 7, marginTop: 8 }}><span style={{ width: 20, height: 20, borderRadius: '50%', background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 1000 }}>✓</span><span style={{ fontSize: 9.8, lineHeight: 1.4, color: '#44443F' }}>{tip}</span></div>)}
+                {coachTips.slice(0, 4).map(tip => <div key={tip} style={{ display: 'grid', gridTemplateColumns: '20px 1fr', gap: 7, marginTop: 8 }}><span style={{ width: 20, height: 20, borderRadius: '50%', background: ACCENT, display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 1000 }}>•</span><span style={{ fontSize: 9.8, lineHeight: 1.4, color: '#44443F' }}>{tip}</span></div>)}
               </div>
               <div style={{ background: '#F7F7F5', borderRadius: 20, padding: 14 }}>
                 <div style={{ fontSize: 12, fontWeight: 1000, marginBottom: 9 }}>MUSCLES</div>
