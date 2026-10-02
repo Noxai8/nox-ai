@@ -88,7 +88,21 @@ RÈGLES :
 - Volume hebdo : indique toujours le pourcentage conservé`;
 
     try {
-      const { data: fnData } = (await fetch('https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/generate-program', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}` }, body: JSON.stringify({ prompt }) })).json();
+      const { data: fnData } = await (
+        await fetch(
+          'https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/generate-program',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${
+                (await supabase.auth.getSession()).data.session?.access_token || ''
+              }`,
+            },
+            body: JSON.stringify({ prompt }),
+          }
+        )
+      ).json();
       const text = fnData?.content?.[0]?.text || '';
       const match = text.match(/\{[\s\S]*\}/);
       if (match) {
