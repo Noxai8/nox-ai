@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { localDateFromDate, todayLocalDate } from '../lib/localDate';
 import { BottomNav } from './Home';
 
 const ACCENT = '#c8ff00';
@@ -157,8 +158,7 @@ function goalLabel(goal: GoalKey) {
 }
 
 function isoDate(date: Date) {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().split('T')[0];
+  return localDateFromDate(date);
 }
 
 function buildWeek(): Day[] {
@@ -674,7 +674,7 @@ export default function MealPlanner() {
         fat_g: fat,
         carbs,
         fat,
-        start_date: new Date().toISOString().slice(0, 10),
+        start_date: todayLocalDate(),
         is_active: true,
       };
 
