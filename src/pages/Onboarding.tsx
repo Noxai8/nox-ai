@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { todayLocalDate } from '../lib/localDate';
 
 const ACCENT = '#C8FF00';
 const BG = '#F7F8F4';
@@ -248,7 +249,7 @@ export default function Onboarding() {
         fat_g: preview.fat,
         carbs: preview.carbs,
         fat: preview.fat,
-        start_date: new Date().toISOString().slice(0, 10),
+        start_date: todayLocalDate(),
         is_active: true,
       }, { onConflict: 'user_id' });
       if (targetError) throw targetError;
