@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { todayLocalDate } from '../lib/localDate';
 import { BottomNav } from './Home';
 
 const ACCENT = '#c8ff00';
@@ -54,7 +55,7 @@ export default function MoodTracker() {
     setError('');
 
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayLocalDate();
 
       const { data, error: moodError } = await supabase
         .from('mood_logs')
