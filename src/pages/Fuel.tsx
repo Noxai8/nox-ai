@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 import { usePlan } from '../lib/usePlan';
-import { Camera, ChevronRight, Plus, ScanLine, X, Search, SlidersHorizontal, Droplets, Coffee, Sun, Moon, Apple } from 'lucide-react';
+import { Camera, ChevronRight, Plus, ScanLine, X, Search, SlidersHorizontal, Droplets, Coffee, Sun, Moon, Apple, Refrigerator, ChefHat, ShoppingBasket, Sparkles } from 'lucide-react';
 
 const ACCENT = '#C8FF00';
 const BG = '#0A0A0A';
@@ -58,6 +58,11 @@ const FOOD_DB = [
   { name: 'Skyr', kcal: 65, protein: 11, carbs: 4, fat: 0.2 },
 ];
 
+
+function UtensilsFallback() {
+  return <span style={{ fontSize: 18, lineHeight: 1 }}>+</span>;
+}
+
 export default function Fuel() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -81,6 +86,7 @@ export default function Fuel() {
   const [weekCalories, setWeekCalories] = useState<Record<string, number>>({});
 
   const [showAdd, setShowAdd] = useState(false);
+  const [fuelView, setFuelView] = useState<'tracking' | 'ai'>('tracking');
 
   const [addMode, setAddMode] = useState<
     'choose' | 'photo' | 'search' | 'barcode' | 'quick' | 'voice' | 'custom'
@@ -549,19 +555,10 @@ export default function Fuel() {
 
           if (file) {
             setAddMode('photo');
-            handlePhoto(file);
-          }
-
-          event.target.value = '';
-        }}
-      />
-
-
-      {/* =========================================================
-          ÉCRAN 2 — NUTRITION
+        {/* =========================================================
+          NUTRITION / NOX AI
           ========================================================= */}
-
-      <div className="nox-nutrition-shell">
+      <div className="nox-nutrition-shell" style={{ display: fuelView === 'tracking' ? 'block' : 'none' }}>
         <header className="nox-nutrition-header">
           <div className="nox-nutrition-title-row">
             <div>
@@ -577,7 +574,7 @@ export default function Fuel() {
 
           <div className="nox-nutrition-tabs">
             <button className="active">Suivi</button>
-            <button onClick={() => navigate('/recipes')}>Recettes</button>
+            <button onClick={() => setFuelView('ai')}>NOX AI</button>
           </div>
         </header>
 
@@ -686,6 +683,85 @@ export default function Fuel() {
         </section>
       </div>
 
+
+      <div className="nox-ai-shell" style={{ display: fuelView === 'ai' ? 'block' : 'none' }}>
+        <header className="nox-ai-top">
+          <div>
+            <div className="nox-eyebrow">NUTRITION INTELLIGENTE</div>
+            <h1>NOX AI</h1>
+            <p>Des outils intelligents pour t'aider au quotidien.</p>
+          </div>
+          <button className="nox-ai-back" type="button" onClick={() => setFuelView('tracking')}>Suivi</button>
+        </header>
+
+        <section className="nox-ai-hero">
+          <button className="nox-ai-card" type="button" onClick={() => { setSelMeal(currentMeal()); setAddMode('photo'); setShowAdd(true); fileRef.current?.click(); }}>
+            <div className="nox-ai-card-icon"><Camera size={25} /></div>
+            <h3>Scanner mon repas</h3>
+            <p>Prends une photo. NOX analyse le repas et estime calories et macros avant que tu confirmes l'ajout.</p>
+            <ChevronRight className="nox-ai-card-arrow" size={22} />
+          </button>
+
+          <button className="nox-ai-card" type="button" onClick={() => navigate('/pantry')}>
+            <div className="nox-ai-card-icon"><Refrigerator size={25} /></div>
+            <h3>Mon frigo AI</h3>
+            <p>Gère les aliments disponibles et utilise ton stock pour préparer tes prochains repas.</p>
+            <ChevronRight className="nox-ai-card-arrow" size={22} />
+          </button>
+        </section>
+
+        <section className="nox-ai-grid">
+          <button className="nox-ai-card nox-ai-small" type="button" onClick={() => navigate('/recipes')}>
+            <div className="nox-ai-card-icon"><ChefHat size={23} /></div>
+            <h3>Recettes AI</h3>
+            <p>Retrouve les recettes et crée tes repas à partir de ce que tu as réellement.</p>
+            <ChevronRight className="nox-ai-card-arrow" size={20} />
+          </button>
+
+          <button className="nox-ai-card nox-ai-small" type="button" onClick={() => navigate('/quick-groceries')}>
+            <div className="nox-ai-card-icon"><ShoppingBasket size={23} /></div>
+            <h3>Liste de courses AI</h3>
+            <p>Prépare une liste adaptée à tes besoins, ton budget et tes prochains repas.</p>
+            <ChevronRight className="nox-ai-card-arrow" size={20} />
+          </button>
+
+          <button className="nox-ai-card nox-ai-small" type="button" onClick={() => { setSelMeal(currentMeal()); setAddMode('search'); setShowAdd(true); }}>
+            <div className="nox-ai-card-icon"><Search size={23} /></div>
+            <h3>Ajouter un aliment</h3>
+            <p>Recherche rapidement un aliment et ajoute-le au bon repas.</p>
+            <ChevronRight className="nox-ai-card-arrow" size={20} />
+          </button>
+        </section>
+
+        <section className="nox-future-card" onClick={() => navigate('/future')}>
+          <div className="nox-future-orb"><Sparkles size={26} /></div>
+          <div>
+            <div className="nox-insight-label">NOX FUTURE</div>
+            <h3>Prépare la suite.</h3>
+            <p>Accède à NOX Future pour tes prochaines recommandations et projections personnalisées.</p>
+          </div>
+          <ChevronRight size={22} />
+        </section>
+
+        <section className="nox-ai-history">
+          <div className="nox-section-heading">
+            <div><span>AUJOURD'HUI</span><h2>Historique</h2></div>
+          </div>
+          <div className="nox-ai-history-list">
+            {entries.length > 0 ? entries.slice(0, 6).map(entry => (
+              <div className="nox-ai-history-row" key={entry.id}>
+                <div className="nox-ai-history-icon"><UtensilsFallback /></div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="nox-ai-history-name">{entry.food_name || 'Aliment'}</div>
+                  <div className="nox-ai-history-meta">{mealLabel(entry.meal_type)} · {Math.round(Number(entry.calories || 0))} kcal</div>
+                </div>
+              </div>
+            )) : (
+              <div className="nox-ai-history-empty">Ton historique nutrition apparaîtra ici après ton premier ajout.</div>
+            )}
+          </div>
+        </section>
+      </div>
       <style>{`
         .nox-nutrition-shell{width:100%;max-width:820px;margin:0 auto;box-sizing:border-box;padding:42px 20px calc(170px + env(safe-area-inset-bottom));}
         .nox-nutrition-header{margin-bottom:18px}.nox-nutrition-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:22px}.nox-eyebrow,.nox-section-heading span,.nox-card-kicker,.nox-insight-label{font-size:10px;font-weight:950;letter-spacing:.14em;color:#777d78}.nox-nutrition-title-row h1{margin:5px 0 0;color:#fff;font-size:42px;line-height:1;font-weight:1000;letter-spacing:-.055em;text-transform:capitalize}.nox-nutrition-title-row p{margin:9px 0 0;color:#858a86;font-size:13px}.nox-nutrition-actions{display:flex;gap:8px}.nox-nutrition-actions button,.nox-round-add{width:42px;height:42px;border-radius:14px;border:1px solid #292d2a;background:#141715;color:#fff;display:grid;place-items:center;cursor:pointer}.nox-nutrition-tabs{display:grid;grid-template-columns:1fr 1fr;padding:4px;border:1px solid #202421;border-radius:15px;background:#111311}.nox-nutrition-tabs button{height:40px;border:0;border-radius:11px;background:transparent;color:#777c78;font-size:12px;font-weight:900;cursor:pointer}.nox-nutrition-tabs button.active{background:#20241f;color:#c8ff00;box-shadow:inset 0 0 0 1px #30362f}
@@ -694,7 +770,17 @@ export default function Fuel() {
         .nox-insight-card{margin-top:16px;padding:18px 20px;border:1px solid #293126;border-radius:20px;background:linear-gradient(120deg,rgba(200,255,0,.07),rgba(200,255,0,.015))}.nox-insight-label{color:#9ebc39}.nox-insight-title{margin-top:8px;color:#fff;font-size:16px;font-weight:950}.nox-insight-body{margin-top:5px;color:#8c928d;font-size:12px;line-height:1.5}
         .nox-meals-list{display:grid;gap:9px}.nox-meal-card{overflow:hidden;border:1px solid #272b28;border-radius:19px;background:#121512}.nox-meal-main{min-height:72px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:16px}.nox-meal-left{min-width:0;display:flex;align-items:center;gap:12px}.nox-meal-icon{width:42px;height:42px;flex:0 0 auto;border-radius:13px;background:#1b1f1b;color:#a9b0aa;display:grid;place-items:center}.nox-meal-name{font-size:14px;font-weight:900;color:#fff}.nox-meal-kcal{margin-top:4px;color:#747a75;font-size:10px}.nox-meal-add{width:34px;height:34px;flex:0 0 auto;border:1px solid #303531;border-radius:11px;background:#1b1f1c;color:#c8ff00;display:grid;place-items:center;cursor:pointer}.nox-meal-entries{padding:0 14px 8px 68px}.nox-food-entry{min-height:40px;padding:8px 0;border-top:1px solid #252925;display:flex;align-items:center;justify-content:space-between;gap:12px}.nox-food-name{color:#d8dbd8;font-size:11px;font-weight:750}.nox-food-meta{margin-top:2px;color:#6d736e;font-size:9px}.nox-food-entry button{border:0;background:transparent;color:#666d67;font-size:18px;cursor:pointer}
         .nox-water-card{padding:18px;border:1px solid #272b28;border-radius:21px;background:#121512}.nox-water-main{display:flex;align-items:center;gap:13px;margin-bottom:16px}.nox-water-icon{width:45px;height:45px;border-radius:14px;background:#162022;color:#72d9e3;display:grid;place-items:center}.nox-water-main strong{display:block;color:#fff;font-size:19px;font-weight:950}.nox-water-main span{display:block;margin-top:3px;color:#777d78;font-size:10px}.nox-water-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.nox-water-buttons button{min-height:40px;border:1px solid #2d322e;border-radius:12px;background:#181b19;color:#d9dcd9;font-size:10px;font-weight:850;cursor:pointer}.nox-water-buttons button:hover{border-color:#4b5549;color:#c8ff00}
-        @media(max-width:640px){.nox-nutrition-shell{padding:28px 15px calc(155px + env(safe-area-inset-bottom))}.nox-nutrition-title-row h1{font-size:34px}.nox-dashboard-card{padding:19px}.nox-dashboard-top{align-items:flex-start}.nox-kcal-number{font-size:48px}.nox-kcal-context{display:grid;gap:8px}.nox-kcal-context div{gap:1px}.nox-week-chart{gap:5px;height:135px}.nox-week-bar{max-width:31px}.nox-macro-grid{gap:7px}.nox-macro-tile{padding:14px 11px}.nox-macro-value{font-size:24px}.nox-water-buttons{grid-template-columns:1fr 1fr}}
+
+        .nox-ai-shell{width:100%;max-width:920px;margin:0 auto;box-sizing:border-box;padding:42px 20px calc(170px + env(safe-area-inset-bottom))}
+        .nox-ai-top{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:24px}.nox-ai-top h1{margin:5px 0 0;font-size:42px;line-height:1;font-weight:1000;letter-spacing:-.055em}.nox-ai-top p{margin:10px 0 0;color:#8b918c;font-size:13px}.nox-ai-back{height:42px;padding:0 16px;border:1px solid #292d2a;border-radius:14px;background:#141715;color:#fff;font-size:11px;font-weight:900;cursor:pointer}
+        .nox-ai-hero{display:grid;grid-template-columns:1.15fr .85fr;gap:12px}.nox-ai-card{position:relative;min-height:210px;padding:22px;border:1px solid #2a2f2b;border-radius:24px;background:linear-gradient(145deg,#161a17,#101311);overflow:hidden;cursor:pointer;text-align:left;color:#fff}.nox-ai-card:before{content:'';position:absolute;width:170px;height:170px;border-radius:50%;right:-55px;top:-65px;background:radial-gradient(circle,rgba(200,255,0,.14),transparent 68%)}.nox-ai-card-icon{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;color:#0a0a0a;background:#c8ff00;box-shadow:0 10px 28px rgba(200,255,0,.12)}.nox-ai-card h3{position:relative;margin:34px 0 8px;font-size:22px;font-weight:1000;letter-spacing:-.035em}.nox-ai-card p{position:relative;margin:0;max-width:300px;color:#9da39e;font-size:13px;line-height:1.5}.nox-ai-card-arrow{position:absolute;right:20px;bottom:20px;color:#c8ff00}
+        .nox-ai-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}.nox-ai-small{min-height:190px}.nox-ai-small h3{margin-top:26px;font-size:18px}.nox-ai-small .nox-ai-card-icon{width:46px;height:46px;border-radius:14px}
+        .nox-future-card{margin-top:28px;padding:22px;border:1px solid rgba(200,255,0,.24);border-radius:24px;background:linear-gradient(120deg,rgba(200,255,0,.08),rgba(200,255,0,.015));display:flex;align-items:center;gap:18px;cursor:pointer}.nox-future-orb{width:58px;height:58px;flex:0 0 auto;border-radius:18px;display:grid;place-items:center;color:#c8ff00;background:#151d12;border:1px solid #34412e}.nox-future-card h3{margin:0;font-size:19px;font-weight:1000}.nox-future-card p{margin:6px 0 0;color:#939a94;font-size:12px;line-height:1.45}.nox-future-card>svg{margin-left:auto;color:#c8ff00;flex:0 0 auto}
+        .nox-ai-history{margin-top:30px}.nox-ai-history-list{overflow:hidden;border:1px solid #272b28;border-radius:22px;background:#121512}.nox-ai-history-row{min-height:66px;padding:11px 15px;display:flex;align-items:center;gap:13px;border-bottom:1px solid #242824}.nox-ai-history-row:last-child{border-bottom:0}.nox-ai-history-icon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:#1b1f1b;color:#c8ff00}.nox-ai-history-name{font-size:12px;font-weight:900;color:#e9ebe9}.nox-ai-history-meta{margin-top:4px;color:#747a75;font-size:10px}.nox-ai-history-empty{padding:22px;color:#777d78;font-size:12px;text-align:center}
+
+        @media(max-width:640px){.nox-ai-shell{padding:28px 15px calc(155px + env(safe-area-inset-bottom))}.nox-ai-top h1{font-size:34px}.nox-ai-hero,.nox-ai-grid{grid-template-columns:1fr}.nox-ai-card{min-height:178px}.nox-ai-small{min-height:165px}.nox-nutrition-shell{padding:28px 15px calc(155px + env(safe-area-inset-bottom))}.nox-nutrition-title-row h1{font-size:34px}.nox-dashboard-card{padding:19px}.nox-dashboard-top{align-items:flex-start}.nox-kcal-number{font-size:48px}.nox-kcal-context{display:grid;gap:8px}.nox-kcal-context div{gap:1px}.nox-week-chart{gap:5px;height:135px}.nox-week-bar{max-width:31px}.nox-macro-grid{gap:7px}.nox-macro-tile{padding:14px 11px}.nox-macro-value{font-size:24px}.nox-water-buttons{grid-template-columns:1fr 1fr}}
+      `}</style>
+nox-macro-value{font-size:24px}.nox-water-buttons{grid-template-columns:1fr 1fr}}
       `}</style>
 
       {/* =========================================================
