@@ -15,11 +15,9 @@ const BORDER= '#4A4F4B';
 
 // ── Readiness déterministe depuis Pulse + activité récente ────────────────────
 type ReadinessResult = {
-  level:  'good' | 'moderate' | 'low';
-  label:  string;
+  level: 'ready' | 'adapt' | 'recover';
+  label: string;
   advice: string;
-  color:  string;
-  sources: { label: string; value: string; origin: 'declared' | 'device' }[];
 };
 
 function computeReadiness(
@@ -29,60 +27,32 @@ function computeReadiness(
 ): ReadinessResult | null {
   if (!pulse) return null;
 
-  const sources: ReadinessResult['sources'] = [
-    { label: 'Sommeil',  value: `${pulse.sleep_score}/5`,  origin: 'declared' },
-    { label: 'Énergie',  value: `${pulse.energy_score}/5`, origin: 'declared' },
-    { label: 'Corps',    value: `${pulse.body_score}/5`,   origin: 'declared' },
-  ];
-
-  // Score brut 0–100 depuis le Pulse
-  let score = 0;
-  score += (pulse.sleep_score  - 1) * 12.5; // 0–50
-  score += (pulse.energy_score - 1) * 12.5; // 0–50
-  score += (pulse.body_score   - 1) * 12.5; // 0–50 (on plafonne à 100 après)
-  // On moyenne les 3
-  score = Math.round(((pulse.sleep_score + pulse.energy_score + pulse.body_score) / 15) * 100);
-
-  // Malus séance difficile récente (≤ 1 jour)
-  const daysSinceWorkout = lastWorkout?.finished_at
-    ? Math.floor((Date.now() - new Date(lastWorkout.finished_at).getTime()) / 86400000)
+  const lowSignals = [pulse.sleep_score, pulse.energy_score, pulse.body_score].filter(value => value <= 2).length;
+  const goodSignals = [pulse.sleep_score, pulse.energy_score, pulse.body_score].filter(value => value >= 4).length;
+  const workoutHoursAgo = lastWorkout?.finished_at
+    ? (Date.now() - new Date(lastWorkout.finished_at).getTime()) / 3600000
     : null;
+  const recentHardWorkout = lastWorkout?.session_feedback === 'hard' && workoutHoursAgo !== null && workoutHoursAgo >= 0 && workoutHoursAgo <= 48;
+  const recentIntenseMovement = lastMovement?.intensity === 'intense';
 
-  if (lastWorkout?.session_feedback === 'hard' && daysSinceWorkout !== null && daysSinceWorkout <= 1) {
-    score = Math.max(0, score - 12);
-    sources.push({ label: 'Dernière séance', value: 'Difficile', origin: 'declared' });
-  } else if (lastWorkout?.session_feedback === 'hard' && daysSinceWorkout !== null && daysSinceWorkout <= 2) {
-    score = Math.max(0, score - 6);
-    sources.push({ label: 'Dernière séance', value: 'Difficile (il y a 2j)', origin: 'declared' });
+  if (lowSignals >= 2 || (lowSignals >= 1 && (recentHardWorkout || recentIntenseMovement))) {
+    return {
+      level: 'recover',
+      label: 'Récupération prioritaire.',
+      advice: 'Tes déclarations du matin et ton activité récente invitent à alléger la journée. Privilégie une récupération active et adapte la séance prévue à tes sensations.',
+    };
   }
-
-  // Malus mouvement intense récent
-  if (lastMovement?.intensity === 'intense') {
-    sources.push({ label: 'Dernière activité', value: `${lastMovement.sport} — Intense`, origin: 'declared' });
-    score = Math.max(0, score - 8);
+  if (goodSignals === 3 && !recentHardWorkout && !recentIntenseMovement) {
+    return {
+      level: 'ready',
+      label: 'Rythme prévu possible.',
+      advice: 'Tes trois signaux déclarés du matin sont favorables et aucune activité récente renseignée ici ne demande d’adaptation particulière.',
+    };
   }
-
-  score = Math.min(100, Math.max(0, score));
-
-  if (score >= 70) return {
-    level: 'good', color: LIME,
-    label: 'Tu peux maintenir ton rythme.',
-    advice: 'Tes signaux du matin sont bons. Tu peux garder le rythme prévu et faire ta séance si elle est programmée.',
-    sources,
-  };
-
-  if (score >= 45) return {
-    level: 'moderate', color: '#FFD93D',
-    label: 'Écoute ton corps aujourd\'hui.',
-    advice: 'Ta récupération est moyenne. Tu peux bouger, mais évite de forcer. Reste attentif à tes sensations pendant l\'effort.',
-    sources,
-  };
-
   return {
-    level: 'low', color: '#FF6B6B',
-    label: 'Priorité récupération.',
-    advice: 'Tes signaux indiquent une récupération faible. Privilégie le repos actif, les étirements ou une marche légère.',
-    sources,
+    level: 'adapt',
+    label: 'Adapte selon tes sensations.',
+    advice: 'Tes signaux déclarés sont partagés ou ton activité récente mérite d’être prise en compte. Garde de la marge et ajuste l’intensité si nécessaire.',
   };
 }
 
@@ -161,10 +131,10 @@ export default function Recovery() {
         {/* Readiness */}
         {readiness && (
           <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: '22px 20px', marginBottom: 14 }}>
-            <div style={{ fontSize: 10, fontWeight: 900, color: readiness.color, letterSpacing: '.1em', marginBottom: 12 }}>
+            <div style={{ fontSize: 10, fontWeight: 900, color: WHITE, letterSpacing: '.1em', marginBottom: 12 }}>
               TON ÉTAT AUJOURD'HUI
             </div>
-            <div style={{ fontSize: 24, fontWeight: 1000, letterSpacing: '-.04em', color: readiness.color, marginBottom: 10 }}>
+            <div style={{ fontSize: 24, fontWeight: 1000, letterSpacing: '-.04em', color: WHITE, marginBottom: 10 }}>
               {readiness.label}
             </div>
             <div style={{ fontSize: 14, color: '#CCCCCC', lineHeight: 1.6 }}>{readiness.advice}</div>
@@ -183,14 +153,13 @@ export default function Recovery() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               {[
-                { label: 'Sommeil', value: pulse.sleep_score,  emoji: '🌙', color: '#9C89FF' },
-                { label: 'Énergie', value: pulse.energy_score, emoji: '⚡', color: '#FFD93D' },
-                { label: 'Corps',   value: pulse.body_score,   emoji: '💪', color: '#4FC3F7' },
-              ].map(({ label, value, emoji, color }) => (
+                { label: 'Sommeil', value: pulse.sleep_score },
+                { label: 'Énergie', value: pulse.energy_score },
+                { label: 'Corps',   value: pulse.body_score },
+              ].map(({ label, value }) => (
                 <div key={label} style={{ background: CARD2, borderRadius: 14, padding: '14px 10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, marginBottom: 6 }}>{emoji}</div>
                   <div style={{ fontSize: 24, fontWeight: 1000, color: WHITE }}>{value}</div>
-                  <div style={{ fontSize: 9, color, fontWeight: 800, marginTop: 2 }}>/5</div>
+                  <div style={{ fontSize: 9, color: MUTED, fontWeight: 800, marginTop: 2 }}>/5</div>
                   <div style={{ fontSize: 10, color: MUTED, fontWeight: 700, marginTop: 6 }}>{label}</div>
                 </div>
               ))}
