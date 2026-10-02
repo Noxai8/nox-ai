@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { todayLocalDate } from '../lib/localDate';
 import { BottomNav } from './Home';
 
 const ACCENT = '#c8ff00';
@@ -29,7 +30,7 @@ export default function SleepTracker() {
       .order('created_at', { ascending: false }).limit(14);
 
     setHistory(data || []);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayLocalDate();
     const todayEntry = (data || []).find(s => s.created_at?.slice(0, 10) === today);
     setTodayLog(todayEntry);
 
