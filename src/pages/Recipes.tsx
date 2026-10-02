@@ -4,9 +4,9 @@ import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 
 const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#232323';
+const BG = '#090B0A';
+const SURFACE = '#232624';
+const BORDER = '#4A4F4B';
 
 type View = 'list' | 'create' | 'detail';
 type GoalKey = 'cut' | 'maintain' | 'bulk';
@@ -423,9 +423,9 @@ export default function Recipes() {
     : null;
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, color: '#fff', paddingBottom: 96 }}>
-      <main style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
-        <header style={{ padding: '24px 20px 18px', borderBottom: `1px solid ${BORDER}` }}>
+    <div style={{ minHeight: '100vh', background: BG, color: '#fff', paddingBottom: 'calc(160px + env(safe-area-inset-bottom))' }}>
+      <main style={{ width: '100%', maxWidth: 760, margin: '0 auto' }}>
+        <header style={{ padding: '30px 16px 18px', borderBottom: `1px solid ${BORDER}` }}>
           {view !== 'list' && (
             <button
               onClick={() => { setView('list'); setSelected(null); setError(''); }}
@@ -438,7 +438,7 @@ export default function Recipes() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14 }}>
             <div>
               <div style={{ fontSize: 10, color: ACCENT, fontWeight: 900, letterSpacing: '.12em' }}>NOX FUEL</div>
-              <div style={{ fontSize: 24, fontWeight: 950, letterSpacing: '-.035em', marginTop: 4 }}>
+              <div style={{ fontSize: 'clamp(34px,5vw,46px)', lineHeight: .98, fontWeight: 850, letterSpacing: '-.035em', marginTop: 4 }}>
                 {view === 'list' ? 'MES RECETTES' : view === 'create' ? 'NOUVELLE RECETTE' : selected?.name}
               </div>
             </div>
@@ -454,7 +454,7 @@ export default function Recipes() {
           </div>
         </header>
 
-        <section style={{ padding: 20 }}>
+        <section style={{ padding: '20px 16px' }}>
           {error && (
             <div style={{ marginBottom: 14, padding: 13, borderRadius: 13, background: 'rgba(255,80,70,.08)', border: '1px solid rgba(255,80,70,.25)', color: '#ff8d86', fontSize: 12, lineHeight: 1.45 }}>
               {error}
@@ -474,7 +474,7 @@ export default function Recipes() {
                   Chargement de tes données nutritionnelles...
                 </div>
               )}
-              <div style={{ padding: 17, borderRadius: 18, background: 'linear-gradient(135deg,rgba(200,255,0,.12),rgba(200,255,0,.025))', border: '1px solid rgba(200,255,0,.22)', marginBottom: 22 }}>
+              <div style={{ padding: 17, borderRadius: 18, background: SURFACE, border: `1px solid ${BORDER}`, marginBottom: 22 }}>
                 <div style={{ fontSize: 9.5, color: ACCENT, fontWeight: 950, letterSpacing: '.1em' }}>RECETTES POUR TON OBJECTIF</div>
                 <div style={{ fontSize: 18, fontWeight: 950, marginTop: 6 }}>{goalLabel(goal)}</div>
                 <div style={{ fontSize: 11.5, color: '#888', lineHeight: 1.5, marginTop: 6 }}>
@@ -551,10 +551,10 @@ export default function Recipes() {
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontSize: 13.5, fontWeight: 850, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</div>
                           <div style={{ fontSize: 10, color: '#666', marginTop: 4 }}>
-                            P {r.protein_per_serving || 0}g · G {r.carbs_per_serving || 0}g · L {r.fat_per_serving || 0}g
+                            P {r.protein_per_serving ?? '—'}g · G {r.carbs_per_serving ?? '—'}g · L {r.fat_per_serving ?? '—'}g
                           </div>
                         </div>
-                        <div style={{ color: ACCENT, fontSize: 12, fontWeight: 900, flexShrink: 0 }}>{r.calories_per_serving || 0} kcal</div>
+                        <div style={{ color: ACCENT, fontSize: 12, fontWeight: 900, flexShrink: 0 }}>{r.calories_per_serving ?? '—'} kcal</div>
                       </div>
                     </button>
                   ))}
@@ -693,10 +693,10 @@ export default function Recipes() {
               <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 17, padding: 17, marginBottom: 12 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
                   {[
-                    ['KCAL', selected.calories_per_serving || 0, ACCENT],
-                    ['PROT.', `${selected.protein_per_serving || 0}g`, '#fff'],
-                    ['GLUC.', `${selected.carbs_per_serving || 0}g`, '#8da0ff'],
-                    ['LIP.', `${selected.fat_per_serving || 0}g`, '#ff806b'],
+                    ['KCAL', selected.calories_per_serving ?? '—', ACCENT],
+                    ['PROT.', `${selected.protein_per_serving ?? '—'}g`, '#fff'],
+                    ['GLUC.', `${selected.carbs_per_serving ?? '—'}g`, '#8da0ff'],
+                    ['LIP.', `${selected.fat_per_serving ?? '—'}g`, '#ff806b'],
                   ].map(([label, val, color]) => (
                     <div key={String(label)} style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: 18, fontWeight: 950, color: String(color) }}>{val}</div>
@@ -745,7 +745,7 @@ export default function Recipes() {
                 }}
                 style={{ width: '100%', padding: 17, background: ACCENT, border: 0, borderRadius: 13, color: '#050505', fontWeight: 950, fontSize: 14, cursor: 'pointer', marginBottom: 9 }}
               >
-                AJOUTER AU JOURNAL · {selected.calories_per_serving || 0} KCAL
+                AJOUTER AU JOURNAL · {selected.calories_per_serving ?? '—'} KCAL
               </button>
 
               {selected.suggested ? (
