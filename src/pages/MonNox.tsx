@@ -27,20 +27,53 @@ function levelFromXp(xp:number){ let level=1, left=Math.max(0,xp); while(level<1
 function RankMedal({rank, unlocked=true, active=false, size=86}:{rank:number;unlocked?:boolean;active?:boolean;size?:number}) {
   const ultimate = rank === 20;
   const accent = ultimate ? '#E9B94D' : LIME;
-  const metal = ultimate
-    ? 'radial-gradient(circle at 35% 26%,#7B5A1B 0,#30240F 34%,#17140E 68%,#0A0B09 100%)'
-    : unlocked
-      ? 'radial-gradient(circle at 35% 26%,#3D443A 0,#242925 35%,#121512 72%,#080A09 100%)'
-      : 'radial-gradient(circle at 35% 26%,#292D2A 0,#191C1A 42%,#0C0E0D 100%)';
+  const src = `/nox-ranks/rank-${String(rank).padStart(2, '0')}.png`;
   return (
-    <div style={{width:size,height:size,position:'relative',display:'grid',placeItems:'center',flexShrink:0}}>
-      {active && <div style={{position:'absolute',inset:-8,borderRadius:'50%',background:`radial-gradient(circle,${ultimate?'rgba(233,185,77,.20)':'rgba(200,255,0,.18)'} 0,transparent 68%)`,filter:'blur(4px)'}}/>}
-      <div style={{position:'absolute',inset:0,borderRadius:'50%',background:metal,border:`1px solid ${active?accent:unlocked?'#515852':'#303531'}`,boxShadow:active?`0 0 0 2px ${ultimate?'rgba(233,185,77,.22)':'rgba(200,255,0,.20)'},0 10px 28px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.14)`:'0 8px 20px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08)'}}/>
-      <div style={{position:'absolute',inset:7,borderRadius:'50%',border:`1px solid ${active?accent:'#414742'}`,boxShadow:'inset 0 0 18px rgba(0,0,0,.65)'}}/>
-      <div style={{position:'absolute',inset:'18%',borderRadius:'28%',background:unlocked?(ultimate?'linear-gradient(145deg,#5A4217,#1A160E)':'linear-gradient(145deg,#303630,#151916)'):'#171A18',border:`1px solid ${active?accent:'#3B403C'}`,display:'grid',placeItems:'center',color:active?accent:unlocked?'#A7ADA8':'#555C57',zIndex:2}}>
-        {ultimate?<Crown size={Math.round(size*.25)} strokeWidth={2}/>:<Shield size={Math.round(size*.24)} strokeWidth={2}/>} 
-      </div>
-      <span style={{position:'absolute',bottom:-7,minWidth:27,height:20,padding:'0 5px',borderRadius:99,display:'grid',placeItems:'center',background:active?accent:'#202421',color:active?BG:'#7E857F',fontSize:9,fontWeight:1000,border:`2px solid ${BG}`,zIndex:3}}>{rank}</span>
+    <div style={{
+      width:size,
+      height:size,
+      position:'relative',
+      display:'grid',
+      placeItems:'center',
+      flexShrink:0,
+      borderRadius:'50%'
+    }}>
+      {active && <div style={{
+        position:'absolute',
+        inset:-10,
+        borderRadius:'50%',
+        background:`radial-gradient(circle,${ultimate?'rgba(233,185,77,.24)':'rgba(200,255,0,.20)'} 0,transparent 70%)`,
+        filter:'blur(8px)'
+      }}/>} 
+      <img
+        src={src}
+        alt={`Médaille rang ${rank}`}
+        draggable={false}
+        style={{
+          position:'relative',
+          zIndex:2,
+          width:'118%',
+          height:'118%',
+          objectFit:'contain',
+          userSelect:'none',
+          filter: unlocked
+            ? `saturate(${active ? 1.12 : .92}) brightness(${active ? 1.08 : .88}) contrast(1.06)`
+            : 'grayscale(1) saturate(.15) brightness(.34) contrast(1.08)',
+          opacity: unlocked ? 1 : .78,
+          transform: active ? 'scale(1.035)' : 'scale(1)',
+          transition:'transform .2s ease, filter .2s ease, opacity .2s ease',
+          borderRadius:'50%'
+        }}
+      />
+      {active && <div style={{
+        position:'absolute',
+        inset:-3,
+        borderRadius:'50%',
+        border:`1px solid ${accent}`,
+        boxShadow:`0 0 22px ${ultimate?'rgba(233,185,77,.28)':'rgba(200,255,0,.22)'}`,
+        pointerEvents:'none',
+        zIndex:3
+      }}/>} 
     </div>
   );
 }
