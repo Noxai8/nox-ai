@@ -77,17 +77,20 @@ function RankMedal({rank, unlocked=true, active=false, size=86}:{rank:number;unl
           draggable={false}
           style={{
             display: 'block',
-            width: '108%',
-            height: '108%',
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            width: '112%',
+            height: '112%',
             maxWidth: 'none',
             objectFit: 'cover',
-            objectPosition: '50% 50%',
+            objectPosition: 'center center',
             userSelect: 'none',
             filter: unlocked
               ? `saturate(${active ? 1.08 : .92}) brightness(${active ? 1.04 : .88}) contrast(1.04)`
               : 'grayscale(.92) saturate(.28) brightness(.46) contrast(1.04)',
             opacity: unlocked ? 1 : .82,
-            transform: 'translateY(0)',
+            transform: 'translate(-50%, -50%)',
             transition: 'filter .2s ease, opacity .2s ease'
           }}
         />
