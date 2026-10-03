@@ -60,7 +60,7 @@ function RankMedal({rank, unlocked=true, active=false, size=86}:{rank:number;unl
           maxWidth: 'none',
           display: 'block',
           objectFit: 'cover',
-          objectPosition: '58% 50%',
+          objectPosition: '50% 50%',
           borderRadius: '50%',
           userSelect: 'none',
           filter: unlocked
