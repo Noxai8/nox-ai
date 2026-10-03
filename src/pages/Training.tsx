@@ -825,25 +825,9 @@ try {
 
   if (finishError) throw finishError;
 
-  const { data: completedWorkouts, error: historyError } = await supabase
-    .from('workouts')
-    .select('finished_at, started_at')
-    .eq('user_id', user.id)
-    .eq('status', 'completed')
-    .order('started_at', { ascending: false })
-    .limit(120);
-
-  if (historyError) throw historyError;
-
-  const streak = calculateTrainingStreak(
-    (completedWorkouts || [])
-      .map((w: any) => w.finished_at || w.started_at)
-      .filter(Boolean),
-  );
-
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('xp, starting_weight_kg')
+    .select('starting_weight_kg')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -857,15 +841,7 @@ try {
   setFinalDuration(duration);
   setEstimatedCalories(calories);
 
-  const { error: rewardError } = await supabase
-    .from('profiles')
-    .update({
-      streak_days: streak,
-      xp: Number(profile?.xp || 0) + 50,
-    })
-    .eq('id', user.id);
-
-  if (rewardError) throw rewardError;
+  // XP : calculée uniquement côté serveur (get_nox_progress). Aucune écriture ici.
 
   setShowFinishConfetti(true);
   window.setTimeout(() => { setShowFinishConfetti(false); }, 3500);
@@ -1115,9 +1091,9 @@ if (done) {
           <div style={{ marginTop: 19, paddingTop: 15, borderTop: '1px solid #242424', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div>
               <div style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 900 }}>Progression enregistrée</div>
-              <div style={{ color: '#77776F', fontSize: 10.5, marginTop: 3 }}>Streak et historique mis à jour</div>
+              <div style={{ color: '#77776F', fontSize: 10.5, marginTop: 3 }}>Journée active comptée dans ta progression NOX</div>
             </div>
-            <div style={{ color: ACCENT, fontSize: 12, fontWeight: 1000 }}>+50 XP</div>
+            <div style={{ color: ACCENT, fontSize: 12, fontWeight: 1000 }}>✓</div>
           </div>
         </section>
 

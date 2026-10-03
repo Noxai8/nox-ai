@@ -148,11 +148,7 @@ export default function Play() {
       await supabase.from('user_achievements').insert(
         genuineNew.map(id => ({ user_id: user!.id, achievement_id: id, earned_at: new Date().toISOString() }))
       );
-      const addXp = genuineNew.reduce((s, id) => s + (ACHIEVEMENTS.find(a => a.id === id)?.xp || 0), 0);
-      if (addXp > 0) {
-        await supabase.from('profiles').update({ xp: userXp + addXp }).eq('id', user!.id);
-        setXp(userXp + addXp);
-      }
+      // Les succès restent des badges : ils ne donnent plus d'XP (calculée côté serveur uniquement).
       setEarned([...already, ...genuineNew]);
       setNewUnlocked(genuineNew.map(id => ACHIEVEMENTS.find(a => a.id === id)).filter(Boolean) as any[]);
       setTimeout(() => setNewUnlocked([]), 5000);
