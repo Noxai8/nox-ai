@@ -36,7 +36,7 @@ function xpNeeded(level: number) { return level >= 100 ? 0 : 60 + 5 * level; }
 function totalXpTo(level: number) { let x=0; for(let i=1;i<level;i++) x += xpNeeded(i); return x; }
 function levelFromXp(xp:number){ let level=1, left=Math.max(0,xp); while(level<100 && left>=xpNeeded(level)){ left-=xpNeeded(level); level++; } return level; }
 function RankMedal({rank, unlocked=true, active=false, size=86}:{rank:number;unlocked?:boolean;active?:boolean;size?:number}) {
-  const src = `/nox-ranks/rank-${String(rank).padStart(2, '0')}.png`;
+  const src = `/nox-ranks/rank-${String(rank).padStart(2, '0')}.png?v=3`;
 
   return (
     <div style={{
