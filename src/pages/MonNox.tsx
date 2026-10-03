@@ -22,13 +22,9 @@ type MemoryTab = 'sait' | 'observe' | 'ne-sait-pas';
 const RANK_NAMES = ['Éveil','Impulsion','Focus','Discipline','Équilibre','Résilience','Progression','Ascension','Dépassement','Maîtrise','Alignement','Influence','Rayonnement','Excellence','Légende','Vision','Impact','Élite','Transcendance','NOX Ultime'];
 
 // ── Barème XP NOX v2 ───────────────────────────────────────────────
-// Seules les actions réellement accomplies rapportent de l'XP.
-// Le Pulse seul ne rapporte rien : il qualifie la journée, ce n'est pas un effort.
-const XP_CLOSURE        = 25; // journée clôturée
-const XP_PRIORITY_DONE  = 15; // priorité accomplie
-const XP_PRIORITY_PART  = 8;  // priorité accomplie en partie
-const XP_ACTIVE_DAY     = 40; // séance, activité ou repos validé — 1 fois par jour max
-const XP_DAILY_CAP      = 80; // plafond absolu par journée
+// Barème appliqué côté serveur (fonction SQL get_nox_progress) :
+// clôture 25 · priorité 15 (8 si partielle) · journée alignée 40 · plafond 80 XP/jour.
+// Le Pulse seul ne rapporte rien. L'app ne calcule pas l'XP, elle l'affiche.
 const P100_MIN_DAYS     = 365; // verrou temporel du Palier 100
 
 // Palier n → n+1 : 60 + 5n XP (≈ 30 700 XP pour le Palier 100)
@@ -126,41 +122,12 @@ export default function MonNox() {
       supabase.from('daily_pulses').select('sleep_score, energy_score, body_score').eq('user_id', user!.id).order('date', { ascending: false }).limit(14),
     ]);
 
-    const [
-      { data: closureRows },
-      { data: workoutRows },
-      { data: movementRows },
-    ] = await Promise.all([
-      supabase.from('daily_closures').select('date, completion, priority_type').eq('user_id', user!.id),
-      supabase.from('workouts').select('finished_at').eq('user_id', user!.id).eq('status', 'completed').not('finished_at', 'is', null),
-      supabase.from('movement_logs').select('date').eq('user_id', user!.id),
-    ]);
-
-    // XP calculée jour par jour, plafonnée par journée
-    type Day = { closure: number; priority: number; active: boolean };
-    const days = new Map<string, Day>();
-    const day = (d: string) => { if (!days.has(d)) days.set(d, { closure: 0, priority: 0, active: false }); return days.get(d)!; };
-
-    let done = 0;
-    (closureRows ?? []).forEach((r: any) => {
-      const d = day(r.date);
-      d.closure = XP_CLOSURE;
-      if (r.completion === 'yes') { d.priority = XP_PRIORITY_DONE; done++; }
-      else if (r.completion === 'partial') d.priority = XP_PRIORITY_PART;
-      // Repos validé : se reposer quand NOX le demande compte comme une journée active
-      if (r.priority_type === 'recovery' && r.completion === 'yes') d.active = true;
-    });
-    (workoutRows ?? []).forEach((r: any) => { day(new Date(r.finished_at).toLocaleDateString('sv-SE')).active = true; });
-    (movementRows ?? []).forEach((r: any) => { day(r.date).active = true; });
-
-    let xp = 0, active = 0;
-    days.forEach(d => {
-      if (d.active) active++;
-      xp += Math.min(XP_DAILY_CAP, d.closure + d.priority + (d.active ? XP_ACTIVE_DAY : 0));
-    });
-    setEarnedXp(xp);
-    setActiveDays(active);
-    setPrioritiesDone(done);
+    // XP calculée et plafonnée côté serveur (barème v2) — l'app ne fait qu'afficher
+    const { data: progress, error: progressError } = await supabase.rpc('get_nox_progress');
+    if (progressError) console.error('get_nox_progress:', progressError.message);
+    setEarnedXp(Number(progress?.xp ?? 0));
+    setActiveDays(Number(progress?.active_days ?? 0));
+    setPrioritiesDone(Number(progress?.priorities_done ?? 0));
 
     setObservedDays(closures ?? 0);
     setTotalPulses(pulses ?? 0);
