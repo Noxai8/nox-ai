@@ -15,6 +15,7 @@ export type UserHabit = {
   baseline: number | null;
   daily_target: number | null;
   professional_support: boolean;
+  risk_flag: boolean;
   active: boolean;
   started_on: string;
 };

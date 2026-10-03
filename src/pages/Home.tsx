@@ -278,7 +278,7 @@ export default function Home() {
     since.setDate(since.getDate() - 6);
     const { data: hs, error: hErr } = await supabase
       .from('user_habits')
-      .select('id, kind, mode, unit, baseline, daily_target, professional_support, active, started_on')
+      .select('id, kind, mode, unit, baseline, daily_target, professional_support, risk_flag, active, started_on')
       .eq('user_id', user.id)
       .eq('active', true)
       .order('created_at');

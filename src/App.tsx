@@ -41,6 +41,7 @@ const Pantry = lazy(() => import('./pages/Pantry'));
 const SleepTracker = lazy(() => import('./pages/SleepTracker'));
 const Reschedule = lazy(() => import('./pages/Reschedule'));
 const Habits = lazy(() => import('./pages/Habits'));
+const HabitDetail = lazy(() => import('./pages/HabitDetail'));
 
 /* =========================================================
    LOADER NOX — DARK PREMIUM
@@ -365,7 +366,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        <Route path="/habits/:habitId" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
+        <Route path="/habits/:habitId" element={<ProtectedRoute><HabitDetail /></ProtectedRoute>} />
 
         {/* =====================================================
             HEALTH / RECOVERY
