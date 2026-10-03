@@ -4,7 +4,6 @@ import { ArrowRight, ChevronRight, Crown, Dumbbell, Flame, Infinity as InfinityI
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
-import NoxCompanion from '../components/NoxCompanion';
 import { usePlan } from '../lib/usePlan';
 
 const BG = '#090B0A';
@@ -25,8 +24,19 @@ const RANK_NAMES = ['Éveil','Impulsion','Focus','Discipline','Équilibre','Rés
 function xpNeeded(level: number) { return level >= 100 ? 0 : Math.round(260 + level * 22 + Math.pow(level, 1.42) * 7); }
 function totalXpTo(level: number) { let x=0; for(let i=1;i<level;i++) x += xpNeeded(i); return x; }
 function levelFromXp(xp:number){ let level=1, left=Math.max(0,xp); while(level<100 && left>=xpNeeded(level)){ left-=xpNeeded(level); level++; } return level; }
-function RankMedal({rank, unlocked=true, active=false}:{rank:number;unlocked?:boolean;active?:boolean}) {
-  return <div style={{width:72,height:72,borderRadius:24,display:'grid',placeItems:'center',position:'relative',background:unlocked?(rank===20?'radial-gradient(circle,#FFE58B,#8C6200)':'radial-gradient(circle,#DFFF69,#26310C)'):'linear-gradient(145deg,#292D2A,#111311)',border:`1px solid ${active?LIME:unlocked?'#718A20':BORDER}`,color:unlocked?(rank===20?'#241A00':LIME):'#555B56',boxShadow:active?'0 0 0 3px rgba(200,255,0,.08)':'none'}}>{rank===20?<Crown size={31}/>:<Shield size={31}/>}<span style={{position:'absolute',bottom:-7,minWidth:25,height:18,padding:'0 4px',borderRadius:99,display:'grid',placeItems:'center',background:unlocked?(rank===20?'#E5B93F':LIME):'#292D2A',color:unlocked?BG:MUTED,fontSize:9,fontWeight:950,border:`2px solid ${BG}`}}>{rank}</span></div>
+function RankMedal({rank, unlocked=true, active=false, size=86}:{rank:number;unlocked?:boolean;active?:boolean;size?:number}) {
+  const ultimate = rank === 20;
+  const glow = active ? (ultimate ? 'rgba(255,190,35,.38)' : 'rgba(200,255,0,.34)') : 'transparent';
+  return (
+    <div style={{width:size,height:size,position:'relative',display:'grid',placeItems:'center',filter:unlocked?'none':'grayscale(1)'}}>
+      <div style={{position:'absolute',inset:0,borderRadius:'50%',background:unlocked?(ultimate?'radial-gradient(circle at 35% 28%,#FFEFB0 0,#C58A08 30%,#4B3100 68%,#130E03 100%)':'radial-gradient(circle at 35% 28%,#E8FF8B 0,#769400 27%,#25310A 64%,#0B0E09 100%)'):'linear-gradient(145deg,#292D2A,#101210)',border:`1px solid ${active?(ultimate?'#FFD35C':LIME):unlocked?'#697A2D':BORDER}`,boxShadow:active?`0 0 0 4px ${glow},0 0 34px ${glow},inset 0 0 24px rgba(255,255,255,.08)`:'inset 0 0 20px rgba(255,255,255,.035)'}}/>
+      <div style={{position:'absolute',inset:8,borderRadius:'50%',border:`2px solid ${unlocked?(ultimate?'rgba(255,226,124,.68)':'rgba(200,255,0,.45)'):'#3A3F3B'}`,boxShadow:'inset 0 0 18px rgba(0,0,0,.55)'}}/>
+      <div style={{position:'absolute',width:'42%',height:'58%',clipPath:'polygon(50% 0,100% 20%,88% 76%,50% 100%,12% 76%,0 20%)',background:unlocked?(ultimate?'linear-gradient(135deg,#FFF1A8,#A66D00 65%,#3C2700)':'linear-gradient(135deg,#E6FF72,#536B08 65%,#182006)'):'#333835',border:'1px solid rgba(255,255,255,.14)',display:'grid',placeItems:'center',color:unlocked?(ultimate?'#3B2500':LIME):'#666D68',zIndex:2}}>
+        {ultimate?<Crown size={Math.round(size*.23)} strokeWidth={2.5}/>:<Shield size={Math.round(size*.22)} strokeWidth={2.4}/>} 
+      </div>
+      <span style={{position:'absolute',bottom:-6,minWidth:27,height:19,padding:'0 5px',borderRadius:99,display:'grid',placeItems:'center',background:unlocked?(ultimate?'#E8B93B':LIME):'#292D2A',color:unlocked?BG:MUTED,fontSize:9,fontWeight:1000,border:`2px solid ${BG}`,zIndex:3}}>{rank}</span>
+    </div>
+  );
 }
 
 function getNoxStage(days: number): number {
@@ -146,8 +156,8 @@ export default function MonNox() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, color: WHITE, paddingBottom: 'calc(160px + env(safe-area-inset-bottom))' }}>
-      <main style={{ width: '100%', maxWidth: 760, margin: '0 auto', padding: '38px 16px 0', boxSizing: 'border-box' }}>
+    <div style={{ minHeight: '100vh', background: 'radial-gradient(circle at 50% -10%,rgba(200,255,0,.035),transparent 30%),#070908', color: WHITE, paddingBottom: 'calc(220px + env(safe-area-inset-bottom))' }}>
+      <main style={{ width: '100%', maxWidth: 820, margin: '0 auto', padding: '38px 16px 0', boxSizing: 'border-box' }}>
         <header style={{ marginBottom: 24 }}>
           <h1 style={{ margin: 0, fontSize: 'clamp(34px,5vw,46px)', fontWeight: 850, letterSpacing: '-.04em', lineHeight: .98 }}>Mon NOX</h1>
           <p style={{ margin: '10px 0 0', color: SECONDARY, fontSize: 14, lineHeight: 1.5 }}>
@@ -155,7 +165,7 @@ export default function MonNox() {
           </p>
         </header>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, padding: 5, background: CARD2, border: `1px solid ${BORDER}`, borderRadius: 16, marginBottom: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, padding: 5, background: CARD2, border: `1px solid ${BORDER}`, borderRadius: 16, marginBottom: 18 }}>
           {([['progres','Progression'],['rangs','Rangs'],['memoire','Mémoire'],['coach','NOXI']] as [MainTab,string][]).map(([id,label]) => (
             <button key={id} onClick={() => setMainTab(id)} style={{ border: 0, borderRadius: 12, padding: '11px 8px', background: mainTab === id ? LIME : 'transparent', color: mainTab === id ? BG : SECONDARY, fontWeight: 850, fontSize: 13, cursor: 'pointer' }}>{label}</button>
           ))}
@@ -222,7 +232,7 @@ export default function MonNox() {
         {mainTab === 'progres' && (
           <>
             <section style={{background:'radial-gradient(circle at 50% 8%,rgba(200,255,0,.11),transparent 35%),linear-gradient(160deg,#171B18,#0F1210)',border:`1px solid ${BORDER}`,borderRadius:26,padding:24,textAlign:'center',marginBottom:12}}>
-              <div style={{display:'flex',justifyContent:'center',padding:'8px 0 18px'}}><RankMedal rank={noxRank} active /></div>
+              <div style={{display:'flex',justifyContent:'center',padding:'8px 0 18px'}}><RankMedal rank={noxRank} active size={132}/></div>
               <div style={{fontSize:10,color:LIME,fontWeight:950,letterSpacing:'.1em'}}>RANG {noxRank} · PALIER {rankStep}/5</div>
               <div style={{fontSize:28,fontWeight:950,letterSpacing:'-.04em',marginTop:6}}>{RANK_NAMES[noxRank-1]}</div>
               <div style={{display:'flex',justifyContent:'space-between',marginTop:22,fontSize:11,fontWeight:850}}><span>Palier {noxLevel}/100</span><span style={{color:LIME}}>{xpPct}%</span></div>
@@ -258,10 +268,11 @@ export default function MonNox() {
         )}
         {mainTab === 'rangs' && (
           <>
-            <section style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:22,padding:20,marginBottom:10}}><div style={{fontSize:10,color:LIME,fontWeight:950,letterSpacing:'.1em'}}>20 RANGS · 100 PALIERS</div><div style={{fontSize:24,fontWeight:950,letterSpacing:'-.04em',marginTop:6}}>Ton parcours NOX</div><div style={{fontSize:12,color:SECONDARY,lineHeight:1.5,marginTop:6}}>Chaque rang contient cinq paliers. Un rang acquis ne se perd jamais.</div></section>
-            <section style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8}}>
-              {RANK_NAMES.map((name,index)=>{const r=index+1;const unlocked=r<=noxRank;const active=r===noxRank;return <div key={name} style={{minHeight:137,padding:'15px 7px',border:`1px solid ${active?LIME:BORDER}`,borderRadius:18,background:active?'linear-gradient(160deg,rgba(200,255,0,.08),#111412)':CARD2,display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center',gap:9}}><RankMedal rank={r} unlocked={unlocked} active={active}/><strong style={{fontSize:10}}>{name}</strong><span style={{fontSize:8,color:MUTED}}>{r===20?'Palier 100':`Paliers ${(r-1)*5+1}–${r*5}`}</span>{!unlocked&&<LockKeyhole size={12} color={MUTED}/>}</div>})}
+            <section style={{padding:'8px 2px 18px'}}><div style={{fontSize:10,color:LIME,fontWeight:950,letterSpacing:'.1em'}}>20 RANGS · 100 PALIERS</div><div style={{fontSize:27,fontWeight:950,letterSpacing:'-.045em',marginTop:6}}>Les 20 rangs de NOX</div><div style={{fontSize:12,color:SECONDARY,lineHeight:1.5,marginTop:6}}>Chaque médaille marque une étape de ta transformation. Cinq paliers par rang.</div></section>
+            <section style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:'22px 10px',padding:'18px 10px 24px',border:`1px solid ${BORDER}`,borderRadius:24,background:'radial-gradient(circle at 50% 0,rgba(200,255,0,.055),transparent 32%),#101311'}}>
+              {RANK_NAMES.map((name,index)=>{const r=index+1;const unlocked=r<=noxRank;const active=r===noxRank;return <div key={name} style={{minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center',gap:8,opacity:unlocked?1:.62}}><RankMedal rank={r} unlocked={unlocked} active={active} size={r===20?82:76}/><strong style={{fontSize:9.5,lineHeight:1.15,color:active?WHITE:unlocked?WHITE:SECONDARY}}>{name}</strong><span style={{fontSize:7.5,color:MUTED}}>{r===20?'Palier 100':`${(r-1)*5+1}–${r*5}`}</span>{!unlocked&&<LockKeyhole size={11} color={MUTED}/>}</div>})}
             </section>
+            <section style={{marginTop:12,padding:'16px 18px',border:'1px solid rgba(200,255,0,.26)',borderRadius:19,background:'linear-gradient(120deg,rgba(200,255,0,.08),rgba(200,255,0,.015))',display:'flex',alignItems:'center',gap:12}}><Crown size={22} color={LIME}/><div><strong style={{display:'block',fontSize:12}}>20 rangs · 5 paliers par rang = 100 paliers</strong><span style={{display:'block',fontSize:9.5,color:SECONDARY,marginTop:4}}>Atteins NOX Ultime et débloque la récompense du Palier 100.</span></div></section>
           </>
         )}
 
