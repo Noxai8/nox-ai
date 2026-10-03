@@ -39,61 +39,59 @@ function RankMedal({rank, unlocked=true, active=false, size=86}:{rank:number;unl
   const ultimate = rank === 20;
   const src = `/nox-ranks/rank-${String(rank).padStart(2, '0')}.png`;
 
-  // Les PNG des rangs sont légèrement rectangulaires (≈ 197×184).
-  // On conserve donc leur ratio réel au lieu de les forcer dans un cercle :
-  // toutes les médailles occupent exactement le même cadre visuel.
-  const medalWidth = size;
-  const medalHeight = Math.round(size * 184 / 197);
-
   return (
     <div style={{
-      width: medalWidth,
-      height: medalHeight,
+      width: size,
+      height: size,
       position: 'relative',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-      overflow: 'visible'
+      display: 'grid',
+      placeItems: 'center',
+      flexShrink: 0
     }}>
       {active && (
         <div style={{
           position: 'absolute',
-          width: '88%',
-          height: '88%',
-          left: '6%',
-          top: '6%',
+          inset: '-7%',
           borderRadius: '50%',
           background: ultimate
-            ? 'radial-gradient(circle,rgba(233,185,77,.22) 0%,rgba(233,185,77,.08) 42%,transparent 72%)'
-            : 'radial-gradient(circle,rgba(200,255,0,.20) 0%,rgba(200,255,0,.07) 42%,transparent 72%)',
+            ? 'radial-gradient(circle,rgba(233,185,77,.22) 0%,rgba(233,185,77,.08) 46%,transparent 72%)'
+            : 'radial-gradient(circle,rgba(200,255,0,.20) 0%,rgba(200,255,0,.07) 46%,transparent 72%)',
           filter: 'blur(9px)',
           pointerEvents: 'none'
-        }}
-        />
+        }}/>
       )}
 
-      <img
-        src={src}
-        alt={`Médaille rang ${rank}`}
-        draggable={false}
-        style={{
-          position: 'relative',
-          zIndex: 2,
-          display: 'block',
-          width: '100%',
-          height: '100%',
-          objectFit: 'contain',
-          objectPosition: '50% 50%',
-          userSelect: 'none',
-          filter: unlocked
-            ? `saturate(${active ? 1.08 : .92}) brightness(${active ? 1.04 : .88}) contrast(1.04)`
-            : 'grayscale(.92) saturate(.28) brightness(.46) contrast(1.04)',
-          opacity: unlocked ? 1 : .82,
-          transform: 'none',
-          transition: 'filter .2s ease, opacity .2s ease'
-        }}
-      />
+      <div style={{
+        width: '100%',
+        height: '100%',
+        borderRadius: '50%',
+        overflow: 'hidden',
+        position: 'relative',
+        zIndex: 2,
+        display: 'grid',
+        placeItems: 'center'
+      }}>
+        <img
+          src={src}
+          alt={`Médaille rang ${rank}`}
+          draggable={false}
+          style={{
+            display: 'block',
+            width: '108%',
+            height: '108%',
+            maxWidth: 'none',
+            objectFit: 'cover',
+            objectPosition: '50% 50%',
+            userSelect: 'none',
+            filter: unlocked
+              ? `saturate(${active ? 1.08 : .92}) brightness(${active ? 1.04 : .88}) contrast(1.04)`
+              : 'grayscale(.92) saturate(.28) brightness(.46) contrast(1.04)',
+            opacity: unlocked ? 1 : .82,
+            transform: 'translateY(0)',
+            transition: 'filter .2s ease, opacity .2s ease'
+          }}
+        />
+      </div>
     </div>
   );
 }
