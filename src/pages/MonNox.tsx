@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { HABITS, type UserHabit } from '../lib/nox/habits';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, CalendarDays, ChevronRight, Crown, Dumbbell, Flame, Infinity as InfinityIcon, Leaf, LockKeyhole, Medal, MessageCircle, Shield, Trophy, Utensils } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -106,6 +107,9 @@ export default function MonNox() {
   const [avgEnergy,     setAvgEnergy]     = useState<number | null>(null);
   const [avgBody,       setAvgBody]       = useState<number | null>(null);
   const [loading,       setLoading]       = useState(true);
+  const [aligned, setAligned] = useState<{ total: number; movement: number; recovery: number; habits: number } | null>(null);
+  const [habitRows, setHabitRows] = useState<UserHabit[]>([]);
+  const [habitLogs, setHabitLogs] = useState<{ habit_id: string; date: string; count: number; target_snapshot: number | null }[]>([]);
 
   useEffect(() => { if (user) void load(); }, [user]);
 
@@ -128,6 +132,20 @@ export default function MonNox() {
     setEarnedXp(Number(progress?.xp ?? 0));
     setActiveDays(Number(progress?.active_days ?? 0));
     setPrioritiesDone(Number(progress?.priorities_done ?? 0));
+    const a = progress?.aligned;
+    setAligned(a ? { total: Number(a.total ?? 0), movement: Number(a.movement ?? 0), recovery: Number(a.recovery ?? 0), habits: Number(a.habits ?? 0) } : null);
+
+    // Habitudes : relevés des 14 derniers jours pour la mémoire déterministe
+    const since14 = new Date(); since14.setDate(since14.getDate() - 13);
+    const [{ data: hs }, { data: hl }] = await Promise.all([
+      supabase.from('user_habits').select('id, kind, mode, unit, baseline, daily_target, professional_support, risk_flag, active, started_on')
+        .eq('user_id', user!.id).eq('active', true),
+      supabase.from('habit_logs').select('habit_id, date, count, target_snapshot')
+        .eq('user_id', user!.id).gte('date', since14.toLocaleDateString('sv-SE')),
+    ]);
+    setHabitRows(((hs ?? []) as UserHabit[]).filter(h => HABITS[h.kind]));
+    setHabitLogs((hl ?? []).map((l: any) => ({ habit_id: l.habit_id, date: l.date, count: Number(l.count),
+      target_snapshot: l.target_snapshot == null ? null : Number(l.target_snapshot) })));
 
     setObservedDays(closures ?? 0);
     setTotalPulses(pulses ?? 0);
@@ -158,6 +176,52 @@ export default function MonNox() {
   const xpPct = noxLevel >= 100 || p100Locked ? 100 : Math.min(100, Math.round((xpIntoLevel / Math.max(1, nextXp)) * 100));
   const daysToUnlock = Math.max(0, P100_MIN_DAYS - observedDays);
 
+  // ── Mémoire des habitudes : données serveur + seuils fixes, aucun texte généré ──
+  // SAIT    : ≥ 3 jours notés sur les 7 derniers jours
+  // OBSERVE : comparaison seulement si les relevés sont comparables
+  //           (départ connu + ≥ 7 jours notés sur 14, ou ≥ 4 jours notés sur chacune des 2 semaines)
+  // Sinon   : NE SAIT PAS ENCORE
+  const habitSait: string[] = [];
+  const habitObserve: string[] = [];
+  const habitInconnu: string[] = [];
+  {
+    const keyAgo = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toLocaleDateString('sv-SE'); };
+    const k7 = keyAgo(6);
+    const r1 = (n: number) => Math.round(n * 10) / 10;
+    const avgOf = (xs: { count: number }[]) => xs.reduce((s, x) => s + x.count, 0) / xs.length;
+    habitRows.forEach(h => {
+      const name = HABITS[h.kind].publicLabel;
+      const unit = HABITS[h.kind].unit;
+      const all = habitLogs.filter(l => l.habit_id === h.id);
+      const week = all.filter(l => l.date >= k7);
+      const prevWeek = all.filter(l => l.date < k7);
+      const evaluated = week.filter(l => l.target_snapshot != null);
+
+      if (evaluated.length >= 3) {
+        const met = evaluated.filter(l => l.count <= (l.target_snapshot as number)).length;
+        habitSait.push(`${name} : cible tenue ${met} jour${met > 1 ? 's' : ''} sur ${evaluated.length} notés (7 derniers jours).`);
+      } else if (week.length >= 3) {
+        habitSait.push(`${name} : ${week.length} jours notés cette semaine, ${r1(avgOf(week))} ${unit}/jour en moyenne.`);
+      }
+
+      let observed = false;
+      if (h.baseline != null && h.baseline > 0 && all.length >= 7) {
+        habitObserve.push(`${name} : ta moyenne est passée de ${h.baseline} à ${r1(avgOf(all))} ${unit}/jour (${all.length} jours notés).`);
+        observed = true;
+      }
+      if (week.length >= 4 && prevWeek.length >= 4) {
+        const a = r1(avgOf(prevWeek)), b = r1(avgOf(week));
+        if (a !== b) habitObserve.push(`${name} : ${a} → ${b} ${unit}/jour en moyenne d’une semaine à l’autre.`);
+        observed = true;
+      }
+      if (!observed) {
+        habitInconnu.push(h.baseline == null || h.baseline <= 0
+          ? `${name} : sans valeur de départ, ton évolution ne peut pas encore être mesurée.`
+          : `${name} : pas encore assez de relevés pour mesurer ton évolution (${all.length}/7 jours notés).`);
+      }
+    });
+  }
+
   // Mémoire — contenu déterministe selon vraies données
   const saitItems: string[] = [
     totalPulses >= 1  ? `Tu as renseigné ton état ${totalPulses} fois.` : '',
@@ -165,10 +229,12 @@ export default function MonNox() {
     observedDays >= 7  ? `Tu utilises NOX depuis ${observedDays} jours.` : '',
     avgSleep !== null  ? `Ton sommeil moyen (14 j) : ${avgSleep}/5.` : '',
     avgEnergy !== null ? `Ton énergie moyenne (14 j) : ${avgEnergy}/5.` : '',
+    ...habitSait,
   ].filter(Boolean);
 
   const observeItems: string[] = [
     avgBody !== null ? `Ton état physique moyen sur les 14 derniers Pulse : ${avgBody}/5.` : '',
+    ...habitObserve,
   ].filter(Boolean);
 
   const neSaitPasItems: string[] = [
@@ -177,6 +243,7 @@ export default function MonNox() {
     'La relation éventuelle entre ta nutrition et ton énergie.',
     observedDays < 30  ? 'Tes tendances hebdomadaires.' : '',
     'L\'impact éventuel des horaires de repas sur ton sommeil.',
+    ...habitInconnu,
   ].filter(Boolean);
 
   const tabs: { id: MemoryTab; label: string; color: string; items: string[] }[] = [
@@ -291,9 +358,24 @@ export default function MonNox() {
             <section style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:22,padding:19,marginBottom:12}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><div style={{fontSize:9,color:MUTED,fontWeight:900,letterSpacing:'.1em'}}>TA ROUTE</div><div style={{fontSize:18,fontWeight:900,marginTop:4}}>Ce qui te fait progresser</div></div><Trophy size={20} color={LIME}/></div>
               <div style={{display:'grid',gap:7,marginTop:15}}>
-                {[['Journées clôturées',observedDays,Leaf],['Priorités accomplies',prioritiesDone,Flame],['Journées actives',activeDays,Dumbbell]].map(([label,value,Icon]:any)=><div key={label} style={{padding:13,borderRadius:14,background:CARD2,display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:11}}><span style={{display:'flex',alignItems:'center',gap:9,color:SECONDARY}}><Icon size={17} color={LIME}/>{label}</span><b>{value}</b></div>)}
+                {[['Journées clôturées',observedDays,Leaf],['Priorités accomplies',prioritiesDone,Flame]].map(([label,value,Icon]:any)=><div key={label} style={{padding:13,borderRadius:14,background:CARD2,display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:11}}><span style={{display:'flex',alignItems:'center',gap:9,color:SECONDARY}}><Icon size={17} color={LIME}/>{label}</span><b>{value}</b></div>)}
               </div>
-              <div style={{fontSize:10,color:MUTED,lineHeight:1.5,marginTop:12}}>XP gagnée uniquement par les actions accomplies : clôture, priorité tenue, journée active (séance, activité ou repos validé). Plafond de 80 XP par jour. Le Pulse seul ne rapporte rien.</div>
+              <div style={{padding:15,borderRadius:14,background:CARD2,marginTop:7}}>
+                <div style={{display:'flex',alignItems:'center',gap:9}}>
+                  <Dumbbell size={17} color={LIME}/>
+                  <span style={{fontSize:20,fontWeight:1000,letterSpacing:'-.03em'}}>{aligned ? aligned.total : activeDays}</span>
+                  <span style={{fontSize:12,color:SECONDARY,fontWeight:800}}>journée{(aligned ? aligned.total : activeDays) > 1 ? 's' : ''} alignée{(aligned ? aligned.total : activeDays) > 1 ? 's' : ''}</span>
+                </div>
+                {aligned && (
+                  <>
+                    <div style={{fontSize:12,color:SECONDARY,marginTop:8}}>
+                      {aligned.movement} mouvement · {aligned.recovery} récupération · {aligned.habits} habitude{aligned.habits > 1 ? 's' : ''}
+                    </div>
+                    <div style={{fontSize:10,color:MUTED,marginTop:5}}>Une journée peut compter dans plusieurs catégories.</div>
+                  </>
+                )}
+              </div>
+              <div style={{fontSize:10,color:MUTED,lineHeight:1.5,marginTop:12}}>XP gagnée uniquement par les actions accomplies : clôture, priorité tenue, journée alignée (séance, activité, repos validé ou habitude tenue). Plafond de 80 XP par jour. Le Pulse seul ne rapporte rien.</div>
             </section>
 
             <section style={{padding:18,border:'1px solid rgba(200,255,0,.28)',borderRadius:22,background:'linear-gradient(120deg,rgba(200,255,0,.08),rgba(200,255,0,.01))',display:'flex',alignItems:'center',gap:14,marginBottom:8}}>
