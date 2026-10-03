@@ -21,7 +21,18 @@ type MemoryTab = 'sait' | 'observe' | 'ne-sait-pas';
 
 const RANK_NAMES = ['Éveil','Impulsion','Focus','Discipline','Équilibre','Résilience','Progression','Ascension','Dépassement','Maîtrise','Alignement','Influence','Rayonnement','Excellence','Légende','Vision','Impact','Élite','Transcendance','NOX Ultime'];
 
-function xpNeeded(level: number) { return level >= 100 ? 0 : Math.round(260 + level * 22 + Math.pow(level, 1.42) * 7); }
+// ── Barème XP NOX v2 ───────────────────────────────────────────────
+// Seules les actions réellement accomplies rapportent de l'XP.
+// Le Pulse seul ne rapporte rien : il qualifie la journée, ce n'est pas un effort.
+const XP_CLOSURE        = 25; // journée clôturée
+const XP_PRIORITY_DONE  = 15; // priorité accomplie
+const XP_PRIORITY_PART  = 8;  // priorité accomplie en partie
+const XP_ACTIVE_DAY     = 40; // séance, activité ou repos validé — 1 fois par jour max
+const XP_DAILY_CAP      = 80; // plafond absolu par journée
+const P100_MIN_DAYS     = 365; // verrou temporel du Palier 100
+
+// Palier n → n+1 : 60 + 5n XP (≈ 30 700 XP pour le Palier 100)
+function xpNeeded(level: number) { return level >= 100 ? 0 : 60 + 5 * level; }
 function totalXpTo(level: number) { let x=0; for(let i=1;i<level;i++) x += xpNeeded(i); return x; }
 function levelFromXp(xp:number){ let level=1, left=Math.max(0,xp); while(level<100 && left>=xpNeeded(level)){ left-=xpNeeded(level); level++; } return level; }
 function RankMedal({rank, unlocked=true, active=false, size=86}:{rank:number;unlocked?:boolean;active?:boolean;size?:number}) {
@@ -107,6 +118,9 @@ export default function MonNox() {
   const [tab,           setTab]           = useState<MemoryTab>('sait');
   const [observedDays,  setObservedDays]  = useState(0);
   const [totalPulses,   setTotalPulses]   = useState(0);
+  const [earnedXp,      setEarnedXp]      = useState(0);
+  const [activeDays,    setActiveDays]    = useState(0);
+  const [prioritiesDone,setPrioritiesDone]= useState(0);
   const [totalWorkouts, setTotalWorkouts] = useState(0);
   const [avgSleep,      setAvgSleep]      = useState<number | null>(null);
   const [avgEnergy,     setAvgEnergy]     = useState<number | null>(null);
@@ -128,6 +142,42 @@ export default function MonNox() {
       supabase.from('daily_pulses').select('sleep_score, energy_score, body_score').eq('user_id', user!.id).order('date', { ascending: false }).limit(14),
     ]);
 
+    const [
+      { data: closureRows },
+      { data: workoutRows },
+      { data: movementRows },
+    ] = await Promise.all([
+      supabase.from('daily_closures').select('date, completion, priority_type').eq('user_id', user!.id),
+      supabase.from('workouts').select('finished_at').eq('user_id', user!.id).eq('status', 'completed').not('finished_at', 'is', null),
+      supabase.from('movement_logs').select('date').eq('user_id', user!.id),
+    ]);
+
+    // XP calculée jour par jour, plafonnée par journée
+    type Day = { closure: number; priority: number; active: boolean };
+    const days = new Map<string, Day>();
+    const day = (d: string) => { if (!days.has(d)) days.set(d, { closure: 0, priority: 0, active: false }); return days.get(d)!; };
+
+    let done = 0;
+    (closureRows ?? []).forEach((r: any) => {
+      const d = day(r.date);
+      d.closure = XP_CLOSURE;
+      if (r.completion === 'yes') { d.priority = XP_PRIORITY_DONE; done++; }
+      else if (r.completion === 'partial') d.priority = XP_PRIORITY_PART;
+      // Repos validé : se reposer quand NOX le demande compte comme une journée active
+      if (r.priority_type === 'recovery' && r.completion === 'yes') d.active = true;
+    });
+    (workoutRows ?? []).forEach((r: any) => { day(new Date(r.finished_at).toLocaleDateString('sv-SE')).active = true; });
+    (movementRows ?? []).forEach((r: any) => { day(r.date).active = true; });
+
+    let xp = 0, active = 0;
+    days.forEach(d => {
+      if (d.active) active++;
+      xp += Math.min(XP_DAILY_CAP, d.closure + d.priority + (d.active ? XP_ACTIVE_DAY : 0));
+    });
+    setEarnedXp(xp);
+    setActiveDays(active);
+    setPrioritiesDone(done);
+
     setObservedDays(closures ?? 0);
     setTotalPulses(pulses ?? 0);
     setTotalWorkouts(workouts ?? 0);
@@ -146,16 +196,16 @@ export default function MonNox() {
   const stage     = getNoxStage(observedDays);
   const milestone = getNextMilestone(observedDays);
   const progress  = Math.min(100, Math.round((observedDays / milestone.target) * 100));
-  const earnedXp = observedDays * 35 + totalPulses * 12 + totalWorkouts * 45;
   const rawLevel = levelFromXp(earnedXp);
-  // Garde-fou : le palier 100 ne peut jamais être atteint avant 365 journées validées.
-  const calendarCap = Math.min(100, Math.max(1, Math.floor((observedDays / 365) * 99) + 1));
-  const noxLevel = Math.min(rawLevel, calendarCap);
+  // Verrou temporel : le Palier 100 exige au moins 365 journées observées.
+  const p100Locked = rawLevel >= 100 && observedDays < P100_MIN_DAYS;
+  const noxLevel = p100Locked ? 99 : rawLevel;
   const noxRank = Math.min(20, Math.ceil(noxLevel / 5));
   const rankStep = ((noxLevel - 1) % 5) + 1;
   const xpIntoLevel = Math.max(0, earnedXp - totalXpTo(noxLevel));
   const nextXp = xpNeeded(noxLevel);
-  const xpPct = noxLevel >= 100 ? 100 : Math.min(100, Math.round((xpIntoLevel / Math.max(1,nextXp)) * 100));
+  const xpPct = noxLevel >= 100 || p100Locked ? 100 : Math.min(100, Math.round((xpIntoLevel / Math.max(1, nextXp)) * 100));
+  const daysToUnlock = Math.max(0, P100_MIN_DAYS - observedDays);
 
   // Mémoire — contenu déterministe selon vraies données
   const saitItems: string[] = [
@@ -276,7 +326,7 @@ export default function MonNox() {
               <div style={{fontSize:28,fontWeight:950,letterSpacing:'-.04em',marginTop:6}}>{RANK_NAMES[noxRank-1]}</div>
               <div style={{display:'flex',justifyContent:'space-between',marginTop:22,fontSize:11,fontWeight:850}}><span>Palier {noxLevel}/100</span><span style={{color:LIME}}>{xpPct}%</span></div>
               <div style={{height:8,background:'#292E2A',borderRadius:99,overflow:'hidden',marginTop:9}}><div style={{width:`${xpPct}%`,height:'100%',background:LIME,borderRadius:99}} /></div>
-              <div style={{display:'flex',justifyContent:'space-between',marginTop:8,color:MUTED,fontSize:10}}><span>{noxLevel>=100?'Sommet atteint':`${xpIntoLevel.toLocaleString('fr-FR')} / ${nextXp.toLocaleString('fr-FR')} XP`}</span><span>{noxLevel<100?`${Math.max(0,nextXp-xpIntoLevel).toLocaleString('fr-FR')} XP restants`:'NOX Ultime'}</span></div>
+              <div style={{display:'flex',justifyContent:'space-between',marginTop:8,color:MUTED,fontSize:10}}><span>{noxLevel>=100?'Sommet atteint':p100Locked?'XP requis atteint · progression temporelle en cours':`${xpIntoLevel.toLocaleString('fr-FR')} / ${nextXp.toLocaleString('fr-FR')} XP`}</span><span>{noxLevel>=100?'NOX Ultime':p100Locked?`${daysToUnlock} journée${daysToUnlock>1?'s':''} restante${daysToUnlock>1?'s':''}`:`${Math.max(0,nextXp-xpIntoLevel).toLocaleString('fr-FR')} XP restants`}</span></div>
             </section>
 
             <section style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:18}}>
@@ -290,9 +340,9 @@ export default function MonNox() {
             <section style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:22,padding:19,marginBottom:12}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><div style={{fontSize:9,color:MUTED,fontWeight:900,letterSpacing:'.1em'}}>TA ROUTE</div><div style={{fontSize:18,fontWeight:900,marginTop:4}}>Ce qui te fait progresser</div></div><Trophy size={20} color={LIME}/></div>
               <div style={{display:'grid',gap:7,marginTop:15}}>
-                {[['Entraînements complétés',totalWorkouts,Dumbbell],['Pulse renseignés',totalPulses,Flame],['Journées clôturées',observedDays,Leaf]].map(([label,value,Icon]:any)=><div key={label} style={{padding:13,borderRadius:14,background:CARD2,display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:11}}><span style={{display:'flex',alignItems:'center',gap:9,color:SECONDARY}}><Icon size={17} color={LIME}/>{label}</span><b>{value}</b></div>)}
+                {[['Journées clôturées',observedDays,Leaf],['Priorités accomplies',prioritiesDone,Flame],['Journées actives',activeDays,Dumbbell]].map(([label,value,Icon]:any)=><div key={label} style={{padding:13,borderRadius:14,background:CARD2,display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:11}}><span style={{display:'flex',alignItems:'center',gap:9,color:SECONDARY}}><Icon size={17} color={LIME}/>{label}</span><b>{value}</b></div>)}
               </div>
-              <div style={{fontSize:10,color:MUTED,lineHeight:1.5,marginTop:12}}>XP v1 calculée uniquement avec les actions réellement enregistrées ci-dessus. Aucun clic vide ne donne d'XP.</div>
+              <div style={{fontSize:10,color:MUTED,lineHeight:1.5,marginTop:12}}>XP gagnée uniquement par les actions accomplies : clôture, priorité tenue, journée active (séance, activité ou repos validé). Plafond de 80 XP par jour. Le Pulse seul ne rapporte rien.</div>
             </section>
 
             <section style={{padding:18,border:'1px solid rgba(200,255,0,.28)',borderRadius:22,background:'linear-gradient(120deg,rgba(200,255,0,.08),rgba(200,255,0,.01))',display:'flex',alignItems:'center',gap:14,marginBottom:8}}>
