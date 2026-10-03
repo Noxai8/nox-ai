@@ -80,11 +80,11 @@ function RankMedal({rank, unlocked=true, active=false, size=86}:{rank:number;unl
             position: 'absolute',
             left: '50%',
             top: '50%',
-            width: '112%',
-            height: '112%',
+            width: '100%',
+            height: '100%',
             maxWidth: 'none',
             objectFit: 'cover',
-            objectPosition: '66% center',
+            objectPosition: '50% 50%',
             userSelect: 'none',
             filter: unlocked
               ? `saturate(${active ? 1.08 : .92}) brightness(${active ? 1.04 : .88}) contrast(1.04)`
