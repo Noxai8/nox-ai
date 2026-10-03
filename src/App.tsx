@@ -365,6 +365,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route path="/habits/:habitId" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
 
         {/* =====================================================
             HEALTH / RECOVERY

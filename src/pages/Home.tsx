@@ -9,6 +9,7 @@ import { useAuth } from '../lib/AuthContext';
 import { generateDailyPriority, type DailyPriority } from '../lib/nox/priorityEngine';
 import { todayLocalDate } from '../lib/localDate';
 import NoxCompanion from '../components/NoxCompanion';
+import { HABITS, type UserHabit } from '../lib/nox/habits';
 
 type Completion = 'yes' | 'partial' | 'no';
 type NavActive = 'home' | 'nutrition' | 'mon-nox' | 'moi';
@@ -264,11 +265,52 @@ export default function Home() {
   const [savingClosure, setSavingClosure] = useState(false);
   const [editingClosure, setEditingClosure] = useState(false);
   const [observedDays, setObservedDays] = useState(0);
+  const [habits, setHabits] = useState<UserHabit[]>([]);
+  const [habitLogs, setHabitLogs] = useState<{ habit_id: string; date: string; count: number }[]>([]);
+  const [habitBusy, setHabitBusy] = useState<string | null>(null);
 
   useEffect(() => { if (user) void loadAll(); }, [user]);
 
+  // Habitudes actives + relevés des 7 derniers jours
+  const loadHabits = async () => {
+    if (!user) return;
+    const since = new Date();
+    since.setDate(since.getDate() - 6);
+    const { data: hs, error: hErr } = await supabase
+      .from('user_habits')
+      .select('id, kind, mode, unit, baseline, daily_target, professional_support, active, started_on')
+      .eq('user_id', user.id)
+      .eq('active', true)
+      .order('created_at');
+    if (hErr) { console.error('user_habits:', hErr.message); return; }
+    const list = ((hs ?? []) as UserHabit[]).filter(h => HABITS[h.kind]);
+    setHabits(list);
+    if (!list.length) { setHabitLogs([]); return; }
+    const { data: logs, error: lErr } = await supabase
+      .from('habit_logs')
+      .select('habit_id, date, count')
+      .eq('user_id', user.id)
+      .gte('date', since.toLocaleDateString('sv-SE'));
+    if (lErr) { console.error('habit_logs:', lErr.message); return; }
+    setHabitLogs((logs ?? []).map((l: any) => ({ ...l, count: Number(l.count) })));
+  };
+
+  // Relevé du jour — le serveur fige la cible et calcule l'XP (plafond 80/jour)
+  const logHabit = async (h: UserHabit, count: number) => {
+    if (!user || habitBusy) return;
+    setHabitBusy(h.id);
+    const { error } = await supabase.from('habit_logs').upsert(
+      { user_id: user.id, habit_id: h.id, date: todayLocalDate(), count: Math.max(0, count) },
+      { onConflict: 'habit_id,date' },
+    );
+    if (error) console.error('habit_logs upsert:', error.message);
+    await loadHabits();
+    setHabitBusy(null);
+  };
+
   const loadAll = async () => {
     if (!user) return;
+    void loadHabits();
 
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
@@ -582,6 +624,72 @@ export default function Home() {
             </div>
           </AppCard>
         </section>
+
+        {habits.length > 0 && (
+          <section className="nox-home-section">
+            <SectionHeader title="Mes objectifs" action="Gérer ›" onAction={() => navigate('/habits')} />
+            <div style={{ display: 'grid', gap: 10 }}>
+              {habits.map(h => {
+                const def = HABITS[h.kind];
+                const Icon = def.icon;
+                const today = todayLocalDate();
+                const logs = habitLogs.filter(l => l.habit_id === h.id);
+                const todayLog = logs.find(l => l.date === today);
+                const weekTotal = logs.reduce((s, l) => s + l.count, 0);
+                const avg = logs.length ? Math.round((weekTotal / logs.length) * 10) / 10 : null;
+                const target = h.daily_target;
+                const met = todayLog && target != null ? todayLog.count <= target : null;
+                const busy = habitBusy === h.id;
+                const stop = (e: React.MouseEvent) => e.stopPropagation();
+                const pill: React.CSSProperties = { height: 40, minWidth: 48, padding: '0 14px', borderRadius: 12, border: '1px solid #343835', background: '#191C1A', color: '#FFFFFF', fontSize: 13, fontWeight: 900, cursor: busy ? 'wait' : 'pointer', opacity: busy ? .6 : 1 };
+                return (
+                  <AppCard key={h.id} style={{ padding: 18, cursor: 'pointer' }}>
+                    <div onClick={() => navigate(`/habits/${h.id}`)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div className="nox-square-icon"><Icon size={22} /></div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 950 }}>{def.publicLabel}</div>
+                          <div style={{ color: '#8E938F', fontSize: 11, fontWeight: 800, marginTop: 3 }}>
+                            {h.mode === 'track' ? 'Suivi seulement' : h.mode === 'stop' ? 'Objectif : arrêter' : 'Objectif : réduire'}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 26, fontWeight: 1000, letterSpacing: '-.04em', lineHeight: 1 }}>
+                            {todayLog ? todayLog.count : '—'}
+                            {target != null && <span style={{ color: '#747A76', fontSize: 15, fontWeight: 900 }}> / {target}</span>}
+                          </div>
+                          <div style={{ color: '#747A76', fontSize: 10, fontWeight: 800, marginTop: 4 }}>{def.unit} aujourd’hui</div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 14, fontSize: 12, color: '#A5AAA6' }}>
+                        {met === true && <span style={{ color: '#C8FF00', fontWeight: 900 }}>Dans ta cible ✓</span>}
+                        {met === false && <span style={{ fontWeight: 800 }}>Au-dessus de ta cible aujourd’hui</span>}
+                        {!todayLog && <span>Pas encore noté aujourd’hui</span>}
+                        {h.kind === 'alcohol' && logs.length > 0 && <span>Cette semaine : {weekTotal} {def.unit}</span>}
+                        {h.baseline != null && avg != null && <span>Départ {h.baseline}/jour → {avg}/jour sur 7 j</span>}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8, marginTop: 14 }} onClick={stop}>
+                        {!todayLog ? (
+                          <button style={{ ...pill, flex: 1 }} disabled={busy} onClick={() => logHabit(h, 0)}>
+                            Aucun{h.kind === 'tobacco' ? 'e' : ''} aujourd’hui
+                          </button>
+                        ) : (
+                          <button style={pill} disabled={busy || todayLog.count <= 0} onClick={() => logHabit(h, todayLog.count - 1)} aria-label="Retirer 1">−1</button>
+                        )}
+                        <button style={{ ...pill, flex: todayLog ? 1 : undefined }} disabled={busy} onClick={() => logHabit(h, (todayLog?.count ?? 0) + 1)} aria-label="Ajouter 1">+1</button>
+                      </div>
+                    </div>
+                  </AppCard>
+                );
+              })}
+            </div>
+            <div style={{ color: '#747A76', fontSize: 11, lineHeight: 1.5, marginTop: 10 }}>
+              Tenir une cible compte pour ta journée alignée. Un dépassement ne fait jamais perdre d’XP.
+            </div>
+          </section>
+        )}
 
         {todaySession && !todayWorkout && (
           <section className="nox-home-section">
