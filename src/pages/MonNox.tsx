@@ -370,8 +370,22 @@ export default function MonNox() {
         {mainTab === 'rangs' && (
           <>
             <section style={{padding:'8px 2px 18px'}}><div style={{fontSize:10,color:LIME,fontWeight:950,letterSpacing:'.1em'}}>20 RANGS · 100 PALIERS</div><div style={{fontSize:27,fontWeight:950,letterSpacing:'-.045em',marginTop:6}}>Les 20 rangs de NOX</div><div style={{fontSize:12,color:SECONDARY,lineHeight:1.5,marginTop:6}}>Chaque médaille marque une étape de ta transformation. Cinq paliers par rang.</div></section>
-            <section style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:'25px 12px',padding:'22px 14px 28px',border:`1px solid ${BORDER}`,borderRadius:22,background:'linear-gradient(180deg,#0E120F,#090C0A)'}}>
-              {RANK_NAMES.map((name,index)=>{const r=index+1;const unlocked=r<=noxRank;const active=r===noxRank;return <div key={name} style={{minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center',gap:8,opacity:unlocked?1:.48}}><RankMedal rank={r} unlocked={unlocked} active={active} size={76}/><strong style={{fontSize:9.5,lineHeight:1.15,color:active?WHITE:unlocked?WHITE:SECONDARY}}>{name}</strong><span style={{fontSize:7.5,color:MUTED}}>{r===20?'Palier 100':`${(r-1)*5+1}–${r*5}`}</span>{!unlocked&&<LockKeyhole size={11} color={MUTED}/>}</div>})}
+            <section style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',columnGap:12,rowGap:26,padding:'24px 18px 30px',border:`1px solid ${BORDER}`,borderRadius:22,background:'linear-gradient(180deg,#0E120F,#090C0A)',alignItems:'start'}}>
+              {RANK_NAMES.map((name,index)=>{
+                const r=index+1;
+                const unlocked=r<=noxRank;
+                const active=r===noxRank;
+                return (
+                  <div key={name} style={{minWidth:0,minHeight:132,display:'grid',gridTemplateRows:'76px 14px 12px 14px',justifyItems:'center',alignItems:'center',textAlign:'center',rowGap:5,opacity:unlocked?1:.48}}>
+                    <div style={{width:'100%',height:76,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      <RankMedal rank={r} unlocked={unlocked} active={active} size={76}/>
+                    </div>
+                    <strong style={{width:'100%',fontSize:9.5,lineHeight:1.15,color:active?WHITE:unlocked?WHITE:SECONDARY,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{name}</strong>
+                    <span style={{fontSize:7.5,lineHeight:1,color:MUTED}}>{r===20?'Palier 100':`${(r-1)*5+1}–${r*5}`}</span>
+                    <div style={{height:14,display:'grid',placeItems:'center'}}>{!unlocked&&<LockKeyhole size={11} color={MUTED}/>}</div>
+                  </div>
+                );
+              })}
             </section>
             <section style={{marginTop:12,padding:'16px 18px',border:'1px solid rgba(200,255,0,.26)',borderRadius:19,background:'linear-gradient(120deg,rgba(200,255,0,.08),rgba(200,255,0,.015))',display:'flex',alignItems:'center',gap:12}}><Crown size={22} color={LIME}/><div><strong style={{display:'block',fontSize:12}}>20 rangs · 5 paliers par rang = 100 paliers</strong><span style={{display:'block',fontSize:9.5,color:SECONDARY,marginTop:4}}>Atteins NOX Ultime et débloque la récompense du Palier 100.</span></div></section>
           </>
