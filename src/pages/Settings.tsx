@@ -650,8 +650,13 @@ export default function Settings() {
           />
           <Row
             title="Récupération"
-            subtitle="Sommeil, récupération et habitudes"
+            subtitle="Sommeil et récupération"
             onClick={() => navigate('/recovery')}
+          />
+          <Row
+            title="Mes habitudes"
+            subtitle="Tabac, alcool, habitude personnelle…"
+            onClick={() => navigate('/habits')}
           />
         </section>
 

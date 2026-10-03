@@ -1,419 +1,322 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, ChevronRight, Plus, Sparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Check, Phone, Plus, ShieldCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { BottomNav } from './Home';
+import {
+  HABITS, HABIT_KINDS, MODE_LABELS,
+  type HabitKind, type HabitMode, type UserHabit,
+} from '../lib/nox/habits';
 
-const ACCENT = '#C8FF00';
-const BG = '#F7F8F4';
+const BG = '#090B0A';
+const CARD = '#232624';
+const CARD2 = '#191C1A';
+const BORDER = '#4A4F4B';
 const WHITE = '#FFFFFF';
-const BLACK = '#0B0B0B';
-const MUTED = '#7A7F76';
-const BORDER = '#E8EAE4';
-const SOFT_LIME = '#F0FFD0';
+const SEC = '#A5AAA6';
+const MUTED = '#747A76';
+const LIME = '#C8FF00';
 
-type Habit = {
-  id: string;
-  title: string;
-  detail: string;
-  category: string;
+type Draft = {
+  kind: HabitKind;
+  mode: HabitMode;
+  baseline: string;
+  target: string;
+  riskAnswer: 'yes' | 'no' | null;
+  professional: boolean;
+  consent: boolean;
 };
 
-const BASE_HABITS: Habit[] = [
-  { id: 'water', title: 'Hydratation', detail: 'Boire régulièrement dans la journée', category: 'RÉCUPÉRATION' },
-  { id: 'steps', title: 'Bouger chaque jour', detail: 'Ajouter de la marche et du mouvement à ta journée', category: 'MOUVEMENT' },
-  { id: 'protein', title: 'Priorité protéines', detail: 'Inclure une source de protéines dans tes repas principaux', category: 'NUTRITION' },
-  { id: 'sleep', title: 'Préparer ton sommeil', detail: 'Créer une fin de journée plus calme et régulière', category: 'RÉCUPÉRATION' },
-];
+const emptyDraft = (kind: HabitKind): Draft => ({
+  kind, mode: 'reduce', baseline: '', target: '', riskAnswer: null, professional: false, consent: false,
+});
 
 export default function Habits() {
-  const navigate = useNavigate();
   const { user } = useAuth();
-  const [goal, setGoal] = useState('');
-  const [done, setDone] = useState<string[]>([]);
-  const [custom, setCustom] = useState<Habit[]>([]);
-  const [newHabit, setNewHabit] = useState('');
+  const navigate = useNavigate();
+  const [habits, setHabits] = useState<UserHabit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  const todayKey = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }, []);
+  useEffect(() => { if (user) void load(); }, [user]);
 
-  useEffect(() => {
-    if (!user) return;
-
-    supabase
-      .from('profiles')
-      .select('goal_type')
-      .eq('id', user.id)
-      .maybeSingle()
-      .then(({ data }) => setGoal(data?.goal_type || ''));
-
-    try {
-      const saved = localStorage.getItem(`nox-habits-${user.id}-${todayKey}`);
-      if (saved) setDone(JSON.parse(saved));
-
-      const savedCustom = localStorage.getItem(`nox-custom-habits-${user.id}`);
-      if (savedCustom) setCustom(JSON.parse(savedCustom));
-    } catch {}
-  }, [user, todayKey]);
-
-  const habits = [...BASE_HABITS, ...custom];
-  const completed = habits.filter((h) => done.includes(h.id)).length;
-  const progress = habits.length ? Math.round((completed / habits.length) * 100) : 0;
-
-  const toggle = (id: string) => {
-    if (!user) return;
-    const next = done.includes(id) ? done.filter((x) => x !== id) : [...done, id];
-    setDone(next);
-    localStorage.setItem(`nox-habits-${user.id}-${todayKey}`, JSON.stringify(next));
+  const load = async () => {
+    const { data, error: e } = await supabase
+      .from('user_habits')
+      .select('id, kind, mode, unit, baseline, daily_target, professional_support, active, started_on')
+      .eq('user_id', user!.id)
+      .eq('active', true)
+      .order('created_at');
+    if (e) setError(e.message);
+    setHabits((data ?? []) as UserHabit[]);
+    setLoading(false);
   };
 
-  const addHabit = () => {
-    if (!user || !newHabit.trim()) return;
+  const activeKinds = new Set(habits.map(h => h.kind));
+  const available = HABIT_KINDS.filter(k => !activeKinds.has(k));
 
-    const habit: Habit = {
-      id: `custom-${Date.now()}`,
-      title: newHabit.trim(),
-      detail: 'Une action personnelle à tenir régulièrement',
-      category: 'PERSONNEL',
-    };
+  // Alcool + consommation à risque sans accompagnement → suivi uniquement, aucune cible proposée par NOX
+  const alcoholLocked = draft?.kind === 'alcohol' && draft.riskAnswer === 'yes' && !draft.professional;
+  const def = draft ? HABITS[draft.kind] : null;
+  const effectiveMode: HabitMode | null = draft ? (alcoholLocked ? 'track' : draft.mode) : null;
 
-    const next = [...custom, habit];
-    setCustom(next);
-    setNewHabit('');
-    localStorage.setItem(`nox-custom-habits-${user.id}`, JSON.stringify(next));
+  const canSave = (() => {
+    if (!draft || !def) return false;
+    if (def.discreet && !draft.consent) return false;
+    if (def.needsRiskCheck && draft.riskAnswer === null) return false;
+    if (effectiveMode === 'reduce') {
+      const t = Number(draft.target);
+      return draft.target !== '' && Number.isFinite(t) && t >= 0 && t <= 500;
+    }
+    return true;
+  })();
+
+  const save = async () => {
+    if (!user || !draft || !def || !canSave || saving) return;
+    setSaving(true); setError('');
+    const baseline = draft.baseline === '' ? null : Number(draft.baseline);
+    const { error: e } = await supabase.from('user_habits').insert({
+      user_id: user.id,
+      kind: draft.kind,
+      mode: effectiveMode,
+      unit: def.unit,
+      baseline: Number.isFinite(baseline as number) ? baseline : null,
+      daily_target: effectiveMode === 'reduce' ? Number(draft.target) : null,
+      professional_support: draft.professional,
+    });
+    setSaving(false);
+    if (e) { setError(e.message); return; }
+    setDraft(null);
+    void load();
   };
 
-  const goalLabel =
-    goal === 'perdre_gras' ? 'perte de gras' :
-    goal === 'prendre_muscle' ? 'prise de muscle' :
-    goal === 'recomposition' ? 'recomposition corporelle' :
-    goal === 'force' ? 'gain de force' :
-    goal === 'performance' ? 'performance' :
-    goal === 'maintien' ? 'maintien de ta forme' :
-    'transformation';
+  const stopTracking = async (h: UserHabit) => {
+    const name = HABITS[h.kind].publicLabel;
+    if (!confirm(`Retirer « ${name} » de tes habitudes ? Ton historique est conservé.`)) return;
+    const { error: e } = await supabase.from('user_habits').update({ active: false }).eq('id', h.id);
+    if (e) { setError(e.message); return; }
+    void load();
+  };
 
-  const keyHabit = useMemo(() => {
-    const unfinished = (id: string) => !done.includes(id);
-
-    if ((goal === 'prendre_muscle' || goal === 'recomposition') && unfinished('protein')) {
-      return BASE_HABITS.find((h) => h.id === 'protein')!;
-    }
-    if (goal === 'perdre_gras' && unfinished('steps')) {
-      return BASE_HABITS.find((h) => h.id === 'steps')!;
-    }
-    if ((goal === 'performance' || goal === 'force') && unfinished('sleep')) {
-      return BASE_HABITS.find((h) => h.id === 'sleep')!;
-    }
-
-    return habits.find((h) => !done.includes(h.id)) || null;
-  }, [goal, done, habits]);
+  const card: React.CSSProperties = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20 };
+  const choice = (on: boolean): React.CSSProperties => ({
+    width: '100%', textAlign: 'left', padding: '14px 16px', borderRadius: 14, cursor: 'pointer',
+    background: on ? 'rgba(200,255,0,.08)' : CARD2, border: `1px solid ${on ? LIME : '#343835'}`, color: WHITE,
+  });
+  const input: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box', padding: '14px 16px', borderRadius: 14, border: '1px solid #343835',
+    background: CARD2, color: WHITE, fontSize: 16, fontWeight: 800, outline: 'none',
+  };
 
   return (
-    <div style={{ minHeight: '100dvh', background: BG, color: BLACK, paddingBottom: 36 }}>
-      <header
-        style={{
-          maxWidth: 620,
-          margin: '0 auto',
-          padding: '20px 20px 8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <button onClick={() => navigate(-1)} style={iconButton} aria-label="Retour">
-          <ArrowLeft size={19} />
-        </button>
-        <div style={{ fontSize: 19, fontWeight: 950, letterSpacing: '-.04em' }}>
-          NOX<span style={{ color: '#9ED100' }}>.</span>
-        </div>
-        <div style={{ width: 42 }} />
-      </header>
+    <div style={{ minHeight: '100dvh', background: BG, color: WHITE, paddingBottom: 'calc(160px + env(safe-area-inset-bottom))' }}>
+      <main style={{ width: '100%', maxWidth: 760, margin: '0 auto', padding: '0 16px', boxSizing: 'border-box' }}>
 
-      <main style={{ maxWidth: 620, margin: '0 auto', padding: '26px 20px' }}>
-        <div style={{ fontSize: 10, fontWeight: 950, letterSpacing: '.13em', color: '#969C91' }}>
-          HABITUDES · AUJOURD’HUI
-        </div>
+        <header style={{ paddingTop: 44, paddingBottom: 26, display: 'flex', alignItems: 'center', gap: 14 }}>
+          <button onClick={() => (draft ? setDraft(null) : navigate(-1))} aria-label="Retour"
+            style={{ width: 42, height: 42, borderRadius: 14, border: `1px solid ${BORDER}`, background: CARD, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
+            <ArrowLeft size={18} color={WHITE} />
+          </button>
+          <div>
+            <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em' }}>MOI</div>
+            <h1 style={{ margin: 0, fontSize: 'clamp(30px,5vw,40px)', fontWeight: 850, letterSpacing: '-.04em', lineHeight: 1 }}>
+              {draft && def ? def.publicLabel : 'Mes habitudes'}
+            </h1>
+          </div>
+        </header>
 
-        <h1
-          style={{
-            margin: '9px 0 12px',
-            fontSize: 'clamp(38px,10vw,52px)',
-            lineHeight: .94,
-            letterSpacing: '-.055em',
-            fontWeight: 950,
-          }}
-        >
-          LES PETITES CHOSES
-          <br />
-          QUI FONT LE RESTE.
-        </h1>
-
-        <p style={{ margin: '0 0 28px', color: MUTED, fontSize: 14, lineHeight: 1.6 }}>
-          NOX t’aide à garder les comportements qui soutiennent ta {goalLabel}. Ici, la régularité compte plus que la perfection.
-        </p>
-
-        {keyHabit ? (
-          <section
-            style={{
-              background: ACCENT,
-              borderRadius: 28,
-              padding: 22,
-              marginBottom: 14,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 10,
-                fontWeight: 950,
-                letterSpacing: '.11em',
-              }}
-            >
-              <Sparkles size={15} />
-              HABITUDE CLÉ
-            </div>
-
-            <div
-              style={{
-                marginTop: 13,
-                fontSize: 27,
-                lineHeight: 1.02,
-                fontWeight: 950,
-                letterSpacing: '-.035em',
-              }}
-            >
-              {keyHabit.title.toUpperCase()}.
-            </div>
-
-            <div style={{ marginTop: 9, maxWidth: 440, color: '#3F451E', fontSize: 13, lineHeight: 1.5 }}>
-              {keyHabit.detail}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => toggle(keyHabit.id)}
-              style={{
-                marginTop: 18,
-                minHeight: 48,
-                padding: '0 17px',
-                border: 0,
-                borderRadius: 16,
-                background: BLACK,
-                color: WHITE,
-                fontWeight: 900,
-                fontSize: 12,
-                cursor: 'pointer',
-              }}
-            >
-              MARQUER COMME FAIT
-            </button>
-          </section>
-        ) : (
-          <section
-            style={{
-              background: SOFT_LIME,
-              borderRadius: 28,
-              padding: 22,
-              marginBottom: 14,
-            }}
-          >
-            <div style={{ fontSize: 10, fontWeight: 950, letterSpacing: '.11em' }}>JOURNÉE</div>
-            <div style={{ marginTop: 10, fontSize: 27, fontWeight: 950, letterSpacing: '-.035em' }}>
-              TES HABITUDES SONT FAITES.
-            </div>
-            <div style={{ marginTop: 8, color: MUTED, fontSize: 13, lineHeight: 1.5 }}>
-              Pas besoin d’en faire plus. Continue simplement ton plan.
-            </div>
-          </section>
+        {error && (
+          <div style={{ ...card, borderColor: '#7A2E2E', color: '#FFB4B4', fontSize: 13, marginBottom: 14 }}>{error}</div>
         )}
 
-        <section
-          style={{
-            background: BLACK,
-            color: WHITE,
-            borderRadius: 28,
-            padding: 22,
-            marginBottom: 28,
-          }}
-        >
-          <div style={{ fontSize: 10, color: '#9A9D97', fontWeight: 900, letterSpacing: '.11em' }}>
-            AUJOURD’HUI
-          </div>
+        {/* ── LISTE ─────────────────────────────────────────────── */}
+        {!draft && (
+          <>
+            <p style={{ color: SEC, fontSize: 14, lineHeight: 1.55, margin: '0 0 22px' }}>
+              Choisis ce que tu veux travailler. Chaque habitude apparaît sur Aujourd’hui uniquement si tu l’as activée,
+              et tenir ta cible du jour compte pour ta progression.
+            </p>
 
-          <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 7 }}>
-            <div style={{ fontSize: 42, lineHeight: 1, fontWeight: 950, letterSpacing: '-.05em' }}>
-              {completed}/{habits.length}
-            </div>
-            <div style={{ color: '#A8AAA6', fontSize: 12 }}>habitudes</div>
-          </div>
+            {loading ? (
+              <div style={{ color: MUTED, fontSize: 13 }}>Chargement…</div>
+            ) : (
+              <>
+                {habits.length > 0 && (
+                  <section style={{ display: 'grid', gap: 10, marginBottom: 28 }}>
+                    {habits.map(h => {
+                      const d = HABITS[h.kind]; const Icon = d.icon;
+                      return (
+                        <div key={h.id} style={{ ...card, display: 'flex', alignItems: 'center', gap: 14 }}>
+                          <div style={{ width: 44, height: 44, borderRadius: 14, background: CARD2, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                            <Icon size={20} color={LIME} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 15, fontWeight: 900 }}>{d.publicLabel}</div>
+                            <div style={{ color: SEC, fontSize: 12, marginTop: 3 }}>
+                              {MODE_LABELS[h.mode].title}
+                              {h.daily_target != null ? ` · cible ${h.daily_target} ${h.unit}/jour` : ''}
+                              {h.professional_support ? ' · avec un professionnel' : ''}
+                            </div>
+                          </div>
+                          <button onClick={() => stopTracking(h)}
+                            style={{ border: 0, background: 'transparent', color: MUTED, fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
+                            Retirer
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </section>
+                )}
 
-          <div style={{ height: 8, background: '#282828', borderRadius: 999, marginTop: 19, overflow: 'hidden' }}>
-            <div
-              style={{
-                width: `${progress}%`,
-                height: '100%',
-                background: ACCENT,
-                borderRadius: 999,
-                transition: 'width .25s ease',
-              }}
-            />
-          </div>
+                {available.length > 0 && (
+                  <>
+                    <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em', marginBottom: 10 }}>AJOUTER</div>
+                    <section style={{ display: 'grid', gap: 10 }}>
+                      {available.map(k => {
+                        const d = HABITS[k]; const Icon = d.icon;
+                        return (
+                          <button key={k} onClick={() => setDraft(emptyDraft(k))}
+                            style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', color: WHITE, textAlign: 'left' }}>
+                            <div style={{ width: 44, height: 44, borderRadius: 14, background: CARD2, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                              <Icon size={20} color={SEC} />
+                            </div>
+                            <div style={{ flex: 1, fontSize: 15, fontWeight: 900 }}>{d.label}</div>
+                            <Plus size={18} color={LIME} />
+                          </button>
+                        );
+                      })}
+                    </section>
+                  </>
+                )}
+              </>
+            )}
+          </>
+        )}
 
-          <div style={{ marginTop: 9, color: '#A8AAA6', fontSize: 11 }}>
-            {progress === 100 ? 'Journée complétée.' : `${progress}% réalisé aujourd’hui`}
-          </div>
-        </section>
+        {/* ── CONFIGURATION ─────────────────────────────────────── */}
+        {draft && def && (
+          <div style={{ display: 'grid', gap: 14 }}>
 
-        <div style={{ margin: '0 2px 12px', fontSize: 11, fontWeight: 950, letterSpacing: '.09em' }}>
-          MES HABITUDES
-        </div>
-
-        {habits.map((habit) => {
-          const checked = done.includes(habit.id);
-
-          return (
-            <button
-              key={habit.id}
-              type="button"
-              onClick={() => toggle(habit.id)}
-              style={{
-                width: '100%',
-                border: `1px solid ${checked ? '#DCEEA1' : BORDER}`,
-                background: checked ? '#F6FFDE' : WHITE,
-                borderRadius: 22,
-                padding: 17,
-                marginBottom: 10,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                textAlign: 'left',
-                color: BLACK,
-                cursor: 'pointer',
-              }}
-            >
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  flex: '0 0 auto',
-                  borderRadius: 14,
-                  background: checked ? ACCENT : '#F0F2EC',
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
-                {checked ? <Check size={19} strokeWidth={3} /> : <ChevronRight size={18} />}
-              </div>
-
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 9, color: MUTED, fontWeight: 900, letterSpacing: '.09em' }}>
-                  {habit.category}
+            {def.discreet && (
+              <section style={card}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
+                  <ShieldCheck size={18} color={LIME} />
+                  <div style={{ fontSize: 14, fontWeight: 900 }}>Discrétion</div>
                 </div>
-                <div
-                  style={{
-                    marginTop: 4,
-                    fontSize: 15,
-                    fontWeight: 900,
-                    textDecoration: checked ? 'line-through' : 'none',
-                    textDecorationColor: '#A8AD9F',
-                  }}
-                >
-                  {habit.title}
+                <div style={{ color: SEC, fontSize: 13, lineHeight: 1.55, marginBottom: 14 }}>
+                  Cette habitude apparaîtra partout sous le nom « {def.publicLabel} ». Elle n’est visible que par toi,
+                  n’apparaît dans aucune notification détaillée et n’est jamais partagée.
                 </div>
-                <div style={{ marginTop: 4, fontSize: 11.5, color: MUTED, lineHeight: 1.4 }}>
-                  {habit.detail}
+                <button onClick={() => setDraft({ ...draft, consent: !draft.consent })} style={choice(draft.consent)}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <Check size={16} color={draft.consent ? LIME : MUTED} />
+                    <span style={{ fontSize: 13, fontWeight: 800 }}>J’accepte que NOX enregistre cette donnée personnelle sensible.</span>
+                  </div>
+                </button>
+              </section>
+            )}
+
+            {def.needsRiskCheck && (
+              <section style={card}>
+                <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 6 }}>Avant de commencer</div>
+                <div style={{ color: SEC, fontSize: 13, lineHeight: 1.55, marginBottom: 14 }}>
+                  Bois-tu tous les jours, ou as-tu déjà ressenti un manque (tremblements, sueurs, anxiété) quand tu ne bois pas ?
                 </div>
-              </div>
-            </button>
-          );
-        })}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {(['yes', 'no'] as const).map(a => (
+                    <button key={a} onClick={() => setDraft({ ...draft, riskAnswer: a })} style={{ ...choice(draft.riskAnswer === a), textAlign: 'center', fontWeight: 900 }}>
+                      {a === 'yes' ? 'Oui' : 'Non'}
+                    </button>
+                  ))}
+                </div>
 
-        <section style={{ marginTop: 26 }}>
-          <div style={{ fontSize: 11, fontWeight: 950, letterSpacing: '.09em', marginBottom: 10 }}>
-            AJOUTER UNE HABITUDE
+                {draft.riskAnswer === 'yes' && (
+                  <div style={{ marginTop: 14, padding: 16, borderRadius: 14, background: CARD2, border: '1px solid #343835' }}>
+                    <div style={{ fontSize: 13, lineHeight: 1.55, color: WHITE, marginBottom: 12 }}>
+                      Dans ce cas, arrêter ou réduire brutalement peut être dangereux. Ce changement doit se faire avec un médecin
+                      ou un professionnel. NOX peut t’aider à suivre ta consommation, mais ne fixera pas d’objectif à ta place.
+                    </div>
+                    <button onClick={() => setDraft({ ...draft, professional: !draft.professional })} style={choice(draft.professional)}>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        <Check size={16} color={draft.professional ? LIME : MUTED} />
+                        <span style={{ fontSize: 13, fontWeight: 800 }}>Je suis accompagné par un professionnel et j’ai un objectif fixé avec lui.</span>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {(!def.needsRiskCheck || draft.riskAnswer !== null) && (
+              <>
+                <section style={card}>
+                  <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 12 }}>Ton objectif</div>
+                  {alcoholLocked ? (
+                    <div style={{ color: SEC, fontSize: 13, lineHeight: 1.55 }}>
+                      Suivi seulement : tu notes ta consommation chaque jour, sans cible. Tu pourras définir un objectif quand il aura été fixé avec un professionnel.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      {(['reduce', 'stop', 'track'] as HabitMode[]).map(m => (
+                        <button key={m} onClick={() => setDraft({ ...draft, mode: m })} style={choice(draft.mode === m)}>
+                          <div style={{ fontSize: 14, fontWeight: 900, color: draft.mode === m ? LIME : WHITE }}>{MODE_LABELS[m].title}</div>
+                          <div style={{ fontSize: 12, color: SEC, marginTop: 3 }}>{MODE_LABELS[m].detail}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <section style={card}>
+                  <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 6 }}>En ce moment</div>
+                  <div style={{ color: SEC, fontSize: 13, marginBottom: 12 }}>
+                    En moyenne, combien de {def.unit} par jour ? (facultatif, sert à mesurer ton évolution)
+                  </div>
+                  <input type="number" inputMode="numeric" min={0} max={500} placeholder="—" value={draft.baseline}
+                    onChange={e => setDraft({ ...draft, baseline: e.target.value })} style={input} />
+
+                  {effectiveMode === 'reduce' && (
+                    <>
+                      <div style={{ color: SEC, fontSize: 13, margin: '18px 0 12px' }}>
+                        {draft.professional
+                          ? `Cible quotidienne fixée avec ton professionnel (${def.unit} maximum)`
+                          : `Ta cible quotidienne (${def.unit} maximum)`}
+                      </div>
+                      <input type="number" inputMode="numeric" min={0} max={500} placeholder="Ex : 5" value={draft.target}
+                        onChange={e => setDraft({ ...draft, target: e.target.value })} style={input} />
+                    </>
+                  )}
+                </section>
+
+                {def.resources.length > 0 && (
+                  <section style={card}>
+                    <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 10 }}>Besoin d’aide ?</div>
+                    {def.resources.map(r => (
+                      <a key={r.label} href={r.href}
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, background: CARD2, color: WHITE, textDecoration: 'none' }}>
+                        <Phone size={16} color={LIME} />
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 900 }}>{r.label}</div>
+                          <div style={{ fontSize: 12, color: SEC, marginTop: 2 }}>{r.detail}</div>
+                        </div>
+                      </a>
+                    ))}
+                  </section>
+                )}
+
+                <button onClick={save} disabled={!canSave || saving}
+                  style={{ width: '100%', padding: 18, border: 0, borderRadius: 14, background: canSave ? LIME : '#2B2F2C', color: canSave ? BG : MUTED, fontWeight: 800, fontSize: 15, cursor: canSave ? 'pointer' : 'not-allowed' }}>
+                  {saving ? 'ENREGISTREMENT…' : 'ACTIVER CETTE HABITUDE'}
+                </button>
+              </>
+            )}
           </div>
-
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              value={newHabit}
-              onChange={(e) => setNewHabit(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && addHabit()}
-              placeholder="Ex. 10 min de marche après déjeuner"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                height: 54,
-                border: `1px solid ${BORDER}`,
-                borderRadius: 16,
-                padding: '0 14px',
-                background: WHITE,
-                color: BLACK,
-                outline: 'none',
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            />
-
-            <button
-              type="button"
-              onClick={addHabit}
-              disabled={!newHabit.trim()}
-              aria-label="Ajouter l'habitude"
-              style={{
-                width: 54,
-                border: 0,
-                borderRadius: 16,
-                background: newHabit.trim() ? BLACK : '#E3E5DF',
-                color: newHabit.trim() ? ACCENT : '#A1A59C',
-                display: 'grid',
-                placeItems: 'center',
-                cursor: newHabit.trim() ? 'pointer' : 'default',
-              }}
-            >
-              <Plus size={20} />
-            </button>
-          </div>
-        </section>
-
-        <button
-          type="button"
-          onClick={() => navigate('/home')}
-          style={{
-            width: '100%',
-            minHeight: 58,
-            marginTop: 30,
-            border: 0,
-            borderRadius: 18,
-            background: BLACK,
-            color: WHITE,
-            fontWeight: 950,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 18px',
-            cursor: 'pointer',
-          }}
-        >
-          <span>RETOURNER À AUJOURD’HUI</span>
-          <ChevronRight size={19} color={ACCENT} />
-        </button>
+        )}
       </main>
+      <BottomNav active="moi" />
     </div>
   );
 }
-
-const iconButton = {
-  width: 42,
-  height: 42,
-  borderRadius: 14,
-  border: `1px solid ${BORDER}`,
-  background: WHITE,
-  color: BLACK,
-  display: 'grid',
-  placeItems: 'center',
-  cursor: 'pointer',
-} as const;
