@@ -15,7 +15,6 @@ const Body = lazy(() => import('./pages/Body'));
 const Coach = lazy(() => import('./pages/Coach'));
 const Fuel = lazy(() => import('./pages/Fuel'));
 const QuickGroceries = lazy(() => import('./pages/QuickGroceries'));
-const Play = lazy(() => import('./pages/Play'));
 const NoxFuture = lazy(() => import('./pages/NoxFuture'));
 const WeeklyReview = lazy(() => import('./pages/WeeklyReview'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -27,24 +26,19 @@ const Closure = lazy(() => import('./pages/Closure'));
 const Movement = lazy(() => import('./pages/Movement'));
 const Subscribe = lazy(() => import('./pages/Subscribe'));
 const RestDay = lazy(() => import('./pages/RestDay'));
-const Partner = lazy(() => import('./pages/Partner'));
 const Recovery = lazy(() => import('./pages/Recovery'));
-const ShareTimeline = lazy(() => import('./pages/ShareTimeline'));
 const BeginnerCalibration = lazy(() => import('./pages/BeginnerCalibration'));
 const NotificationSettings = lazy(() => import('./pages/NotificationSettings'));
 const FuelAI = lazy(() => import('./pages/FuelAI'));
-const Leaderboard = lazy(() => import('./pages/Leaderboard'));
 const FastingTracker = lazy(() => import('./pages/FastingTracker'));
 const MoodTracker = lazy(() => import('./pages/MoodTracker'));
 const Recipes = lazy(() => import('./pages/Recipes'));
 const MealPlanner = lazy(() => import('./pages/MealPlanner'));
 const FoodScan = lazy(() => import('./pages/FoodScan'));
 const TrainingCalendar = lazy(() => import('./pages/TrainingCalendar'));
-const SocialProfile = lazy(() => import('./pages/SocialProfile'));
 const NoxCalendar = lazy(() => import('./pages/NoxCalendar'));
 const Pantry = lazy(() => import('./pages/Pantry'));
 const SleepTracker = lazy(() => import('./pages/SleepTracker'));
-const CoachDashboard = lazy(() => import('./pages/CoachDashboard'));
 const Reschedule = lazy(() => import('./pages/Reschedule'));
 const Habits = lazy(() => import('./pages/Habits'));
 
@@ -264,14 +258,6 @@ function AppRoutes() {
           }
         />
 
-        <Route
-          path="/coach-dashboard"
-          element={
-            <ProtectedRoute>
-              <CoachDashboard />
-            </ProtectedRoute>
-          }
-        />
 
         {/* =====================================================
             NUTRITION
@@ -424,14 +410,6 @@ function AppRoutes() {
             NOX FEATURES
         ===================================================== */}
 
-        <Route
-          path="/play"
-          element={
-            <ProtectedRoute>
-              <Play />
-            </ProtectedRoute>
-          }
-        />
 
         <Route
           path="/weekly-review"
@@ -461,35 +439,8 @@ function AppRoutes() {
         />
 
         {/* =====================================================
-            SOCIAL
+            MOI
         ===================================================== */}
-
-        <Route
-          path="/leaderboard"
-          element={
-            <ProtectedRoute>
-              <Leaderboard />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/partner"
-          element={
-            <ProtectedRoute>
-              <Partner />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/share-timeline"
-          element={
-            <ProtectedRoute>
-              <ShareTimeline />
-            </ProtectedRoute>
-          }
-        />
 
         <Route
           path="/profile"
@@ -500,14 +451,6 @@ function AppRoutes() {
           }
         />
 
-        <Route
-          path="/profile/:userId"
-          element={
-            <ProtectedRoute>
-              <SocialProfile />
-            </ProtectedRoute>
-          }
-        />
 
         {/* =====================================================
             SETTINGS
