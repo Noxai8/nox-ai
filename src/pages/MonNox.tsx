@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ChevronRight, Dumbbell, Leaf, MessageCircle, Utensils } from 'lucide-react';
+import { ArrowRight, ChevronRight, Crown, Dumbbell, Flame, Infinity as InfinityIcon, Leaf, LockKeyhole, Medal, MessageCircle, Shield, Trophy, Utensils } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
@@ -16,8 +16,18 @@ const SECONDARY = '#A5AAA6';
 const MUTED = '#747A76';
 const BORDER = '#4A4F4B';
 
-type MainTab = 'coach' | 'memoire' | 'progres';
+type MainTab = 'coach' | 'memoire' | 'progres' | 'rangs';
 type MemoryTab = 'sait' | 'observe' | 'ne-sait-pas';
+
+
+const RANK_NAMES = ['Éveil','Impulsion','Focus','Discipline','Équilibre','Résilience','Progression','Ascension','Dépassement','Maîtrise','Alignement','Influence','Rayonnement','Excellence','Légende','Vision','Impact','Élite','Transcendance','NOX Ultime'];
+
+function xpNeeded(level: number) { return level >= 100 ? 0 : Math.round(260 + level * 22 + Math.pow(level, 1.42) * 7); }
+function totalXpTo(level: number) { let x=0; for(let i=1;i<level;i++) x += xpNeeded(i); return x; }
+function levelFromXp(xp:number){ let level=1, left=Math.max(0,xp); while(level<100 && left>=xpNeeded(level)){ left-=xpNeeded(level); level++; } return level; }
+function RankMedal({rank, unlocked=true, active=false}:{rank:number;unlocked?:boolean;active?:boolean}) {
+  return <div style={{width:72,height:72,borderRadius:24,display:'grid',placeItems:'center',position:'relative',background:unlocked?(rank===20?'radial-gradient(circle,#FFE58B,#8C6200)':'radial-gradient(circle,#DFFF69,#26310C)'):'linear-gradient(145deg,#292D2A,#111311)',border:`1px solid ${active?LIME:unlocked?'#718A20':BORDER}`,color:unlocked?(rank===20?'#241A00':LIME):'#555B56',boxShadow:active?'0 0 0 3px rgba(200,255,0,.08)':'none'}}>{rank===20?<Crown size={31}/>:<Shield size={31}/>}<span style={{position:'absolute',bottom:-7,minWidth:25,height:18,padding:'0 4px',borderRadius:99,display:'grid',placeItems:'center',background:unlocked?(rank===20?'#E5B93F':LIME):'#292D2A',color:unlocked?BG:MUTED,fontSize:9,fontWeight:950,border:`2px solid ${BG}`}}>{rank}</span></div>
+}
 
 function getNoxStage(days: number): number {
   if (days >= 365) return 5;
@@ -44,7 +54,7 @@ export default function MonNox() {
   const navigate = useNavigate();
 
   const { isPro } = usePlan();
-  const [mainTab,       setMainTab]       = useState<MainTab>('coach');
+  const [mainTab,       setMainTab]       = useState<MainTab>('progres');
   const [tab,           setTab]           = useState<MemoryTab>('sait');
   const [observedDays,  setObservedDays]  = useState(0);
   const [totalPulses,   setTotalPulses]   = useState(0);
@@ -87,6 +97,16 @@ export default function MonNox() {
   const stage     = getNoxStage(observedDays);
   const milestone = getNextMilestone(observedDays);
   const progress  = Math.min(100, Math.round((observedDays / milestone.target) * 100));
+  const earnedXp = observedDays * 35 + totalPulses * 12 + totalWorkouts * 45;
+  const rawLevel = levelFromXp(earnedXp);
+  // Garde-fou : le palier 100 ne peut jamais être atteint avant 365 journées validées.
+  const calendarCap = Math.min(100, Math.max(1, Math.floor((observedDays / 365) * 99) + 1));
+  const noxLevel = Math.min(rawLevel, calendarCap);
+  const noxRank = Math.min(20, Math.ceil(noxLevel / 5));
+  const rankStep = ((noxLevel - 1) % 5) + 1;
+  const xpIntoLevel = Math.max(0, earnedXp - totalXpTo(noxLevel));
+  const nextXp = xpNeeded(noxLevel);
+  const xpPct = noxLevel >= 100 ? 100 : Math.min(100, Math.round((xpIntoLevel / Math.max(1,nextXp)) * 100));
 
   // Mémoire — contenu déterministe selon vraies données
   const saitItems: string[] = [
@@ -136,7 +156,7 @@ export default function MonNox() {
         </header>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, padding: 5, background: CARD2, border: `1px solid ${BORDER}`, borderRadius: 16, marginBottom: 18 }}>
-          {([['coach','Coach'],['memoire','Mémoire'],['progres','Progrès']] as [MainTab,string][]).map(([id,label]) => (
+          {([['progres','Progression'],['rangs','Rangs'],['memoire','Mémoire'],['coach','NOXI']] as [MainTab,string][]).map(([id,label]) => (
             <button key={id} onClick={() => setMainTab(id)} style={{ border: 0, borderRadius: 12, padding: '11px 8px', background: mainTab === id ? LIME : 'transparent', color: mainTab === id ? BG : SECONDARY, fontWeight: 850, fontSize: 13, cursor: 'pointer' }}>{label}</button>
           ))}
         </div>
@@ -201,24 +221,50 @@ export default function MonNox() {
 
         {mainTab === 'progres' && (
           <>
-            <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20, marginBottom: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'center', minHeight: 210, alignItems: 'center' }}><NoxCompanion observedDays={observedDays} size="lg" /></div>
-              <div style={{ fontSize: 11, color: LIME, fontWeight: 850, letterSpacing: '.08em' }}>STADE {stage} · {getStageLabel(stage).toUpperCase()}</div>
-              <div style={{ marginTop: 8, fontSize: 22, fontWeight: 850 }}>NOX évolue avec le temps observé.</div>
-              <div style={{ color: SECONDARY, fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>Jamais selon ta performance.</div>
-              <div style={{ height: 5, background: CARD2, borderRadius: 999, overflow: 'hidden', marginTop: 18 }}><div style={{ width: `${progress}%`, height: '100%', background: LIME, borderRadius: 999 }} /></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, color: MUTED, fontSize: 11 }}><span>{observedDays} jours observés</span><span>{milestone.label}</span></div>
+            <section style={{background:'radial-gradient(circle at 50% 8%,rgba(200,255,0,.11),transparent 35%),linear-gradient(160deg,#171B18,#0F1210)',border:`1px solid ${BORDER}`,borderRadius:26,padding:24,textAlign:'center',marginBottom:12}}>
+              <div style={{display:'flex',justifyContent:'center',padding:'8px 0 18px'}}><RankMedal rank={noxRank} active /></div>
+              <div style={{fontSize:10,color:LIME,fontWeight:950,letterSpacing:'.1em'}}>RANG {noxRank} · PALIER {rankStep}/5</div>
+              <div style={{fontSize:28,fontWeight:950,letterSpacing:'-.04em',marginTop:6}}>{RANK_NAMES[noxRank-1]}</div>
+              <div style={{display:'flex',justifyContent:'space-between',marginTop:22,fontSize:11,fontWeight:850}}><span>Palier {noxLevel}/100</span><span style={{color:LIME}}>{xpPct}%</span></div>
+              <div style={{height:8,background:'#292E2A',borderRadius:99,overflow:'hidden',marginTop:9}}><div style={{width:`${xpPct}%`,height:'100%',background:LIME,borderRadius:99}} /></div>
+              <div style={{display:'flex',justifyContent:'space-between',marginTop:8,color:MUTED,fontSize:10}}><span>{noxLevel>=100?'Sommet atteint':`${xpIntoLevel.toLocaleString('fr-FR')} / ${nextXp.toLocaleString('fr-FR')} XP`}</span><span>{noxLevel<100?`${Math.max(0,nextXp-xpIntoLevel).toLocaleString('fr-FR')} XP restants`:'NOX Ultime'}</span></div>
             </section>
 
-            <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20, marginBottom: 14 }}>
-              <div style={{ fontSize: 16, fontWeight: 850, marginBottom: 16 }}>Évolution</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>{['J1','J7','J30','J90','1 an'].map((label,i) => { const thresholds=[1,7,30,90,365]; const reached=observedDays>=thresholds[i]; return <div key={label} style={{ textAlign:'center' }}><div style={{ width: 10,height:10,borderRadius:99,background:reached?LIME:'#414642',margin:'0 auto 8px' }}/><div style={{ fontSize:10,color:reached?WHITE:MUTED,fontWeight:800 }}>{label}</div></div> })}</div>
+            <section style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:18}}>
+              {[['Jours validés',observedDays],['Séances',totalWorkouts],['Rangs franchis',Math.max(0,noxRank-1)]].map(([label,value])=><div key={String(label)} style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:18,padding:'15px 8px',textAlign:'center'}}><strong style={{display:'block',fontSize:21}}>{value}</strong><span style={{display:'block',fontSize:9,color:MUTED,marginTop:4}}>{label}</span></div>)}
             </section>
+
+            <section style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:22,padding:19,marginBottom:12}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><div style={{fontSize:9,color:MUTED,fontWeight:900,letterSpacing:'.1em'}}>TA ROUTE</div><div style={{fontSize:18,fontWeight:900,marginTop:4}}>Ce qui te fait progresser</div></div><Trophy size={20} color={LIME}/></div>
+              <div style={{display:'grid',gap:7,marginTop:15}}>
+                {[['Entraînements complétés',totalWorkouts,Dumbbell],['Pulse renseignés',totalPulses,Flame],['Journées clôturées',observedDays,Leaf]].map(([label,value,Icon]:any)=><div key={label} style={{padding:13,borderRadius:14,background:CARD2,display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:11}}><span style={{display:'flex',alignItems:'center',gap:9,color:SECONDARY}}><Icon size={17} color={LIME}/>{label}</span><b>{value}</b></div>)}
+              </div>
+              <div style={{fontSize:10,color:MUTED,lineHeight:1.5,marginTop:12}}>XP v1 calculée uniquement avec les actions réellement enregistrées ci-dessus. Aucun clic vide ne donne d'XP.</div>
+            </section>
+
+            <section style={{padding:18,border:'1px solid rgba(200,255,0,.28)',borderRadius:22,background:'linear-gradient(120deg,rgba(200,255,0,.08),rgba(200,255,0,.01))',display:'flex',alignItems:'center',gap:14,marginBottom:8}}>
+              <div style={{width:48,height:48,borderRadius:15,display:'grid',placeItems:'center',background:'#242D16',color:LIME}}><Crown size={26}/></div>
+              <div style={{flex:1}}><div style={{fontSize:9,color:LIME,fontWeight:950,letterSpacing:'.1em'}}>PALIER 100 · NOX ULTIME</div><strong style={{display:'block',fontSize:17,marginTop:4}}>La récompense ultime.</strong><span style={{display:'block',fontSize:10,color:MUTED,marginTop:5}}>Un parcours long, exigeant et régulier.</span></div>
+            </section>
+            <section style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
+              <div style={{padding:15,border:`1px solid ${BORDER}`,borderRadius:18,background:CARD,display:'flex',gap:10}}><InfinityIcon size={22} color={LIME}/><span><b style={{display:'block',fontSize:11}}>NOX AI gratuit à vie</b><small style={{display:'block',color:MUTED,fontSize:9,marginTop:4}}>Récompense du Palier 100.</small></span></div>
+              <div style={{padding:15,border:`1px solid ${BORDER}`,borderRadius:18,background:CARD,display:'flex',gap:10}}><Medal size={22} color={LIME}/><span><b style={{display:'block',fontSize:11}}>Médaille NOX Ultime</b><small style={{display:'block',color:MUTED,fontSize:9,marginTop:4}}>Récompense physique du sommet.</small></span></div>
+            </section>
+            <div style={{display:'flex',gap:8,padding:12,color:MUTED,fontSize:9,lineHeight:1.45}}><LockKeyhole size={15} style={{flexShrink:0}}/><span>Le Palier 100 est verrouillé par conception : impossible avant au moins 365 journées validées. Aucun achat d'XP.</span></div>
 
             <button onClick={() => navigate('/weekly-review')} style={{ width:'100%', padding:'18px 20px', background:CARD, border:`1px solid ${BORDER}`, borderRadius:20, color:WHITE, display:'flex', justifyContent:'space-between', alignItems:'center', cursor:'pointer', marginBottom:10, textAlign:'left' }}><span><strong style={{display:'block',fontSize:15}}>Bilan hebdomadaire</strong><span style={{display:'block',color:SECONDARY,fontSize:12,marginTop:4}}>Ce que tes données permettent réellement d'observer.</span></span><ChevronRight size={19} color={MUTED}/></button>
             <button onClick={() => navigate('/future')} style={{ width:'100%', padding:'18px 20px', background:CARD, border:`1px solid ${BORDER}`, borderRadius:20, color:WHITE, display:'flex', justifyContent:'space-between', alignItems:'center', cursor:'pointer', textAlign:'left' }}><span><strong style={{display:'block',fontSize:15}}>NOX Future</strong><span style={{display:'block',color:SECONDARY,fontSize:12,marginTop:4}}>Scénarios illustratifs selon les données disponibles.</span></span><ChevronRight size={19} color={MUTED}/></button>
           </>
         )}
+        {mainTab === 'rangs' && (
+          <>
+            <section style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:22,padding:20,marginBottom:10}}><div style={{fontSize:10,color:LIME,fontWeight:950,letterSpacing:'.1em'}}>20 RANGS · 100 PALIERS</div><div style={{fontSize:24,fontWeight:950,letterSpacing:'-.04em',marginTop:6}}>Ton parcours NOX</div><div style={{fontSize:12,color:SECONDARY,lineHeight:1.5,marginTop:6}}>Chaque rang contient cinq paliers. Un rang acquis ne se perd jamais.</div></section>
+            <section style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8}}>
+              {RANK_NAMES.map((name,index)=>{const r=index+1;const unlocked=r<=noxRank;const active=r===noxRank;return <div key={name} style={{minHeight:137,padding:'15px 7px',border:`1px solid ${active?LIME:BORDER}`,borderRadius:18,background:active?'linear-gradient(160deg,rgba(200,255,0,.08),#111412)':CARD2,display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center',gap:9}}><RankMedal rank={r} unlocked={unlocked} active={active}/><strong style={{fontSize:10}}>{name}</strong><span style={{fontSize:8,color:MUTED}}>{r===20?'Palier 100':`Paliers ${(r-1)*5+1}–${r*5}`}</span>{!unlocked&&<LockKeyhole size={12} color={MUTED}/>}</div>})}
+            </section>
+          </>
+        )}
+
       </main>
       <BottomNav active="mon-nox" />
     </div>
