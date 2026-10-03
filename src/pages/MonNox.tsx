@@ -36,65 +36,43 @@ function xpNeeded(level: number) { return level >= 100 ? 0 : 60 + 5 * level; }
 function totalXpTo(level: number) { let x=0; for(let i=1;i<level;i++) x += xpNeeded(i); return x; }
 function levelFromXp(xp:number){ let level=1, left=Math.max(0,xp); while(level<100 && left>=xpNeeded(level)){ left-=xpNeeded(level); level++; } return level; }
 function RankMedal({rank, unlocked=true, active=false, size=86}:{rank:number;unlocked?:boolean;active?:boolean;size?:number}) {
-  const ultimate = rank === 20;
   const src = `/nox-ranks/rank-${String(rank).padStart(2, '0')}.png`;
 
   return (
     <div style={{
       width: size,
       height: size,
+      margin: '0 auto',
+      borderRadius: '50%',
+      overflow: 'hidden',
       position: 'relative',
-      display: 'grid',
-      placeItems: 'center',
-      flexShrink: 0
+      flexShrink: 0,
+      boxShadow: active ? '0 0 28px rgba(200,255,0,.10)' : 'none'
     }}>
-      {active && (
-        <div style={{
+      <img
+        src={src}
+        alt={`Médaille rang ${rank}`}
+        draggable={false}
+        style={{
           position: 'absolute',
-          inset: '-7%',
+          inset: 0,
+          width: '106%',
+          height: '106%',
+          maxWidth: 'none',
+          display: 'block',
+          objectFit: 'cover',
           borderRadius: '50%',
-          background: ultimate
-            ? 'radial-gradient(circle,rgba(233,185,77,.22) 0%,rgba(233,185,77,.08) 46%,transparent 72%)'
-            : 'radial-gradient(circle,rgba(200,255,0,.20) 0%,rgba(200,255,0,.07) 46%,transparent 72%)',
-          filter: 'blur(9px)',
-          pointerEvents: 'none'
-        }}/>
-      )}
-
-      <div style={{
-        width: '100%',
-        height: '100%',
-        borderRadius: '50%',
-        overflow: 'hidden',
-        position: 'relative',
-        zIndex: 2,
-        display: 'grid',
-        placeItems: 'center'
-      }}>
-        <img
-          src={src}
-          alt={`Médaille rang ${rank}`}
-          draggable={false}
-          style={{
-            display: 'block',
-            position: 'absolute',
-            left: '50%',
-            top: '50%',
-            width: '100%',
-            height: '100%',
-            maxWidth: 'none',
-            objectFit: 'cover',
-            objectPosition: '50% 50%',
-            userSelect: 'none',
-            filter: unlocked
-              ? `saturate(${active ? 1.08 : .92}) brightness(${active ? 1.04 : .88}) contrast(1.04)`
-              : 'grayscale(.92) saturate(.28) brightness(.46) contrast(1.04)',
-            opacity: unlocked ? 1 : .82,
-            transform: 'translate(-50%, -50%)',
-            transition: 'filter .2s ease, opacity .2s ease'
-          }}
-        />
-      </div>
+          clipPath: 'circle(50% at 50% 50%)',
+          transform: 'translate(-3%, -3%)',
+          transformOrigin: 'center',
+          userSelect: 'none',
+          filter: unlocked
+            ? `saturate(${active ? 1.08 : .92}) brightness(${active ? 1.04 : .88}) contrast(1.04)`
+            : 'grayscale(.92) saturate(.28) brightness(.46) contrast(1.04)',
+          opacity: unlocked ? 1 : .82,
+          transition: 'filter .2s ease, opacity .2s ease'
+        }}
+      />
     </div>
   );
 }
