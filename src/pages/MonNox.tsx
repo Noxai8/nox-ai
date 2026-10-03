@@ -37,58 +37,66 @@ function totalXpTo(level: number) { let x=0; for(let i=1;i<level;i++) x += xpNee
 function levelFromXp(xp:number){ let level=1, left=Math.max(0,xp); while(level<100 && left>=xpNeeded(level)){ left-=xpNeeded(level); level++; } return level; }
 function RankMedal({rank, unlocked=true, active=false, size=86}:{rank:number;unlocked?:boolean;active?:boolean;size?:number}) {
   const ultimate = rank === 20;
-  const accent = ultimate ? '#E9B94D' : LIME;
   const src = `/nox-ranks/rank-${String(rank).padStart(2, '0')}.png`;
+
+  // Les PNG des rangs sont légèrement rectangulaires (≈ 197×184).
+  // On conserve donc leur ratio réel au lieu de les forcer dans un cercle :
+  // toutes les médailles occupent exactement le même cadre visuel.
+  const medalWidth = size;
+  const medalHeight = Math.round(size * 184 / 197);
+
   return (
     <div style={{
-      width:size,
-      height:size,
-      position:'relative',
-      display:'grid',
-      placeItems:'center',
-      flexShrink:0,
-      borderRadius:'50%'
+      width: medalWidth,
+      height: medalHeight,
+      position: 'relative',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      overflow: 'visible'
     }}>
-      {active && <div style={{
-        position:'absolute',
-        inset:-10,
-        borderRadius:'50%',
-        background:`radial-gradient(circle,${ultimate?'rgba(233,185,77,.24)':'rgba(200,255,0,.20)'} 0,transparent 70%)`,
-        filter:'blur(8px)'
-      }}/>} 
+      {active && (
+        <div style={{
+          position: 'absolute',
+          width: '88%',
+          height: '88%',
+          left: '6%',
+          top: '6%',
+          borderRadius: '50%',
+          background: ultimate
+            ? 'radial-gradient(circle,rgba(233,185,77,.22) 0%,rgba(233,185,77,.08) 42%,transparent 72%)'
+            : 'radial-gradient(circle,rgba(200,255,0,.20) 0%,rgba(200,255,0,.07) 42%,transparent 72%)',
+          filter: 'blur(9px)',
+          pointerEvents: 'none'
+        }}
+        />
+      )}
+
       <img
         src={src}
         alt={`Médaille rang ${rank}`}
         draggable={false}
         style={{
-          position:'relative',
-          zIndex:2,
-          width:'118%',
-          height:'118%',
-          objectFit:'contain',
-          userSelect:'none',
+          position: 'relative',
+          zIndex: 2,
+          display: 'block',
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
+          objectPosition: '50% 50%',
+          userSelect: 'none',
           filter: unlocked
-            ? `saturate(${active ? 1.12 : .92}) brightness(${active ? 1.08 : .88}) contrast(1.06)`
-            : 'grayscale(1) saturate(.15) brightness(.34) contrast(1.08)',
-          opacity: unlocked ? 1 : .78,
-          transform: active ? 'scale(1.035)' : 'scale(1)',
-          transition:'transform .2s ease, filter .2s ease, opacity .2s ease',
-          borderRadius:'50%'
+            ? `saturate(${active ? 1.08 : .92}) brightness(${active ? 1.04 : .88}) contrast(1.04)`
+            : 'grayscale(.92) saturate(.28) brightness(.46) contrast(1.04)',
+          opacity: unlocked ? 1 : .82,
+          transform: 'none',
+          transition: 'filter .2s ease, opacity .2s ease'
         }}
       />
-      {active && <div style={{
-        position:'absolute',
-        inset:-3,
-        borderRadius:'50%',
-        border:`1px solid ${accent}`,
-        boxShadow:`0 0 22px ${ultimate?'rgba(233,185,77,.28)':'rgba(200,255,0,.22)'}`,
-        pointerEvents:'none',
-        zIndex:3
-      }}/>} 
     </div>
   );
 }
-
 function getNoxStage(days: number): number {
   if (days >= 365) return 5;
   if (days >= 90)  return 4;
@@ -363,7 +371,7 @@ export default function MonNox() {
           <>
             <section style={{padding:'8px 2px 18px'}}><div style={{fontSize:10,color:LIME,fontWeight:950,letterSpacing:'.1em'}}>20 RANGS · 100 PALIERS</div><div style={{fontSize:27,fontWeight:950,letterSpacing:'-.045em',marginTop:6}}>Les 20 rangs de NOX</div><div style={{fontSize:12,color:SECONDARY,lineHeight:1.5,marginTop:6}}>Chaque médaille marque une étape de ta transformation. Cinq paliers par rang.</div></section>
             <section style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:'25px 12px',padding:'22px 14px 28px',border:`1px solid ${BORDER}`,borderRadius:22,background:'linear-gradient(180deg,#0E120F,#090C0A)'}}>
-              {RANK_NAMES.map((name,index)=>{const r=index+1;const unlocked=r<=noxRank;const active=r===noxRank;return <div key={name} style={{minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center',gap:8,opacity:unlocked?1:.48}}><RankMedal rank={r} unlocked={unlocked} active={active} size={r===20?80:72}/><strong style={{fontSize:9.5,lineHeight:1.15,color:active?WHITE:unlocked?WHITE:SECONDARY}}>{name}</strong><span style={{fontSize:7.5,color:MUTED}}>{r===20?'Palier 100':`${(r-1)*5+1}–${r*5}`}</span>{!unlocked&&<LockKeyhole size={11} color={MUTED}/>}</div>})}
+              {RANK_NAMES.map((name,index)=>{const r=index+1;const unlocked=r<=noxRank;const active=r===noxRank;return <div key={name} style={{minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center',gap:8,opacity:unlocked?1:.48}}><RankMedal rank={r} unlocked={unlocked} active={active} size={76}/><strong style={{fontSize:9.5,lineHeight:1.15,color:active?WHITE:unlocked?WHITE:SECONDARY}}>{name}</strong><span style={{fontSize:7.5,color:MUTED}}>{r===20?'Palier 100':`${(r-1)*5+1}–${r*5}`}</span>{!unlocked&&<LockKeyhole size={11} color={MUTED}/>}</div>})}
             </section>
             <section style={{marginTop:12,padding:'16px 18px',border:'1px solid rgba(200,255,0,.26)',borderRadius:19,background:'linear-gradient(120deg,rgba(200,255,0,.08),rgba(200,255,0,.015))',display:'flex',alignItems:'center',gap:12}}><Crown size={22} color={LIME}/><div><strong style={{display:'block',fontSize:12}}>20 rangs · 5 paliers par rang = 100 paliers</strong><span style={{display:'block',fontSize:9.5,color:SECONDARY,marginTop:4}}>Atteins NOX Ultime et débloque la récompense du Palier 100.</span></div></section>
           </>
