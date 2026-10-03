@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ChevronRight, Crown, Dumbbell, Flame, Infinity as InfinityIcon, Leaf, LockKeyhole, Medal, MessageCircle, Shield, Trophy, Utensils } from 'lucide-react';
+import { ArrowRight, CalendarDays, ChevronRight, Crown, Dumbbell, Flame, Infinity as InfinityIcon, Leaf, LockKeyhole, Medal, MessageCircle, Shield, Trophy, Utensils } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 import { usePlan } from '../lib/usePlan';
 
 const BG = '#090B0A';
-const CARD = '#232624';
-const CARD2 = '#191C1A';
+const CARD = '#151917';
+const CARD2 = '#0F1311';
 const WHITE = '#FFFFFF';
 const LIME = '#C8FF00';
 const SECONDARY = '#A5AAA6';
 const MUTED = '#747A76';
-const BORDER = '#4A4F4B';
+const BORDER = '#303632';
 
 type MainTab = 'coach' | 'memoire' | 'progres' | 'rangs';
 type MemoryTab = 'sait' | 'observe' | 'ne-sait-pas';
@@ -26,15 +26,21 @@ function totalXpTo(level: number) { let x=0; for(let i=1;i<level;i++) x += xpNee
 function levelFromXp(xp:number){ let level=1, left=Math.max(0,xp); while(level<100 && left>=xpNeeded(level)){ left-=xpNeeded(level); level++; } return level; }
 function RankMedal({rank, unlocked=true, active=false, size=86}:{rank:number;unlocked?:boolean;active?:boolean;size?:number}) {
   const ultimate = rank === 20;
-  const glow = active ? (ultimate ? 'rgba(255,190,35,.38)' : 'rgba(200,255,0,.34)') : 'transparent';
+  const accent = ultimate ? '#E9B94D' : LIME;
+  const metal = ultimate
+    ? 'radial-gradient(circle at 35% 26%,#7B5A1B 0,#30240F 34%,#17140E 68%,#0A0B09 100%)'
+    : unlocked
+      ? 'radial-gradient(circle at 35% 26%,#3D443A 0,#242925 35%,#121512 72%,#080A09 100%)'
+      : 'radial-gradient(circle at 35% 26%,#292D2A 0,#191C1A 42%,#0C0E0D 100%)';
   return (
-    <div style={{width:size,height:size,position:'relative',display:'grid',placeItems:'center',filter:unlocked?'none':'grayscale(1)'}}>
-      <div style={{position:'absolute',inset:0,borderRadius:'50%',background:unlocked?(ultimate?'radial-gradient(circle at 35% 28%,#FFEFB0 0,#C58A08 30%,#4B3100 68%,#130E03 100%)':'radial-gradient(circle at 35% 28%,#E8FF8B 0,#769400 27%,#25310A 64%,#0B0E09 100%)'):'linear-gradient(145deg,#292D2A,#101210)',border:`1px solid ${active?(ultimate?'#FFD35C':LIME):unlocked?'#697A2D':BORDER}`,boxShadow:active?`0 0 0 4px ${glow},0 0 34px ${glow},inset 0 0 24px rgba(255,255,255,.08)`:'inset 0 0 20px rgba(255,255,255,.035)'}}/>
-      <div style={{position:'absolute',inset:8,borderRadius:'50%',border:`2px solid ${unlocked?(ultimate?'rgba(255,226,124,.68)':'rgba(200,255,0,.45)'):'#3A3F3B'}`,boxShadow:'inset 0 0 18px rgba(0,0,0,.55)'}}/>
-      <div style={{position:'absolute',width:'42%',height:'58%',clipPath:'polygon(50% 0,100% 20%,88% 76%,50% 100%,12% 76%,0 20%)',background:unlocked?(ultimate?'linear-gradient(135deg,#FFF1A8,#A66D00 65%,#3C2700)':'linear-gradient(135deg,#E6FF72,#536B08 65%,#182006)'):'#333835',border:'1px solid rgba(255,255,255,.14)',display:'grid',placeItems:'center',color:unlocked?(ultimate?'#3B2500':LIME):'#666D68',zIndex:2}}>
-        {ultimate?<Crown size={Math.round(size*.23)} strokeWidth={2.5}/>:<Shield size={Math.round(size*.22)} strokeWidth={2.4}/>} 
+    <div style={{width:size,height:size,position:'relative',display:'grid',placeItems:'center',flexShrink:0}}>
+      {active && <div style={{position:'absolute',inset:-8,borderRadius:'50%',background:`radial-gradient(circle,${ultimate?'rgba(233,185,77,.20)':'rgba(200,255,0,.18)'} 0,transparent 68%)`,filter:'blur(4px)'}}/>}
+      <div style={{position:'absolute',inset:0,borderRadius:'50%',background:metal,border:`1px solid ${active?accent:unlocked?'#515852':'#303531'}`,boxShadow:active?`0 0 0 2px ${ultimate?'rgba(233,185,77,.22)':'rgba(200,255,0,.20)'},0 10px 28px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.14)`:'0 8px 20px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08)'}}/>
+      <div style={{position:'absolute',inset:7,borderRadius:'50%',border:`1px solid ${active?accent:'#414742'}`,boxShadow:'inset 0 0 18px rgba(0,0,0,.65)'}}/>
+      <div style={{position:'absolute',inset:'18%',borderRadius:'28%',background:unlocked?(ultimate?'linear-gradient(145deg,#5A4217,#1A160E)':'linear-gradient(145deg,#303630,#151916)'):'#171A18',border:`1px solid ${active?accent:'#3B403C'}`,display:'grid',placeItems:'center',color:active?accent:unlocked?'#A7ADA8':'#555C57',zIndex:2}}>
+        {ultimate?<Crown size={Math.round(size*.25)} strokeWidth={2}/>:<Shield size={Math.round(size*.24)} strokeWidth={2}/>} 
       </div>
-      <span style={{position:'absolute',bottom:-6,minWidth:27,height:19,padding:'0 5px',borderRadius:99,display:'grid',placeItems:'center',background:unlocked?(ultimate?'#E8B93B':LIME):'#292D2A',color:unlocked?BG:MUTED,fontSize:9,fontWeight:1000,border:`2px solid ${BG}`,zIndex:3}}>{rank}</span>
+      <span style={{position:'absolute',bottom:-7,minWidth:27,height:20,padding:'0 5px',borderRadius:99,display:'grid',placeItems:'center',background:active?accent:'#202421',color:active?BG:'#7E857F',fontSize:9,fontWeight:1000,border:`2px solid ${BG}`,zIndex:3}}>{rank}</span>
     </div>
   );
 }
@@ -156,8 +162,8 @@ export default function MonNox() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'radial-gradient(circle at 50% -10%,rgba(200,255,0,.035),transparent 30%),#070908', color: WHITE, paddingBottom: 'calc(220px + env(safe-area-inset-bottom))' }}>
-      <main style={{ width: '100%', maxWidth: 820, margin: '0 auto', padding: '38px 16px 0', boxSizing: 'border-box' }}>
+    <div style={{ minHeight: '100vh', background: 'radial-gradient(circle at 50% 0,rgba(200,255,0,.018),transparent 24%),#050706', color: WHITE, paddingBottom: 'calc(220px + env(safe-area-inset-bottom))' }}>
+      <main style={{ width: '100%', maxWidth: 780, margin: '0 auto', padding: '38px 16px 0', boxSizing: 'border-box' }}>
         <header style={{ marginBottom: 24 }}>
           <h1 style={{ margin: 0, fontSize: 'clamp(34px,5vw,46px)', fontWeight: 850, letterSpacing: '-.04em', lineHeight: .98 }}>Mon NOX</h1>
           <p style={{ margin: '10px 0 0', color: SECONDARY, fontSize: 14, lineHeight: 1.5 }}>
@@ -165,7 +171,7 @@ export default function MonNox() {
           </p>
         </header>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, padding: 5, background: CARD2, border: `1px solid ${BORDER}`, borderRadius: 16, marginBottom: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, padding: 5, background: '#0C100E', border: `1px solid ${BORDER}`, borderRadius: 15, marginBottom: 18 }}>
           {([['progres','Progression'],['rangs','Rangs'],['memoire','Mémoire'],['coach','NOXI']] as [MainTab,string][]).map(([id,label]) => (
             <button key={id} onClick={() => setMainTab(id)} style={{ border: 0, borderRadius: 12, padding: '11px 8px', background: mainTab === id ? LIME : 'transparent', color: mainTab === id ? BG : SECONDARY, fontWeight: 850, fontSize: 13, cursor: 'pointer' }}>{label}</button>
           ))}
@@ -231,8 +237,8 @@ export default function MonNox() {
 
         {mainTab === 'progres' && (
           <>
-            <section style={{background:'radial-gradient(circle at 50% 8%,rgba(200,255,0,.11),transparent 35%),linear-gradient(160deg,#171B18,#0F1210)',border:`1px solid ${BORDER}`,borderRadius:26,padding:24,textAlign:'center',marginBottom:12}}>
-              <div style={{display:'flex',justifyContent:'center',padding:'8px 0 18px'}}><RankMedal rank={noxRank} active size={132}/></div>
+            <section style={{background:'radial-gradient(circle at 50% 18%,rgba(200,255,0,.07),transparent 29%),linear-gradient(180deg,#101411,#090C0A)',border:`1px solid ${BORDER}`,borderRadius:24,padding:'28px 24px 24px',textAlign:'center',marginBottom:12}}>
+              <div style={{display:'flex',justifyContent:'center',padding:'8px 0 18px'}}><RankMedal rank={noxRank} active size={148}/></div>
               <div style={{fontSize:10,color:LIME,fontWeight:950,letterSpacing:'.1em'}}>RANG {noxRank} · PALIER {rankStep}/5</div>
               <div style={{fontSize:28,fontWeight:950,letterSpacing:'-.04em',marginTop:6}}>{RANK_NAMES[noxRank-1]}</div>
               <div style={{display:'flex',justifyContent:'space-between',marginTop:22,fontSize:11,fontWeight:850}}><span>Palier {noxLevel}/100</span><span style={{color:LIME}}>{xpPct}%</span></div>
@@ -241,7 +247,11 @@ export default function MonNox() {
             </section>
 
             <section style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:18}}>
-              {[['Jours validés',observedDays],['Séances',totalWorkouts],['Rangs franchis',Math.max(0,noxRank-1)]].map(([label,value])=><div key={String(label)} style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:18,padding:'15px 8px',textAlign:'center'}}><strong style={{display:'block',fontSize:21}}>{value}</strong><span style={{display:'block',fontSize:9,color:MUTED,marginTop:4}}>{label}</span></div>)}
+              {[
+                ['Jours validés',observedDays,CalendarDays,'#FF9F43'],
+                ['Séances',totalWorkouts,Dumbbell,LIME],
+                ['Rangs franchis',Math.max(0,noxRank-1),Crown,'#E9B94D']
+              ].map(([label,value,Icon,color]:any)=><div key={String(label)} style={{background:'linear-gradient(180deg,#151917,#101311)',border:`1px solid ${BORDER}`,borderRadius:17,padding:'15px 8px',textAlign:'center'}}><Icon size={17} color={color} style={{marginBottom:7}}/><strong style={{display:'block',fontSize:21}}>{value}</strong><span style={{display:'block',fontSize:9,color:MUTED,marginTop:4}}>{label}</span></div>)}
             </section>
 
             <section style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:22,padding:19,marginBottom:12}}>
@@ -257,8 +267,8 @@ export default function MonNox() {
               <div style={{flex:1}}><div style={{fontSize:9,color:LIME,fontWeight:950,letterSpacing:'.1em'}}>PALIER 100 · NOX ULTIME</div><strong style={{display:'block',fontSize:17,marginTop:4}}>La récompense ultime.</strong><span style={{display:'block',fontSize:10,color:MUTED,marginTop:5}}>Un parcours long, exigeant et régulier.</span></div>
             </section>
             <section style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
-              <div style={{padding:15,border:`1px solid ${BORDER}`,borderRadius:18,background:CARD,display:'flex',gap:10}}><InfinityIcon size={22} color={LIME}/><span><b style={{display:'block',fontSize:11}}>NOX AI gratuit à vie</b><small style={{display:'block',color:MUTED,fontSize:9,marginTop:4}}>Récompense du Palier 100.</small></span></div>
-              <div style={{padding:15,border:`1px solid ${BORDER}`,borderRadius:18,background:CARD,display:'flex',gap:10}}><Medal size={22} color={LIME}/><span><b style={{display:'block',fontSize:11}}>Médaille NOX Ultime</b><small style={{display:'block',color:MUTED,fontSize:9,marginTop:4}}>Récompense physique du sommet.</small></span></div>
+              <div style={{padding:15,border:`1px solid ${BORDER}`,borderRadius:18,background:'linear-gradient(180deg,#171A18,#101311)',display:'flex',gap:10}}><InfinityIcon size={22} color={LIME}/><span><b style={{display:'block',fontSize:11}}>NOX AI gratuit à vie</b><small style={{display:'block',color:MUTED,fontSize:9,marginTop:4}}>Récompense du Palier 100.</small></span></div>
+              <div style={{padding:15,border:`1px solid ${BORDER}`,borderRadius:18,background:'linear-gradient(180deg,#171A18,#101311)',display:'flex',gap:10}}><Medal size={22} color={LIME}/><span><b style={{display:'block',fontSize:11}}>Médaille NOX Ultime</b><small style={{display:'block',color:MUTED,fontSize:9,marginTop:4}}>Récompense physique du sommet.</small></span></div>
             </section>
             <div style={{display:'flex',gap:8,padding:12,color:MUTED,fontSize:9,lineHeight:1.45}}><LockKeyhole size={15} style={{flexShrink:0}}/><span>Le Palier 100 est verrouillé par conception : impossible avant au moins 365 journées validées. Aucun achat d'XP.</span></div>
 
@@ -269,8 +279,8 @@ export default function MonNox() {
         {mainTab === 'rangs' && (
           <>
             <section style={{padding:'8px 2px 18px'}}><div style={{fontSize:10,color:LIME,fontWeight:950,letterSpacing:'.1em'}}>20 RANGS · 100 PALIERS</div><div style={{fontSize:27,fontWeight:950,letterSpacing:'-.045em',marginTop:6}}>Les 20 rangs de NOX</div><div style={{fontSize:12,color:SECONDARY,lineHeight:1.5,marginTop:6}}>Chaque médaille marque une étape de ta transformation. Cinq paliers par rang.</div></section>
-            <section style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:'22px 10px',padding:'18px 10px 24px',border:`1px solid ${BORDER}`,borderRadius:24,background:'radial-gradient(circle at 50% 0,rgba(200,255,0,.055),transparent 32%),#101311'}}>
-              {RANK_NAMES.map((name,index)=>{const r=index+1;const unlocked=r<=noxRank;const active=r===noxRank;return <div key={name} style={{minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center',gap:8,opacity:unlocked?1:.62}}><RankMedal rank={r} unlocked={unlocked} active={active} size={r===20?82:76}/><strong style={{fontSize:9.5,lineHeight:1.15,color:active?WHITE:unlocked?WHITE:SECONDARY}}>{name}</strong><span style={{fontSize:7.5,color:MUTED}}>{r===20?'Palier 100':`${(r-1)*5+1}–${r*5}`}</span>{!unlocked&&<LockKeyhole size={11} color={MUTED}/>}</div>})}
+            <section style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:'25px 12px',padding:'22px 14px 28px',border:`1px solid ${BORDER}`,borderRadius:22,background:'linear-gradient(180deg,#0E120F,#090C0A)'}}>
+              {RANK_NAMES.map((name,index)=>{const r=index+1;const unlocked=r<=noxRank;const active=r===noxRank;return <div key={name} style={{minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center',gap:8,opacity:unlocked?1:.48}}><RankMedal rank={r} unlocked={unlocked} active={active} size={r===20?80:72}/><strong style={{fontSize:9.5,lineHeight:1.15,color:active?WHITE:unlocked?WHITE:SECONDARY}}>{name}</strong><span style={{fontSize:7.5,color:MUTED}}>{r===20?'Palier 100':`${(r-1)*5+1}–${r*5}`}</span>{!unlocked&&<LockKeyhole size={11} color={MUTED}/>}</div>})}
             </section>
             <section style={{marginTop:12,padding:'16px 18px',border:'1px solid rgba(200,255,0,.26)',borderRadius:19,background:'linear-gradient(120deg,rgba(200,255,0,.08),rgba(200,255,0,.015))',display:'flex',alignItems:'center',gap:12}}><Crown size={22} color={LIME}/><div><strong style={{display:'block',fontSize:12}}>20 rangs · 5 paliers par rang = 100 paliers</strong><span style={{display:'block',fontSize:9.5,color:SECONDARY,marginTop:4}}>Atteins NOX Ultime et débloque la récompense du Palier 100.</span></div></section>
           </>
