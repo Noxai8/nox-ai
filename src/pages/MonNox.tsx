@@ -47,7 +47,6 @@ function RankMedal({rank, unlocked=true, active=false, size=86}:{rank:number;unl
       overflow: 'hidden',
       position: 'relative',
       flexShrink: 0,
-      boxShadow: active ? '0 0 28px rgba(200,255,0,.10)' : 'none'
     }}>
       <img
         src={src}
@@ -56,15 +55,13 @@ function RankMedal({rank, unlocked=true, active=false, size=86}:{rank:number;unl
         style={{
           position: 'absolute',
           inset: 0,
-          width: '106%',
-          height: '106%',
+          width: '100%',
+          height: '100%',
           maxWidth: 'none',
           display: 'block',
           objectFit: 'cover',
+          objectPosition: '58% 50%',
           borderRadius: '50%',
-          clipPath: 'circle(50% at 50% 50%)',
-          transform: 'translate(-3%, -3%)',
-          transformOrigin: 'center',
           userSelect: 'none',
           filter: unlocked
             ? `saturate(${active ? 1.08 : .92}) brightness(${active ? 1.04 : .88}) contrast(1.04)`
