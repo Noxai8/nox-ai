@@ -64,6 +64,7 @@ export default function Fuel() {
 
   const fileRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const fridgeRef = useRef<HTMLInputElement>(null);
 
   const { isPro } = usePlan();
 
@@ -95,6 +96,10 @@ export default function Fuel() {
   const [photoB64, setPhotoB64] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanRes, setScanRes] = useState<any>(null);
+  const [showFridgeScan, setShowFridgeScan] = useState(false);
+  const [fridgePhoto, setFridgePhoto] = useState<string | null>(null);
+  const [fridgeScanning, setFridgeScanning] = useState(false);
+  const [fridgeResult, setFridgeResult] = useState<any>(null);
 
   const [voiceText, setVoiceText] = useState('');
   const [listening, setListening] = useState(false);
@@ -447,6 +452,42 @@ export default function Fuel() {
     reader.readAsDataURL(file);
   };
 
+  const handleFridgePhoto = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = async event => {
+      const result = event.target?.result as string;
+      setFridgePhoto(result);
+      setFridgeResult(null);
+      setFridgeScanning(true);
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const resp = await fetch(`${FN}/analyze-fridge`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token || ''}`,
+          },
+          body: JSON.stringify({ image: result }),
+        });
+        const data = await resp.json();
+
+        if (!resp.ok || data?.error) {
+          setFridgeResult({
+            error: data?.error || `Analyse du frigo indisponible (${resp.status}).`,
+          });
+        } else {
+          setFridgeResult(data);
+        }
+      } catch (e: any) {
+        setFridgeResult({ error: e?.message || 'Erreur réseau.' });
+      } finally {
+        setFridgeScanning(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const startVoice = () => {
     const SR =
       (window as any).SpeechRecognition ||
@@ -705,10 +746,10 @@ export default function Fuel() {
             <ChevronRight className="nox-ai-card-arrow" size={22} />
           </button>
 
-          <button className="nox-ai-card" type="button" onClick={() => navigate('/pantry')}>
+          <button className="nox-ai-card" type="button" onClick={() => fridgeRef.current?.click()}>
             <div className="nox-ai-card-icon"><Refrigerator size={25} /></div>
             <h3>Mon frigo AI</h3>
-            <p>Gère les aliments disponibles et utilise ton stock pour préparer tes prochains repas.</p>
+            <p>Prends ton frigo en photo. NOX détecte les aliments visibles avant de te laisser confirmer le résultat.</p>
             <ChevronRight className="nox-ai-card-arrow" size={22} />
           </button>
         </section>
@@ -782,6 +823,90 @@ export default function Fuel() {
 
         @media(max-width:640px){.nox-ai-shell{padding:28px 15px calc(155px + env(safe-area-inset-bottom))}.nox-ai-top h1{font-size:34px}.nox-ai-hero,.nox-ai-grid{grid-template-columns:1fr}.nox-ai-card{min-height:178px}.nox-ai-small{min-height:165px}.nox-nutrition-shell{padding:28px 15px calc(155px + env(safe-area-inset-bottom))}.nox-nutrition-title-row h1{font-size:34px}.nox-dashboard-card{padding:19px}.nox-dashboard-top{align-items:flex-start}.nox-kcal-number{font-size:48px}.nox-kcal-context{display:grid;gap:8px}.nox-kcal-context div{gap:1px}.nox-week-chart{gap:5px;height:135px}.nox-week-bar{max-width:31px}.nox-macro-grid{gap:7px}.nox-macro-tile{padding:14px 11px}.nox-macro-value{font-size:24px}.nox-water-buttons{grid-template-columns:1fr 1fr}}
       `}</style>
+
+      {showFridgeScan && (
+        <div
+          onClick={() => setShowFridgeScan(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 12000,
+            background: 'rgba(0,0,0,.84)',
+            backdropFilter: 'blur(12px)',
+            display: 'grid',
+            placeItems: 'center',
+            padding: 16,
+            boxSizing: 'border-box',
+          }}
+        >
+          <div
+            onClick={event => event.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: 560,
+              maxHeight: 'calc(100dvh - 32px)',
+              overflowY: 'auto',
+              background: '#111411',
+              border: '1px solid #2A302A',
+              borderRadius: 28,
+              padding: 20,
+              boxSizing: 'border-box',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', marginBottom: 18 }}>
+              <div>
+                <div style={{ color: ACCENT, fontSize: 10, fontWeight: 950, letterSpacing: '.1em' }}>FRIGO AI</div>
+                <div style={{ marginTop: 5, fontSize: 24, fontWeight: 1000, letterSpacing: '-.04em' }}>Analyse de ton frigo</div>
+              </div>
+              <button onClick={() => setShowFridgeScan(false)} style={{ width: 40, height: 40, borderRadius: '50%', border: `1px solid ${BORDER}`, background: SURFACE_ALT, color: WHITE, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {fridgePhoto && (
+              <img src={fridgePhoto} alt="Frigo à analyser" style={{ width: '100%', maxHeight: 300, objectFit: 'cover', borderRadius: 20, border: `1px solid ${BORDER}` }} />
+            )}
+
+            {fridgeScanning && (
+              <div style={{ padding: '26px 0', textAlign: 'center', color: MUTED, fontSize: 13 }}>
+                NOX analyse les aliments visibles…
+              </div>
+            )}
+
+            {!fridgeScanning && fridgeResult?.error && (
+              <div style={{ marginTop: 16, padding: 14, borderRadius: 16, background: '#211414', border: '1px solid #5A2B2B', color: '#FFBABA', fontSize: 12, lineHeight: 1.5 }}>
+                {fridgeResult.error}
+              </div>
+            )}
+
+            {!fridgeScanning && !fridgeResult?.error && Array.isArray(fridgeResult?.items) && (
+              <div style={{ marginTop: 18 }}>
+                <div style={{ fontSize: 12, fontWeight: 950, marginBottom: 10 }}>ALIMENTS DÉTECTÉS</div>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {fridgeResult.items.map((item: any, index: number) => (
+                    <div key={`${item?.name || 'aliment'}-${index}`} style={{ padding: '13px 14px', borderRadius: 15, border: `1px solid ${BORDER}`, background: SURFACE_ALT, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                      <span style={{ fontSize: 13, fontWeight: 850 }}>{item?.name || 'Aliment détecté'}</span>
+                      {item?.quantity && <span style={{ color: MUTED, fontSize: 12 }}>{item.quantity}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 18 }}>
+              <button onClick={() => fridgeRef.current?.click()} style={{ minHeight: 50, borderRadius: 16, border: `1px solid ${BORDER}`, background: SURFACE_ALT, color: WHITE, fontWeight: 900, cursor: 'pointer' }}>
+                REPRENDRE
+              </button>
+              <button onClick={() => navigate('/pantry')} disabled={fridgeScanning || !Array.isArray(fridgeResult?.items)} style={{ minHeight: 50, borderRadius: 16, border: 0, background: !fridgeScanning && Array.isArray(fridgeResult?.items) ? ACCENT : '#252925', color: !fridgeScanning && Array.isArray(fridgeResult?.items) ? BLACK : '#666', fontWeight: 1000, cursor: !fridgeScanning && Array.isArray(fridgeResult?.items) ? 'pointer' : 'not-allowed' }}>
+                VÉRIFIER LE FRIGO →
+              </button>
+            </div>
+            <div style={{ marginTop: 12, color: '#727872', fontSize: 10.5, lineHeight: 1.45, textAlign: 'center' }}>
+              NOX propose uniquement ce qu'il détecte sur la photo. Vérifie toujours les aliments avant de les ajouter à ton inventaire.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* =========================================================
           MODALE AJOUT
