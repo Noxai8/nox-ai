@@ -408,7 +408,7 @@ export default function Home() {
       energy_score: Number(todayPulse.energy_score),
       body_score: Number(todayPulse.body_score),
     } : null,
-    profile: { goal_type: profile?.goal_type ?? null },
+    profile: { goal_type: profile?.goal_type ?? null, focus_areas: profile?.focus_areas ?? null },
     recentActivity: {
       session_planned_today: Boolean(todaySession) && !Boolean(todayWorkout),
       last_session_feedback: todayWorkout?.session_feedback === 'hard'

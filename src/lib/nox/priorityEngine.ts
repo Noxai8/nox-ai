@@ -39,7 +39,15 @@ export type PulseInput = {
 export type ProfileInput = {
   goal_type?: string | null;
   session_length_min?: number | null;
+  /** Axes choisis par l'utilisateur. Absent (null) = tous ; liste vide = aucun (ex. habitudes seules). */
+  focus_areas?: string[] | null;
 } | null;
+
+/** L'axe est-il actif pour cet utilisateur ? */
+function hasFocus(ctx: PriorityContext, area: 'movement' | 'nutrition' | 'recovery'): boolean {
+  const f = ctx.profile?.focus_areas;
+  return f == null || f.includes(area);
+}
 
 export type ActivityInput = {
   last_session_feedback?: 'hard' | 'good' | 'easy' | null;
@@ -314,8 +322,8 @@ export function generateDailyPriority(ctx: PriorityContext): DailyPriority {
   const candidates: Candidate[] = [
     evalRecovery(ctx),
     evalSleep(ctx),
-    evalActivity(ctx),
-    evalNutrition(ctx),
+    hasFocus(ctx, 'movement') ? evalActivity(ctx) : null,
+    hasFocus(ctx, 'nutrition') ? evalNutrition(ctx) : null,
   ].filter((c): c is Candidate => c !== null);
 
   candidates.sort((a, b) => b.priority.score - a.priority.score);

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Phone, Plus, ShieldCheck } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Check, Dumbbell, Moon, Phone, Plus, ShieldCheck, Utensils } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
@@ -28,6 +28,15 @@ type Draft = {
   consent: boolean;
 };
 
+type FocusArea = 'movement' | 'nutrition' | 'recovery';
+const FOCUS: { id: FocusArea; label: string; detail: string; icon: typeof Dumbbell; setup?: { label: string; path: string } }[] = [
+  { id: 'movement',  label: 'Mouvement & corps',     detail: 'Séances, activités, programme.', icon: Dumbbell, setup: { label: 'Configurer mon programme', path: '/program' } },
+  { id: 'nutrition', label: 'Nutrition',             detail: 'Repas, objectifs caloriques, macros.', icon: Utensils, setup: { label: 'Configurer mes objectifs', path: '/nutrition-goals' } },
+  { id: 'recovery',  label: 'Sommeil & récupération', detail: 'Sommeil, énergie, récupération.', icon: Moon },
+];
+
+type OnboardingQueue = { onboardingSetup?: HabitKind[]; next?: { path: string; state?: unknown } };
+
 const emptyDraft = (kind: HabitKind): Draft => ({
   kind, mode: 'reduce', baseline: '', target: '', riskAnswer: null, professional: false, consent: false,
 });
@@ -40,8 +49,40 @@ export default function Habits() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [focus, setFocus] = useState<FocusArea[] | null>(null);
+  const [justEnabled, setJustEnabled] = useState<FocusArea | null>(null);
+
+  // File de configuration en fin d'onboarding
+  const location = useLocation();
+  const flow = (location.state as OnboardingQueue | null) ?? null;
+  const [queue, setQueue] = useState<HabitKind[]>(flow?.onboardingSetup ?? []);
+  const inOnboarding = !!flow?.onboardingSetup;
 
   useEffect(() => { if (user) void load(); }, [user]);
+
+  // Ouvre automatiquement la configuration de la première habitude choisie à l'inscription
+  useEffect(() => {
+    if (!loading && inOnboarding && !draft && queue.length > 0) setDraft(emptyDraft(queue[0]));
+  }, [loading, queue]);
+
+  const advanceQueue = () => {
+    const rest = queue.slice(1);
+    setQueue(rest);
+    setDraft(null);
+    if (rest.length === 0) {
+      const next = flow?.next ?? { path: '/home' };
+      navigate(next.path, { replace: true, state: next.state });
+    }
+  };
+
+  const toggleFocus = async (area: FocusArea) => {
+    if (!user || !focus) return;
+    const nextFocus = focus.includes(area) ? focus.filter(a => a !== area) : [...focus, area];
+    setFocus(nextFocus);
+    setJustEnabled(focus.includes(area) ? null : area);
+    const { error: e } = await supabase.from('profiles').update({ focus_areas: nextFocus }).eq('id', user.id);
+    if (e) { setError(e.message); setFocus(focus); }
+  };
 
   const load = async () => {
     const { data, error: e } = await supabase
@@ -52,6 +93,8 @@ export default function Habits() {
       .order('created_at');
     if (e) setError(e.message);
     setHabits((data ?? []) as UserHabit[]);
+    const { data: p } = await supabase.from('profiles').select('focus_areas').eq('id', user!.id).maybeSingle();
+    setFocus(((p?.focus_areas ?? []) as FocusArea[]));
     setLoading(false);
   };
 
@@ -90,8 +133,9 @@ export default function Habits() {
     });
     setSaving(false);
     if (e) { setError(e.message); return; }
+    await load();
+    if (inOnboarding) { advanceQueue(); return; }
     setDraft(null);
-    void load();
   };
 
   const stopTracking = async (h: UserHabit) => {
@@ -117,12 +161,12 @@ export default function Habits() {
       <main style={{ width: '100%', maxWidth: 760, margin: '0 auto', padding: '0 16px', boxSizing: 'border-box' }}>
 
         <header style={{ paddingTop: 44, paddingBottom: 26, display: 'flex', alignItems: 'center', gap: 14 }}>
-          <button onClick={() => (draft ? setDraft(null) : navigate(-1))} aria-label="Retour"
+          <button onClick={() => (inOnboarding ? advanceQueue() : draft ? setDraft(null) : navigate(-1))} aria-label="Retour"
             style={{ width: 42, height: 42, borderRadius: 14, border: `1px solid ${BORDER}`, background: CARD, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
             <ArrowLeft size={18} color={WHITE} />
           </button>
           <div>
-            <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em' }}>MOI</div>
+            <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em' }}>{inOnboarding ? 'TON PARCOURS' : 'MOI'}</div>
             <h1 style={{ margin: 0, fontSize: 'clamp(30px,5vw,40px)', fontWeight: 850, letterSpacing: '-.04em', lineHeight: 1 }}>
               {draft && def ? def.publicLabel : 'Mes habitudes'}
             </h1>
@@ -136,6 +180,38 @@ export default function Habits() {
         {/* ── LISTE ─────────────────────────────────────────────── */}
         {!draft && (
           <>
+            {focus && (
+              <section style={{ ...card, marginBottom: 24 }}>
+                <div style={{ fontSize: 15, fontWeight: 900, marginBottom: 4 }}>Ce que tu travailles</div>
+                <div style={{ color: SEC, fontSize: 12, lineHeight: 1.5, marginBottom: 14 }}>
+                  NOX ne te propose des priorités que sur les axes activés. Tu peux en changer à tout moment.
+                </div>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {FOCUS.map(f => {
+                    const on = focus.includes(f.id); const FIcon = f.icon;
+                    return (
+                      <div key={f.id}>
+                        <button onClick={() => toggleFocus(f.id)} style={{ ...choice(on), display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <FIcon size={18} color={on ? LIME : MUTED} />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 14, fontWeight: 900, color: on ? WHITE : SEC }}>{f.label}</div>
+                            <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{f.detail}</div>
+                          </div>
+                          {on && <Check size={16} color={LIME} />}
+                        </button>
+                        {justEnabled === f.id && f.setup && (
+                          <button onClick={() => navigate(f.setup!.path)}
+                            style={{ marginTop: 6, width: '100%', padding: '10px 14px', borderRadius: 12, border: 0, background: 'transparent', color: LIME, fontSize: 12, fontWeight: 900, textAlign: 'left', cursor: 'pointer' }}>
+                            {f.setup.label} →
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             <p style={{ color: SEC, fontSize: 14, lineHeight: 1.55, margin: '0 0 22px' }}>
               Choisis ce que tu veux travailler. Chaque habitude apparaît sur Aujourd’hui uniquement si tu l’as activée,
               et tenir ta cible du jour compte pour ta progression.
@@ -312,6 +388,12 @@ export default function Habits() {
                   style={{ width: '100%', padding: 18, border: 0, borderRadius: 14, background: canSave ? LIME : '#2B2F2C', color: canSave ? BG : MUTED, fontWeight: 800, fontSize: 15, cursor: canSave ? 'pointer' : 'not-allowed' }}>
                   {saving ? 'ENREGISTREMENT…' : 'ACTIVER CETTE HABITUDE'}
                 </button>
+                {inOnboarding && (
+                  <button onClick={advanceQueue}
+                    style={{ width: '100%', padding: 14, border: 0, background: 'transparent', color: MUTED, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
+                    Plus tard
+                  </button>
+                )}
               </>
             )}
           </div>

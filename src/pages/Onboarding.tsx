@@ -6,12 +6,29 @@ import { useAuth } from '../lib/AuthContext';
 import { todayLocalDate } from '../lib/localDate';
 
 const ACCENT = '#C8FF00';
-const BG = '#F7F8F4';
+const BG = '#090B0A';
+const SURFACE = '#232624';
+const SURFACE2 = '#191C1A';
+const BORDER = '#4A4F4B';
+const SOFT = '#343835';
 const WHITE = '#FFFFFF';
-const BLACK = '#0B0B0B';
-const MUTED = '#7A7F76';
-const BORDER = '#E8EAE4';
-const TOTAL = 10;
+const SEC = '#A5AAA6';
+const MUTED = '#747A76';
+
+// Axes de parcours (persistés dans profiles.focus_areas)
+const PILLARS = [
+  ['movement', 'Mouvement & corps', 'Séances, activités, programme'],
+  ['nutrition', 'Nutrition', 'Repas, calories, macros'],
+  ['recovery', 'Sommeil & récupération', 'Énergie, sommeil, récupération'],
+] as const;
+// Habitudes : jamais persistées ici — configurées ensuite avec consentement et garde-fous
+const HABIT_CHOICES = [
+  ['tobacco', 'Tabac', 'Réduire ou arrêter'],
+  ['alcohol', 'Alcool', 'Suivre ou réduire sa consommation'],
+  ['sexual_habit', 'Habitude personnelle', 'Masturbation / pornographie'],
+] as const;
+
+type StepId = 'identity' | 'focus' | 'body' | 'lifestyle' | 'sport' | 'availability' | 'goal' | 'horizon' | 'diet' | 'foodHabits' | 'ready';
 
 const OBSTACLES = [
   ['temps', 'Manque de temps'],
@@ -113,15 +130,16 @@ export default function Onboarding() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [step, setStep] = useState(1);
+  const [stepIndex, setStepIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const [firstName, setFirstName] = useState(String(user?.user_metadata?.first_name || user?.user_metadata?.name || ''));
   const [lastName, setLastName] = useState(String(user?.user_metadata?.last_name || ''));
+  const [dob, setDob] = useState('');
+  const [focusSel, setFocusSel] = useState<string[]>([]);
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
-  const [dob, setDob] = useState('');
   const [sex, setSex] = useState<'homme' | 'femme' | ''>('');
   const [activity, setActivity] = useState('');
   const [level, setLevel] = useState('');
@@ -136,36 +154,53 @@ export default function Onboarding() {
   const [foodLikes, setFoodLikes] = useState('');
   const [foodDislikes, setFoodDislikes] = useState('');
   const [mealsPerDay, setMealsPerDay] = useState('3');
-  const [obstacles, setObstacles] = useState<string[]>([]);
   const [cookingTime, setCookingTime] = useState('30');
 
+  const movement = focusSel.includes('movement');
+  const nutrition = focusSel.includes('nutrition');
+  const needsBody = movement || nutrition;
+  const pillars = PILLARS.map(p => p[0]).filter(id => focusSel.includes(id));
+  const habitKinds = HABIT_CHOICES.map(h => h[0]).filter(id => focusSel.includes(id));
+
+  // Parcours conditionnel : seules les étapes utiles aux axes choisis
+  const steps: StepId[] = [
+    'identity', 'focus',
+    ...(needsBody ? ['body', 'lifestyle'] as StepId[] : []),
+    ...(movement ? ['sport', 'availability'] as StepId[] : []),
+    ...(needsBody ? ['goal', 'horizon'] as StepId[] : []),
+    ...(nutrition ? ['diet', 'foodHabits'] as StepId[] : []),
+    'ready',
+  ];
+  const step = steps[Math.min(stepIndex, steps.length - 1)];
+  const last = stepIndex >= steps.length - 1;
+
   const age = useMemo(() => (dob ? ageFromDob(dob) : 0), [dob]);
+  const adult = age >= 18 && age <= 100;
   const bmi = useMemo(() => {
-    const w = Number(weight);
-    const h = Number(height) / 100;
+    const w = Number(weight); const h = Number(height) / 100;
     if (!w || !h || h <= 0) return 0;
     return w / (h * h);
   }, [weight, height]);
-  const physicalValid = !!sex && !!dob && age >= 18 && age <= 100 &&
-    Number(weight) >= 35 && Number(weight) <= 350 &&
-    Number(height) >= 120 && Number(height) <= 230;
+  const bodyValid = !!sex && Number(weight) >= 35 && Number(weight) <= 350 && Number(height) >= 120 && Number(height) <= 230;
 
   const preview = useMemo(() => {
-    if (!goal || !activity || !physicalValid || !sex) return null;
+    if (!nutrition || !goal || !activity || !bodyValid || !sex || !adult) return null;
     return nutritionTarget({ sex, weight: Number(weight), height: Number(height), age, activity, goal });
-  }, [goal, activity, physicalValid, sex, weight, height, age]);
+  }, [nutrition, goal, activity, bodyValid, sex, weight, height, age, adult]);
 
   const canNext =
-    step === 1 ? firstName.trim().length > 1 && lastName.trim().length > 1 :
-    step === 2 ? physicalValid :
-    step === 3 ? !!activity :
-    step === 4 ? !!level && !!location :
-    step === 5 ? days.length > 0 :
-    step === 6 ? !!goal :
-    step === 7 ? !!goalTime :
-    step === 8 ? dietPrefs.length > 0 :
+    step === 'identity' ? firstName.trim().length > 1 && lastName.trim().length > 1 && adult :
+    step === 'focus' ? focusSel.length > 0 :
+    step === 'body' ? bodyValid :
+    step === 'lifestyle' ? !!activity :
+    step === 'sport' ? !!level && !!location :
+    step === 'availability' ? days.length > 0 :
+    step === 'goal' ? !!goal :
+    step === 'horizon' ? !!goalTime :
+    step === 'diet' ? dietPrefs.length > 0 :
     true;
 
+  const toggle = (list: string[], id: string) => list.includes(id) ? list.filter(x => x !== id) : [...list, id];
   const toggleDiet = (id: string) => {
     setDietPrefs(current => {
       if (id === 'omnivore') return ['omnivore'];
@@ -175,87 +210,85 @@ export default function Onboarding() {
   };
 
   const finish = async () => {
-    if (!user || saving || !preview || !sex) return;
+    if (!user || saving) return;
+    if (nutrition && !preview) { setError('Il manque des informations pour estimer ta base nutritionnelle.'); return; }
     setSaving(true);
     setError('');
 
     try {
-      const nutritionContext = [
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: { first_name: firstName.trim(), last_name: lastName.trim(), name: firstName.trim(), ...(needsBody ? { goal_time_months: Number(goalTime) } : {}) },
+      });
+      if (metadataError) throw metadataError;
+
+      const nutritionContext = nutrition ? [
         ...dietPrefs,
-        obstacles.length ? `obstacles:${obstacles.join(',')}` : '',
         allergies.trim() ? `allergies:${allergies.trim()}` : '',
         foodLikes.trim() ? `likes:${foodLikes.trim()}` : '',
         foodDislikes.trim() ? `dislikes:${foodDislikes.trim()}` : '',
         `meals_per_day:${mealsPerDay}`,
         `cooking_time_min:${cookingTime}`,
         `goal_time_months:${goalTime}`,
-      ].filter(Boolean);
+      ].filter(Boolean) : [];
 
-      const { error: metadataError } = await supabase.auth.updateUser({
-        data: { first_name: firstName.trim(), last_name: lastName.trim(), name: firstName.trim(), goal_time_months: Number(goalTime) },
-      });
-      if (metadataError) throw metadataError;
-
-      // Upsert garanti — évite goal_type = NULL si la ligne n'existe pas encore
-      const { error: profileError } = await supabase.from('profiles').upsert({
+      // Seules les données réellement collectées sont écrites
+      const profile: Record<string, unknown> = {
         id: user.id,
         display_name: firstName.trim(),
-        goal_type: goal,
-        experience_level: level,
-        training_location: location,
-        equipment: location === 'maison' ? equipment : [],
-        available_days: days,
-        session_length_min: Number(duration),
-        starting_weight_kg: Number(weight),
-        height_cm: Number(height),
         date_of_birth: dob,
-        sex,
-        diet_preferences: nutritionContext,
-        activity_level: activity,
-        onboarding_context: {
-          first_name: firstName.trim(),
-          goal: goal,
-          experience_level: level,
-          training: {
-            location: location,
-            equipment: equipment,
-            available_days: days,
-            session_length_min: Number(duration),
-          },
-          body: {
-            starting_weight_kg: Number(weight),
-            height_cm: Number(height),
-            date_of_birth: dob,
-            sex: sex,
-          },
-          lifestyle: {
-            activity_level: activity,
-          },
-          nutrition: {
-            preferences: nutritionContext,
-          },
-          completed_at: new Date().toISOString(),
-        },
+        focus_areas: pillars,
+        goal_type: goal || 'maintien',
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
+        onboarding_context: {
+          first_name: firstName.trim(),
+          focus_areas: pillars,
+          goal: goal || null,
+          ...(needsBody ? {
+            body: { starting_weight_kg: Number(weight), height_cm: Number(height), date_of_birth: dob, sex },
+            lifestyle: { activity_level: activity },
+          } : {}),
+          ...(movement ? {
+            experience_level: level,
+            training: { location, equipment, available_days: days, session_length_min: Number(duration) },
+          } : {}),
+          ...(nutrition ? { nutrition: { preferences: nutritionContext } } : {}),
+          completed_at: new Date().toISOString(),
+        },
+      };
+      if (needsBody) Object.assign(profile, {
+        starting_weight_kg: Number(weight), height_cm: Number(height), sex, activity_level: activity,
+      });
+      if (movement) Object.assign(profile, {
+        experience_level: level, training_location: location,
+        equipment: location === 'maison' ? equipment : [],
+        available_days: days, session_length_min: Number(duration),
+      });
+      if (nutrition) Object.assign(profile, { diet_preferences: nutritionContext });
+
+      const { error: profileError } = await supabase.from('profiles').upsert(profile, { onConflict: 'id' });
       if (profileError) throw profileError;
 
-      const { error: targetError } = await supabase.from('nutrition_targets').upsert({
-        user_id: user.id,
-        calories: preview.calories,
-        protein_g: preview.protein,
-        carbs_g: preview.carbs,
-        fat_g: preview.fat,
-        carbs: preview.carbs,
-        fat: preview.fat,
-        start_date: todayLocalDate(),
-        is_active: true,
-      }, { onConflict: 'user_id' });
-      if (targetError) throw targetError;
+      if (nutrition && preview) {
+        const { error: targetError } = await supabase.from('nutrition_targets').upsert({
+          user_id: user.id,
+          calories: preview.calories, protein_g: preview.protein, carbs_g: preview.carbs, fat_g: preview.fat,
+          carbs: preview.carbs, fat: preview.fat,
+          start_date: todayLocalDate(), is_active: true,
+        }, { onConflict: 'user_id' });
+        if (targetError) throw targetError;
+      }
 
-      // Proposition NOX Future après onboarding
-      navigate('/future', { state: { onboardingFlow: true, futureOffer: true } });
+      const next = movement
+        ? { path: '/future', state: { onboardingFlow: true, futureOffer: true } }
+        : { path: '/home' };
+
+      if (habitKinds.length > 0) {
+        // Configuration des habitudes avec les garde-fous existants (repérage, consentement)
+        navigate('/habits', { replace: true, state: { onboardingSetup: habitKinds, next } });
+      } else {
+        navigate(next.path, { replace: true, state: (next as any).state });
+      }
     } catch (e: any) {
       console.error('Erreur onboarding NOX :', e);
       setError(e?.message || "Impossible d'enregistrer ton profil.");
@@ -267,52 +300,48 @@ export default function Onboarding() {
   const next = () => {
     if (!canNext) return;
     setError('');
-    setStep(s => Math.min(TOTAL, s + 1));
+    setStepIndex(i => Math.min(steps.length - 1, i + 1));
   };
 
+  const num = String(stepIndex + 1).padStart(2, '0');
+  const focusLabels = [
+    ...PILLARS.filter(p => focusSel.includes(p[0])).map(p => p[1]),
+    ...HABIT_CHOICES.filter(h => focusSel.includes(h[0])).map(h => h[1]),
+  ];
+
   return (
-    <div style={{ minHeight: '100dvh', background: BG, color: BLACK, display: 'flex', flexDirection: 'column' }}>
-      <header style={{ padding: '20px 20px 0' }}>
-        <div style={{ maxWidth: 560, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <button onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1}
-            style={{ width: 42, height: 42, borderRadius: 14, border: `1px solid ${BORDER}`, background: WHITE, display: 'grid', placeItems: 'center', opacity: step === 1 ? 0 : 1 }}>
+    <div style={{ minHeight: '100dvh', background: BG, color: WHITE, display: 'flex', flexDirection: 'column' }}>
+      <header style={{ padding: '20px 16px 0' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <button onClick={() => setStepIndex(i => Math.max(0, i - 1))} disabled={stepIndex === 0} aria-label="Retour"
+            style={{ width: 42, height: 42, borderRadius: 14, border: `1px solid ${BORDER}`, background: SURFACE, color: WHITE, display: 'grid', placeItems: 'center', opacity: stepIndex === 0 ? 0 : 1, cursor: 'pointer' }}>
             <ArrowLeft size={18} />
           </button>
-          <div style={{ fontSize: 19, fontWeight: 950, letterSpacing: '-.04em' }}>NOX<span style={{ color: '#9ED100' }}>.</span></div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {step >= 8 && (
-              <button onClick={async () => {
-                // Sauvegarder ce qu'on a et aller en Free
-                if (user && goal) {
-                  await supabase.from('profiles').upsert({
-                    id: user.id,
-                    goal_type: goal || 'maintien',
-                    experience_level: level || 'débutant',
-                    onboarding_completed: true,
-                    updated_at: new Date().toISOString(),
-                  }, { onConflict: 'id' });
-                }
-                navigate('/home');
-              }} style={{ fontSize: 11, fontWeight: 700, color: MUTED, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>
-                Passer → Free
-              </button>
-            )}
-            <div style={{ fontSize: 11, fontWeight: 850, color: MUTED }}>{step}/{TOTAL}</div>
-          </div>
+          <div style={{ fontSize: 19, fontWeight: 950, letterSpacing: '-.04em' }}>NOX<span style={{ color: ACCENT }}>.</span></div>
+          <div style={{ fontSize: 11, fontWeight: 850, color: MUTED, minWidth: 42, textAlign: 'right' }}>{stepIndex + 1}/{steps.length}</div>
         </div>
-        <div style={{ maxWidth: 560, height: 4, margin: '18px auto 0', borderRadius: 999, background: '#E4E7DF', overflow: 'hidden' }}>
-          <div style={{ width: `${(step / TOTAL) * 100}%`, height: '100%', borderRadius: 999, background: BLACK }} />
+        <div style={{ maxWidth: 760, height: 4, margin: '18px auto 0', borderRadius: 999, background: SOFT, overflow: 'hidden' }}>
+          <div style={{ width: `${((stepIndex + 1) / steps.length) * 100}%`, height: '100%', borderRadius: 999, background: ACCENT, transition: 'width .3s' }} />
         </div>
       </header>
 
-      <main style={{ width: '100%', maxWidth: 560, margin: '0 auto', flex: 1, boxSizing: 'border-box', padding: '38px 20px 28px' }}>
-        {step === 1 && <Screen eyebrow="01 · TOI" title={<>Commençons par<br />faire connaissance.</>} subtitle="NOX construit une expérience autour de toi, pas autour d’un profil générique.">
+      <main style={{ width: '100%', maxWidth: 760, margin: '0 auto', flex: 1, boxSizing: 'border-box', padding: '38px 16px 28px' }}>
+        {step === 'identity' && <Screen eyebrow={`${num} · TOI`} title={<>Commençons par<br />faire connaissance.</>} subtitle="NOX construit une expérience autour de toi, pas autour d’un profil générique.">
           <Field label="PRÉNOM" value={firstName} setValue={setFirstName} placeholder="Alex" />
           <Field label="NOM" value={lastName} setValue={setLastName} placeholder="Martin" />
-          <Info>Ton email est déjà lié à ton compte NOX.</Info>
+          <Field label="DATE DE NAISSANCE" value={dob} setValue={setDob} type="date" />
+          {dob && age > 0 && age < 18 && <Info>NOX est actuellement réservé aux adultes.</Info>}
         </Screen>}
 
-        {step === 2 && <Screen eyebrow="02 · TON CORPS" title={<>Ton point<br />de départ.</>} subtitle="Ces données permettent d’adapter les estimations et ton futur programme.">
+        {step === 'focus' && <Screen eyebrow={`${num} · TON PARCOURS`} title={<>Qu’est-ce que tu<br />veux travailler ?</>} subtitle="Choisis tout ce qui compte pour toi en ce moment. Tu pourras modifier ces choix à tout moment dans Moi.">
+          <SmallTitle>CORPS & QUOTIDIEN</SmallTitle>
+          {PILLARS.map(([id, label, desc]) => <Choice key={id} selected={focusSel.includes(id)} onClick={() => setFocusSel(s => toggle(s, id))}><b>{label}</b><span>{desc}</span></Choice>)}
+          <SmallTitle>HABITUDES</SmallTitle>
+          {HABIT_CHOICES.map(([id, label, desc]) => <Choice key={id} selected={focusSel.includes(id)} onClick={() => setFocusSel(s => toggle(s, id))}><b>{label}</b><span>{desc}</span></Choice>)}
+          <Info>Les habitudes seront configurées juste après, une par une. Rien n’est enregistré à leur sujet avant ton accord.</Info>
+        </Screen>}
+
+        {step === 'body' && <Screen eyebrow={`${num} · TON CORPS`} title={<>Ton point<br />de départ.</>} subtitle="Ces données servent à estimer tes besoins et à adapter ton parcours.">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
             {(['homme', 'femme'] as const).map(s => <Choice key={s} selected={sex === s} onClick={() => setSex(s)} centered>{s === 'homme' ? 'Homme' : 'Femme'}</Choice>)}
           </div>
@@ -320,20 +349,18 @@ export default function Onboarding() {
             <Field label="POIDS · KG" value={weight} setValue={setWeight} type="number" placeholder="80" />
             <Field label="TAILLE · CM" value={height} setValue={setHeight} type="number" placeholder="178" />
           </div>
-          <Field label="DATE DE NAISSANCE" value={dob} setValue={setDob} type="date" />
-          {bmi > 0 && Number(weight) >= 35 && Number(height) >= 120 && <div style={{ marginBottom: 14, background: '#F0FFD0', border: '1px solid #DDF59C', borderRadius: 18, padding: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.1em', color: '#687600' }}>TON IMC · REPÈRE GÉNÉRAL</div>
+          {bmi > 0 && Number(weight) >= 35 && Number(height) >= 120 && <div style={{ marginBottom: 14, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.1em', color: MUTED }}>TON IMC · REPÈRE GÉNÉRAL</div>
             <div style={{ marginTop: 5, fontSize: 28, fontWeight: 950 }}>{bmi.toFixed(1).replace('.', ',')}</div>
-            <div style={{ marginTop: 5, color: MUTED, fontSize: 11, lineHeight: 1.5 }}>L’IMC est un indicateur général. Il ne distingue pas la masse musculaire de la masse grasse. NOX l’utilise comme un repère parmi d’autres.</div>
+            <div style={{ marginTop: 5, color: SEC, fontSize: 11, lineHeight: 1.5 }}>L’IMC est un indicateur général. Il ne distingue pas la masse musculaire de la masse grasse. NOX l’utilise comme un repère parmi d’autres.</div>
           </div>}
-          {dob && age > 0 && age < 18 && <Info>Le parcours automatique NOX est actuellement réservé aux adultes.</Info>}
         </Screen>}
 
-        {step === 3 && <Screen eyebrow="03 · MODE DE VIE" title={<>À quoi ressemble<br />ton quotidien ?</>} subtitle="En dehors du sport, combien bouges-tu réellement ?">
+        {step === 'lifestyle' && <Screen eyebrow={`${num} · MODE DE VIE`} title={<>À quoi ressemble<br />ton quotidien ?</>} subtitle="En dehors du sport, combien bouges-tu réellement ?">
           {ACTIVITIES.map(([id, label, desc]) => <Choice key={id} selected={activity === id} onClick={() => setActivity(id)}><b>{label}</b><span>{desc}</span></Choice>)}
         </Screen>}
 
-        {step === 4 && <Screen eyebrow="04 · SPORT" title={<>Ton expérience.<br />Ton terrain.</>} subtitle="NOX adaptera la difficulté et les exercices à ce que tu peux réellement faire.">
+        {step === 'sport' && <Screen eyebrow={`${num} · SPORT`} title={<>Ton expérience.<br />Ton terrain.</>} subtitle="NOX adaptera la difficulté et les exercices à ce que tu peux réellement faire.">
           <SmallTitle>TON NIVEAU</SmallTitle>
           {LEVELS.map(([id, label, desc]) => <Choice key={id} selected={level === id} onClick={() => setLevel(id)}><b>{label}</b><span>{desc}</span></Choice>)}
           <SmallTitle>OÙ T’ENTRAÎNES-TU ?</SmallTitle>
@@ -343,117 +370,74 @@ export default function Onboarding() {
           {location === 'maison' && (<>
             <SmallTitle>TON MATÉRIEL À LA MAISON</SmallTitle>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              {[
-                ['aucun', 'Aucun matériel'],
-                ['halteres', 'Haltères'],
-                ['elastiques', 'Élastiques'],
-                ['kettlebell', 'Kettlebell'],
-                ['banc', 'Banc'],
-                ['barre', 'Barre + poids'],
-                ['barre_traction', 'Barre de traction'],
-              ].map(([id, label]) => {
+              {[['aucun', 'Aucun matériel'], ['halteres', 'Haltères'], ['elastiques', 'Élastiques'], ['kettlebell', 'Kettlebell'], ['banc', 'Banc'], ['barre', 'Barre + poids'], ['barre_traction', 'Barre de traction']].map(([id, label]) => {
                 const isNone = id === 'aucun';
                 const sel = isNone ? equipment.length === 0 : equipment.includes(id);
-                return (
-                  <button key={id} onClick={() => {
-                    if (isNone) { setEquipment([]); return; }
-                    setEquipment(c => c.includes(id) ? c.filter(x => x !== id) : [...c, id]);
-                  }} style={{
-                    padding: '12px 10px', borderRadius: 14,
-                    border: `1.5px solid ${sel ? BLACK : BORDER}`,
-                    background: sel ? BLACK : WHITE,
-                    color: sel ? ACCENT : BLACK,
-                    fontSize: 13, fontWeight: 800, cursor: 'pointer', textAlign: 'center',
-                  }}>{label}</button>
-                );
+                return <Pill key={id} selected={sel} onClick={() => isNone ? setEquipment([]) : setEquipment(c => toggle(c, id))}>{label}</Pill>;
               })}
             </div>
           </>)}
         </Screen>}
 
-        {step === 5 && <Screen eyebrow="05 · DISPONIBILITÉS" title={<>Un plan qui tient<br />dans ta vraie vie.</>} subtitle="Choisis uniquement les jours où tu peux réellement t’entraîner.">
+        {step === 'availability' && <Screen eyebrow={`${num} · DISPONIBILITÉS`} title={<>Un plan qui tient<br />dans ta vraie vie.</>} subtitle="Choisis uniquement les jours où tu peux réellement t’entraîner.">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 28 }}>
-            {DAYS.map(([id, label]) => {
-              const selected = days.includes(id);
-              return <button key={id} onClick={() => setDays(c => selected ? c.filter(x => x !== id) : [...c, id].sort())}
-                style={{ minHeight: 54, borderRadius: 15, border: `1.5px solid ${selected ? BLACK : BORDER}`, background: selected ? BLACK : WHITE, color: selected ? ACCENT : BLACK, fontWeight: 900 }}>{label}</button>;
-            })}
+            {DAYS.map(([id, label]) => <Pill key={id} selected={days.includes(id)} onClick={() => setDays(c => c.includes(id) ? c.filter(x => x !== id) : [...c, id].sort())}>{label}</Pill>)}
           </div>
           <SmallTitle>DURÉE D’UNE SÉANCE</SmallTitle>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {['30','45','60','75','90'].map(d => <Pill key={d} selected={duration === d} onClick={() => setDuration(d)}>{d} min</Pill>)}
+            {['30', '45', '60', '75', '90'].map(d => <Pill key={d} selected={duration === d} onClick={() => setDuration(d)}>{d} min</Pill>)}
           </div>
         </Screen>}
 
-        {step === 6 && <Screen eyebrow="06 · OBJECTIF" title={<>Qu’est-ce que tu<br />veux changer ?</>} subtitle="Choisis ta priorité. Tu décriras précisément ton physique idéal dans NOX Future.">
+        {step === 'goal' && <Screen eyebrow={`${num} · OBJECTIF PHYSIQUE`} title={<>Qu’est-ce que tu<br />veux changer ?</>} subtitle="Choisis ta priorité côté corps. NOX s’en sert pour ton programme et tes estimations.">
           {GOALS.map(([id, label, desc]) => <Choice key={id} selected={goal === id} onClick={() => setGoal(id)}><b>{label}</b><span>{desc}</span></Choice>)}
         </Screen>}
 
-        {step === 7 && <Screen eyebrow="07 · TON HORIZON" title={<>En combien de temps<br />veux-tu avancer ?</>} subtitle="Donne à NOX l’horizon que tu as en tête. Ce délai est un objectif de parcours, pas une promesse de résultat.">
+        {step === 'horizon' && <Screen eyebrow={`${num} · TON HORIZON`} title={<>En combien de temps<br />veux-tu avancer ?</>} subtitle="Ce délai est un objectif de parcours, pas une promesse de résultat.">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {[['3','3 mois'],['6','6 mois'],['9','9 mois'],['12','12 mois']].map(([id,label]) =>
-              <Choice key={id} selected={goalTime === id} onClick={() => setGoalTime(id)} centered>{label}</Choice>
-            )}
+            {[['3', '3 mois'], ['6', '6 mois'], ['9', '9 mois'], ['12', '12 mois']].map(([id, label]) => <Choice key={id} selected={goalTime === id} onClick={() => setGoalTime(id)} centered>{label}</Choice>)}
           </div>
-          <button onClick={() => setGoalTime('0')} style={{ width: '100%', marginTop: 2, minHeight: 54, borderRadius: 17, border: `1.5px solid ${goalTime === '0' ? BLACK : BORDER}`, background: goalTime === '0' ? BLACK : WHITE, color: goalTime === '0' ? WHITE : BLACK, fontWeight: 850 }}>
-            Je ne sais pas encore
-          </button>
-          <div style={{ marginTop: 18, background: '#F0FFD0', border: '1px solid #DDF59C', borderRadius: 20, padding: 17 }}>
-            <div style={{ fontSize: 10, fontWeight: 950, letterSpacing: '.1em', color: '#687600' }}>CONSEIL NOX</div>
-            <div style={{ marginTop: 7, fontSize: 17, fontWeight: 950, lineHeight: 1.2 }}>Tu as l’objectif. NOX construit le chemin avec toi.</div>
-            <div style={{ marginTop: 8, color: MUTED, fontSize: 11.5, lineHeight: 1.55 }}>NOX va organiser ton entraînement, ta nutrition, tes habitudes et ta récupération autour de ton profil, puis adapter ton parcours au fil de ton évolution.</div>
-          </div>
+          <Choice selected={goalTime === '0'} onClick={() => setGoalTime('0')} centered>Je ne sais pas encore</Choice>
         </Screen>}
 
-        {step === 8 && <Screen eyebrow="08 · NUTRITION" title={<>Mange comme<br />tu aimes manger.</>} subtitle="NOX utilisera ces préférences pour personnaliser tes futures suggestions alimentaires.">
+        {step === 'diet' && <Screen eyebrow={`${num} · NUTRITION`} title={<>Mange comme<br />tu aimes manger.</>} subtitle="NOX utilisera ces préférences pour personnaliser tes suggestions alimentaires.">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {DIETS.map(([id, label]) => <Choice key={id} selected={dietPrefs.includes(id)} onClick={() => toggleDiet(id)} centered>{label}</Choice>)}
           </div>
         </Screen>}
 
-        {step === 9 && <Screen eyebrow="09 · TES HABITUDES" title={<>La nutrition doit<br />s’adapter à toi.</>} subtitle="Renseigne uniquement ce qui compte pour toi. Tu peux laisser un champ vide.">
+        {step === 'foodHabits' && <Screen eyebrow={`${num} · TES REPAS`} title={<>La nutrition doit<br />s’adapter à toi.</>} subtitle="Renseigne uniquement ce qui compte pour toi. Tu peux laisser un champ vide.">
           <Field label="ALLERGIES / INTOLÉRANCES" value={allergies} setValue={setAllergies} placeholder="Ex. arachides, lactose..." />
           <Field label="ALIMENTS QUE TU AIMES" value={foodLikes} setValue={setFoodLikes} placeholder="Ex. poulet, riz, saumon..." />
           <Field label="ALIMENTS QUE TU N’AIMES PAS" value={foodDislikes} setValue={setFoodDislikes} placeholder="Ex. brocoli, champignons..." />
           <SmallTitle>NOMBRE DE REPAS</SmallTitle>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>{['2','3','4','5'].map(n => <Pill key={n} selected={mealsPerDay === n} onClick={() => setMealsPerDay(n)}>{n}</Pill>)}</div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>{['2', '3', '4', '5'].map(n => <Pill key={n} selected={mealsPerDay === n} onClick={() => setMealsPerDay(n)}>{n}</Pill>)}</div>
           <SmallTitle>TEMPS POUR CUISINER</SmallTitle>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{['10','20','30','45','60'].map(n => <Pill key={n} selected={cookingTime === n} onClick={() => setCookingTime(n)}>{n} min</Pill>)}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{['10', '20', '30', '45', '60'].map(n => <Pill key={n} selected={cookingTime === n} onClick={() => setCookingTime(n)}>{n} min</Pill>)}</div>
         </Screen>}
 
-        {step === 10 && <Screen eyebrow="10 · PRÊT" title={<>Maintenant,<br />visualise ton objectif.</>} subtitle="Ton profil est prêt. La prochaine étape est NOX Future : ta photo actuelle, ton objectif visuel, puis ta projection IA.">
-          <div style={{ background: BLACK, color: WHITE, borderRadius: 28, padding: 22, boxShadow: '0 18px 45px rgba(0,0,0,.10)' }}>
-            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.12em', color: '#888', marginBottom: 16 }}>TON PROFIL NOX</div>
-            <SummaryRow label="Objectif" value={GOALS.find(g => g[0] === goal)?.[1] || goal} />
-            <SummaryRow label="Horizon souhaité" value={goalTime === '0' ? 'À définir' : `${goalTime} mois`} />
-            <SummaryRow label="IMC indicatif" value={bmi ? bmi.toFixed(1).replace('.', ',') : '—'} />
-            <SummaryRow label="Niveau" value={LEVELS.find(l => l[0] === level)?.[1] || level} />
-            <SummaryRow label="Entraînement" value={`${days.length}× / semaine`} />
-            <SummaryRow label="Séance" value={`${duration} min`} />
-            <SummaryRow label="Nutrition" value={`${dietPrefs.length} préférence${dietPrefs.length > 1 ? 's' : ''}`} last />
+        {step === 'ready' && <Screen eyebrow={`${num} · PRÊT`} title={<>NOX est prêt.</>} subtitle="Ton parcours commence aujourd’hui. Une priorité à la fois, au rythme de ta vraie vie.">
+          <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 22, padding: 20 }}>
+            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.12em', color: MUTED, marginBottom: 10 }}>TON PARCOURS</div>
+            <SummaryRow label="Ce que tu travailles" value={focusLabels.join(' · ')} last={!movement && !nutrition} />
+            {movement && <SummaryRow label="Entraînement" value={`${days.length}× / semaine · ${duration} min`} />}
+            {movement && <SummaryRow label="Niveau" value={LEVELS.find(l => l[0] === level)?.[1] || '—'} last={!nutrition} />}
+            {nutrition && <SummaryRow label="Base nutritionnelle estimée" value={preview ? `${preview.calories} kcal` : '—'} last />}
           </div>
-          {preview && <div style={{ marginTop: 12, background: '#F0FFD0', border: '1px solid #D9F48E', borderRadius: 22, padding: 18 }}>
-            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.1em', color: '#687600' }}>BASE NUTRITIONNELLE ESTIMÉE</div>
-            <div style={{ marginTop: 6, fontSize: 26, fontWeight: 950 }}>{preview.calories} kcal</div>
-            <div style={{ marginTop: 5, color: MUTED, fontSize: 12 }}>{preview.protein} g protéines · {preview.carbs} g glucides · {preview.fat} g lipides</div>
-          </div>}
-          <div style={{ marginTop: 12, padding: 18, borderRadius: 22, background: WHITE, border: `1px solid ${BORDER}` }}>
-            <div style={{ fontSize: 10, fontWeight: 950, letterSpacing: '.1em', color: '#8B9086' }}>TON PROCHAIN PAS</div>
-            <div style={{ marginTop: 6, fontSize: 18, fontWeight: 950 }}>Tu as l’objectif. NOX construit le chemin avec toi.</div>
-            <div style={{ marginTop: 7, color: MUTED, fontSize: 11.5, lineHeight: 1.55 }}>Tu n’as pas besoin de tout réussir d’un coup. NOX transforme ta direction en actions concrètes et t’aide à garder le cap.</div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 18, color: MUTED, fontSize: 12, lineHeight: 1.5 }}>
-            <div style={{ width: 26, height: 26, borderRadius: 9, background: ACCENT, display: 'grid', placeItems: 'center', color: BLACK }}><Check size={14} strokeWidth={3} /></div>
-            Après NOX Future, ton objectif servira à construire ton programme personnalisé.
-          </div>
+          {habitKinds.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, color: SEC, fontSize: 12, lineHeight: 1.5 }}>
+              <div style={{ width: 26, height: 26, borderRadius: 9, background: ACCENT, display: 'grid', placeItems: 'center', color: BG, flexShrink: 0 }}><Check size={14} strokeWidth={3} /></div>
+              Ensuite, tu configureras {habitKinds.length > 1 ? `tes ${habitKinds.length} habitudes` : 'ton habitude'} : objectif, cible et ressources d’aide.
+            </div>
+          )}
         </Screen>}
       </main>
 
-      <footer style={{ width: '100%', maxWidth: 560, margin: '0 auto', boxSizing: 'border-box', padding: '12px 20px max(24px, env(safe-area-inset-bottom))' }}>
-        {error && <div style={{ marginBottom: 10, padding: '12px 14px', borderRadius: 14, background: '#FFF1F0', border: '1px solid #FFD1CD', color: '#B42318', fontSize: 12 }}>{error}</div>}
-        {step < TOTAL
+      <footer style={{ width: '100%', maxWidth: 760, margin: '0 auto', boxSizing: 'border-box', padding: '12px 16px max(24px, env(safe-area-inset-bottom))' }}>
+        {error && <div style={{ marginBottom: 10, padding: '12px 14px', borderRadius: 14, background: SURFACE, border: '1px solid #5A3A3A', color: '#E9C2C2', fontSize: 12 }}>{error}</div>}
+        {!last
           ? <button onClick={next} disabled={!canNext} style={primaryButton(canNext)}><span>CONTINUER</span><ChevronRight size={19} /></button>
-          : <button onClick={finish} disabled={saving || !preview} style={primaryButton(!saving && !!preview)}><span>{saving ? 'ENREGISTREMENT...' : 'COMMENCER NOX'}</span>{!saving && <ChevronRight size={19} />}</button>}
+          : <button onClick={finish} disabled={saving} style={primaryButton(!saving)}><span>{saving ? 'ENREGISTREMENT...' : 'COMMENCER'}</span>{!saving && <ChevronRight size={19} />}</button>}
       </footer>
     </div>
   );
@@ -461,15 +445,15 @@ export default function Onboarding() {
 
 function Screen({ eyebrow, title, subtitle, children }: { eyebrow: string; title: ReactNode; subtitle: string; children: ReactNode }) {
   return <section>
-    <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.13em', color: '#9BA096', marginBottom: 11 }}>{eyebrow}</div>
-    <h1 style={{ margin: 0, color: BLACK, fontSize: 'clamp(34px, 9vw, 46px)', lineHeight: .96, letterSpacing: '-.06em', fontWeight: 950 }}>{title}</h1>
-    <p style={{ margin: '16px 0 28px', maxWidth: 440, color: MUTED, fontSize: 14, lineHeight: 1.6 }}>{subtitle}</p>
+    <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.13em', color: MUTED, marginBottom: 11 }}>{eyebrow}</div>
+    <h1 style={{ margin: 0, color: WHITE, fontSize: 'clamp(34px, 5vw, 46px)', lineHeight: .98, letterSpacing: '-.04em', fontWeight: 850 }}>{title}</h1>
+    <p style={{ margin: '16px 0 28px', maxWidth: 520, color: SEC, fontSize: 14, lineHeight: 1.6 }}>{subtitle}</p>
     {children}
   </section>;
 }
 
 function Choice({ selected, onClick, children, centered = false }: { selected: boolean; onClick: () => void; children: ReactNode; centered?: boolean }) {
-  return <button onClick={onClick} style={{ width: '100%', minHeight: 64, marginBottom: 10, padding: '14px 16px', boxSizing: 'border-box', borderRadius: 18, border: `1.5px solid ${selected ? BLACK : BORDER}`, background: selected ? BLACK : WHITE, color: selected ? WHITE : BLACK, textAlign: centered ? 'center' : 'left', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, fontSize: 13, fontWeight: 850 }}>
+  return <button onClick={onClick} style={{ width: '100%', minHeight: 64, marginBottom: 10, padding: '14px 16px', boxSizing: 'border-box', borderRadius: 18, border: `1px solid ${selected ? ACCENT : SOFT}`, background: selected ? 'rgba(200,255,0,.08)' : SURFACE, color: WHITE, textAlign: centered ? 'center' : 'left', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, fontSize: 13, fontWeight: 850, cursor: 'pointer' }}>
     {children}
   </button>;
 }
@@ -478,7 +462,7 @@ function Field({ label, value, setValue, type = 'text', placeholder }: { label: 
   return <div style={{ marginBottom: 17 }}>
     <label style={{ display: 'block', margin: '0 0 8px 2px', fontSize: 10, fontWeight: 900, letterSpacing: '.09em', color: MUTED }}>{label}</label>
     <input value={value} onChange={e => setValue(e.target.value)} type={type} placeholder={placeholder}
-      style={{ width: '100%', height: 58, padding: '0 16px', boxSizing: 'border-box', borderRadius: 17, border: `1.5px solid ${BORDER}`, background: WHITE, color: BLACK, outline: 'none', fontSize: 15, fontWeight: 750 }} />
+      style={{ width: '100%', height: 58, padding: '0 16px', boxSizing: 'border-box', borderRadius: 17, border: `1px solid ${SOFT}`, background: SURFACE2, color: WHITE, outline: 'none', fontSize: 15, fontWeight: 750, colorScheme: 'dark' }} />
   </div>;
 }
 
@@ -487,24 +471,24 @@ function SmallTitle({ children }: { children: ReactNode }) {
 }
 
 function Pill({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: ReactNode }) {
-  return <button onClick={onClick} style={{ minWidth: 58, padding: '12px 15px', borderRadius: 13, border: `1px solid ${selected ? BLACK : BORDER}`, background: selected ? BLACK : WHITE, color: selected ? ACCENT : BLACK, fontWeight: 900 }}>{children}</button>;
+  return <button onClick={onClick} style={{ minWidth: 58, minHeight: 48, padding: '12px 15px', borderRadius: 13, border: `1px solid ${selected ? ACCENT : SOFT}`, background: selected ? 'rgba(200,255,0,.08)' : SURFACE, color: selected ? ACCENT : WHITE, fontWeight: 900, cursor: 'pointer' }}>{children}</button>;
 }
 
 function Info({ children }: { children: ReactNode }) {
-  return <div style={{ padding: '13px 14px', borderRadius: 15, background: '#F0FFD0', border: '1px solid #DDF59C', color: '#596700', fontSize: 11, lineHeight: 1.5, fontWeight: 650 }}>{children}</div>;
+  return <div style={{ marginTop: 6, padding: '13px 14px', borderRadius: 15, background: SURFACE2, border: `1px solid ${SOFT}`, color: SEC, fontSize: 12, lineHeight: 1.5, fontWeight: 650 }}>{children}</div>;
 }
 
 function SummaryRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
-  return <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: last ? 'none' : '1px solid #242424' }}>
-    <span style={{ color: '#858585', fontSize: 12 }}>{label}</span><strong style={{ color: WHITE, fontSize: 12, textAlign: 'right' }}>{value}</strong>
+  return <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: last ? 'none' : `1px solid ${SOFT}` }}>
+    <span style={{ color: SEC, fontSize: 12 }}>{label}</span><strong style={{ color: WHITE, fontSize: 12, textAlign: 'right' }}>{value}</strong>
   </div>;
 }
 
 function primaryButton(enabled: boolean): CSSProperties {
   return {
-    width: '100%', minHeight: 60, padding: '0 18px', border: 0, borderRadius: 18,
-    background: enabled ? ACCENT : '#E1E4DD', color: enabled ? BLACK : '#A4A8A0',
-    fontSize: 13, fontWeight: 950, letterSpacing: '.035em', display: 'flex',
+    width: '100%', minHeight: 60, padding: '0 18px', border: 0, borderRadius: 14,
+    background: enabled ? ACCENT : '#2B2F2C', color: enabled ? BG : MUTED,
+    fontSize: 13, fontWeight: 800, letterSpacing: '.035em', display: 'flex',
     alignItems: 'center', justifyContent: 'space-between', cursor: enabled ? 'pointer' : 'not-allowed',
   };
 }
