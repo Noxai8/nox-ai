@@ -61,6 +61,8 @@ export default function Habits() {
   const [error, setError] = useState('');
   const [focus, setFocus] = useState<FocusArea[] | null>(null);
   const [justEnabled, setJustEnabled] = useState<FocusArea | null>(null);
+  const [todaySteps, setTodaySteps] = useState<number | null>(null);
+  const [todayStepsSource, setTodayStepsSource] = useState<string | null>(null);
 
   // File de configuration en fin d'onboarding
   const location = useLocation();
@@ -102,11 +104,37 @@ export default function Habits() {
       .eq('active', true)
       .order('created_at');
     if (e) setError(e.message);
-    setHabits((data ?? []) as UserHabit[]);
+    const loadedHabits = (data ?? []) as UserHabit[];
+    setHabits(loadedHabits);
+
+    const stepsHabit = loadedHabits.find(h => h.kind === 'steps');
+    if (stepsHabit) {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: stepLog } = await supabase
+        .from('habit_logs')
+        .select('count, source')
+        .eq('user_id', user!.id)
+        .eq('habit_id', stepsHabit.id)
+        .eq('date', today)
+        .maybeSingle();
+      setTodaySteps(stepLog?.count ?? null);
+      setTodayStepsSource(stepLog?.source ?? null);
+    } else {
+      setTodaySteps(null);
+      setTodayStepsSource(null);
+    }
+
     const { data: p } = await supabase.from('profiles').select('focus_areas').eq('id', user!.id).maybeSingle();
     setFocus(((p?.focus_areas ?? []) as FocusArea[]));
     setLoading(false);
   };
+
+  const stepsHabit = habits.find(h => h.kind === 'steps');
+  const stepsTarget = stepsHabit?.daily_target ?? null;
+  const stepsProgress = todaySteps != null && stepsTarget != null && stepsTarget > 0
+    ? Math.min(100, Math.round((todaySteps / stepsTarget) * 100))
+    : 0;
+  const stepsMeasured = todayStepsSource === 'healthkit' || todayStepsSource === 'health_connect';
 
   const activeKinds = new Set(habits.map(h => h.kind));
   const available = HABIT_KINDS.filter(k => !activeKinds.has(k));
@@ -246,6 +274,41 @@ export default function Habits() {
               <div style={{ color: MUTED, fontSize: 13 }}>Chargement…</div>
             ) : (
               <>
+                {stepsHabit && (
+                  <section style={{ ...card, marginBottom: 18 }}>
+                    <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em', marginBottom: 14 }}>BOUGER AUJOURD'HUI</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
+                      <div style={{
+                        width: 154, height: 154, borderRadius: '50%', flexShrink: 0,
+                        background: `conic-gradient(${LIME} ${stepsProgress * 3.6}deg, ${SOFT} 0deg)`,
+                        display: 'grid', placeItems: 'center', padding: 9, boxSizing: 'border-box'
+                      }}>
+                        <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: BG, display: 'grid', placeItems: 'center', textAlign: 'center', padding: 12, boxSizing: 'border-box' }}>
+                          <div>
+                            <div style={{ fontSize: todaySteps == null ? 32 : 30, fontWeight: 950, letterSpacing: '-.04em', lineHeight: 1 }}>
+                              {todaySteps == null ? '—' : todaySteps.toLocaleString('fr-FR')}
+                            </div>
+                            <div style={{ color: SEC, fontSize: 11, fontWeight: 900, marginTop: 6 }}>pas aujourd'hui</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 190 }}>
+                        <div style={{ fontSize: 20, fontWeight: 950, letterSpacing: '-.025em' }}>
+                          {todaySteps == null ? 'À saisir' : `${stepsProgress}% de l'objectif`}
+                        </div>
+                        <div style={{ color: SEC, fontSize: 13, lineHeight: 1.5, marginTop: 7 }}>
+                          {stepsTarget != null ? `Objectif : ${Number(stepsTarget).toLocaleString('fr-FR')} pas` : 'Définis ton objectif quotidien de pas.'}
+                        </div>
+                        {todaySteps != null && (
+                          <div style={{ display: 'inline-flex', marginTop: 10, padding: '5px 9px', borderRadius: 999, border: `1px solid ${SOFT}`, color: stepsMeasured ? LIME : SEC, fontSize: 10, fontWeight: 950, letterSpacing: '.08em' }}>
+                            {stepsMeasured ? 'MESURÉ' : 'DÉCLARÉ'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+                )}
+
                 {habits.length > 0 && (
                   <section style={{ display: 'grid', gap: 10, marginBottom: 28 }}>
                     {habits.map(h => {
@@ -261,7 +324,7 @@ export default function Habits() {
                               {h.kind === 'custom' && h.mode === 'reduce'
                                 ? `Au plus ${Number(h.daily_target).toLocaleString('fr-FR')} ${h.unit}/jour`
                                 : h.mode === 'build'
-                                ? `Au moins ${Number(h.daily_target).toLocaleString('fr-FR')} ${h.unit}/jour${h.kind === 'steps' ? ' · DÉCLARÉ' : ''}`
+                                ? `Au moins ${Number(h.daily_target).toLocaleString('fr-FR')} ${h.unit}/jour`
                                 : <>{MODE_LABELS[h.mode].title}{h.daily_target != null ? ` · cible ${h.daily_target} ${h.unit}/jour` : ''}</>}
                               {h.professional_support ? ' · avec un professionnel' : ''}
                             </div>
@@ -417,7 +480,7 @@ export default function Habits() {
                   <div style={{ color: SEC, fontSize: 13, marginBottom: 10 }}>
                     {draft.mode === 'reduce' ? 'Au plus' : 'Au moins'} combien de {draft.kind === 'custom' ? draft.unit : 'pas'} par jour ?
                   </div>
-                  <input type="number" inputMode="numeric" min={1} max={100000} placeholder={draft.kind === 'steps' ? '7000' : 'Ex : 20'}
+                  <input type="number" inputMode="numeric" min={draft.mode === 'reduce' ? 0 : 1} max={100000} placeholder={draft.kind === 'steps' ? '7000' : 'Ex : 20'}
                     value={draft.target} onChange={e => setDraft({ ...draft, target: e.target.value })} style={input} />
                   <div style={{ color: MUTED, fontSize: 12, lineHeight: 1.5, marginTop: 12 }}>
                     {draft.kind === 'steps'
