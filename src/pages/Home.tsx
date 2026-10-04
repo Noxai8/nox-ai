@@ -8,7 +8,8 @@ import { useAuth } from '../lib/AuthContext';
 import { generateDailyPriority, type DailyPriority } from '../lib/nox/priorityEngine';
 import { todayLocalDate } from '../lib/localDate';
 import NoxCompanion from '../components/NoxCompanion';
-import { HABITS, type UserHabit } from '../lib/nox/habits';
+import { HABITS, HABIT_COLUMNS, habitName, isTargetMet, usesValueInput, type UserHabit } from '../lib/nox/habits';
+import { buildDayPlan, summarizeDay, type DayPlanItem } from '../lib/nox/dayPlan';
 import { dayState, noxiLine } from '../lib/nox/noxiVoice';
 import { isMissionDone, missionMinutes, suggestBlock, type DailyMission, type FocusSession } from '../lib/nox/focus';
 
@@ -45,6 +46,7 @@ function QuickAddModal({ open, onClose }: { open: boolean; onClose: () => void }
   const actions = [
     { label: 'Repas',           icon: Utensils, path: '/food-scan', color: '#FF6B35' },
     { label: 'Mouvement/Sport', icon: Dumbbell, path: '/movement',  color: '#C8FF00' },
+    { label: 'Concentration',   icon: Target,   path: '/focus',     color: '#C8FF00' },
     { label: 'Poids',           icon: Scale,    path: '/body',      color: '#64B5F6' },
     { label: 'Sommeil',         icon: Moon,     path: '/sleep',     color: '#9C89FF' },
     { label: 'Humeur/Stress',   icon: Smile,    path: '/mood',      color: '#FFD93D' },
@@ -267,11 +269,19 @@ export default function Home() {
   const [editingClosure, setEditingClosure] = useState(false);
   const [observedDays, setObservedDays] = useState(0);
   const [habits, setHabits] = useState<UserHabit[]>([]);
-  const [habitLogs, setHabitLogs] = useState<{ habit_id: string; date: string; count: number }[]>([]);
+  const [habitLogs, setHabitLogs] = useState<{ habit_id: string; date: string; count: number; source?: string | null }[]>([]);
   const [habitBusy, setHabitBusy] = useState<string | null>(null);
+  const [habitValue, setHabitValue] = useState<Record<string, string>>({});
   const [movedToday, setMovedToday] = useState(false);
   const [mission, setMission] = useState<DailyMission | null>(null);
   const [missionSessions, setMissionSessions] = useState<FocusSession[]>([]);
+  const [nowTick, setNowTick] = useState(Date.now());
+  const openSession = missionSessions.find(s => !s.ended_at) ?? null;
+  useEffect(() => {
+    if (!openSession) return;
+    const t = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [openSession?.id]);
   const [lastClosureDate, setLastClosureDate] = useState<string | null>(null);
 
   useEffect(() => { if (user) void loadAll(); }, [user]);
@@ -283,7 +293,7 @@ export default function Home() {
     since.setDate(since.getDate() - 6);
     const { data: hs, error: hErr } = await supabase
       .from('user_habits')
-      .select('id, kind, mode, unit, baseline, daily_target, professional_support, risk_flag, active, started_on')
+      .select(HABIT_COLUMNS)
       .eq('user_id', user.id)
       .eq('active', true)
       .order('created_at');
@@ -293,7 +303,7 @@ export default function Home() {
     if (!list.length) { setHabitLogs([]); return; }
     const { data: logs, error: lErr } = await supabase
       .from('habit_logs')
-      .select('habit_id, date, count')
+      .select('habit_id, date, count, source')
       .eq('user_id', user.id)
       .gte('date', since.toLocaleDateString('sv-SE'));
     if (lErr) { console.error('habit_logs:', lErr.message); return; }
@@ -422,6 +432,18 @@ export default function Home() {
   const todayCarbs = todayFood.reduce((sum, entry) => sum + Number(entry.carbs || entry.carbs_g || entry.carbohydrates || 0), 0);
   const todayFat = todayFood.reduce((sum, entry) => sum + Number(entry.fat || entry.fat_g || entry.fats || 0), 0);
   const caloriesRemaining = caloriesTarget > 0 ? Math.max(0, caloriesTarget - todayKcal) : null;
+
+  // Pas : uniquement depuis un vrai relevé habit_logs. Aucune valeur inventée.
+  const stepsHabit = habits.find(h => h.kind === 'steps');
+  const todayStepsLog = stepsHabit
+    ? habitLogs.find(l => l.habit_id === stepsHabit.id && l.date === todayLocalDate())
+    : null;
+  const stepsTarget = stepsHabit?.daily_target != null ? Number(stepsHabit.daily_target) : null;
+  const todaySteps = todayStepsLog ? Number(todayStepsLog.count) : null;
+  const stepsProgress = todaySteps != null && stepsTarget != null && stepsTarget > 0
+    ? Math.min(100, Math.round((todaySteps / stepsTarget) * 100))
+    : 0;
+  const stepsMeasured = todayStepsLog?.source === 'healthkit' || todayStepsLog?.source === 'health_connect';
   const sessions = program?.program_json?.sessions || [];
   const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
   const todaySession = sessions.find((session: any) =>
@@ -523,25 +545,28 @@ export default function Home() {
     priorityTitle: priority.type !== 'none' ? (priority as any).title : null,
     priorityType: priority.type,
   };
-  const dayItems: { key: string; label: string; done: boolean; go: () => void }[] = [
-    { key: 'pulse', label: 'Pulse du matin', done: !!todayPulse, go: () => navigate('/pulse') },
-    // Mouvement seulement s'il est prévu ou recommandé aujourd'hui (un jour de repos n'impose rien)
-    ...(movementFocus && (todaySession || priority.type === 'activity') ? [{
-      key: 'move', label: todaySession ? 'Séance ou activité' : 'Bouger aujourd’hui',
-      done: !!todayWorkout || movedToday, go: () => navigate(todaySession ? '/program' : '/movement'),
-    }] : []),
-    ...(mission ? [{
-      key: 'mission', label: `Mission : ${mission.title}`,
+  type DayItem = DayPlanItem & { go: () => void };
+  const dayItems: DayItem[] = buildDayPlan({
+    focusAreas,
+    pulseDone: !!todayPulse,
+    closureDone: !!todayClosure,
+    priorityType: priority.type,
+    mission: mission ? {
+      title: mission.title, kind: mission.kind, target_minutes: mission.target_minutes,
+      minutes: missionMinutes(missionSessions, mission.id),
       done: isMissionDone(mission, missionMinutes(missionSessions, mission.id)),
-      go: () => navigate('/focus'),
-    }] : focusOn ? [{ key: 'mission', label: 'Définir ta mission du jour', done: false, go: () => navigate('/focus') }] : []),
-    ...habits.map(h => ({
-      key: h.id, label: HABITS[h.kind].publicLabel,
-      done: habitLogs.some(l => l.habit_id === h.id && l.date === todayKey),
-      go: () => navigate(`/habits/${h.id}`),
-    })),
-    { key: 'closure', label: 'Clôture du soir', done: !!todayClosure, go: () => navigate('/closure', { state: closureState }) },
-  ];
+    } : null,
+    session: todaySession ? { name: todaySession.name } : null,
+    movedToday: !!todayWorkout || movedToday,
+    caloriesTarget,
+    kcalToday: todayKcal,
+    mealsToday: todayFood.length,
+    habits,
+    todayLogs: habitLogs.filter(l => l.date === todayKey),
+  }).map(item => ({
+    ...item,
+    go: () => (item.closure ? navigate(item.route, { state: closureState }) : navigate(item.route)),
+  }));
   const dayDone = dayItems.filter(i => i.done).length;
   const daysSinceLastClosure = lastClosureDate
     ? Math.round((new Date(`${todayKey}T12:00:00`).getTime() - new Date(`${lastClosureDate}T12:00:00`).getTime()) / 86400000)
@@ -584,7 +609,7 @@ export default function Home() {
         </header>
 
         <section className="nox-home-section">
-          <SectionHeader title="Ta journée" action={`${dayDone}/${dayItems.length}`} />
+          <SectionHeader title="Ta journée" action={summarizeDay(dayItems).complete ? 'Complète ✓' : `${dayDone}/${dayItems.length}`} />
           <AppCard style={{ padding: 18 }}>
             <div style={{ height: 6, borderRadius: 999, background: '#343835', overflow: 'hidden', marginBottom: 14 }}>
               <div style={{ width: `${(dayDone / Math.max(1, dayItems.length)) * 100}%`, height: '100%', borderRadius: 999, background: '#C8FF00', transition: 'width .5s ease' }} />
@@ -594,7 +619,10 @@ export default function Home() {
                 <button key={item.key} onClick={item.go}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 2px', border: 0, borderTop: i ? '1px solid #343835' : 'none', background: 'transparent', color: '#FFFFFF', cursor: 'pointer', textAlign: 'left' }}>
                   {item.done ? <CircleCheck size={20} color="#C8FF00" /> : <Circle size={20} color="#747A76" />}
-                  <span style={{ flex: 1, fontSize: 14, fontWeight: 850, color: item.done ? '#A5AAA6' : '#FFFFFF' }}>{item.label}</span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 850, color: item.done ? '#A5AAA6' : '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+                  {item.measured && <span style={{ padding: '2px 6px', borderRadius: 6, background: 'rgba(200,255,0,.10)', border: '1px solid rgba(200,255,0,.35)', color: '#C8FF00', fontSize: 9, fontWeight: 900, letterSpacing: '.06em', flexShrink: 0 }}>MESURÉ</span>}
+                  {item.declared && <span style={{ padding: '2px 6px', borderRadius: 6, background: '#191C1A', border: '1px solid #343835', color: '#A5AAA6', fontSize: 9, fontWeight: 900, letterSpacing: '.06em', flexShrink: 0 }}>DÉCLARÉ</span>}
+                  {item.detail && <span style={{ color: '#747A76', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0 }}>{item.detail}</span>}
                   {!item.done && <span style={{ color: '#747A76', fontSize: 16 }}>›</span>}
                 </button>
               ))}
@@ -717,46 +745,67 @@ export default function Home() {
         </section>
 
         {(mission || focusOn) && (() => {
+          // Concentration = intention choisie par l'utilisateur (≠ Priorité du jour, recommandée par NOX).
+          // Toutes les valeurs viennent du serveur (missions, sessions) ; rien n'est calculé ici pour l'XP.
           const mins = mission ? missionMinutes(missionSessions, mission.id) : 0;
           const done = mission ? isMissionDone(mission, mins) : false;
           const tip = suggestBlock(todayPulse, new Date().getHours());
+          const running = openSession && mission && openSession.mission_id === mission.id;
+          const elapsed = running ? Math.max(0, Math.floor((nowTick - new Date(openSession!.started_at).getTime()) / 1000)) : 0;
+          const clock = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`;
+          const label = { fontSize: 11, fontWeight: 900, letterSpacing: '.06em', color: '#8E938F', marginBottom: 8 } as const;
           return (
             <section className="nox-home-section">
-              <SectionHeader title="Mission du jour" action={mission ? 'Ouvrir ›' : undefined} onAction={() => navigate('/focus')} />
+              <SectionHeader title="Concentration" action={mission ? 'Ouvrir ›' : undefined} onAction={() => navigate('/focus')} />
               <AppCard style={{ padding: 20 }}>
                 {!mission ? (
                   <>
-                    <div style={{ fontSize: 18, fontWeight: 950, marginBottom: 6 }}>Qu’est-ce qui ferait de cette journée une réussite ?</div>
-                    <div style={{ color: '#A5AAA6', fontSize: 13, marginBottom: 16 }}>Une seule chose importante. NOX t’aide à l’avancer.</div>
-                    <LimeButton onClick={() => navigate('/focus')}>DÉFINIR MA MISSION →</LimeButton>
+                    <div style={label}>MISSION DU JOUR</div>
+                    <div style={{ color: '#A5AAA6', fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>
+                      Ce que tu décides d’accomplir aujourd’hui. Une seule chose importante.
+                    </div>
+                    <DarkButton onClick={() => navigate('/focus')}>DÉFINIR MA MISSION DU JOUR →</DarkButton>
                   </>
                 ) : (
                   <>
-                    <div style={{ fontSize: 19, fontWeight: 950, letterSpacing: '-.02em' }}>{mission.title}</div>
-                    {mission.kind === 'duration' ? (
+                    <div style={label}>MISSION DU JOUR · {mission.kind === 'duration' ? 'DURÉE' : 'TÂCHE'}</div>
+                    <div style={{ fontSize: 19, fontWeight: 950, letterSpacing: '-.02em' }}>« {mission.title} »</div>
+
+                    {mission.kind === 'duration' && (
                       <>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', margin: '12px 0 8px', fontSize: 13 }}>
-                          <span style={{ color: '#A5AAA6' }}>Objectif : {mission.target_minutes} min de focus</span>
-                          <span style={{ fontWeight: 950, color: done ? '#C8FF00' : '#FFFFFF' }}>{mins} / {mission.target_minutes} min{done ? ' ✓' : ''}</span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', margin: '12px 0 8px', fontSize: 13, color: '#A5AAA6' }}>
+                          <span>{mission.target_minutes} min prévues</span>
+                          <span>·</span>
+                          <span style={{ fontWeight: 950, color: done ? '#C8FF00' : '#FFFFFF' }}>{mins} min réalisées</span>
                         </div>
-                        <div style={{ height: 6, borderRadius: 999, background: '#343835', overflow: 'hidden', marginBottom: done ? 0 : 14 }}>
+                        <div style={{ height: 6, borderRadius: 999, background: '#343835', overflow: 'hidden' }}>
                           <div style={{ width: `${Math.min(100, (mins / Math.max(1, mission.target_minutes ?? 1)) * 100)}%`, height: '100%', background: '#C8FF00', borderRadius: 999 }} />
                         </div>
-                        {!done && (
-                          <>
-                            <div style={{ color: '#A5AAA6', fontSize: 12, lineHeight: 1.5, marginBottom: 14 }}>
-                              <span style={{ color: '#C8FF00', fontWeight: 900 }}>NOX : </span>{tip.reason}
-                            </div>
-                            <DarkButton onClick={() => navigate('/focus')}>DÉMARRER UNE SESSION →</DarkButton>
-                          </>
-                        )}
+                      </>
+                    )}
+
+                    {done ? (
+                      <div style={{ marginTop: 14, fontSize: 14, fontWeight: 950, color: '#C8FF00' }}>
+                        ✓ Mission accomplie{mission.kind === 'duration' ? ` · ${mins} min` : ''}
+                      </div>
+                    ) : running ? (
+                      <>
+                        <div style={{ marginTop: 14, fontSize: 14, fontWeight: 950 }}>
+                          <span style={{ fontVariantNumeric: 'tabular-nums' }}>{clock}</span>
+                          <span style={{ color: '#A5AAA6', fontWeight: 750 }}> en cours</span>
+                        </div>
+                        <LimeButton onClick={() => navigate('/focus')} style={{ marginTop: 14 }}>REPRENDRE →</LimeButton>
+                      </>
+                    ) : mission.kind === 'duration' ? (
+                      <>
+                        <div style={{ color: '#A5AAA6', fontSize: 12, lineHeight: 1.5, margin: '14px 0' }}>
+                          <span style={{ color: '#C8FF00', fontWeight: 900 }}>NOX : </span>{tip.reason}
+                        </div>
+                        <DarkButton onClick={() => navigate('/focus')}>{mins > 0 ? 'CONTINUER →' : 'COMMENCER →'}</DarkButton>
                       </>
                     ) : (
-                      <div style={{ marginTop: 10, fontSize: 13, fontWeight: 900, color: done ? '#C8FF00' : '#A5AAA6' }}>
-                        {done ? 'Mission accomplie ✓' : 'Tâche à finir aujourd’hui'}
-                      </div>
+                      <DarkButton onClick={() => navigate('/focus')} style={{ marginTop: 14 }}>TERMINER →</DarkButton>
                     )}
-                    {mission.kind === 'task' && !done && <DarkButton onClick={() => navigate('/focus')} style={{ marginTop: 14 }}>OUVRIR MA MISSION →</DarkButton>}
                   </>
                 )}
               </AppCard>
@@ -767,8 +816,55 @@ export default function Home() {
         {habits.length > 0 && (
           <section className="nox-home-section">
             <SectionHeader title="Mes objectifs" action="Gérer ›" onAction={() => navigate('/habits')} />
+
+            {stepsHabit && (
+              <AppCard style={{ padding: 20, marginBottom: 10 }}>
+                <div className="nox-steps-card">
+                  <div className="nox-steps-ring" style={{
+                    ['--steps-progress' as any]: `${stepsProgress * 3.6}deg`,
+                  }}>
+                    <div className="nox-steps-ring-inner">
+                      <PersonStanding size={20} color="#C8FF00" />
+                      <div style={{ fontSize: todaySteps == null ? 32 : 30, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.05em', marginTop: 7 }}>
+                        {todaySteps == null ? '—' : todaySteps.toLocaleString('fr-FR')}
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 900, marginTop: 5 }}>pas</div>
+                    </div>
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: '#8E938F', fontSize: 10, fontWeight: 950, letterSpacing: '.08em', marginBottom: 7 }}>
+                      BOUGER AUJOURD'HUI
+                    </div>
+                    <div style={{ fontSize: 21, fontWeight: 1000, letterSpacing: '-.03em' }}>
+                      {todaySteps == null
+                        ? 'Suivi des pas non connecté'
+                        : stepsTarget != null && todaySteps >= stepsTarget
+                          ? 'Objectif atteint ✓'
+                          : `${stepsProgress}% de ton objectif`}
+                    </div>
+                    <div style={{ color: '#A5AAA6', fontSize: 13, lineHeight: 1.5, marginTop: 7 }}>
+                      {stepsTarget != null
+                        ? `Objectif : ${stepsTarget.toLocaleString('fr-FR')} pas par jour`
+                        : 'Définis ton objectif quotidien de pas.'}
+                    </div>
+                    {todaySteps != null ? (
+                      <div style={{ marginTop: 10, display: 'inline-flex', padding: '4px 8px', borderRadius: 999, border: `1px solid ${stepsMeasured ? 'rgba(200,255,0,.35)' : '#343835'}`, color: stepsMeasured ? '#C8FF00' : '#A5AAA6', fontSize: 9, fontWeight: 950, letterSpacing: '.07em' }}>
+                        {stepsMeasured ? 'MESURÉ' : 'DÉCLARÉ'}
+                      </div>
+                    ) : (
+                      <button onClick={() => navigate('/habits')}
+                        style={{ marginTop: 12, border: '1px solid rgba(200,255,0,.35)', borderRadius: 999, padding: '9px 13px', background: 'transparent', color: '#C8FF00', fontSize: 11, fontWeight: 950, cursor: 'pointer' }}>
+                        CONNECTER / CONFIGURER →
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </AppCard>
+            )}
+
             <div style={{ display: 'grid', gap: 10 }}>
-              {habits.map(h => {
+              {habits.filter(h => h.kind !== 'steps').map(h => {
                 const def = HABITS[h.kind];
                 const Icon = def.icon;
                 const today = todayLocalDate();
@@ -777,7 +873,10 @@ export default function Home() {
                 const weekTotal = logs.reduce((s, l) => s + l.count, 0);
                 const avg = logs.length ? Math.round((weekTotal / logs.length) * 10) / 10 : null;
                 const target = h.daily_target;
-                const met = todayLog && target != null ? todayLog.count <= target : null;
+                const met = todayLog ? isTargetMet(todayLog.count, target, h.mode) : null;
+                const build = h.mode === 'build';
+                const valueMode = usesValueInput(h);
+                const draftValue = habitValue[h.id] ?? '';
                 const busy = habitBusy === h.id;
                 const stop = (e: React.MouseEvent) => e.stopPropagation();
                 const pill: React.CSSProperties = { height: 40, minWidth: 48, padding: '0 14px', borderRadius: 12, border: '1px solid #343835', background: '#191C1A', color: '#FFFFFF', fontSize: 13, fontWeight: 900, cursor: busy ? 'wait' : 'pointer', opacity: busy ? .6 : 1 };
@@ -787,45 +886,60 @@ export default function Home() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div className="nox-square-icon"><Icon size={22} /></div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 15, fontWeight: 950 }}>{def.publicLabel}</div>
+                          <div style={{ fontSize: 15, fontWeight: 950 }}>{habitName(h)}</div>
                           <div style={{ color: '#8E938F', fontSize: 11, fontWeight: 800, marginTop: 3 }}>
-                            {h.mode === 'track' ? 'Suivi seulement' : h.mode === 'stop' ? 'Objectif : arrêter' : 'Objectif : réduire'}
+                            {build ? `Objectif : au moins ${Number(target).toLocaleString('fr-FR')}${h.kind === 'steps' ? ' · DÉCLARÉ' : ''}`
+                              : h.mode === 'track' ? 'Suivi seulement' : h.mode === 'stop' ? 'Objectif : arrêter' : 'Objectif : réduire'}
                           </div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <div style={{ fontSize: 26, fontWeight: 1000, letterSpacing: '-.04em', lineHeight: 1 }}>
-                            {todayLog ? todayLog.count : '—'}
-                            {target != null && <span style={{ color: '#747A76', fontSize: 15, fontWeight: 900 }}> / {target}</span>}
+                            {todayLog ? todayLog.count.toLocaleString('fr-FR') : '—'}
+                            {target != null && <span style={{ color: '#747A76', fontSize: 15, fontWeight: 900 }}> / {target.toLocaleString('fr-FR')}</span>}
                           </div>
-                          <div style={{ color: '#747A76', fontSize: 10, fontWeight: 800, marginTop: 4 }}>{def.unit} aujourd’hui</div>
+                          <div style={{ color: '#747A76', fontSize: 10, fontWeight: 800, marginTop: 4 }}>{h.unit} aujourd’hui</div>
                         </div>
                       </div>
 
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 14, fontSize: 12, color: '#A5AAA6' }}>
-                        {met === true && <span style={{ color: '#C8FF00', fontWeight: 900 }}>Dans ta cible ✓</span>}
-                        {met === false && <span style={{ fontWeight: 800 }}>Au-dessus de ta cible aujourd’hui</span>}
+                        {met === true && <span style={{ color: '#C8FF00', fontWeight: 900 }}>{build ? 'Objectif atteint ✓' : 'Dans ta cible ✓'}</span>}
+                        {met === false && !build && <span style={{ fontWeight: 800 }}>Au-dessus de ta cible aujourd’hui</span>}
+                        {met === false && build && <span style={{ fontWeight: 800 }}>Encore {(Number(target) - todayLog!.count).toLocaleString('fr-FR')} {h.unit}</span>}
                         {!todayLog && <span>Pas encore noté aujourd’hui</span>}
                         {h.kind === 'alcohol' && logs.length > 0 && <span>Cette semaine : {weekTotal} {def.unit}</span>}
-                        {h.baseline != null && avg != null && <span>Départ {h.baseline}/jour → {avg}/jour sur 7 j</span>}
+                        {!build && h.baseline != null && avg != null && <span>Départ {h.baseline}/jour → {avg}/jour sur 7 j</span>}
                       </div>
 
+                      {valueMode ? (
+                        <div style={{ display: 'flex', gap: 8, marginTop: 14 }} onClick={stop}>
+                          <input type="number" inputMode="numeric" min={0} max={100000} value={draftValue}
+                            placeholder={todayLog ? String(todayLog.count) : h.kind === 'steps' ? 'Nombre de pas' : `Valeur du jour (${h.unit})`}
+                            onChange={e => setHabitValue(v => ({ ...v, [h.id]: e.target.value }))}
+                            style={{ flex: 1, minWidth: 0, height: 40, padding: '0 12px', borderRadius: 12, border: '1px solid #343835', background: '#191C1A', color: '#FFFFFF', fontSize: 14, fontWeight: 900, outline: 'none' }} />
+                          <button style={pill} disabled={busy || draftValue === '' || Number(draftValue) < 0}
+                            onClick={() => { void logHabit(h, Number(draftValue)); setHabitValue(v => ({ ...v, [h.id]: '' })); }}>
+                            Enregistrer
+                          </button>
+                        </div>
+                      ) : (
                       <div style={{ display: 'flex', gap: 8, marginTop: 14 }} onClick={stop}>
-                        {!todayLog ? (
+                        {!todayLog && !build ? (
                           <button style={{ ...pill, flex: 1 }} disabled={busy} onClick={() => logHabit(h, 0)}>
                             Aucun{h.kind === 'tobacco' ? 'e' : ''} aujourd’hui
                           </button>
                         ) : (
-                          <button style={pill} disabled={busy || todayLog.count <= 0} onClick={() => logHabit(h, todayLog.count - 1)} aria-label="Retirer 1">−1</button>
+                          <button style={pill} disabled={busy || !todayLog || todayLog.count <= 0} onClick={() => todayLog && logHabit(h, todayLog.count - 1)} aria-label="Retirer 1">−1</button>
                         )}
-                        <button style={{ ...pill, flex: todayLog ? 1 : undefined }} disabled={busy} onClick={() => logHabit(h, (todayLog?.count ?? 0) + 1)} aria-label="Ajouter 1">+1</button>
+                        <button style={{ ...pill, flex: todayLog || build ? 1 : undefined }} disabled={busy} onClick={() => logHabit(h, (todayLog?.count ?? 0) + 1)} aria-label="Ajouter 1">+1</button>
                       </div>
+                      )}
                     </div>
                   </AppCard>
                 );
               })}
             </div>
             <div style={{ color: '#747A76', fontSize: 11, lineHeight: 1.5, marginTop: 10 }}>
-              Tenir une cible compte pour ta journée alignée. Un dépassement ne fait jamais perdre d’XP.
+              Tenir une habitude à réduire ou arrêter compte pour ta journée alignée. Les objectifs du quotidien enrichissent ta journée sans rapporter d’XP. Un dépassement ne fait jamais perdre de progression.
             </div>
           </section>
         )}
@@ -872,7 +986,7 @@ export default function Home() {
                   <div style={{ fontSize: 20, fontWeight: 1000, letterSpacing: '-.03em' }}>{todayPulse ? 'Ta journée touche à sa fin.' : 'Ton bilan viendra ici ce soir.'}</div>
                   <div style={{ color: '#A7ACA8', fontSize: 13, marginTop: 5 }}>{todayPulse ? '30 secondes pour clôturer avec NOX.' : 'Commence par ton Pulse pour donner à NOX le contexte de ta journée.'}</div>
                 </div>
-                {todayPulse && <button className="nox-round-arrow" onClick={() => navigate('/closure', { state: { priorityTitle: priority.type !== 'none' ? (priority as any).title : null, priorityType: priority.type } })}><ChevronRight size={20} /></button>}
+                <button className="nox-round-arrow" onClick={() => navigate('/closure', { state: { priorityTitle: priority.type !== 'none' ? (priority as any).title : null, priorityType: priority.type } })}><ChevronRight size={20} /></button>
               </div>
             </AppCard>
           </section>
@@ -918,6 +1032,10 @@ export default function Home() {
         .nox-square-icon--neutral { color:#FFF; background:#1D201E; }
         .nox-round-arrow { width:42px; height:42px; flex:0 0 auto; border-radius:50%; border:1px solid #2D312E; background:#151816; color:#FFF; display:grid; place-items:center; cursor:pointer; }
         .nox-session-button { flex:0 0 auto; border:0; border-radius:14px; background:#C8FF00; color:#090B0A; padding:13px 18px; font-size:11px; font-weight:1000; cursor:pointer; }
+        .nox-steps-card { display:flex; align-items:center; gap:24px; }
+        .nox-steps-ring { --steps-progress:0deg; width:150px; height:150px; flex:0 0 auto; border-radius:50%; display:grid; place-items:center; background:conic-gradient(#C8FF00 var(--steps-progress),#2A2E2C 0); position:relative; }
+        .nox-steps-ring::after { content:''; position:absolute; inset:11px; border-radius:50%; background:#111513; }
+        .nox-steps-ring-inner { position:relative; z-index:1; text-align:center; }
         @media (max-width:760px) {
           .nox-home-main { padding:0 16px; }
           .nox-home-header { padding-top:34px; }
@@ -930,6 +1048,8 @@ export default function Home() {
           .nox-now-details { width:100%; max-width:none; }
           .nox-compact-row { align-items:center; }
           .nox-session-button { padding:12px; }
+          .nox-steps-card { gap:18px; }
+          .nox-steps-ring { width:132px; height:132px; }
         }
         @media (max-width:430px) {
           .nox-session-button { font-size:0; width:42px; height:42px; border-radius:50%; padding:0; }
