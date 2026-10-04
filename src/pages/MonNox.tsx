@@ -107,7 +107,7 @@ export default function MonNox() {
   const [avgEnergy,     setAvgEnergy]     = useState<number | null>(null);
   const [avgBody,       setAvgBody]       = useState<number | null>(null);
   const [loading,       setLoading]       = useState(true);
-  const [aligned, setAligned] = useState<{ total: number; movement: number; recovery: number; habits: number } | null>(null);
+  const [aligned, setAligned] = useState<{ total: number; movement: number; recovery: number; habits: number; focus: number } | null>(null);
   const [habitRows, setHabitRows] = useState<UserHabit[]>([]);
   const [habitLogs, setHabitLogs] = useState<{ habit_id: string; date: string; count: number; target_snapshot: number | null }[]>([]);
 
@@ -133,7 +133,7 @@ export default function MonNox() {
     setActiveDays(Number(progress?.active_days ?? 0));
     setPrioritiesDone(Number(progress?.priorities_done ?? 0));
     const a = progress?.aligned;
-    setAligned(a ? { total: Number(a.total ?? 0), movement: Number(a.movement ?? 0), recovery: Number(a.recovery ?? 0), habits: Number(a.habits ?? 0) } : null);
+    setAligned(a ? { total: Number(a.total ?? 0), movement: Number(a.movement ?? 0), recovery: Number(a.recovery ?? 0), habits: Number(a.habits ?? 0), focus: Number(a.focus ?? 0) } : null);
 
     // Habitudes : relevés des 14 derniers jours pour la mémoire déterministe
     const since14 = new Date(); since14.setDate(since14.getDate() - 13);
@@ -369,13 +369,13 @@ export default function MonNox() {
                 {aligned && (
                   <>
                     <div style={{fontSize:12,color:SECONDARY,marginTop:8}}>
-                      {aligned.movement} mouvement · {aligned.recovery} récupération · {aligned.habits} habitude{aligned.habits > 1 ? 's' : ''}
+                      {aligned.movement} mouvement · {aligned.focus} focus · {aligned.habits} habitude{aligned.habits > 1 ? 's' : ''} · {aligned.recovery} récupération
                     </div>
                     <div style={{fontSize:10,color:MUTED,marginTop:5}}>Une journée peut compter dans plusieurs catégories.</div>
                   </>
                 )}
               </div>
-              <div style={{fontSize:10,color:MUTED,lineHeight:1.5,marginTop:12}}>XP gagnée uniquement par les actions accomplies : clôture, priorité tenue, journée alignée (séance, activité, repos validé ou habitude tenue). Plafond de 80 XP par jour. Le Pulse seul ne rapporte rien.</div>
+              <div style={{fontSize:10,color:MUTED,lineHeight:1.5,marginTop:12}}>XP gagnée uniquement par les actions accomplies : clôture, priorité tenue, journée alignée (séance, activité, mission accomplie, repos validé ou habitude tenue). Plafond de 80 XP par jour. Le Pulse seul ne rapporte rien.</div>
             </section>
 
             <section style={{padding:18,border:'1px solid rgba(200,255,0,.28)',borderRadius:22,background:'linear-gradient(120deg,rgba(200,255,0,.08),rgba(200,255,0,.01))',display:'flex',alignItems:'center',gap:14,marginBottom:8}}>

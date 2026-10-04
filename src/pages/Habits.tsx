@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Dumbbell, Moon, Phone, Plus, ShieldCheck, Utensils } from 'lucide-react';
+import { ArrowLeft, Check, Dumbbell, Moon, Phone, Plus, ShieldCheck, Target, Utensils } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
@@ -28,11 +28,12 @@ type Draft = {
   consent: boolean;
 };
 
-type FocusArea = 'movement' | 'nutrition' | 'recovery';
+type FocusArea = 'movement' | 'nutrition' | 'recovery' | 'focus';
 const FOCUS: { id: FocusArea; label: string; detail: string; icon: typeof Dumbbell; setup?: { label: string; path: string } }[] = [
   { id: 'movement',  label: 'Mouvement & corps',     detail: 'Séances, activités, programme.', icon: Dumbbell, setup: { label: 'Configurer mon programme', path: '/program' } },
   { id: 'nutrition', label: 'Nutrition',             detail: 'Repas, objectifs caloriques, macros.', icon: Utensils, setup: { label: 'Configurer mes objectifs', path: '/nutrition-goals' } },
   { id: 'recovery',  label: 'Sommeil & récupération', detail: 'Sommeil, énergie, récupération.', icon: Moon },
+  { id: 'focus',     label: 'Focus',                  detail: 'Mission du jour, sessions de concentration.', icon: Target, setup: { label: 'Définir ma mission du jour', path: '/focus' } },
 ];
 
 type OnboardingQueue = { onboardingSetup?: HabitKind[]; next?: { path: string; state?: unknown } };

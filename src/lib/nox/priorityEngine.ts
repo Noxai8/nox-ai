@@ -10,7 +10,7 @@ export type EvidenceItem = {
 };
 
 export type Priority = {
-  type: 'recovery' | 'sleep' | 'activity' | 'nutrition' | 'hydration' | 'consistency';
+  type: 'recovery' | 'sleep' | 'activity' | 'nutrition' | 'focus' | 'hydration' | 'consistency';
   title: string;
   action: string;
   reason: string;
@@ -44,7 +44,7 @@ export type ProfileInput = {
 } | null;
 
 /** L'axe est-il actif pour cet utilisateur ? */
-function hasFocus(ctx: PriorityContext, area: 'movement' | 'nutrition' | 'recovery'): boolean {
+function hasFocus(ctx: PriorityContext, area: 'movement' | 'nutrition' | 'recovery' | 'focus'): boolean {
   const f = ctx.profile?.focus_areas;
   return f == null || f.includes(area);
 }
@@ -75,7 +75,15 @@ export type PriorityContext = {
   recentActivity: ActivityInput;
   nutrition:      NutritionInput;
   context:        TemporalContext;
+  /** Mission du jour (pilier Focus), si définie */
+  mission?:       MissionInput;
 };
+
+export type MissionInput = {
+  title: string;
+  done: boolean;
+  remaining_minutes: number | null; // null = mission de type tâche
+} | null;
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -244,6 +252,37 @@ function evalActivity(ctx: PriorityContext): Candidate | null {
   };
 }
 
+// Mission du jour : priorité par défaut quand l'état du jour le permet.
+// Jamais proposée avec une énergie ou un corps bas : la récupération passe avant.
+function evalFocus(ctx: PriorityContext): Candidate | null {
+  const { pulse, mission } = ctx;
+  if (!pulse || !mission || mission.done) return null;
+  if (pulse.energy_score < 3 || pulse.body_score < 3) return null;
+
+  const evidence: EvidenceItem[] = [
+    { key: 'mission', label: 'Mission du jour', value: mission.title },
+    { key: 'energy_score', label: 'Énergie', value: `${pulse.energy_score}/5` },
+  ];
+  if (mission.remaining_minutes != null) {
+    evidence.push({ key: 'remaining', label: 'Reste', value: `${mission.remaining_minutes} min` });
+  }
+  const deep = pulse.energy_score >= 4 && pulse.sleep_score >= 4;
+  return {
+    dataPointCount: 2,
+    priority: {
+      type: 'focus',
+      title: 'Avance sur ta mission',
+      action: mission.remaining_minutes != null
+        ? (deep ? 'Bon moment pour du travail profond : lance un bloc de 50 min.' : 'Lance un bloc de 50 min sur ta mission.')
+        : 'Bloque un moment aujourd’hui pour la terminer.',
+      reason: 'Tes signaux du jour sont bons et ta mission n’est pas encore accomplie.',
+      score: 55,
+      confidence: 'moderate',
+      evidence,
+    },
+  };
+}
+
 function evalNutrition(ctx: PriorityContext): Candidate | null {
   const { nutrition, context } = ctx;
   if (!nutrition) return null;
@@ -324,6 +363,7 @@ export function generateDailyPriority(ctx: PriorityContext): DailyPriority {
     evalSleep(ctx),
     hasFocus(ctx, 'movement') ? evalActivity(ctx) : null,
     hasFocus(ctx, 'nutrition') ? evalNutrition(ctx) : null,
+    hasFocus(ctx, 'focus') ? evalFocus(ctx) : null,
   ].filter((c): c is Candidate => c !== null);
 
   candidates.sort((a, b) => b.priority.score - a.priority.score);

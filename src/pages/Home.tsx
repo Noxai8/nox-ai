@@ -10,6 +10,7 @@ import { todayLocalDate } from '../lib/localDate';
 import NoxCompanion from '../components/NoxCompanion';
 import { HABITS, type UserHabit } from '../lib/nox/habits';
 import { dayState, noxiLine } from '../lib/nox/noxiVoice';
+import { isMissionDone, missionMinutes, suggestBlock, type DailyMission, type FocusSession } from '../lib/nox/focus';
 
 type Completion = 'yes' | 'partial' | 'no';
 type NavActive = 'home' | 'nutrition' | 'mon-nox' | 'moi';
@@ -269,6 +270,8 @@ export default function Home() {
   const [habitLogs, setHabitLogs] = useState<{ habit_id: string; date: string; count: number }[]>([]);
   const [habitBusy, setHabitBusy] = useState<string | null>(null);
   const [movedToday, setMovedToday] = useState(false);
+  const [mission, setMission] = useState<DailyMission | null>(null);
+  const [missionSessions, setMissionSessions] = useState<FocusSession[]>([]);
   const [lastClosureDate, setLastClosureDate] = useState<string | null>(null);
 
   useEffect(() => { if (user) void loadAll(); }, [user]);
@@ -376,6 +379,17 @@ export default function Home() {
         .order('date', { ascending: false }).limit(1).maybeSingle(),
     ]);
     setMovedToday((movesToday ?? 0) > 0);
+
+    const { data: m } = await supabase.from('daily_missions')
+      .select('id, date, title, kind, target_minutes, done_at')
+      .eq('user_id', user.id).eq('date', todayLocalDate()).maybeSingle();
+    setMission((m as DailyMission) ?? null);
+    if (m) {
+      const { data: fs } = await supabase.from('focus_sessions')
+        .select('id, mission_id, planned_minutes, started_at, ended_at, minutes, distractions')
+        .eq('mission_id', (m as any).id);
+      setMissionSessions((fs ?? []) as FocusSession[]);
+    } else setMissionSessions([]);
     setLastClosureDate(prevClosure?.date ?? null);
 
     const { count: observedDaysCount, error: observedDaysError } = await supabase
@@ -443,7 +457,13 @@ export default function Home() {
       localDate: todayLocalDate(),
       localHour: new Date().getHours(),
     },
-  }), [todayPulse, profile, todaySession, todayWorkout, daysSinceActivity, todayProt, proteinTarget, todayKcal, caloriesTarget, todayFood.length]);
+    mission: mission ? {
+      title: mission.title,
+      done: isMissionDone(mission, missionMinutes(missionSessions, mission.id)),
+      remaining_minutes: mission.kind === 'duration'
+        ? Math.max(0, (mission.target_minutes ?? 0) - missionMinutes(missionSessions, mission.id)) : null,
+    } : null,
+  }), [todayPulse, profile, todaySession, todayWorkout, daysSinceActivity, todayProt, proteinTarget, todayKcal, caloriesTarget, todayFood.length, mission, missionSessions]);
 
   const dateLabel = new Intl.DateTimeFormat('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long',
@@ -485,17 +505,20 @@ export default function Home() {
   const mainAction = () => {
     if (priority.type === 'nutrition') navigate('/food-scan');
     else if (priority.type === 'activity') navigate('/program');
+    else if (priority.type === 'focus') navigate('/focus');
   };
 
   const actionLabel =
     priority.type === 'nutrition' ? 'AJOUTER MON REPAS'
       : priority.type === 'activity' ? 'COMMENCER MA SÉANCE'
+        : priority.type === 'focus' ? 'LANCER UN BLOC'
         : null;
 
   // ── Ta journée : uniquement des objectifs réels, cochés par des données réelles ──
   const todayKey = todayLocalDate();
   const focusAreas: string[] | null = profile?.focus_areas ?? null;
   const movementFocus = focusAreas == null || focusAreas.includes('movement');
+  const focusOn = focusAreas == null || focusAreas.includes('focus');
   const closureState = {
     priorityTitle: priority.type !== 'none' ? (priority as any).title : null,
     priorityType: priority.type,
@@ -507,6 +530,11 @@ export default function Home() {
       key: 'move', label: todaySession ? 'Séance ou activité' : 'Bouger aujourd’hui',
       done: !!todayWorkout || movedToday, go: () => navigate(todaySession ? '/program' : '/movement'),
     }] : []),
+    ...(mission ? [{
+      key: 'mission', label: `Mission : ${mission.title}`,
+      done: isMissionDone(mission, missionMinutes(missionSessions, mission.id)),
+      go: () => navigate('/focus'),
+    }] : focusOn ? [{ key: 'mission', label: 'Définir ta mission du jour', done: false, go: () => navigate('/focus') }] : []),
     ...habits.map(h => ({
       key: h.id, label: HABITS[h.kind].publicLabel,
       done: habitLogs.some(l => l.habit_id === h.id && l.date === todayKey),
@@ -687,6 +715,54 @@ export default function Home() {
             </div>
           </AppCard>
         </section>
+
+        {(mission || focusOn) && (() => {
+          const mins = mission ? missionMinutes(missionSessions, mission.id) : 0;
+          const done = mission ? isMissionDone(mission, mins) : false;
+          const tip = suggestBlock(todayPulse, new Date().getHours());
+          return (
+            <section className="nox-home-section">
+              <SectionHeader title="Mission du jour" action={mission ? 'Ouvrir ›' : undefined} onAction={() => navigate('/focus')} />
+              <AppCard style={{ padding: 20 }}>
+                {!mission ? (
+                  <>
+                    <div style={{ fontSize: 18, fontWeight: 950, marginBottom: 6 }}>Qu’est-ce qui ferait de cette journée une réussite ?</div>
+                    <div style={{ color: '#A5AAA6', fontSize: 13, marginBottom: 16 }}>Une seule chose importante. NOX t’aide à l’avancer.</div>
+                    <LimeButton onClick={() => navigate('/focus')}>DÉFINIR MA MISSION →</LimeButton>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 19, fontWeight: 950, letterSpacing: '-.02em' }}>{mission.title}</div>
+                    {mission.kind === 'duration' ? (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', margin: '12px 0 8px', fontSize: 13 }}>
+                          <span style={{ color: '#A5AAA6' }}>Objectif : {mission.target_minutes} min de focus</span>
+                          <span style={{ fontWeight: 950, color: done ? '#C8FF00' : '#FFFFFF' }}>{mins} / {mission.target_minutes} min{done ? ' ✓' : ''}</span>
+                        </div>
+                        <div style={{ height: 6, borderRadius: 999, background: '#343835', overflow: 'hidden', marginBottom: done ? 0 : 14 }}>
+                          <div style={{ width: `${Math.min(100, (mins / Math.max(1, mission.target_minutes ?? 1)) * 100)}%`, height: '100%', background: '#C8FF00', borderRadius: 999 }} />
+                        </div>
+                        {!done && (
+                          <>
+                            <div style={{ color: '#A5AAA6', fontSize: 12, lineHeight: 1.5, marginBottom: 14 }}>
+                              <span style={{ color: '#C8FF00', fontWeight: 900 }}>NOX : </span>{tip.reason}
+                            </div>
+                            <DarkButton onClick={() => navigate('/focus')}>DÉMARRER UNE SESSION →</DarkButton>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <div style={{ marginTop: 10, fontSize: 13, fontWeight: 900, color: done ? '#C8FF00' : '#A5AAA6' }}>
+                        {done ? 'Mission accomplie ✓' : 'Tâche à finir aujourd’hui'}
+                      </div>
+                    )}
+                    {mission.kind === 'task' && !done && <DarkButton onClick={() => navigate('/focus')} style={{ marginTop: 14 }}>OUVRIR MA MISSION →</DarkButton>}
+                  </>
+                )}
+              </AppCard>
+            </section>
+          );
+        })()}
 
         {habits.length > 0 && (
           <section className="nox-home-section">
