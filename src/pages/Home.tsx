@@ -8,7 +8,7 @@ import { useAuth } from '../lib/AuthContext';
 import { generateDailyPriority, type DailyPriority } from '../lib/nox/priorityEngine';
 import { todayLocalDate } from '../lib/localDate';
 import NoxCompanion from '../components/NoxCompanion';
-import { HABITS, type UserHabit } from '../lib/nox/habits';
+import { HABITS, habitName, isTargetMet, targetLine, usesValueInput, type UserHabit } from '../lib/nox/habits';
 import { dayState, noxiLine } from '../lib/nox/noxiVoice';
 import { isMissionDone, missionMinutes, suggestBlock, type DailyMission, type FocusSession } from '../lib/nox/focus';
 
@@ -270,6 +270,7 @@ export default function Home() {
   const [habits, setHabits] = useState<UserHabit[]>([]);
   const [habitLogs, setHabitLogs] = useState<{ habit_id: string; date: string; count: number }[]>([]);
   const [habitBusy, setHabitBusy] = useState<string | null>(null);
+  const [habitValue, setHabitValue] = useState<Record<string, string>>({});
   const [movedToday, setMovedToday] = useState(false);
   const [mission, setMission] = useState<DailyMission | null>(null);
   const [missionSessions, setMissionSessions] = useState<FocusSession[]>([]);
@@ -291,7 +292,7 @@ export default function Home() {
     since.setDate(since.getDate() - 6);
     const { data: hs, error: hErr } = await supabase
       .from('user_habits')
-      .select('id, kind, mode, unit, baseline, daily_target, professional_support, risk_flag, active, started_on')
+      .select('id, kind, label, mode, unit, baseline, daily_target, professional_support, risk_flag, active, started_on')
       .eq('user_id', user.id)
       .eq('active', true)
       .order('created_at');
@@ -531,23 +532,56 @@ export default function Home() {
     priorityTitle: priority.type !== 'none' ? (priority as any).title : null,
     priorityType: priority.type,
   };
-  const dayItems: { key: string; label: string; done: boolean; go: () => void }[] = [
+  const nutritionFocus = focusAreas == null || focusAreas.includes('nutrition');
+  const fr = (n: number) => Math.round(n).toLocaleString('fr-FR');
+  const logToday = (h: UserHabit) => habitLogs.find(l => l.habit_id === h.id && l.date === todayKey);
+  const stepsHabit = habits.find(h => h.kind === 'steps') ?? null;
+  const stepsInMove = !!stepsHabit && movementFocus;
+  // Jour de récupération : NOX ne demande pas de bouger, la ligne disparaît (jamais de case « ratée »)
+  const restDay = priority.type === 'recovery';
+  const kcalLow = Math.round(caloriesTarget * 0.9);
+  const kcalHigh = Math.round(caloriesTarget * 1.1);
+
+  type DayItem = { key: string; label: string; detail?: string; done: boolean; go: () => void };
+  const dayItems: DayItem[] = [
     { key: 'pulse', label: 'Pulse du matin', done: !!todayPulse, go: () => navigate('/pulse') },
-    // Mouvement seulement s'il est prévu ou recommandé aujourd'hui (un jour de repos n'impose rien)
-    ...(movementFocus && (todaySession || priority.type === 'activity') ? [{
-      key: 'move', label: todaySession ? 'Séance ou activité' : 'Bouger aujourd’hui',
-      done: !!todayWorkout || movedToday, go: () => navigate(todaySession ? '/program' : '/movement'),
-    }] : []),
     ...(mission ? [{
-      key: 'mission', label: `Concentration : ${mission.title}`,
+      key: 'mission', label: `Concentration · ${mission.title}`,
+      detail: mission.kind === 'duration'
+        ? `${missionMinutes(missionSessions, mission.id)} / ${mission.target_minutes} min` : undefined,
       done: isMissionDone(mission, missionMinutes(missionSessions, mission.id)),
       go: () => navigate('/focus'),
-    }] : focusOn ? [{ key: 'mission', label: 'Définir ta mission du jour', done: false, go: () => navigate('/focus') }] : []),
-    ...habits.map(h => ({
-      key: h.id, label: HABITS[h.kind].publicLabel,
-      done: habitLogs.some(l => l.habit_id === h.id && l.date === todayKey),
-      go: () => navigate(`/habits/${h.id}`),
-    })),
+    }] : focusOn ? [{ key: 'mission', label: 'Concentration · définir ta mission', done: false, go: () => navigate('/focus') }] : []),
+    ...(movementFocus && !restDay ? [stepsInMove ? {
+      key: 'move', label: 'Bouger',
+      detail: `${fr(logToday(stepsHabit!)?.count ?? 0)} / ${fr(stepsHabit!.daily_target ?? 0)} pas · déclaré`,
+      done: (logToday(stepsHabit!)?.count ?? 0) >= (stepsHabit!.daily_target ?? Infinity),
+      go: () => navigate(`/habits/${stepsHabit!.id}`),
+    } : {
+      key: 'move', label: 'Bouger',
+      detail: todaySession ? todaySession.name : 'une séance ou une activité',
+      done: !!todayWorkout || movedToday, go: () => navigate(todaySession ? '/program' : '/movement'),
+    }] : []),
+    ...(nutritionFocus ? [caloriesTarget > 0 ? {
+      key: 'nutrition', label: 'Nutrition',
+      // Zone autour de la cible, jamais un chiffre exact ; information seulement, sans effet sur l'XP
+      detail: `${fr(todayKcal)} kcal · zone ${fr(kcalLow)}–${fr(kcalHigh)}`,
+      done: todayKcal >= kcalLow && todayKcal <= kcalHigh,
+      go: () => navigate('/fuel'),
+    } : {
+      key: 'nutrition', label: 'Nutrition', detail: `${todayFood.length} repas enregistré${todayFood.length > 1 ? 's' : ''}`,
+      done: todayFood.length >= 2, go: () => navigate('/fuel'),
+    }] : []),
+    ...habits.filter(h => !(stepsInMove && h.id === stepsHabit?.id)).map(h => {
+      const log = logToday(h);
+      return {
+        key: h.id, label: habitName(h),
+        detail: log ? targetLine(log.count, h.daily_target, h.mode, h.unit) : 'à noter',
+        done: !!log && (h.mode === 'track' || isTargetMet(log.count, h.daily_target, h.mode) === true),
+        go: () => navigate(`/habits/${h.id}`),
+      };
+    }),
+    // La clôture reste toujours accessible, même si tout n'est pas fait
     { key: 'closure', label: 'Clôture du soir', done: !!todayClosure, go: () => navigate('/closure', { state: closureState }) },
   ];
   const dayDone = dayItems.filter(i => i.done).length;
@@ -602,7 +636,8 @@ export default function Home() {
                 <button key={item.key} onClick={item.go}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 2px', border: 0, borderTop: i ? '1px solid #343835' : 'none', background: 'transparent', color: '#FFFFFF', cursor: 'pointer', textAlign: 'left' }}>
                   {item.done ? <CircleCheck size={20} color="#C8FF00" /> : <Circle size={20} color="#747A76" />}
-                  <span style={{ flex: 1, fontSize: 14, fontWeight: 850, color: item.done ? '#A5AAA6' : '#FFFFFF' }}>{item.label}</span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 850, color: item.done ? '#A5AAA6' : '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+                  {item.detail && <span style={{ color: '#747A76', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0 }}>{item.detail}</span>}
                   {!item.done && <span style={{ color: '#747A76', fontSize: 16 }}>›</span>}
                 </button>
               ))}
@@ -806,7 +841,10 @@ export default function Home() {
                 const weekTotal = logs.reduce((s, l) => s + l.count, 0);
                 const avg = logs.length ? Math.round((weekTotal / logs.length) * 10) / 10 : null;
                 const target = h.daily_target;
-                const met = todayLog && target != null ? todayLog.count <= target : null;
+                const met = todayLog ? isTargetMet(todayLog.count, target, h.mode) : null;
+                const build = h.mode === 'build';
+                const valueMode = usesValueInput(h);
+                const draftValue = habitValue[h.id] ?? '';
                 const busy = habitBusy === h.id;
                 const stop = (e: React.MouseEvent) => e.stopPropagation();
                 const pill: React.CSSProperties = { height: 40, minWidth: 48, padding: '0 14px', borderRadius: 12, border: '1px solid #343835', background: '#191C1A', color: '#FFFFFF', fontSize: 13, fontWeight: 900, cursor: busy ? 'wait' : 'pointer', opacity: busy ? .6 : 1 };
@@ -816,45 +854,60 @@ export default function Home() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div className="nox-square-icon"><Icon size={22} /></div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 15, fontWeight: 950 }}>{def.publicLabel}</div>
+                          <div style={{ fontSize: 15, fontWeight: 950 }}>{habitName(h)}</div>
                           <div style={{ color: '#8E938F', fontSize: 11, fontWeight: 800, marginTop: 3 }}>
-                            {h.mode === 'track' ? 'Suivi seulement' : h.mode === 'stop' ? 'Objectif : arrêter' : 'Objectif : réduire'}
+                            {build ? `Objectif : au moins ${Number(target).toLocaleString('fr-FR')}${h.kind === 'steps' ? ' · déclaré' : ''}`
+                              : h.mode === 'track' ? 'Suivi seulement' : h.mode === 'stop' ? 'Objectif : arrêter' : 'Objectif : réduire'}
                           </div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <div style={{ fontSize: 26, fontWeight: 1000, letterSpacing: '-.04em', lineHeight: 1 }}>
-                            {todayLog ? todayLog.count : '—'}
-                            {target != null && <span style={{ color: '#747A76', fontSize: 15, fontWeight: 900 }}> / {target}</span>}
+                            {todayLog ? todayLog.count.toLocaleString('fr-FR') : '—'}
+                            {target != null && <span style={{ color: '#747A76', fontSize: 15, fontWeight: 900 }}> / {target.toLocaleString('fr-FR')}</span>}
                           </div>
-                          <div style={{ color: '#747A76', fontSize: 10, fontWeight: 800, marginTop: 4 }}>{def.unit} aujourd’hui</div>
+                          <div style={{ color: '#747A76', fontSize: 10, fontWeight: 800, marginTop: 4 }}>{h.unit} aujourd’hui</div>
                         </div>
                       </div>
 
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 14, fontSize: 12, color: '#A5AAA6' }}>
-                        {met === true && <span style={{ color: '#C8FF00', fontWeight: 900 }}>Dans ta cible ✓</span>}
-                        {met === false && <span style={{ fontWeight: 800 }}>Au-dessus de ta cible aujourd’hui</span>}
+                        {met === true && <span style={{ color: '#C8FF00', fontWeight: 900 }}>{build ? 'Objectif atteint ✓' : 'Dans ta cible ✓'}</span>}
+                        {met === false && !build && <span style={{ fontWeight: 800 }}>Au-dessus de ta cible aujourd’hui</span>}
+                        {met === false && build && <span style={{ fontWeight: 800 }}>Encore {(Number(target) - todayLog!.count).toLocaleString('fr-FR')} {h.unit}</span>}
                         {!todayLog && <span>Pas encore noté aujourd’hui</span>}
                         {h.kind === 'alcohol' && logs.length > 0 && <span>Cette semaine : {weekTotal} {def.unit}</span>}
-                        {h.baseline != null && avg != null && <span>Départ {h.baseline}/jour → {avg}/jour sur 7 j</span>}
+                        {!build && h.baseline != null && avg != null && <span>Départ {h.baseline}/jour → {avg}/jour sur 7 j</span>}
                       </div>
 
+                      {valueMode ? (
+                        <div style={{ display: 'flex', gap: 8, marginTop: 14 }} onClick={stop}>
+                          <input type="number" inputMode="numeric" min={0} max={100000} value={draftValue}
+                            placeholder={todayLog ? String(todayLog.count) : `Ex : ${Math.round(Number(target ?? 0) / 2) || 10}`}
+                            onChange={e => setHabitValue(v => ({ ...v, [h.id]: e.target.value }))}
+                            style={{ flex: 1, minWidth: 0, height: 40, padding: '0 12px', borderRadius: 12, border: '1px solid #343835', background: '#191C1A', color: '#FFFFFF', fontSize: 14, fontWeight: 900, outline: 'none' }} />
+                          <button style={pill} disabled={busy || draftValue === '' || Number(draftValue) < 0}
+                            onClick={() => { void logHabit(h, Number(draftValue)); setHabitValue(v => ({ ...v, [h.id]: '' })); }}>
+                            Enregistrer
+                          </button>
+                        </div>
+                      ) : (
                       <div style={{ display: 'flex', gap: 8, marginTop: 14 }} onClick={stop}>
-                        {!todayLog ? (
+                        {!todayLog && !build ? (
                           <button style={{ ...pill, flex: 1 }} disabled={busy} onClick={() => logHabit(h, 0)}>
                             Aucun{h.kind === 'tobacco' ? 'e' : ''} aujourd’hui
                           </button>
                         ) : (
-                          <button style={pill} disabled={busy || todayLog.count <= 0} onClick={() => logHabit(h, todayLog.count - 1)} aria-label="Retirer 1">−1</button>
+                          <button style={pill} disabled={busy || !todayLog || todayLog.count <= 0} onClick={() => todayLog && logHabit(h, todayLog.count - 1)} aria-label="Retirer 1">−1</button>
                         )}
-                        <button style={{ ...pill, flex: todayLog ? 1 : undefined }} disabled={busy} onClick={() => logHabit(h, (todayLog?.count ?? 0) + 1)} aria-label="Ajouter 1">+1</button>
+                        <button style={{ ...pill, flex: todayLog || build ? 1 : undefined }} disabled={busy} onClick={() => logHabit(h, (todayLog?.count ?? 0) + 1)} aria-label="Ajouter 1">+1</button>
                       </div>
+                      )}
                     </div>
                   </AppCard>
                 );
               })}
             </div>
             <div style={{ color: '#747A76', fontSize: 11, lineHeight: 1.5, marginTop: 10 }}>
-              Tenir une cible compte pour ta journée alignée. Un dépassement ne fait jamais perdre d’XP.
+              Tenir une habitude à réduire ou arrêter compte pour ta journée alignée. Les objectifs du quotidien enrichissent ta journée sans rapporter d’XP. Un dépassement ne fait jamais perdre de progression.
             </div>
           </section>
         )}

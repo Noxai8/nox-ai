@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 import {
-  HABITS, HABIT_KINDS, MODE_LABELS,
+  CUSTOM_UNITS, HABITS, HABIT_KINDS, MODE_LABELS, habitName,
   type HabitKind, type HabitMode, type UserHabit,
 } from '../lib/nox/habits';
 
@@ -20,6 +20,8 @@ const LIME = '#C8FF00';
 
 type Draft = {
   kind: HabitKind;
+  label: string;
+  unit: string;
   mode: HabitMode;
   baseline: string;
   target: string;
@@ -39,8 +41,13 @@ const FOCUS: { id: FocusArea; label: string; detail: string; icon: typeof Dumbbe
 type OnboardingQueue = { onboardingSetup?: HabitKind[]; next?: { path: string; state?: unknown } };
 
 const emptyDraft = (kind: HabitKind): Draft => ({
-  kind, mode: 'reduce', baseline: '', target: '', riskAnswer: null, professional: false, consent: false,
+  kind, label: '', unit: kind === 'steps' ? 'pas' : 'min',
+  mode: kind === 'steps' || kind === 'custom' ? 'build' : 'reduce',
+  baseline: '', target: kind === 'steps' ? '7000' : '', riskAnswer: null, professional: false, consent: false,
 });
+
+const isBuildKind = (k: HabitKind) => k === 'steps' || k === 'custom';
+const GOAL_IDEAS = ['Lire', 'Méditer', 'Boire de l’eau', 'Étirements', 'Marcher', 'Écrire'];
 
 export default function Habits() {
   const { user } = useAuth();
@@ -88,7 +95,7 @@ export default function Habits() {
   const load = async () => {
     const { data, error: e } = await supabase
       .from('user_habits')
-      .select('id, kind, mode, unit, baseline, daily_target, professional_support, risk_flag, active, started_on')
+      .select('id, kind, label, mode, unit, baseline, daily_target, professional_support, risk_flag, active, started_on')
       .eq('user_id', user!.id)
       .eq('active', true)
       .order('created_at');
@@ -111,6 +118,11 @@ export default function Habits() {
     if (!draft || !def) return false;
     if (def.discreet && !draft.consent) return false;
     if (def.needsRiskCheck && draft.riskAnswer === null) return false;
+    if (isBuildKind(draft.kind)) {
+      const t = Number(draft.target);
+      if (draft.kind === 'custom' && !draft.label.trim()) return false;
+      return draft.target !== '' && Number.isFinite(t) && t > 0 && t <= 100000;
+    }
     if (effectiveMode === 'reduce') {
       const t = Number(draft.target);
       return draft.target !== '' && Number.isFinite(t) && t >= 0 && t <= 500;
@@ -125,10 +137,11 @@ export default function Habits() {
     const { error: e } = await supabase.from('user_habits').insert({
       user_id: user.id,
       kind: draft.kind,
+      label: draft.kind === 'custom' ? draft.label.trim().slice(0, 40) : null,
       mode: effectiveMode,
-      unit: def.unit,
+      unit: draft.kind === 'custom' ? draft.unit : def.unit,
       baseline: Number.isFinite(baseline as number) ? baseline : null,
-      daily_target: effectiveMode === 'reduce' ? Number(draft.target) : null,
+      daily_target: effectiveMode === 'reduce' || effectiveMode === 'build' ? Number(draft.target) : null,
       professional_support: draft.professional,
       risk_flag: draft.riskAnswer === 'yes',
     });
@@ -140,7 +153,7 @@ export default function Habits() {
   };
 
   const stopTracking = async (h: UserHabit) => {
-    const name = HABITS[h.kind].publicLabel;
+    const name = habitName(h);
     if (!confirm(`Retirer « ${name} » de tes habitudes ? Ton historique est conservé.`)) return;
     const { error: e } = await supabase.from('user_habits').update({ active: false }).eq('id', h.id);
     if (e) { setError(e.message); return; }
@@ -169,7 +182,7 @@ export default function Habits() {
           <div>
             <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em' }}>{inOnboarding ? 'TON PARCOURS' : 'MOI'}</div>
             <h1 style={{ margin: 0, fontSize: 'clamp(30px,5vw,40px)', fontWeight: 850, letterSpacing: '-.04em', lineHeight: 1 }}>
-              {draft && def ? def.publicLabel : 'Mes habitudes'}
+              {draft && def ? (isBuildKind(draft.kind) ? def.label : def.publicLabel) : 'Mes habitudes'}
             </h1>
           </div>
         </header>
@@ -232,10 +245,11 @@ export default function Habits() {
                             <Icon size={20} color={LIME} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 15, fontWeight: 900 }}>{d.publicLabel}</div>
+                            <div style={{ fontSize: 15, fontWeight: 900 }}>{habitName(h)}</div>
                             <div style={{ color: SEC, fontSize: 12, marginTop: 3 }}>
-                              {MODE_LABELS[h.mode].title}
-                              {h.daily_target != null ? ` · cible ${h.daily_target} ${h.unit}/jour` : ''}
+                              {h.mode === 'build'
+                                ? `Au moins ${Number(h.daily_target).toLocaleString('fr-FR')} ${h.unit}/jour${h.kind === 'steps' ? ' · déclaré' : ''}`
+                                : <>{MODE_LABELS[h.mode].title}{h.daily_target != null ? ` · cible ${h.daily_target} ${h.unit}/jour` : ''}</>}
                               {h.professional_support ? ' · avec un professionnel' : ''}
                             </div>
                           </div>
@@ -249,9 +263,31 @@ export default function Habits() {
                   </section>
                 )}
 
+                <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em', marginBottom: 10 }}>OBJECTIFS DU QUOTIDIEN</div>
+                <section style={{ display: 'grid', gap: 10, marginBottom: 28 }}>
+                  {([...(activeKinds.has('steps') ? [] : ['steps']), 'custom'] as HabitKind[]).map(k => {
+                    const d = HABITS[k]; const Icon = d.icon;
+                    return (
+                      <button key={k} onClick={() => setDraft(emptyDraft(k))}
+                        style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', color: WHITE, textAlign: 'left' }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 14, background: CARD2, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                          <Icon size={20} color={SEC} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 15, fontWeight: 900 }}>{d.label}</div>
+                          <div style={{ fontSize: 12, color: SEC, marginTop: 3 }}>
+                            {k === 'steps' ? 'Un nombre de pas à atteindre chaque jour' : 'Lire, méditer, boire de l’eau…'}
+                          </div>
+                        </div>
+                        <Plus size={18} color={LIME} />
+                      </button>
+                    );
+                  })}
+                </section>
+
                 {available.length > 0 && (
                   <>
-                    <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em', marginBottom: 10 }}>AJOUTER</div>
+                    <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em', marginBottom: 10 }}>HABITUDES À RÉDUIRE OU ARRÊTER</div>
                     <section style={{ display: 'grid', gap: 10 }}>
                       {available.map(k => {
                         const d = HABITS[k]; const Icon = d.icon;
@@ -328,7 +364,48 @@ export default function Habits() {
               </section>
             )}
 
-            {(!def.needsRiskCheck || draft.riskAnswer !== null) && (
+            {isBuildKind(draft.kind) && (
+              <>
+                <section style={card}>
+                  <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 12 }}>Ton objectif quotidien</div>
+                  {draft.kind === 'custom' && (
+                    <>
+                      <input value={draft.label} onChange={e => setDraft({ ...draft, label: e.target.value.slice(0, 40) })}
+                        placeholder="Ex : Lire" style={input} />
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '12px 0 18px' }}>
+                        {GOAL_IDEAS.map(g => (
+                          <button key={g} onClick={() => setDraft({ ...draft, label: g })}
+                            style={{ ...choice(draft.label === g), width: 'auto', padding: '8px 12px', fontSize: 12, fontWeight: 800 }}>{g}</button>
+                        ))}
+                      </div>
+                      <div style={{ color: SEC, fontSize: 13, marginBottom: 10 }}>Unité</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+                        {CUSTOM_UNITS.map(u => (
+                          <button key={u} onClick={() => setDraft({ ...draft, unit: u })}
+                            style={{ ...choice(draft.unit === u), width: 'auto', padding: '8px 14px', fontSize: 13, fontWeight: 900 }}>{u}</button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  <div style={{ color: SEC, fontSize: 13, marginBottom: 10 }}>
+                    Au moins combien de {draft.kind === 'custom' ? draft.unit : 'pas'} par jour ?
+                  </div>
+                  <input type="number" inputMode="numeric" min={1} max={100000} placeholder={draft.kind === 'steps' ? '7000' : 'Ex : 20'}
+                    value={draft.target} onChange={e => setDraft({ ...draft, target: e.target.value })} style={input} />
+                  <div style={{ color: MUTED, fontSize: 12, lineHeight: 1.5, marginTop: 12 }}>
+                    {draft.kind === 'steps'
+                      ? 'Tu saisis ton nombre de pas : il est affiché comme déclaré. La mesure automatique arrivera avec l’app mobile (Apple Santé, Health Connect).'
+                      : 'Cet objectif apparaît dans Ta journée. Il ne rapporte pas d’XP à lui seul, pour qu’un objectif facile ne remplace jamais un vrai effort.'}
+                  </div>
+                </section>
+                <button onClick={save} disabled={!canSave || saving}
+                  style={{ width: '100%', padding: 18, border: 0, borderRadius: 14, background: canSave ? LIME : '#2B2F2C', color: canSave ? BG : MUTED, fontWeight: 800, fontSize: 15, cursor: canSave ? 'pointer' : 'not-allowed' }}>
+                  {saving ? 'ENREGISTREMENT…' : 'AJOUTER CET OBJECTIF'}
+                </button>
+              </>
+            )}
+
+            {!isBuildKind(draft.kind) && (!def.needsRiskCheck || draft.riskAnswer !== null) && (
               <>
                 <section style={card}>
                   <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 12 }}>Ton objectif</div>

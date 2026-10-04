@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { todayLocalDate } from '../lib/localDate';
 import { BottomNav } from './Home';
-import { HABITS, MODE_LABELS, type HabitMode, type UserHabit } from '../lib/nox/habits';
+import { HABITS, MODE_LABELS, habitName, isTargetMet, targetLine, usesValueInput, type HabitMode, type UserHabit } from '../lib/nox/habits';
 
 const BG = '#090B0A';
 const CARD = '#232624';
@@ -17,7 +17,7 @@ const SEC = '#A5AAA6';
 const MUTED = '#747A76';
 const LIME = '#C8FF00';
 
-type Log = { date: string; count: number; target_snapshot: number | null };
+type Log = { date: string; count: number; target_snapshot: number | null; mode_snapshot: HabitMode | null };
 type Period = 7 | 30 | 90;
 
 /** Clés de date locales (YYYY-MM-DD) des n derniers jours, du plus ancien au plus récent */
@@ -61,10 +61,10 @@ export default function HabitDetail() {
     const since = lastDays(90)[0];
     const [{ data: h, error: hErr }, { data: l, error: lErr }] = await Promise.all([
       supabase.from('user_habits')
-        .select('id, kind, mode, unit, baseline, daily_target, professional_support, risk_flag, active, started_on')
+        .select('id, kind, label, mode, unit, baseline, daily_target, professional_support, risk_flag, active, started_on')
         .eq('id', habitId!).eq('user_id', user!.id).maybeSingle(),
       supabase.from('habit_logs')
-        .select('date, count, target_snapshot')
+        .select('date, count, target_snapshot, mode_snapshot')
         .eq('habit_id', habitId!).eq('user_id', user!.id).gte('date', since)
         .order('date', { ascending: false }),
     ]);
@@ -73,6 +73,7 @@ export default function HabitDetail() {
     setLogs((l ?? []).map((x: any) => ({
       date: x.date, count: Number(x.count),
       target_snapshot: x.target_snapshot == null ? null : Number(x.target_snapshot),
+      mode_snapshot: x.mode_snapshot ?? null,
     })));
     setLoading(false);
   };
@@ -88,12 +89,14 @@ export default function HabitDetail() {
   const days = useMemo(() => lastDays(period), [period]);
   const periodLogs = days.map(d => byDate.get(d)).filter(Boolean) as Log[];
   const evaluated = periodLogs.filter(l => l.target_snapshot != null);
-  const metCount = evaluated.filter(l => l.count <= (l.target_snapshot as number)).length;
+  const okLog = (l: Log) => isTargetMet(l.count, l.target_snapshot, l.mode_snapshot ?? (habit?.mode === 'build' ? 'build' : 'reduce')) === true;
+  const metCount = evaluated.filter(okLog).length;
+  const [valueDraft, setValueDraft] = useState('');
 
   // Évolution : seulement si départ connu et au moins 3 relevés sur les 7 derniers jours
   const recent = lastDays(7).map(d => byDate.get(d)).filter(Boolean) as Log[];
   const avgRecent = recent.length ? recent.reduce((s, l) => s + l.count, 0) / recent.length : null;
-  const canMeasure = habit?.baseline != null && habit.baseline > 0 && recent.length >= 3 && avgRecent != null;
+  const canMeasure = habit?.mode !== 'build' && habit?.baseline != null && habit.baseline > 0 && recent.length >= 3 && avgRecent != null;
   const change = canMeasure ? Math.round(((avgRecent! - habit!.baseline!) / habit!.baseline!) * 100) : null;
 
   const logToday = async (count: number) => {
@@ -117,15 +120,17 @@ export default function HabitDetail() {
   };
 
   const effectiveEditMode: HabitMode = alcoholLocked ? 'track' : editMode;
-  const targetValid = effectiveEditMode !== 'reduce'
-    || (editTarget !== '' && Number(editTarget) >= 0 && Number(editTarget) <= 500);
+  const targetValid = effectiveEditMode === 'build'
+    ? editTarget !== '' && Number(editTarget) > 0 && Number(editTarget) <= 100000
+    : effectiveEditMode !== 'reduce'
+      || (editTarget !== '' && Number(editTarget) >= 0 && Number(editTarget) <= 500);
 
   const saveEdit = async () => {
     if (!habit || !targetValid || busy) return;
     setBusy(true); setError('');
     const { error: e } = await supabase.from('user_habits').update({
       mode: effectiveEditMode,
-      daily_target: effectiveEditMode === 'reduce' ? Number(editTarget) : null,
+      daily_target: effectiveEditMode === 'reduce' || effectiveEditMode === 'build' ? Number(editTarget) : null,
       professional_support: editPro,
     }).eq('id', habit.id);
     if (e) setError(e.message);
@@ -146,11 +151,9 @@ export default function HabitDetail() {
     background: CARD2, color: WHITE, fontSize: 14, fontWeight: 900, cursor: busy ? 'wait' : 'pointer', opacity: busy ? .6 : 1,
   };
 
-  const dayLine = (l: Log) => {
-    const t = l.target_snapshot;
-    if (t == null) return `${l.count} ${def!.unit}`;
-    return `${l.count} · cible ≤ ${t}${l.count <= t ? ' ✓' : ''}`;
-  };
+  const dayLine = (l: Log) =>
+    targetLine(l.count, l.target_snapshot, l.mode_snapshot ?? (habit?.mode === 'build' ? 'build' : 'reduce'), habit?.unit ?? def!.unit);
+
 
   const shell = (children: React.ReactNode) => (
     <div style={{ minHeight: '100dvh', background: BG, color: WHITE, paddingBottom: 'calc(160px + env(safe-area-inset-bottom))' }}>
@@ -187,7 +190,7 @@ export default function HabitDetail() {
           <Icon size={21} color={LIME} />
         </div>
         <div style={{ minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 'clamp(26px,5vw,36px)', fontWeight: 850, letterSpacing: '-.04em', lineHeight: 1 }}>{def.publicLabel}</h1>
+          <h1 style={{ margin: 0, fontSize: 'clamp(26px,5vw,36px)', fontWeight: 850, letterSpacing: '-.04em', lineHeight: 1 }}>{habitName(habit)}</h1>
           <div style={{ color: SEC, fontSize: 13, marginTop: 6 }}>
             {MODE_LABELS[habit.mode].title}
             {habit.daily_target != null ? ` · cible ≤ ${habit.daily_target} ${habit.unit}/jour` : ''}
@@ -202,18 +205,28 @@ export default function HabitDetail() {
       <section style={{ ...card, marginBottom: 14 }}>
         <div style={label}>AUJOURD’HUI</div>
         <div style={{ fontSize: 34, fontWeight: 1000, letterSpacing: '-.04em', lineHeight: 1 }}>
-          {todayLog ? todayLog.count : '—'}
-          <span style={{ fontSize: 15, color: MUTED, fontWeight: 900 }}> {def.unit}</span>
+          {todayLog ? todayLog.count.toLocaleString('fr-FR') : '—'}
+          <span style={{ fontSize: 15, color: MUTED, fontWeight: 900 }}> {habit.unit}{habit.kind === 'steps' ? ' · déclaré' : ''}</span>
         </div>
-        <div style={{ marginTop: 8, fontSize: 13, color: todayLog && todayLog.target_snapshot != null && todayLog.count <= todayLog.target_snapshot ? LIME : SEC, fontWeight: 800 }}>
+        <div style={{ marginTop: 8, fontSize: 13, color: todayLog && okLog(todayLog) ? LIME : SEC, fontWeight: 800 }}>
           {!todayLog ? 'Pas encore noté aujourd’hui' : dayLine(todayLog)}
         </div>
+        {usesValueInput(habit) ? (
+          <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+            <input type="number" inputMode="numeric" min={0} max={100000} value={valueDraft} placeholder={todayLog ? String(todayLog.count) : 'Valeur du jour'}
+              onChange={e => setValueDraft(e.target.value)}
+              style={{ flex: 1, minWidth: 0, height: 44, padding: '0 14px', borderRadius: 14, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontSize: 15, fontWeight: 900, outline: 'none' }} />
+            <button style={pill} disabled={busy || valueDraft === '' || Number(valueDraft) < 0}
+              onClick={() => { void logToday(Number(valueDraft)); setValueDraft(''); }}>Enregistrer</button>
+          </div>
+        ) : (
         <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          {!todayLog
+          {!todayLog && habit.mode !== 'build'
             ? <button style={{ ...pill, flex: 1 }} disabled={busy} onClick={() => logToday(0)}>Aucun{habit.kind === 'tobacco' ? 'e' : ''} aujourd’hui</button>
-            : <button style={pill} disabled={busy || todayLog.count <= 0} onClick={() => logToday(todayLog.count - 1)} aria-label="Retirer 1">−1</button>}
-          <button style={{ ...pill, flex: todayLog ? 1 : undefined }} disabled={busy} onClick={() => logToday((todayLog?.count ?? 0) + 1)} aria-label="Ajouter 1">+1</button>
+            : <button style={pill} disabled={busy || !todayLog || todayLog.count <= 0} onClick={() => todayLog && logToday(todayLog.count - 1)} aria-label="Retirer 1">−1</button>}
+          <button style={{ ...pill, flex: 1 }} disabled={busy} onClick={() => logToday((todayLog?.count ?? 0) + 1)} aria-label="Ajouter 1">+1</button>
         </div>
+        )}
       </section>
 
       {/* GRAPHIQUE */}
@@ -242,7 +255,7 @@ export default function HabitDetail() {
               const l = byDate.get(d);
               const x = i * (bw + gap);
               if (!l) return <rect key={d} x={x} y={H - 2} width={bw} height={2} rx={1} fill={SOFT} />;
-              const ok = l.target_snapshot != null && l.count <= l.target_snapshot;
+              const ok = l.target_snapshot != null && okLog(l);
               const h = Math.max(3, (l.count / max) * (H - 10));
               return <rect key={d} x={x} y={H - h} width={bw} height={h} rx={Math.min(6, bw / 2)}
                 fill={l.target_snapshot == null ? SEC : ok ? LIME : MUTED} />;
@@ -328,7 +341,7 @@ export default function HabitDetail() {
             {alcoholLocked ? (
               <div style={{ color: SEC, fontSize: 13, lineHeight: 1.55 }}>Suivi seulement, sans cible.</div>
             ) : (
-              (['reduce', 'stop', 'track'] as HabitMode[]).map(m => (
+              habit.mode === 'build' ? null : (['reduce', 'stop', 'track'] as HabitMode[]).map(m => (
                 <button key={m} onClick={() => setEditMode(m)} style={choice(editMode === m)}>
                   <div style={{ fontSize: 14, fontWeight: 900, color: editMode === m ? LIME : WHITE }}>{MODE_LABELS[m].title}</div>
                   <div style={{ fontSize: 12, color: SEC, marginTop: 3 }}>{MODE_LABELS[m].detail}</div>
@@ -336,8 +349,8 @@ export default function HabitDetail() {
               ))
             )}
 
-            {effectiveEditMode === 'reduce' && (
-              <input type="number" inputMode="numeric" min={0} max={500} value={editTarget} placeholder="Cible quotidienne"
+            {(effectiveEditMode === 'reduce' || effectiveEditMode === 'build') && (
+              <input type="number" inputMode="numeric" min={0} max={habit.mode === 'build' ? 100000 : 500} value={editTarget} placeholder={habit.mode === 'build' ? 'Au moins…' : 'Cible quotidienne'}
                 onChange={e => setEditTarget(e.target.value)}
                 style={{ width: '100%', boxSizing: 'border-box', padding: '14px 16px', borderRadius: 14, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontSize: 16, fontWeight: 800, outline: 'none' }} />
             )}
@@ -363,7 +376,7 @@ export default function HabitDetail() {
         ) : (
           <div>
             {logs.slice(0, 30).map((l, i) => {
-              const ok = l.target_snapshot != null && l.count <= l.target_snapshot;
+              const ok = l.target_snapshot != null && okLog(l);
               return (
                 <div key={l.date} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '11px 0', borderTop: i ? `1px solid ${SOFT}` : 'none' }}>
                   <span style={{ color: SEC, fontSize: 13, textTransform: 'capitalize' }}>{l.date === today ? 'Aujourd’hui' : frDate(l.date)}</span>

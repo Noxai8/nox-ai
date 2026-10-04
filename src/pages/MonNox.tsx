@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { HABITS, type UserHabit } from '../lib/nox/habits';
+import { HABITS, habitName, isTargetMet, type UserHabit } from '../lib/nox/habits';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, CalendarDays, ChevronRight, Crown, Dumbbell, Flame, Infinity as InfinityIcon, Leaf, LockKeyhole, Medal, MessageCircle, Shield, Trophy, Utensils } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -109,7 +109,7 @@ export default function MonNox() {
   const [loading,       setLoading]       = useState(true);
   const [aligned, setAligned] = useState<{ total: number; movement: number; recovery: number; habits: number; focus: number } | null>(null);
   const [habitRows, setHabitRows] = useState<UserHabit[]>([]);
-  const [habitLogs, setHabitLogs] = useState<{ habit_id: string; date: string; count: number; target_snapshot: number | null }[]>([]);
+  const [habitLogs, setHabitLogs] = useState<{ habit_id: string; date: string; count: number; target_snapshot: number | null; mode_snapshot?: string | null }[]>([]);
 
   useEffect(() => { if (user) void load(); }, [user]);
 
@@ -138,13 +138,13 @@ export default function MonNox() {
     // Habitudes : relevés des 14 derniers jours pour la mémoire déterministe
     const since14 = new Date(); since14.setDate(since14.getDate() - 13);
     const [{ data: hs }, { data: hl }] = await Promise.all([
-      supabase.from('user_habits').select('id, kind, mode, unit, baseline, daily_target, professional_support, risk_flag, active, started_on')
+      supabase.from('user_habits').select('id, kind, label, mode, unit, baseline, daily_target, professional_support, risk_flag, active, started_on')
         .eq('user_id', user!.id).eq('active', true),
-      supabase.from('habit_logs').select('habit_id, date, count, target_snapshot')
+      supabase.from('habit_logs').select('habit_id, date, count, target_snapshot, mode_snapshot')
         .eq('user_id', user!.id).gte('date', since14.toLocaleDateString('sv-SE')),
     ]);
     setHabitRows(((hs ?? []) as UserHabit[]).filter(h => HABITS[h.kind]));
-    setHabitLogs((hl ?? []).map((l: any) => ({ habit_id: l.habit_id, date: l.date, count: Number(l.count),
+    setHabitLogs((hl ?? []).map((l: any) => ({ habit_id: l.habit_id, date: l.date, count: Number(l.count), mode_snapshot: l.mode_snapshot ?? null,
       target_snapshot: l.target_snapshot == null ? null : Number(l.target_snapshot) })));
 
     setObservedDays(closures ?? 0);
@@ -190,15 +190,15 @@ export default function MonNox() {
     const r1 = (n: number) => Math.round(n * 10) / 10;
     const avgOf = (xs: { count: number }[]) => xs.reduce((s, x) => s + x.count, 0) / xs.length;
     habitRows.forEach(h => {
-      const name = HABITS[h.kind].publicLabel;
-      const unit = HABITS[h.kind].unit;
+      const name = habitName(h);
+      const unit = h.unit;
       const all = habitLogs.filter(l => l.habit_id === h.id);
       const week = all.filter(l => l.date >= k7);
       const prevWeek = all.filter(l => l.date < k7);
       const evaluated = week.filter(l => l.target_snapshot != null);
 
       if (evaluated.length >= 3) {
-        const met = evaluated.filter(l => l.count <= (l.target_snapshot as number)).length;
+        const met = evaluated.filter(l => isTargetMet(l.count, l.target_snapshot, ((l as any).mode_snapshot ?? h.mode) === 'build' ? 'build' : 'reduce') === true).length;
         habitSait.push(`${name} : cible tenue ${met} jour${met > 1 ? 's' : ''} sur ${evaluated.length} notés (7 derniers jours).`);
       } else if (week.length >= 3) {
         habitSait.push(`${name} : ${week.length} jours notés cette semaine, ${r1(avgOf(week))} ${unit}/jour en moyenne.`);
