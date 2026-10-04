@@ -433,12 +433,16 @@ export default function Home() {
   const todayFat = todayFood.reduce((sum, entry) => sum + Number(entry.fat || entry.fat_g || entry.fats || 0), 0);
   const caloriesRemaining = caloriesTarget > 0 ? Math.max(0, caloriesTarget - todayKcal) : null;
 
-  // Pas : uniquement depuis un relevé réellement enregistré.
+  // Pas : aucune valeur inventée. On affiche seulement un relevé réellement présent dans habit_logs.
   const stepsHabit = habits.find(h => h.kind === 'steps');
-  const todayStepsLog = stepsHabit ? habitLogs.find(l => l.habit_id === stepsHabit.id && l.date === todayLocalDate()) : null;
+  const todayStepsLog = stepsHabit
+    ? habitLogs.find(l => l.habit_id === stepsHabit.id && l.date === todayLocalDate())
+    : null;
   const stepsTarget = stepsHabit?.daily_target != null ? Number(stepsHabit.daily_target) : null;
   const todaySteps = todayStepsLog ? Number(todayStepsLog.count) : null;
-  const stepsProgress = todaySteps != null && stepsTarget != null && stepsTarget > 0 ? Math.min(100, Math.round((todaySteps / stepsTarget) * 100)) : 0;
+  const stepsProgress = todaySteps != null && stepsTarget != null && stepsTarget > 0
+    ? Math.min(100, Math.round((todaySteps / stepsTarget) * 100))
+    : 0;
   const stepsMeasured = todayStepsLog?.source === 'healthkit' || todayStepsLog?.source === 'health_connect';
   const sessions = program?.program_json?.sessions || [];
   const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
@@ -812,33 +816,55 @@ export default function Home() {
         {habits.length > 0 && (
           <section className="nox-home-section">
             <SectionHeader title="Mes objectifs" action="Gérer ›" onAction={() => navigate('/habits')} />
-            {stepsHabit && (
-              <AppCard style={{ padding: 20, marginBottom: 10 }}>
-                <div className="nox-steps-card">
-                  <div className="nox-steps-ring" style={{ ['--steps-progress' as any]: `${stepsProgress * 3.6}deg` }}>
-                    <div className="nox-steps-ring-inner">
-                      <PersonStanding size={20} color="#C8FF00" />
-                      <div style={{ fontSize: 30, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.05em', marginTop: 7 }}>{todaySteps == null ? '—' : todaySteps.toLocaleString('fr-FR')}</div>
-                      <div style={{ fontSize: 11, fontWeight: 900, marginTop: 5 }}>pas</div>
+
+            <AppCard style={{ padding: 20, marginBottom: 10 }}>
+              <div className="nox-steps-card">
+                <div className="nox-steps-ring" style={{ ['--steps-progress' as any]: `${stepsProgress * 3.6}deg` }}>
+                  <div className="nox-steps-ring-inner">
+                    <PersonStanding size={20} color="#C8FF00" />
+                    <div style={{ fontSize: 30, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.05em', marginTop: 7 }}>
+                      {todaySteps == null ? '—' : todaySteps.toLocaleString('fr-FR')}
                     </div>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: '#8E938F', fontSize: 10, fontWeight: 950, letterSpacing: '.08em', marginBottom: 7 }}>BOUGER AUJOURD'HUI</div>
-                    <div style={{ fontSize: 21, fontWeight: 1000, letterSpacing: '-.03em' }}>
-                      {todaySteps == null ? 'Suivi des pas non connecté' : stepsTarget != null && stepsTarget > 0 && todaySteps >= stepsTarget ? 'Objectif atteint ✓' : stepsTarget != null && stepsTarget > 0 ? `${stepsProgress}% de ton objectif` : `${todaySteps.toLocaleString('fr-FR')} pas aujourd'hui`}
-                    </div>
-                    <div style={{ color: '#A5AAA6', fontSize: 13, lineHeight: 1.5, marginTop: 7 }}>
-                      {stepsTarget != null && stepsTarget > 0 ? `Objectif : ${stepsTarget.toLocaleString('fr-FR')} pas par jour` : 'Définis ton objectif quotidien de pas.'}
-                    </div>
-                    {todaySteps != null ? (
-                      <div style={{ marginTop: 10, display: 'inline-flex', padding: '4px 8px', borderRadius: 999, border: `1px solid ${stepsMeasured ? 'rgba(200,255,0,.35)' : '#343835'}`, color: stepsMeasured ? '#C8FF00' : '#A5AAA6', fontSize: 9, fontWeight: 950, letterSpacing: '.07em' }}>{stepsMeasured ? 'MESURÉ' : 'DÉCLARÉ'}</div>
-                    ) : (
-                      <div style={{ marginTop: 10, color: '#747A76', fontSize: 11, lineHeight: 1.45 }}>Les pas seront affichés ici dès que NOX recevra une mesure Apple Health / Health Connect.</div>
-                    )}
+                    <div style={{ fontSize: 11, fontWeight: 900, marginTop: 5 }}>pas</div>
                   </div>
                 </div>
-              </AppCard>
-            )}
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: '#8E938F', fontSize: 10, fontWeight: 950, letterSpacing: '.08em', marginBottom: 7 }}>
+                    BOUGER AUJOURD'HUI
+                  </div>
+                  <div style={{ fontSize: 21, fontWeight: 1000, letterSpacing: '-.03em' }}>
+                    {todaySteps == null
+                      ? 'Suivi des pas non connecté'
+                      : stepsTarget != null && stepsTarget > 0 && todaySteps >= stepsTarget
+                        ? 'Objectif atteint ✓'
+                        : stepsTarget != null && stepsTarget > 0
+                          ? `${stepsProgress}% de ton objectif`
+                          : `${todaySteps.toLocaleString('fr-FR')} pas aujourd'hui`}
+                  </div>
+                  <div style={{ color: '#A5AAA6', fontSize: 13, lineHeight: 1.5, marginTop: 7 }}>
+                    {stepsTarget != null && stepsTarget > 0
+                      ? `Objectif : ${stepsTarget.toLocaleString('fr-FR')} pas par jour`
+                      : 'Objectif de pas à configurer.'}
+                  </div>
+                  {todaySteps != null ? (
+                    <div style={{
+                      marginTop: 10, display: 'inline-flex', padding: '4px 8px', borderRadius: 999,
+                      border: `1px solid ${stepsMeasured ? 'rgba(200,255,0,.35)' : '#343835'}`,
+                      color: stepsMeasured ? '#C8FF00' : '#A5AAA6',
+                      fontSize: 9, fontWeight: 950, letterSpacing: '.07em'
+                    }}>
+                      {stepsMeasured ? 'MESURÉ' : 'DÉCLARÉ'}
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: 10, color: '#747A76', fontSize: 11, lineHeight: 1.45 }}>
+                      En attente d'une mesure Apple Health / Health Connect.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </AppCard>
+
             <div style={{ display: 'grid', gap: 10 }}>
               {habits.filter(h => h.kind !== 'steps').map(h => {
                 const def = HABITS[h.kind];
