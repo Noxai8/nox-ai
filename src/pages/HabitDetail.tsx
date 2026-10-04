@@ -206,7 +206,7 @@ export default function HabitDetail() {
         <div style={label}>AUJOURD’HUI</div>
         <div style={{ fontSize: 34, fontWeight: 1000, letterSpacing: '-.04em', lineHeight: 1 }}>
           {todayLog ? todayLog.count.toLocaleString('fr-FR') : '—'}
-          <span style={{ fontSize: 15, color: MUTED, fontWeight: 900 }}> {habit.unit}{habit.kind === 'steps' ? ' · déclaré' : ''}</span>
+          <span style={{ fontSize: 15, color: MUTED, fontWeight: 900 }}> {habit.unit}{habit.kind === 'steps' && todayLog ? ' · DÉCLARÉ' : ''}</span>
         </div>
         <div style={{ marginTop: 8, fontSize: 13, color: todayLog && okLog(todayLog) ? LIME : SEC, fontWeight: 800 }}>
           {!todayLog ? 'Pas encore noté aujourd’hui' : dayLine(todayLog)}

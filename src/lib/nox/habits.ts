@@ -116,9 +116,9 @@ export function habitName(h: Pick<UserHabit, 'kind' | 'label'>): string {
 /** Les pas restent déclarés tant que l'app n'a pas de source mesurée (Apple Santé / Health Connect) */
 export const isDeclaredSteps = (h: Pick<UserHabit, 'kind'>) => h.kind === 'steps';
 
-/** Saisie directe d'une valeur (pas, minutes…) plutôt que +1 / −1 */
-export const usesValueInput = (h: Pick<UserHabit, 'kind' | 'daily_target'>) =>
-  h.kind === 'steps' || (h.daily_target != null && h.daily_target >= 20);
+/** Saisie directe d'une valeur pour les objectifs quantitatifs (pas, minutes, pages…) plutôt que +1 / −1 */
+export const usesValueInput = (h: Pick<UserHabit, 'kind' | 'mode'>) =>
+  h.kind === 'steps' || h.mode === 'build';
 
 export const MODE_LABELS: Record<HabitMode, { title: string; detail: string }> = {
   reduce: { title: 'Réduire', detail: 'Tu fixes une cible quotidienne à ne pas dépasser.' },

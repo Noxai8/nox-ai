@@ -248,7 +248,7 @@ export default function Habits() {
                             <div style={{ fontSize: 15, fontWeight: 900 }}>{habitName(h)}</div>
                             <div style={{ color: SEC, fontSize: 12, marginTop: 3 }}>
                               {h.mode === 'build'
-                                ? `Au moins ${Number(h.daily_target).toLocaleString('fr-FR')} ${h.unit}/jour${h.kind === 'steps' ? ' · déclaré' : ''}`
+                                ? `Au moins ${Number(h.daily_target).toLocaleString('fr-FR')} ${h.unit}/jour${h.kind === 'steps' ? ' · DÉCLARÉ' : ''}`
                                 : <>{MODE_LABELS[h.mode].title}{h.daily_target != null ? ` · cible ${h.daily_target} ${h.unit}/jour` : ''}</>}
                               {h.professional_support ? ' · avec un professionnel' : ''}
                             </div>
