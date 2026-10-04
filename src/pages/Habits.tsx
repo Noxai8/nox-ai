@@ -44,7 +44,7 @@ type OnboardingQueue = { onboardingSetup?: HabitKind[]; next?: { path: string; s
 const emptyDraft = (kind: HabitKind): Draft => ({
   kind, label: '', unit: kind === 'steps' ? 'pas' : 'min',
   mode: kind === 'steps' || kind === 'custom' ? 'build' : 'reduce',
-  baseline: '', target: kind === 'steps' ? '7000' : '', riskAnswer: null, professional: false, consent: false,
+  baseline: '', target: '', riskAnswer: null, professional: false, consent: false,
 });
 
 /** Objectifs du quotidien (pas, objectifs personnels) : configuration dédiée */
