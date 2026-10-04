@@ -608,6 +608,7 @@ export default function Home() {
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 2px', border: 0, borderTop: i ? '1px solid #343835' : 'none', background: 'transparent', color: '#FFFFFF', cursor: 'pointer', textAlign: 'left' }}>
                   {item.done ? <CircleCheck size={20} color="#C8FF00" /> : <Circle size={20} color="#747A76" />}
                   <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 850, color: item.done ? '#A5AAA6' : '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+                  {item.measured && <span style={{ padding: '2px 6px', borderRadius: 6, background: 'rgba(200,255,0,.10)', border: '1px solid rgba(200,255,0,.35)', color: '#C8FF00', fontSize: 9, fontWeight: 900, letterSpacing: '.06em', flexShrink: 0 }}>MESURÉ</span>}
                   {item.declared && <span style={{ padding: '2px 6px', borderRadius: 6, background: '#191C1A', border: '1px solid #343835', color: '#A5AAA6', fontSize: 9, fontWeight: 900, letterSpacing: '.06em', flexShrink: 0 }}>DÉCLARÉ</span>}
                   {item.detail && <span style={{ color: '#747A76', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0 }}>{item.detail}</span>}
                   {!item.done && <span style={{ color: '#747A76', fontSize: 16 }}>›</span>}

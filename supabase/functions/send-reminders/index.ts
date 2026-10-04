@@ -35,6 +35,8 @@ function configureVapid(): string | null {
 // ── Voix de NOXI (même ton que l'app : chaleureux, jamais culpabilisant) ──────
 // Règle absolue : aucun rappel ne nomme une habitude.
 type Kind = 'morning' | 'evening' | 'habits' | 'weekly';
+// Rappels contextuels : jamais envoyés sans donnée réelle qui les justifie
+type Nudge = 'mission_start' | 'movement' | 'nutrition' | 'mission_end' | 'goals';
 const LINES: Record<Kind, string[]> = {
   morning: [
     'Ton Pulse m’attend. Promis, c’est plus rapide qu’un café.',
@@ -125,47 +127,157 @@ Deno.serve(async (req) => {
 
   let sentTotal = 0;
   for (const p of prefsRows ?? []) {
-    const now = localNow(p.timezone || 'Europe/Paris');
-    if (inQuiet(now.minutes, toMin(p.quiet_start), toMin(p.quiet_end))) continue;
-
-    const due: Kind[] = [];
-    if (p.morning && inWindow(now.minutes, toMin(p.morning_time))) due.push('morning');
-    if (p.habits_check && inWindow(now.minutes, 17 * 60 + 30)) due.push('habits');
-    if (p.evening && inWindow(now.minutes, toMin(p.evening_time))) due.push('evening');
-    if (p.weekly && now.sunday && inWindow(now.minutes, 18 * 60)) due.push('weekly');
-    if (!due.length) continue;
-
-    const { count: sentToday } = await service.from('reminder_log')
-      .select('id', { count: 'exact', head: true }).eq('user_id', p.user_id).eq('local_date', now.date);
-    let budget = (p.max_per_day ?? 2) - (sentToday ?? 0);
-
-    for (const kind of due) {
-      if (budget <= 0) break;
-
-      // Rappel inutile si l'action est déjà faite : on ne dérange pas
-      if (kind === 'morning') {
-        const { count } = await service.from('daily_pulses').select('id', { count: 'exact', head: true }).eq('user_id', p.user_id).eq('date', now.date);
-        if (count) continue;
-      }
-      if (kind === 'evening') {
-        const { count } = await service.from('daily_closures').select('id', { count: 'exact', head: true }).eq('user_id', p.user_id).eq('date', now.date);
-        if (count) continue;
-      }
-      if (kind === 'habits') {
-        const { data: hs } = await service.from('user_habits').select('id').eq('user_id', p.user_id).eq('active', true);
-        if (!hs?.length) continue;
-        const { data: logs } = await service.from('habit_logs').select('habit_id').eq('user_id', p.user_id).eq('date', now.date);
-        const logged = new Set((logs ?? []).map((l: any) => l.habit_id));
-        if (hs.every((h: any) => logged.has(h.id))) continue;
-      }
-
-      // L'historique empêche tout doublon (unique user + type + jour)
-      const { error: logErr } = await service.from('reminder_log').insert({ user_id: p.user_id, kind, local_date: now.date });
-      if (logErr) continue;
-
-      sentTotal += await sendTo(service, p.user_id, { title: 'NOXI', body: line(kind, now.date), url: URLS[kind] });
-      budget--;
+    try {
+      const sent = await processUser(service, p);
+      sentTotal += sent;
+    } catch (e: any) {
+      console.error('reminders user', p.user_id, e?.message ?? e);
     }
   }
   return json({ ok: true, sent: sentTotal });
 });
+
+// ── Décision pour un utilisateur ─────────────────────────────────────────────
+// Règles : données réelles uniquement · heures calmes · plafond quotidien · 2 h minimum entre deux
+// rappels · un rappel par type et par jour · le rappel de clôture garde sa place dans le quota ·
+// au plus un rappel par passage · aucun nom d'habitude · aucun effet XP.
+async function processUser(sb: any, p: any): Promise<number> {
+  const tz = p.timezone || 'Europe/Paris';
+  const now = localNow(tz);
+  if (inQuiet(now.minutes, toMin(p.quiet_start), toMin(p.quiet_end))) return 0;
+
+  const uid = p.user_id;
+  const gap = Math.max(120, Number(p.min_gap_minutes ?? 120));
+  const eveningMin = toMin(p.evening_time);
+
+  const [{ data: logs }, { data: closure }] = await Promise.all([
+    sb.from('reminder_log').select('kind, sent_at').eq('user_id', uid).eq('local_date', now.date),
+    sb.from('daily_closures').select('id').eq('user_id', uid).eq('date', now.date).maybeSingle(),
+  ]);
+  const sentKinds = new Set((logs ?? []).map((l: any) => l.kind));
+  const lastSent = Math.max(0, ...(logs ?? []).map((l: any) => new Date(l.sent_at).getTime()));
+  const gapOk = !lastSent || Date.now() - lastSent >= gap * 60_000;
+  let budget = (p.max_per_day ?? 2) - (logs ?? []).length;
+  const reserveEvening = p.evening && !closure && now.minutes < eveningMin + 30 && !sentKinds.has('evening');
+  if (!gapOk || budget <= 0) return 0;
+
+  // Un rappel non prioritaire ne passe que s'il reste un créneau pour la clôture, et assez tôt
+  // pour respecter l'intervalle minimal avant celle-ci.
+  // L'intervalle avant la clôture se calcule sur l'heure PRÉVUE du rappel (insensible au retard d'exécution)
+  const nudgeAllowed = (scheduledMin: number) =>
+    budget - (reserveEvening ? 1 : 0) >= 1 && (!reserveEvening || scheduledMin + gap <= eveningMin);
+
+  const day = await loadDay(sb, uid, now.date, tz);
+  type Msg = { kind: string; title: string; body: string; url: string };
+  const candidates: (() => Msg | null)[] = [];
+
+  // Rappels à heure fixe existants
+  candidates.push(() => (p.morning && !sentKinds.has('morning') && inWindow(now.minutes, toMin(p.morning_time)) && !day.pulse && nudgeAllowed(toMin(p.morning_time)))
+    ? { kind: 'morning', title: 'NOXI', body: line('morning', now.date), url: URLS.morning } : null);
+  candidates.push(() => (p.habits_check && !sentKinds.has('habits') && inWindow(now.minutes, 17 * 60 + 30) && day.goalsMissing > 0 && nudgeAllowed(17 * 60 + 30))
+    ? { kind: 'habits', title: 'NOXI', body: line('habits', now.date), url: URLS.habits } : null);
+  candidates.push(() => (p.weekly && now.sunday && !sentKinds.has('weekly') && inWindow(now.minutes, 18 * 60) && nudgeAllowed(18 * 60))
+    ? { kind: 'weekly', title: 'NOXI', body: line('weekly', now.date), url: URLS.weekly } : null);
+
+  // Rappels contextuels
+  candidates.push(() => {
+    if (!p.nudge_mission || sentKinds.has('mission_start') || !inWindow(now.minutes, 14 * 60) || !nudgeAllowed(14 * 60)) return null;
+    if (!day.mission || day.mission.done || day.mission.started) return null;
+    return { kind: 'mission_start', title: 'Ta mission t’attend', body: `Tu avais choisi « ${day.mission.title} ». 25 minutes suffisent pour commencer.`, url: '/focus' };
+  });
+  candidates.push(() => {
+    if (!p.nudge_movement || sentKinds.has('movement') || !inWindow(now.minutes, 16 * 60) || !nudgeAllowed(16 * 60)) return null;
+    if (!day.steps) return null;                                  // pas d'objectif de pas : aucune affirmation
+    if (day.steps.count == null) {                               // aucun relevé : on demande, on n'affirme rien
+      return { kind: 'movement', title: 'Tes pas du jour', body: 'Tu peux renseigner tes pas pour que NOX suive ton objectif.', url: `/habits/${day.steps.id}` };
+    }
+    if (day.steps.count >= day.steps.target * 0.4) return null;
+    return { kind: 'movement', title: 'Un peu de mouvement ?', body: 'Une marche de 15 minutes ferait déjà avancer ta journée.', url: `/habits/${day.steps.id}` };
+  });
+  candidates.push(() => {
+    if (!p.nudge_nutrition || sentKinds.has('nutrition') || !inWindow(now.minutes, 18 * 60) || !nudgeAllowed(18 * 60)) return null;
+    if (!day.nutritionOn || day.kcalTarget <= 0) return null;    // pas d'axe ou pas de vraie cible : rien
+    if (day.meals < 2) {                                         // suivi insuffisant : on invite à compléter, sans juger
+      return { kind: 'nutrition', title: 'Ton suivi repas', body: 'Ajoute tes repas du jour pour que NOX puisse faire le point.', url: '/fuel' };
+    }
+    if (day.kcal >= day.kcalTarget * 0.5) return null;
+    return { kind: 'nutrition', title: 'Point nutrition', body: 'Ta journée est encore loin de ta zone. Un vrai repas ce soir t’en rapprocherait.', url: '/fuel' };
+  });
+  candidates.push(() => {
+    if (!p.nudge_mission || sentKinds.has('mission_end') || !inWindow(now.minutes, 19 * 60) || !nudgeAllowed(19 * 60)) return null;
+    if (!day.mission || day.mission.done || !day.mission.started || day.mission.kind !== 'duration') return null;
+    return { kind: 'mission_end', title: 'Ta mission avance', body: `${day.mission.minutes} / ${day.mission.target} min sur « ${day.mission.title} ». Un bloc de plus et c’est bouclé.`, url: '/focus' };
+  });
+  candidates.push(() => {
+    if (!p.nudge_goals || sentKinds.has('goals') || !inWindow(now.minutes, 18 * 60 + 30) || !nudgeAllowed(18 * 60 + 30)) return null;
+    if (day.goalsMissing <= 0) return null;
+    // Jamais de nom d'objectif : ils peuvent être personnels ou sensibles
+    return { kind: 'goals', title: 'Un objectif attend', body: day.goalsMissing > 1 ? `${day.goalsMissing} objectifs du jour ne sont pas encore notés.` : 'Un objectif du jour n’est pas encore noté.', url: '/home' };
+  });
+  // Clôture : réservée dans le quota, liste uniquement des catégories neutres
+  candidates.push(() => {
+    if (!p.evening || sentKinds.has('evening') || closure || !inWindow(now.minutes, eveningMin) || budget < 1) return null;
+    const rest = [
+      day.steps && !(day.steps.count != null && day.steps.count >= day.steps.target) ? 'Bouger' : null,
+      day.nutritionOn && day.kcalTarget > 0 && !(day.kcal >= day.kcalTarget * 0.9 && day.kcal <= day.kcalTarget * 1.1) ? 'Nutrition' : null,
+      day.mission && !day.mission.done ? 'Concentration' : null,
+      day.goalsMissing > 0 ? `${day.goalsMissing} objectif${day.goalsMissing > 1 ? 's' : ''}` : null,
+    ].filter(Boolean);
+    return {
+      kind: 'evening', title: rest.length ? `Il reste ${rest.length} point${rest.length > 1 ? 's' : ''} aujourd’hui` : 'NOXI',
+      body: rest.length ? `${rest.join(' · ')}. Tu peux clôturer quand tu veux.` : line('evening', now.date), url: '/closure',
+    };
+  });
+
+  for (const pick of candidates) {
+    const msg = pick();
+    if (!msg) continue;
+    const { error: logErr } = await sb.from('reminder_log').insert({ user_id: uid, kind: msg.kind, local_date: now.date });
+    if (logErr) continue;                                        // déjà envoyé (unicité type + jour)
+    const n = await sendTo(sb, uid, { title: msg.title, body: msg.body, url: msg.url });
+    budget--;
+    return n;                                                    // au plus un rappel par passage
+  }
+  return 0;
+}
+
+// ── Données réelles du jour (aucune valeur supposée) ─────────────────────────
+async function loadDay(sb: any, uid: string, date: string, tz: string) {
+  const since = new Date(Date.now() - 36 * 3600_000).toISOString();
+  const localDate = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso));
+  const [{ data: profile }, { data: target }, { data: food }, { data: pulse }, { data: mission }, { data: habits }, { data: logs }] = await Promise.all([
+    sb.from('profiles').select('focus_areas').eq('id', uid).maybeSingle(),
+    sb.from('nutrition_targets').select('calories').eq('user_id', uid).maybeSingle(),
+    sb.from('food_entries').select('calories, created_at').eq('user_id', uid).gte('created_at', since),
+    sb.from('daily_pulses').select('id').eq('user_id', uid).eq('date', date).maybeSingle(),
+    sb.from('daily_missions').select('id, title, kind, target_minutes, done_at').eq('user_id', uid).eq('date', date).maybeSingle(),
+    sb.from('user_habits').select('id, kind, daily_target, in_day').eq('user_id', uid).eq('active', true),
+    sb.from('habit_logs').select('habit_id, count').eq('user_id', uid).eq('date', date),
+  ]);
+  const focus: string[] | null = profile?.focus_areas ?? null;
+  const todayFood = (food ?? []).filter((f: any) => localDate(f.created_at) === date);
+  const logOf = (id: string) => (logs ?? []).find((l: any) => l.habit_id === id);
+
+  let m: any = null;
+  if (mission) {
+    const { data: sessions } = await sb.from('focus_sessions').select('minutes').eq('mission_id', mission.id);
+    const minutes = (sessions ?? []).reduce((s: number, x: any) => s + Number(x.minutes ?? 0), 0);
+    m = {
+      title: mission.title, kind: mission.kind, target: mission.target_minutes, minutes,
+      started: (sessions ?? []).length > 0 || !!mission.done_at,
+      done: mission.kind === 'task' ? !!mission.done_at : minutes >= (mission.target_minutes ?? Infinity),
+    };
+  }
+  const dayHabits = (habits ?? []).filter((h: any) => h.in_day !== false);
+  const stepsHabit = dayHabits.find((h: any) => h.kind === 'steps');
+  return {
+    pulse: !!pulse,
+    nutritionOn: focus == null || focus.includes('nutrition'),
+    kcalTarget: Number(target?.calories || 0),
+    kcal: todayFood.reduce((s: number, f: any) => s + Number(f.calories || 0), 0),
+    meals: todayFood.length,
+    mission: m,
+    steps: stepsHabit ? { id: stepsHabit.id, target: Number(stepsHabit.daily_target || 0), count: logOf(stepsHabit.id) ? Number(logOf(stepsHabit.id).count) : null } : null,
+    goalsMissing: dayHabits.filter((h: any) => h.kind !== 'steps' && !logOf(h.id)).length,
+  };
+}

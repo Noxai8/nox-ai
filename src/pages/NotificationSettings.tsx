@@ -24,11 +24,16 @@ type Prefs = {
   weekly: boolean;
   quiet_start: string; quiet_end: string;
   max_per_day: number;
+  nudge_nutrition: boolean;
+  nudge_movement: boolean;
+  nudge_mission: boolean;
+  nudge_goals: boolean;
 };
 
 const DEFAULTS: Prefs = {
   enabled: true, morning: true, morning_time: '08:30', evening: true, evening_time: '21:00',
   habits_check: false, weekly: true, quiet_start: '22:30', quiet_end: '07:30', max_per_day: 2,
+  nudge_nutrition: true, nudge_movement: true, nudge_mission: true, nudge_goals: true,
 };
 
 const hhmm = (t: string) => t.slice(0, 5);
@@ -104,21 +109,21 @@ export default function NotificationSettings() {
   const label: React.CSSProperties = { color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em', marginBottom: 12 };
   const time: React.CSSProperties = { padding: '10px 12px', borderRadius: 12, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontSize: 14, fontWeight: 800, colorScheme: 'dark' };
 
-  const Toggle = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
+  const toggle = (on: boolean, onClick: () => void) => (
     <button onClick={onClick} aria-pressed={on}
       style={{ width: 50, height: 30, borderRadius: 999, border: 0, padding: 3, cursor: 'pointer', background: on ? LIME : SOFT, flexShrink: 0 }}>
       <span style={{ display: 'block', width: 24, height: 24, borderRadius: '50%', background: on ? BG : MUTED, transform: `translateX(${on ? 20 : 0}px)`, transition: 'transform .2s' }} />
     </button>
   );
 
-  const Row = ({ title, detail, on, onToggle, children }: { title: string; detail: string; on: boolean; onToggle: () => void; children?: React.ReactNode }) => (
-    <div style={{ padding: '14px 0', borderTop: `1px solid ${SOFT}` }}>
+  const row = (title: string, detail: string, on: boolean, onToggle: () => void, children?: React.ReactNode) => (
+    <div key={title} style={{ padding: '14px 0', borderTop: `1px solid ${SOFT}` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 14, fontWeight: 900 }}>{title}</div>
           <div style={{ fontSize: 12, color: SEC, marginTop: 3, lineHeight: 1.45 }}>{detail}</div>
         </div>
-        <Toggle on={on} onClick={onToggle} />
+        {toggle(on, onToggle)}
       </div>
       {on && children && <div style={{ marginTop: 10 }}>{children}</div>}
     </div>
@@ -174,14 +179,27 @@ export default function NotificationSettings() {
         {/* Types de rappels */}
         <section style={card}>
           <div style={{ ...label, marginBottom: 2 }}>CE QUE NOXI PEUT TE RAPPELER</div>
-          <Row title="Pulse du matin" detail="Seulement si tu ne l’as pas encore fait." on={prefs.morning} onToggle={() => save({ ...prefs, morning: !prefs.morning })}>
-            <input type="time" value={prefs.morning_time} onChange={e => save({ ...prefs, morning_time: e.target.value })} style={time} />
-          </Row>
-          <Row title="Clôture du soir" detail="Seulement si ta journée n’est pas encore clôturée." on={prefs.evening} onToggle={() => save({ ...prefs, evening: !prefs.evening })}>
-            <input type="time" value={prefs.evening_time} onChange={e => save({ ...prefs, evening_time: e.target.value })} style={time} />
-          </Row>
-          <Row title="Point sur tes objectifs" detail="En fin d’après-midi, si une habitude n’est pas encore notée. Message neutre." on={prefs.habits_check} onToggle={() => save({ ...prefs, habits_check: !prefs.habits_check })} />
-          <Row title="Bilan de la semaine" detail="Le dimanche, quand ton bilan est prêt." on={prefs.weekly} onToggle={() => save({ ...prefs, weekly: !prefs.weekly })} />
+          {row('Pulse du matin', 'Seulement si tu ne l’as pas encore fait.', prefs.morning, () => save({ ...prefs, morning: !prefs.morning }),
+            <input type="time" value={prefs.morning_time} onChange={e => save({ ...prefs, morning_time: e.target.value })} style={time} />)}
+          {row('Clôture du soir', 'Seulement si ta journée n’est pas encore clôturée. Elle indique ce qu’il reste, sans jamais nommer une habitude.', prefs.evening, () => save({ ...prefs, evening: !prefs.evening }),
+            <input type="time" value={prefs.evening_time} onChange={e => save({ ...prefs, evening_time: e.target.value })} style={time} />)}
+          {row('Point sur tes objectifs', 'En fin d’après-midi, si une habitude n’est pas encore notée. Message neutre.', prefs.habits_check, () => save({ ...prefs, habits_check: !prefs.habits_check }))}
+          {row('Bilan de la semaine', 'Le dimanche, quand ton bilan est prêt.', prefs.weekly, () => save({ ...prefs, weekly: !prefs.weekly }))}
+        </section>
+
+        {/* Rappels selon ta journée : uniquement à partir de données réellement enregistrées */}
+        <section style={card}>
+          <div style={{ ...label, marginBottom: 2 }}>SELON TA JOURNÉE</div>
+          <div style={{ color: SEC, fontSize: 12, lineHeight: 1.5, margin: '6px 0 4px' }}>
+            NOXI regarde ce qui manque vraiment. Sans donnée, il te propose de compléter, il n’affirme jamais rien.
+          </div>
+          {row('Concentration', 'À 14 h si ta mission n’est pas commencée, à 19 h si elle n’est pas terminée.', prefs.nudge_mission, () => save({ ...prefs, nudge_mission: !prefs.nudge_mission }))}
+          {row('Bouger', 'À 16 h, si tu as un objectif de pas : te propose de les saisir, ou une marche si tu es loin.', prefs.nudge_movement, () => save({ ...prefs, nudge_movement: !prefs.nudge_movement }))}
+          {row('Nutrition', 'À 18 h, avec une cible calorique : t’invite à compléter tes repas, ou signale si ta journée est loin de ta zone.', prefs.nudge_nutrition, () => save({ ...prefs, nudge_nutrition: !prefs.nudge_nutrition }))}
+          {row('Objectifs du jour', 'À 18 h 30, si un objectif de ta journée n’est pas noté. Sans jamais le nommer.', prefs.nudge_goals, () => save({ ...prefs, nudge_goals: !prefs.nudge_goals }))}
+          <div style={{ color: MUTED, fontSize: 11, lineHeight: 1.5, marginTop: 8 }}>
+            Toujours au moins 2 h entre deux rappels, jamais deux fois le même dans la journée, et une place gardée pour la clôture.
+          </div>
         </section>
 
         {/* Limites */}
