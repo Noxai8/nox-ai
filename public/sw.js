@@ -37,7 +37,8 @@ self.addEventListener('push', event => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'NOX', {
       body: data.body || '',
-      icon: '/favicon.ico',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
       data: { url: data.url || '/' },
       vibrate: [200, 100, 200],
     })

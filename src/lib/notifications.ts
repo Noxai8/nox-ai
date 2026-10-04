@@ -17,7 +17,7 @@ export async function registerServiceWorker() {
 export function scheduleLocalNotification(title: string, body: string, delayMs: number, url = '/') {
   if (Notification.permission !== 'granted') return;
   setTimeout(() => {
-    new Notification(title, { body, icon: '/favicon.ico' });
+    new Notification(title, { body, icon: '/icon-192.png' });
   }, delayMs);
 }
 
