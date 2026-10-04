@@ -62,13 +62,22 @@ export function buildDayPlan(i: DayPlanInput): DayPlanItem[] {
   const restDay = i.priorityType === 'recovery';
   if (steps && !restDay) {
     const log = logOf(steps);
+    const target = steps.daily_target;
+    const hasTarget = target != null && Number.isFinite(Number(target)) && Number(target) > 0;
+
     items.push({
       key: 'move', label: 'Bouger',
-      // Aucune valeur affichée tant que rien n'a été saisi (pas de « 0 » inventé)
-      detail: log ? `${fr(log.count)} / ${fr(steps.daily_target ?? 0)} pas` : `à saisir · objectif ${fr(steps.daily_target ?? 0)} pas`,
+      // Jamais de cible inventée : si aucune cible n'est configurée, on affiche seulement la valeur réelle.
+      detail: log
+        ? hasTarget
+          ? `${fr(log.count)} / ${fr(Number(target))} pas`
+          : `${fr(log.count)} pas`
+        : hasTarget
+          ? `à saisir · objectif ${fr(Number(target))} pas`
+          : 'à saisir',
       declared: !!log && !isMeasured(log.source),
       measured: !!log && isMeasured(log.source),
-      done: !!log && isTargetMet(log.count, steps.daily_target, 'build') === true,
+      done: !!log && hasTarget && isTargetMet(log.count, Number(target), 'build') === true,
       route: `/habits/${steps.id}`,
     });
   } else if (has('movement') && !restDay) {
