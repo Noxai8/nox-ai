@@ -82,6 +82,14 @@ export default function NotificationSettings() {
     setBusy(false);
   };
 
+  const sendTest = async () => {
+    setBusy(true); setMessage('');
+    const { data, error } = await supabase.functions.invoke('send-reminders', { body: { test: true } });
+    setBusy(false);
+    if (error) setMessage('Le service de rappels ne répond pas encore. Il doit d’abord être mis en ligne dans Supabase.');
+    else setMessage(data?.sent ? 'Test envoyé. La notification devrait arriver dans quelques secondes.' : 'Aucun appareil actif trouvé pour ton compte.');
+  };
+
   const card: React.CSSProperties = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20, marginBottom: 14 };
   const label: React.CSSProperties = { color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em', marginBottom: 12 };
   const time: React.CSSProperties = { padding: '10px 12px', borderRadius: 12, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontSize: 14, fontWeight: 800, colorScheme: 'dark' };
@@ -144,7 +152,13 @@ export default function NotificationSettings() {
             </button>
           )}
           {deviceOn && <div style={{ marginTop: 10, color: LIME, fontSize: 12, fontWeight: 800, display: 'flex', gap: 6, alignItems: 'center' }}><Check size={14} /> Rappels actifs sur cet appareil</div>}
-          {message && <div style={{ marginTop: 10, color: '#E9C2C2', fontSize: 12, lineHeight: 1.5 }}>{message}</div>}
+          {deviceOn && (
+            <button onClick={sendTest} disabled={busy}
+              style={{ marginTop: 12, width: '100%', padding: 14, borderRadius: 14, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
+              Envoyer un test
+            </button>
+          )}
+          {message && <div style={{ marginTop: 10, color: message.startsWith('Test envoyé') ? LIME : '#E9C2C2', fontSize: 12, lineHeight: 1.5 }}>{message}</div>}
         </section>
 
         {/* Types de rappels */}
