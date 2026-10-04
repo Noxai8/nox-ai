@@ -320,20 +320,19 @@ export default function Home() {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
+    const today = todayLocalDate();
 
-    const [{ data: prof }, { data: prog }, { data: tgts }, { data: food }] = await Promise.all([
+    // Vague 1 : toutes les lectures indépendantes partent en même temps
+    const [
+      { data: prof }, { data: prog }, { data: tgts }, { data: food },
+      { data: workout }, { data: lastActivity }, { data: pulse },
+      { data: closures, count: closuresCount, error: closuresError },
+      { count: movesToday }, { data: m },
+    ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
       supabase.from('workout_programs').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
       supabase.from('nutrition_targets').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('food_entries').select('*').eq('user_id', user.id).gte('created_at', start).lte('created_at', end),
-    ]);
-
-    setProfile(prof);
-    setProgram(prog);
-    setTargets(tgts);
-    setTodayFood(food || []);
-
-    const [{ data: workout }, { data: lastActivity }, { data: pulse }, { data: closure }] = await Promise.all([
       supabase
         .from('workouts')
         .select('id, name, status, finished_at, duration_minutes, session_feedback')
@@ -357,51 +356,41 @@ export default function Home() {
         .from('daily_pulses')
         .select('sleep_score, energy_score, body_score')
         .eq('user_id', user.id)
-        .eq('date', todayLocalDate())
+        .eq('date', today)
         .maybeSingle(),
+      // Une seule lecture des clôtures : les plus récentes (clôture du jour + précédente) et le total.
+      // Une clôture peut exister au plus pour demain (protection anti-antidatage), d'où 3 lignes.
       supabase
         .from('daily_closures')
-        .select('completion, evening_energy, priority_type')
+        .select('date, completion, evening_energy, priority_type', { count: 'exact' })
         .eq('user_id', user.id)
-        .eq('date', todayLocalDate())
-        .maybeSingle(),
+        .order('date', { ascending: false })
+        .limit(3),
+      supabase.from('movement_logs').select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id).eq('date', today),
+      supabase.from('daily_missions')
+        .select('id, date, title, kind, target_minutes, done_at')
+        .eq('user_id', user.id).eq('date', today).maybeSingle(),
     ]);
 
+    setProfile(prof);
+    setProgram(prog);
+    setTargets(tgts);
+    setTodayFood(food || []);
     setTodayWorkout(workout || null);
     setTodayPulse(pulse || null);
-    setTodayClosure((closure as Closure) || null);
 
-    const [{ count: movesToday }, { data: prevClosure }] = await Promise.all([
-      supabase.from('movement_logs').select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id).eq('date', todayLocalDate()),
-      supabase.from('daily_closures').select('date')
-        .eq('user_id', user.id).lt('date', todayLocalDate())
-        .order('date', { ascending: false }).limit(1).maybeSingle(),
-    ]);
+    const recentClosures = (closures ?? []) as (Closure & { date: string })[];
+    const todayClosureRow = recentClosures.find(c => c.date === today);
+    setTodayClosure(todayClosureRow
+      ? { completion: todayClosureRow.completion, evening_energy: todayClosureRow.evening_energy, priority_type: todayClosureRow.priority_type }
+      : null);
+    setLastClosureDate(recentClosures.find(c => c.date < today)?.date ?? null);
+    if (closuresError) console.error('daily_closures:', closuresError);
+    else setObservedDays(closuresCount ?? 0);
+
     setMovedToday((movesToday ?? 0) > 0);
-
-    const { data: m } = await supabase.from('daily_missions')
-      .select('id, date, title, kind, target_minutes, done_at')
-      .eq('user_id', user.id).eq('date', todayLocalDate()).maybeSingle();
     setMission((m as DailyMission) ?? null);
-    if (m) {
-      const { data: fs } = await supabase.from('focus_sessions')
-        .select('id, mission_id, planned_minutes, started_at, ended_at, minutes, distractions')
-        .eq('mission_id', (m as any).id);
-      setMissionSessions((fs ?? []) as FocusSession[]);
-    } else setMissionSessions([]);
-    setLastClosureDate(prevClosure?.date ?? null);
-
-    const { count: observedDaysCount, error: observedDaysError } = await supabase
-      .from('daily_closures')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id);
-
-    if (observedDaysError) {
-      console.error('daily_closures count:', observedDaysError);
-    } else {
-      setObservedDays(observedDaysCount ?? 0);
-    }
 
     if (lastActivity?.finished_at) {
       const last = new Date(lastActivity.finished_at);
@@ -410,6 +399,14 @@ export default function Home() {
     } else {
       setDaysSinceActivity(null);
     }
+
+    // Vague 2 : seule lecture dépendante (les sessions ont besoin de la mission)
+    if (m) {
+      const { data: fs } = await supabase.from('focus_sessions')
+        .select('id, mission_id, planned_minutes, started_at, ended_at, minutes, distractions')
+        .eq('mission_id', (m as any).id);
+      setMissionSessions((fs ?? []) as FocusSession[]);
+    } else setMissionSessions([]);
   };
 
   const firstName = profile?.first_name || profile?.display_name?.split(' ')[0] || '';
