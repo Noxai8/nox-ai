@@ -20,7 +20,7 @@ const PILLARS = [
   ['movement', 'Mouvement & corps', 'Séances, activités, programme'],
   ['nutrition', 'Nutrition', 'Repas, calories, macros'],
   ['recovery', 'Sommeil & récupération', 'Énergie, sommeil, récupération'],
-  ['focus', 'Focus', 'Mission du jour, concentration, discipline'],
+  ['focus', 'Concentration', 'Mission du jour, sessions de concentration'],
 ] as const;
 // Habitudes : jamais persistées ici — configurées ensuite avec consentement et garde-fous
 const HABIT_CHOICES = [

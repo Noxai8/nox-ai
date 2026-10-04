@@ -45,6 +45,7 @@ function QuickAddModal({ open, onClose }: { open: boolean; onClose: () => void }
   const actions = [
     { label: 'Repas',           icon: Utensils, path: '/food-scan', color: '#FF6B35' },
     { label: 'Mouvement/Sport', icon: Dumbbell, path: '/movement',  color: '#C8FF00' },
+    { label: 'Concentration',   icon: Target,   path: '/focus',     color: '#C8FF00' },
     { label: 'Poids',           icon: Scale,    path: '/body',      color: '#64B5F6' },
     { label: 'Sommeil',         icon: Moon,     path: '/sleep',     color: '#9C89FF' },
     { label: 'Humeur/Stress',   icon: Smile,    path: '/mood',      color: '#FFD93D' },
@@ -272,6 +273,13 @@ export default function Home() {
   const [movedToday, setMovedToday] = useState(false);
   const [mission, setMission] = useState<DailyMission | null>(null);
   const [missionSessions, setMissionSessions] = useState<FocusSession[]>([]);
+  const [nowTick, setNowTick] = useState(Date.now());
+  const openSession = missionSessions.find(s => !s.ended_at) ?? null;
+  useEffect(() => {
+    if (!openSession) return;
+    const t = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [openSession?.id]);
   const [lastClosureDate, setLastClosureDate] = useState<string | null>(null);
 
   useEffect(() => { if (user) void loadAll(); }, [user]);
@@ -531,7 +539,7 @@ export default function Home() {
       done: !!todayWorkout || movedToday, go: () => navigate(todaySession ? '/program' : '/movement'),
     }] : []),
     ...(mission ? [{
-      key: 'mission', label: `Mission : ${mission.title}`,
+      key: 'mission', label: `Concentration : ${mission.title}`,
       done: isMissionDone(mission, missionMinutes(missionSessions, mission.id)),
       go: () => navigate('/focus'),
     }] : focusOn ? [{ key: 'mission', label: 'Définir ta mission du jour', done: false, go: () => navigate('/focus') }] : []),
@@ -717,46 +725,67 @@ export default function Home() {
         </section>
 
         {(mission || focusOn) && (() => {
+          // Concentration = intention choisie par l'utilisateur (≠ Priorité du jour, recommandée par NOX).
+          // Toutes les valeurs viennent du serveur (missions, sessions) ; rien n'est calculé ici pour l'XP.
           const mins = mission ? missionMinutes(missionSessions, mission.id) : 0;
           const done = mission ? isMissionDone(mission, mins) : false;
           const tip = suggestBlock(todayPulse, new Date().getHours());
+          const running = openSession && mission && openSession.mission_id === mission.id;
+          const elapsed = running ? Math.max(0, Math.floor((nowTick - new Date(openSession!.started_at).getTime()) / 1000)) : 0;
+          const clock = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`;
+          const label = { fontSize: 11, fontWeight: 900, letterSpacing: '.06em', color: '#8E938F', marginBottom: 8 } as const;
           return (
             <section className="nox-home-section">
-              <SectionHeader title="Mission du jour" action={mission ? 'Ouvrir ›' : undefined} onAction={() => navigate('/focus')} />
+              <SectionHeader title="Concentration" action={mission ? 'Ouvrir ›' : undefined} onAction={() => navigate('/focus')} />
               <AppCard style={{ padding: 20 }}>
                 {!mission ? (
                   <>
-                    <div style={{ fontSize: 18, fontWeight: 950, marginBottom: 6 }}>Qu’est-ce qui ferait de cette journée une réussite ?</div>
-                    <div style={{ color: '#A5AAA6', fontSize: 13, marginBottom: 16 }}>Une seule chose importante. NOX t’aide à l’avancer.</div>
-                    <LimeButton onClick={() => navigate('/focus')}>DÉFINIR MA MISSION →</LimeButton>
+                    <div style={label}>MISSION DU JOUR</div>
+                    <div style={{ color: '#A5AAA6', fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>
+                      Ce que tu décides d’accomplir aujourd’hui. Une seule chose importante.
+                    </div>
+                    <DarkButton onClick={() => navigate('/focus')}>DÉFINIR MA MISSION DU JOUR →</DarkButton>
                   </>
                 ) : (
                   <>
-                    <div style={{ fontSize: 19, fontWeight: 950, letterSpacing: '-.02em' }}>{mission.title}</div>
-                    {mission.kind === 'duration' ? (
+                    <div style={label}>MISSION DU JOUR · {mission.kind === 'duration' ? 'DURÉE' : 'TÂCHE'}</div>
+                    <div style={{ fontSize: 19, fontWeight: 950, letterSpacing: '-.02em' }}>« {mission.title} »</div>
+
+                    {mission.kind === 'duration' && (
                       <>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', margin: '12px 0 8px', fontSize: 13 }}>
-                          <span style={{ color: '#A5AAA6' }}>Objectif : {mission.target_minutes} min de focus</span>
-                          <span style={{ fontWeight: 950, color: done ? '#C8FF00' : '#FFFFFF' }}>{mins} / {mission.target_minutes} min{done ? ' ✓' : ''}</span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', margin: '12px 0 8px', fontSize: 13, color: '#A5AAA6' }}>
+                          <span>{mission.target_minutes} min prévues</span>
+                          <span>·</span>
+                          <span style={{ fontWeight: 950, color: done ? '#C8FF00' : '#FFFFFF' }}>{mins} min réalisées</span>
                         </div>
-                        <div style={{ height: 6, borderRadius: 999, background: '#343835', overflow: 'hidden', marginBottom: done ? 0 : 14 }}>
+                        <div style={{ height: 6, borderRadius: 999, background: '#343835', overflow: 'hidden' }}>
                           <div style={{ width: `${Math.min(100, (mins / Math.max(1, mission.target_minutes ?? 1)) * 100)}%`, height: '100%', background: '#C8FF00', borderRadius: 999 }} />
                         </div>
-                        {!done && (
-                          <>
-                            <div style={{ color: '#A5AAA6', fontSize: 12, lineHeight: 1.5, marginBottom: 14 }}>
-                              <span style={{ color: '#C8FF00', fontWeight: 900 }}>NOX : </span>{tip.reason}
-                            </div>
-                            <DarkButton onClick={() => navigate('/focus')}>DÉMARRER UNE SESSION →</DarkButton>
-                          </>
-                        )}
+                      </>
+                    )}
+
+                    {done ? (
+                      <div style={{ marginTop: 14, fontSize: 14, fontWeight: 950, color: '#C8FF00' }}>
+                        ✓ Mission accomplie{mission.kind === 'duration' ? ` · ${mins} min` : ''}
+                      </div>
+                    ) : running ? (
+                      <>
+                        <div style={{ marginTop: 14, fontSize: 14, fontWeight: 950 }}>
+                          <span style={{ fontVariantNumeric: 'tabular-nums' }}>{clock}</span>
+                          <span style={{ color: '#A5AAA6', fontWeight: 750 }}> en cours</span>
+                        </div>
+                        <LimeButton onClick={() => navigate('/focus')} style={{ marginTop: 14 }}>REPRENDRE →</LimeButton>
+                      </>
+                    ) : mission.kind === 'duration' ? (
+                      <>
+                        <div style={{ color: '#A5AAA6', fontSize: 12, lineHeight: 1.5, margin: '14px 0' }}>
+                          <span style={{ color: '#C8FF00', fontWeight: 900 }}>NOX : </span>{tip.reason}
+                        </div>
+                        <DarkButton onClick={() => navigate('/focus')}>{mins > 0 ? 'CONTINUER →' : 'COMMENCER →'}</DarkButton>
                       </>
                     ) : (
-                      <div style={{ marginTop: 10, fontSize: 13, fontWeight: 900, color: done ? '#C8FF00' : '#A5AAA6' }}>
-                        {done ? 'Mission accomplie ✓' : 'Tâche à finir aujourd’hui'}
-                      </div>
+                      <DarkButton onClick={() => navigate('/focus')} style={{ marginTop: 14 }}>TERMINER →</DarkButton>
                     )}
-                    {mission.kind === 'task' && !done && <DarkButton onClick={() => navigate('/focus')} style={{ marginTop: 14 }}>OUVRIR MA MISSION →</DarkButton>}
                   </>
                 )}
               </AppCard>

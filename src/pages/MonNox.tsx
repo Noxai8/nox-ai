@@ -369,7 +369,7 @@ export default function MonNox() {
                 {aligned && (
                   <>
                     <div style={{fontSize:12,color:SECONDARY,marginTop:8}}>
-                      {aligned.movement} mouvement · {aligned.focus} focus · {aligned.habits} habitude{aligned.habits > 1 ? 's' : ''} · {aligned.recovery} récupération
+                      {aligned.movement} mouvement · {aligned.focus} concentration · {aligned.habits} habitude{aligned.habits > 1 ? 's' : ''} · {aligned.recovery} récupération
                     </div>
                     <div style={{fontSize:10,color:MUTED,marginTop:5}}>Une journée peut compter dans plusieurs catégories.</div>
                   </>

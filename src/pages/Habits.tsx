@@ -33,7 +33,7 @@ const FOCUS: { id: FocusArea; label: string; detail: string; icon: typeof Dumbbe
   { id: 'movement',  label: 'Mouvement & corps',     detail: 'Séances, activités, programme.', icon: Dumbbell, setup: { label: 'Configurer mon programme', path: '/program' } },
   { id: 'nutrition', label: 'Nutrition',             detail: 'Repas, objectifs caloriques, macros.', icon: Utensils, setup: { label: 'Configurer mes objectifs', path: '/nutrition-goals' } },
   { id: 'recovery',  label: 'Sommeil & récupération', detail: 'Sommeil, énergie, récupération.', icon: Moon },
-  { id: 'focus',     label: 'Focus',                  detail: 'Mission du jour, sessions de concentration.', icon: Target, setup: { label: 'Définir ma mission du jour', path: '/focus' } },
+  { id: 'focus',     label: 'Concentration',          detail: 'Mission du jour, sessions de concentration.', icon: Target, setup: { label: 'Définir ma mission du jour', path: '/focus' } },
 ];
 
 type OnboardingQueue = { onboardingSetup?: HabitKind[]; next?: { path: string; state?: unknown } };

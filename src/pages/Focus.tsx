@@ -157,14 +157,14 @@ export default function Focus() {
     width: '100%', padding: 16, borderRadius: 14, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontWeight: 800, fontSize: 14, cursor: 'pointer',
   };
 
-  // ── MODE FOCUS (session en cours) ───────────────────────────────────────────
+  // ── MODE CONCENTRATION (session en cours) ───────────────────────────────────────────
   if (open) {
     const elapsed = (now - new Date(open.started_at).getTime()) / 1000;
     const remaining = open.planned_minutes * 60 - elapsed;
     return (
       <div style={{ minHeight: '100dvh', background: BG, color: WHITE, display: 'flex', flexDirection: 'column' }}>
         <main style={{ flex: 1, width: '100%', maxWidth: 560, margin: '0 auto', padding: '56px 20px 32px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.12em' }}>MODE FOCUS</div>
+          <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.12em' }}>MODE CONCENTRATION</div>
           <div style={{ fontSize: 24, fontWeight: 850, letterSpacing: '-.03em', marginTop: 8 }}>{mission?.title ?? 'Ta mission'}</div>
           <div style={{ flex: 1, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
             <div>
@@ -197,7 +197,7 @@ export default function Focus() {
             <ArrowLeft size={18} color={WHITE} />
           </button>
           <div>
-            <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em' }}>FOCUS</div>
+            <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em' }}>CONCENTRATION</div>
             <h1 style={{ margin: 0, fontSize: 'clamp(30px,5vw,40px)', fontWeight: 850, letterSpacing: '-.04em', lineHeight: 1 }}>Mission du jour</h1>
           </div>
         </header>
@@ -220,7 +220,7 @@ export default function Focus() {
             <section style={card}>
               <div style={label}>COMMENT LA MESURER ?</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <button onClick={() => setKind('duration')} style={choice(kind === 'duration')}><Timer size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Temps de focus</button>
+                <button onClick={() => setKind('duration')} style={choice(kind === 'duration')}><Timer size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Temps de concentration</button>
                 <button onClick={() => setKind('task')} style={choice(kind === 'task')}><CircleCheck size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Tâche à finir</button>
               </div>
               {kind === 'duration' && (
@@ -246,7 +246,7 @@ export default function Focus() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-.02em' }}>{mission.title}</div>
                   <div style={{ color: SEC, fontSize: 13, marginTop: 4 }}>
-                    {mission.kind === 'duration' ? `Objectif : ${mission.target_minutes} min de focus` : 'Tâche à finir aujourd’hui'}
+                    {mission.kind === 'duration' ? `Objectif : ${mission.target_minutes} min de concentration` : 'Tâche à finir aujourd’hui'}
                   </div>
                 </div>
                 <button onClick={openForm} style={{ border: 0, background: 'transparent', color: LIME, fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Modifier</button>
