@@ -927,7 +927,7 @@ export default function Home() {
                   <div style={{ fontSize: 20, fontWeight: 1000, letterSpacing: '-.03em' }}>{todayPulse ? 'Ta journée touche à sa fin.' : 'Ton bilan viendra ici ce soir.'}</div>
                   <div style={{ color: '#A7ACA8', fontSize: 13, marginTop: 5 }}>{todayPulse ? '30 secondes pour clôturer avec NOX.' : 'Commence par ton Pulse pour donner à NOX le contexte de ta journée.'}</div>
                 </div>
-                {todayPulse && <button className="nox-round-arrow" onClick={() => navigate('/closure', { state: { priorityTitle: priority.type !== 'none' ? (priority as any).title : null, priorityType: priority.type } })}><ChevronRight size={20} /></button>}
+                <button className="nox-round-arrow" onClick={() => navigate('/closure', { state: { priorityTitle: priority.type !== 'none' ? (priority as any).title : null, priorityType: priority.type } })}><ChevronRight size={20} /></button>
               </div>
             </AppCard>
           </section>
