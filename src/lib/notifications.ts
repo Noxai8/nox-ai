@@ -34,18 +34,3 @@ export function scheduleWorkoutReminder(sessionName: string, hour = 9) {
     '/home'
   );
 }
-
-export function scheduleStreakReminder(streak: number) {
-  // Rappel à 20h si pas encore entraîné
-  const now = new Date();
-  const target = new Date();
-  target.setHours(20, 0, 0, 0);
-  if (target <= now) return;
-  const delay = target.getTime() - now.getTime();
-  scheduleLocalNotification(
-    `🔥 Streak ${streak} jours en danger`,
-    'Tu n\'as pas encore entraîné aujourd\'hui. Garde ton streak !',
-    delay,
-    '/home'
-  );
-}

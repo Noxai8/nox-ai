@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Activity, BatteryCharging, Camera, ChevronRight, CircleUserRound, Droplets,
-  Dumbbell, FileText, Moon, PersonStanding, Plus, Scale, Smile, Target, Utensils, X,
+  Activity, BatteryCharging, Camera, ChevronRight, Circle, CircleCheck, CircleUserRound, Droplets, Dumbbell, FileText, Moon, PersonStanding, Plus, Scale, Smile, Target, Utensils, X,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
@@ -10,6 +9,7 @@ import { generateDailyPriority, type DailyPriority } from '../lib/nox/priorityEn
 import { todayLocalDate } from '../lib/localDate';
 import NoxCompanion from '../components/NoxCompanion';
 import { HABITS, type UserHabit } from '../lib/nox/habits';
+import { dayState, noxiLine } from '../lib/nox/noxiVoice';
 
 type Completion = 'yes' | 'partial' | 'no';
 type NavActive = 'home' | 'nutrition' | 'mon-nox' | 'moi';
@@ -268,6 +268,8 @@ export default function Home() {
   const [habits, setHabits] = useState<UserHabit[]>([]);
   const [habitLogs, setHabitLogs] = useState<{ habit_id: string; date: string; count: number }[]>([]);
   const [habitBusy, setHabitBusy] = useState<string | null>(null);
+  const [movedToday, setMovedToday] = useState(false);
+  const [lastClosureDate, setLastClosureDate] = useState<string | null>(null);
 
   useEffect(() => { if (user) void loadAll(); }, [user]);
 
@@ -365,6 +367,16 @@ export default function Home() {
     setTodayWorkout(workout || null);
     setTodayPulse(pulse || null);
     setTodayClosure((closure as Closure) || null);
+
+    const [{ count: movesToday }, { data: prevClosure }] = await Promise.all([
+      supabase.from('movement_logs').select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id).eq('date', todayLocalDate()),
+      supabase.from('daily_closures').select('date')
+        .eq('user_id', user.id).lt('date', todayLocalDate())
+        .order('date', { ascending: false }).limit(1).maybeSingle(),
+    ]);
+    setMovedToday((movesToday ?? 0) > 0);
+    setLastClosureDate(prevClosure?.date ?? null);
 
     const { count: observedDaysCount, error: observedDaysError } = await supabase
       .from('daily_closures')
@@ -480,6 +492,37 @@ export default function Home() {
       : priority.type === 'activity' ? 'COMMENCER MA SÉANCE'
         : null;
 
+  // ── Ta journée : uniquement des objectifs réels, cochés par des données réelles ──
+  const todayKey = todayLocalDate();
+  const focusAreas: string[] | null = profile?.focus_areas ?? null;
+  const movementFocus = focusAreas == null || focusAreas.includes('movement');
+  const closureState = {
+    priorityTitle: priority.type !== 'none' ? (priority as any).title : null,
+    priorityType: priority.type,
+  };
+  const dayItems: { key: string; label: string; done: boolean; go: () => void }[] = [
+    { key: 'pulse', label: 'Pulse du matin', done: !!todayPulse, go: () => navigate('/pulse') },
+    // Mouvement seulement s'il est prévu ou recommandé aujourd'hui (un jour de repos n'impose rien)
+    ...(movementFocus && (todaySession || priority.type === 'activity') ? [{
+      key: 'move', label: todaySession ? 'Séance ou activité' : 'Bouger aujourd’hui',
+      done: !!todayWorkout || movedToday, go: () => navigate(todaySession ? '/program' : '/movement'),
+    }] : []),
+    ...habits.map(h => ({
+      key: h.id, label: HABITS[h.kind].publicLabel,
+      done: habitLogs.some(l => l.habit_id === h.id && l.date === todayKey),
+      go: () => navigate(`/habits/${h.id}`),
+    })),
+    { key: 'closure', label: 'Clôture du soir', done: !!todayClosure, go: () => navigate('/closure', { state: closureState }) },
+  ];
+  const dayDone = dayItems.filter(i => i.done).length;
+  const daysSinceLastClosure = lastClosureDate
+    ? Math.round((new Date(`${todayKey}T12:00:00`).getTime() - new Date(`${lastClosureDate}T12:00:00`).getTime()) / 86400000)
+    : null;
+  const noxiMessage = noxiLine(dayState({
+    done: dayDone, total: dayItems.length, pulseDone: !!todayPulse, closureDone: !!todayClosure,
+    localHour: new Date().getHours(), daysSinceLastClosure,
+  }), todayKey);
+
   const pulseItems = todayPulse ? [
     { label: 'Sommeil', value: Number(todayPulse.sleep_score), Icon: Moon },
     { label: 'Énergie', value: Number(todayPulse.energy_score), Icon: BatteryCharging },
@@ -506,10 +549,30 @@ export default function Home() {
           <div style={{ marginTop: 16, color: '#F2F2F2', fontSize: 16, fontWeight: 850 }}>
             {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
           </div>
-          <div style={{ marginTop: 4, color: '#8E938F', fontSize: 14 }}>
-            Prêt à avancer ? Voici ton suivi du jour.
+          <div style={{ marginTop: 10, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ marginTop: 3, padding: '3px 7px', borderRadius: 999, background: 'rgba(200,255,0,.12)', color: '#C8FF00', fontSize: 9, fontWeight: 950, letterSpacing: '.08em', flexShrink: 0 }}>NOXI</span>
+            <span style={{ color: '#C9CDCA', fontSize: 14, lineHeight: 1.5 }}>{noxiMessage}</span>
           </div>
         </header>
+
+        <section className="nox-home-section">
+          <SectionHeader title="Ta journée" action={`${dayDone}/${dayItems.length}`} />
+          <AppCard style={{ padding: 18 }}>
+            <div style={{ height: 6, borderRadius: 999, background: '#343835', overflow: 'hidden', marginBottom: 14 }}>
+              <div style={{ width: `${(dayDone / Math.max(1, dayItems.length)) * 100}%`, height: '100%', borderRadius: 999, background: '#C8FF00', transition: 'width .5s ease' }} />
+            </div>
+            <div style={{ display: 'grid' }}>
+              {dayItems.map((item, i) => (
+                <button key={item.key} onClick={item.go}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 2px', border: 0, borderTop: i ? '1px solid #343835' : 'none', background: 'transparent', color: '#FFFFFF', cursor: 'pointer', textAlign: 'left' }}>
+                  {item.done ? <CircleCheck size={20} color="#C8FF00" /> : <Circle size={20} color="#747A76" />}
+                  <span style={{ flex: 1, fontSize: 14, fontWeight: 850, color: item.done ? '#A5AAA6' : '#FFFFFF' }}>{item.label}</span>
+                  {!item.done && <span style={{ color: '#747A76', fontSize: 16 }}>›</span>}
+                </button>
+              ))}
+            </div>
+          </AppCard>
+        </section>
 
         <section className="nox-home-section">
           <SectionHeader title="Ton Pulse" action={todayPulse ? 'Modifier ›' : 'Commencer ›'} onAction={() => navigate('/pulse')} />

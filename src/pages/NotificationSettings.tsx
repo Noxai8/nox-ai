@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { requestNotificationPermission, registerServiceWorker, scheduleWorkoutReminder, scheduleStreakReminder } from '../lib/notifications';
+import { requestNotificationPermission, registerServiceWorker, scheduleWorkoutReminder } from '../lib/notifications';
 import { BottomNav } from './Home';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
@@ -14,7 +14,7 @@ export default function NotificationSettings() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [permission, setPermission] = useState<NotificationPermission>('default');
-  const [prefs, setPrefs] = useState({ workout: true, streak: true, weekly: true, future: true });
+  const [prefs, setPrefs] = useState({ workout: true, weekly: true, future: true });
   const [workoutHour, setWorkoutHour] = useState('9');
   const [saved, setSaved] = useState(false);
   const [profile, setProfile] = useState<any>(null);
@@ -36,9 +36,6 @@ export default function NotificationSettings() {
       const sessions = profile.available_days || [];
       scheduleWorkoutReminder('Séance du jour', parseInt(workoutHour));
     }
-    if (prefs.streak && profile?.streak_days > 0) {
-      scheduleStreakReminder(profile.streak_days);
-    }
     await supabase.from('profiles').update({ notification_prefs: prefs }).eq('id', user!.id);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -46,7 +43,6 @@ export default function NotificationSettings() {
 
   const notifications = [
     { key: 'workout', icon: '🏋️', title: 'Séance du jour', desc: 'Rappel quotidien à l\'heure choisie' },
-    { key: 'streak', icon: '🔥', title: 'Streak en danger', desc: 'Alerte à 20h si tu n\'as pas encore bougé' },
     { key: 'weekly', icon: '📊', title: 'Bilan hebdomadaire', desc: 'Dimanche soir — ton review est prêt' },
     { key: 'future', icon: '🔮', title: 'Nouvelle projection FUTURE', desc: 'Quand NOX recalibre ta trajectoire' },
   ];
@@ -65,7 +61,7 @@ export default function NotificationSettings() {
             <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Activer les notifications</div>
             <div style={{ fontSize: 13, color: '#888', marginBottom: 20, lineHeight: 1.5 }}>
-              NOX te prévient pour tes séances, ton streak et tes bilans hebdo.
+              NOX te prévient pour tes séances et tes bilans hebdo.
             </div>
             {permission === 'denied' ? (
               <div style={{ fontSize: 13, color: '#ff6666' }}>Notifications bloquées — active-les dans les paramètres de ton navigateur.</div>
