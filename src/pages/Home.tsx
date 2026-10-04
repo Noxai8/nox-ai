@@ -7,7 +7,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { generateDailyPriority, type DailyPriority } from '../lib/nox/priorityEngine';
 import { todayLocalDate } from '../lib/localDate';
-import NoxCompanion from '../components/NoxCompanion';
 import { HABITS, type UserHabit } from '../lib/nox/habits';
 import { dayState, noxiLine } from '../lib/nox/noxiVoice';
 import { isMissionDone, missionMinutes, suggestBlock, type DailyMission, type FocusSession } from '../lib/nox/focus';
@@ -271,6 +270,7 @@ export default function Home() {
   const [habitLogs, setHabitLogs] = useState<{ habit_id: string; date: string; count: number }[]>([]);
   const [habitBusy, setHabitBusy] = useState<string | null>(null);
   const [movedToday, setMovedToday] = useState(false);
+  const [todaySteps] = useState<number | null>(null);
   const [mission, setMission] = useState<DailyMission | null>(null);
   const [missionSessions, setMissionSessions] = useState<FocusSession[]>([]);
   const [nowTick, setNowTick] = useState(Date.now());
@@ -473,6 +473,9 @@ export default function Home() {
     } : null,
   }), [todayPulse, profile, todaySession, todayWorkout, daysSinceActivity, todayProt, proteinTarget, todayKcal, caloriesTarget, todayFood.length, mission, missionSessions]);
 
+  const stepGoal = 10000;
+  const stepProgress = todaySteps == null ? 0 : Math.min(100, Math.round((todaySteps / stepGoal) * 100));
+
   const dateLabel = new Intl.DateTimeFormat('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long',
   }).format(new Date()).toUpperCase();
@@ -590,6 +593,26 @@ export default function Home() {
             <span style={{ color: '#C9CDCA', fontSize: 14, lineHeight: 1.5 }}>{noxiMessage}</span>
           </div>
         </header>
+
+        <section className="nox-home-section nox-steps-hero" aria-label="Pas aujourd'hui">
+          <div className="nox-steps-ring" style={{ ['--step-progress' as any]: `${stepProgress * 3.6}deg` }}>
+            <div className="nox-steps-ring__inner">
+              <PersonStanding size={25} color="#C8FF00" strokeWidth={2.2} />
+              <div className="nox-steps-value">{todaySteps == null ? '—' : todaySteps.toLocaleString('fr-FR')}</div>
+              <div className="nox-steps-label">PAS AUJOURD'HUI</div>
+              <div className="nox-steps-goal">{todaySteps == null ? 'Aucune mesure disponible' : `${stepProgress}% de 10 000`}</div>
+            </div>
+          </div>
+          <div className="nox-steps-copy">
+            <div style={{ color: '#8E938F', fontSize: 11, fontWeight: 900, letterSpacing: '.09em' }}>BOUGER</div>
+            <div style={{ marginTop: 7, fontSize: 22, lineHeight: 1.1, fontWeight: 1000, letterSpacing: '-.035em' }}>
+              {todaySteps == null ? 'Tes pas apparaîtront ici.' : todaySteps >= stepGoal ? 'Objectif atteint ✓' : 'Continue à bouger.'}
+            </div>
+            <div style={{ marginTop: 8, color: '#A7ACA8', fontSize: 13, lineHeight: 1.5 }}>
+              {todaySteps == null ? 'Le compteur s’active dès qu’une source de pas réelle est disponible.' : `Encore ${Math.max(0, stepGoal - todaySteps).toLocaleString('fr-FR')} pas pour atteindre ta cible du jour.`}
+            </div>
+          </div>
+        </section>
 
         <section className="nox-home-section">
           <SectionHeader title="Ta journée" action={`${dayDone}/${dayItems.length}`} />
@@ -929,6 +952,14 @@ export default function Home() {
         .nox-home-header { padding-top:42px; padding-bottom:30px; }
         .nox-home-section { margin-bottom:18px; }
         .nox-home-last-section { margin-bottom:38px; }
+        .nox-steps-hero { display:flex; align-items:center; justify-content:center; gap:34px; padding:8px 0 14px; }
+        .nox-steps-ring { --step-progress:0deg; width:218px; height:218px; flex:0 0 auto; border-radius:50%; display:grid; place-items:center; position:relative; background:conic-gradient(#C8FF00 var(--step-progress),#252A27 0); box-shadow:0 0 46px rgba(200,255,0,.07); }
+        .nox-steps-ring::after { content:''; position:absolute; inset:11px; border-radius:50%; background:radial-gradient(circle at 50% 38%,#171B18,#0E110F 72%); border:1px solid #252A27; }
+        .nox-steps-ring__inner { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; text-align:center; }
+        .nox-steps-value { margin-top:8px; font-size:46px; line-height:.95; font-weight:1000; letter-spacing:-.055em; font-variant-numeric:tabular-nums; }
+        .nox-steps-label { margin-top:8px; color:#FFFFFF; font-size:10px; font-weight:950; letter-spacing:.11em; }
+        .nox-steps-goal { margin-top:6px; color:#777D79; font-size:11px; font-weight:800; }
+        .nox-steps-copy { max-width:250px; }
         .nox-pulse-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
         .nox-pulse-item { min-height:104px; padding:15px 16px; border:1px solid #2A2E2C; border-radius:18px; background:linear-gradient(145deg,#171A18,#121513); display:flex; align-items:center; gap:15px; }
         .nox-pulse-icon { width:50px; height:50px; flex:0 0 auto; display:grid; place-items:center; border-radius:50%; color:#C8FF00; background:rgba(200,255,0,.08); }
@@ -949,7 +980,10 @@ export default function Home() {
         .nox-session-button { flex:0 0 auto; border:0; border-radius:14px; background:#C8FF00; color:#090B0A; padding:13px 18px; font-size:11px; font-weight:1000; cursor:pointer; }
         @media (max-width:760px) {
           .nox-home-main { padding:0 16px; }
-          .nox-home-header { padding-top:34px; }
+          .nox-home-header { padding-top:34px; padding-bottom:22px; }
+          .nox-steps-hero { flex-direction:column; gap:18px; padding-top:0; text-align:center; }
+          .nox-steps-ring { width:206px; height:206px; }
+          .nox-steps-copy { max-width:330px; }
           .nox-pulse-item { padding:14px 8px; flex-direction:column; text-align:center; gap:9px; }
           .nox-pulse-icon { width:44px; height:44px; }
           .nox-nutrition-card { grid-template-columns:1fr; gap:20px; }
