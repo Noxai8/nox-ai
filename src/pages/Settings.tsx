@@ -658,6 +658,11 @@ export default function Settings() {
             subtitle="Tabac, alcool, habitude personnelle…"
             onClick={() => navigate('/habits')}
           />
+          <Row
+            title="Rappels"
+            subtitle="Quand et comment NOXI te fait signe"
+            onClick={() => navigate('/notification-settings')}
+          />
         </section>
 
         <section

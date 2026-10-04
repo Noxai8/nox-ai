@@ -1,122 +1,188 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { requestNotificationPermission, registerServiceWorker, scheduleWorkoutReminder } from '../lib/notifications';
+import { ArrowLeft, Bell, BellOff, Check, Share } from 'lucide-react';
 import { BottomNav } from './Home';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { currentSubscription, disablePushOnThisDevice, enablePushOnThisDevice, pushSupport } from '../lib/push';
 
-const ACCENT = '#c8ff00';
-const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const BG = '#090B0A';
+const CARD = '#232624';
+const CARD2 = '#191C1A';
+const BORDER = '#4A4F4B';
+const SOFT = '#343835';
+const WHITE = '#FFFFFF';
+const SEC = '#A5AAA6';
+const MUTED = '#747A76';
+const LIME = '#C8FF00';
+
+type Prefs = {
+  enabled: boolean;
+  morning: boolean; morning_time: string;
+  evening: boolean; evening_time: string;
+  habits_check: boolean;
+  weekly: boolean;
+  quiet_start: string; quiet_end: string;
+  max_per_day: number;
+};
+
+const DEFAULTS: Prefs = {
+  enabled: true, morning: true, morning_time: '08:30', evening: true, evening_time: '21:00',
+  habits_check: false, weekly: true, quiet_start: '22:30', quiet_end: '07:30', max_per_day: 2,
+};
+
+const hhmm = (t: string) => t.slice(0, 5);
 
 export default function NotificationSettings() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [permission, setPermission] = useState<NotificationPermission>('default');
-  const [prefs, setPrefs] = useState({ workout: true, weekly: true, future: true });
-  const [workoutHour, setWorkoutHour] = useState('9');
-  const [saved, setSaved] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
+  const support = pushSupport();
+  const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
+  const [deviceOn, setDeviceOn] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
-    setPermission(Notification.permission as NotificationPermission);
-    if (user) supabase.from('profiles').select('*').eq('id', user.id).maybeSingle().then(({ data }) => setProfile(data));
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase.from('reminder_prefs').select('*').eq('user_id', user.id).maybeSingle();
+      if (data) setPrefs({
+        ...DEFAULTS, ...data,
+        morning_time: hhmm(data.morning_time), evening_time: hhmm(data.evening_time),
+        quiet_start: hhmm(data.quiet_start), quiet_end: hhmm(data.quiet_end),
+      });
+      setDeviceOn(!!(await currentSubscription()));
+    })();
   }, [user]);
 
-  const enable = async () => {
-    const granted = await requestNotificationPermission();
-    setPermission(granted ? 'granted' : 'denied');
-    if (granted) await registerServiceWorker();
+  const save = async (next: Prefs) => {
+    setPrefs(next);
+    if (!user) return;
+    const { error } = await supabase.from('reminder_prefs').upsert({
+      user_id: user.id, ...next,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Paris',
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+    setMessage(error ? error.message : '');
   };
 
-  const save = async () => {
-    if (permission !== 'granted') return;
-    if (prefs.workout && profile) {
-      const sessions = profile.available_days || [];
-      scheduleWorkoutReminder('Séance du jour', parseInt(workoutHour));
+  const toggleDevice = async () => {
+    if (!user || busy) return;
+    setBusy(true); setMessage('');
+    if (deviceOn) {
+      await disablePushOnThisDevice();
+      setDeviceOn(false);
+    } else {
+      const r = await enablePushOnThisDevice(user.id);
+      if (r.ok) { setDeviceOn(true); await save(prefs); }
+      else setMessage(r.reason === 'denied'
+        ? 'Les notifications sont bloquées pour NOX. Autorise-les dans les réglages de ton navigateur ou de ton téléphone.'
+        : `Impossible d’activer les rappels sur cet appareil (${r.reason}).`);
     }
-    await supabase.from('profiles').update({ notification_prefs: prefs }).eq('id', user!.id);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setBusy(false);
   };
 
-  const notifications = [
-    { key: 'workout', icon: '🏋️', title: 'Séance du jour', desc: 'Rappel quotidien à l\'heure choisie' },
-    { key: 'weekly', icon: '📊', title: 'Bilan hebdomadaire', desc: 'Dimanche soir — ton review est prêt' },
-    { key: 'future', icon: '🔮', title: 'Nouvelle projection FUTURE', desc: 'Quand NOX recalibre ta trajectoire' },
-  ];
+  const card: React.CSSProperties = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20, marginBottom: 14 };
+  const label: React.CSSProperties = { color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em', marginBottom: 12 };
+  const time: React.CSSProperties = { padding: '10px 12px', borderRadius: 12, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontSize: 14, fontWeight: 800, colorScheme: 'dark' };
+
+  const Toggle = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
+    <button onClick={onClick} aria-pressed={on}
+      style={{ width: 50, height: 30, borderRadius: 999, border: 0, padding: 3, cursor: 'pointer', background: on ? LIME : SOFT, flexShrink: 0 }}>
+      <span style={{ display: 'block', width: 24, height: 24, borderRadius: '50%', background: on ? BG : MUTED, transform: `translateX(${on ? 20 : 0}px)`, transition: 'transform .2s' }} />
+    </button>
+  );
+
+  const Row = ({ title, detail, on, onToggle, children }: { title: string; detail: string; on: boolean; onToggle: () => void; children?: React.ReactNode }) => (
+    <div style={{ padding: '14px 0', borderTop: `1px solid ${SOFT}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 900 }}>{title}</div>
+          <div style={{ fontSize: 12, color: SEC, marginTop: 3, lineHeight: 1.45 }}>{detail}</div>
+        </div>
+        <Toggle on={on} onClick={onToggle} />
+      </div>
+      {on && children && <div style={{ marginTop: 10 }}>{children}</div>}
+    </div>
+  );
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, paddingBottom: 40 }}>
-      <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid ' + BORDER }}>
-        <button onClick={() => navigate('/settings')} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 14, marginBottom: 12 }}>← Retour</button>
-        <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Notifications</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>ALERTES NOX</div>
-      </div>
+    <div style={{ minHeight: '100dvh', background: BG, color: WHITE, paddingBottom: 'calc(160px + env(safe-area-inset-bottom))' }}>
+      <main style={{ width: '100%', maxWidth: 760, margin: '0 auto', padding: '0 16px', boxSizing: 'border-box' }}>
+        <header style={{ paddingTop: 44, paddingBottom: 22, display: 'flex', alignItems: 'center', gap: 14 }}>
+          <button onClick={() => navigate(-1)} aria-label="Retour"
+            style={{ width: 42, height: 42, borderRadius: 14, border: `1px solid ${BORDER}`, background: CARD, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
+            <ArrowLeft size={18} color={WHITE} />
+          </button>
+          <div>
+            <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em' }}>MOI</div>
+            <h1 style={{ margin: 0, fontSize: 'clamp(30px,5vw,40px)', fontWeight: 850, letterSpacing: '-.04em', lineHeight: 1 }}>Rappels</h1>
+          </div>
+        </header>
 
-      <div style={{ padding: '20px 20px 0' }}>
-        {permission !== 'granted' ? (
-          <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 16, padding: 24, marginBottom: 20, textAlign: 'center' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Activer les notifications</div>
-            <div style={{ fontSize: 13, color: '#888', marginBottom: 20, lineHeight: 1.5 }}>
-              NOX te prévient pour tes séances et tes bilans hebdo.
+        <p style={{ color: SEC, fontSize: 14, lineHeight: 1.55, margin: '0 0 20px' }}>
+          NOXI te fait signe quand c’est utile, jamais plus de {prefs.max_per_day} fois par jour, et jamais pendant tes heures calmes.
+          Un rappel ne nomme jamais une habitude.
+        </p>
+
+        {/* Appareil */}
+        <section style={card}>
+          <div style={label}>CET APPAREIL</div>
+          {support === 'needs_install' ? (
+            <div style={{ color: SEC, fontSize: 13, lineHeight: 1.6 }}>
+              Sur iPhone, les rappels fonctionnent quand NOX est installé sur ton écran d’accueil :
+              dans Safari, appuie sur <Share size={14} style={{ verticalAlign: '-2px' }} /> Partager, puis
+              « Sur l’écran d’accueil ». Ouvre ensuite NOX depuis la nouvelle icône et reviens ici.
             </div>
-            {permission === 'denied' ? (
-              <div style={{ fontSize: 13, color: '#ff6666' }}>Notifications bloquées — active-les dans les paramètres de ton navigateur.</div>
-            ) : (
-              <button onClick={enable}
-                style={{ padding: '14px 32px', background: ACCENT, border: 'none', borderRadius: 12, color: '#000', fontWeight: 900, fontSize: 14, cursor: 'pointer' }}>
-                ACTIVER LES NOTIFICATIONS
+          ) : support === 'unsupported' ? (
+            <div style={{ color: SEC, fontSize: 13, lineHeight: 1.6 }}>Ce navigateur ne prend pas en charge les rappels. Essaie avec Chrome, Edge ou Safari à jour.</div>
+          ) : (
+            <button onClick={toggleDevice} disabled={busy}
+              style={{ width: '100%', padding: 16, borderRadius: 14, border: deviceOn ? `1px solid ${SOFT}` : 0, cursor: 'pointer', fontWeight: 800, fontSize: 14,
+                background: deviceOn ? CARD2 : LIME, color: deviceOn ? WHITE : BG, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              {deviceOn ? <><BellOff size={16} /> Désactiver sur cet appareil</> : <><Bell size={16} /> Activer les rappels sur cet appareil</>}
+            </button>
+          )}
+          {deviceOn && <div style={{ marginTop: 10, color: LIME, fontSize: 12, fontWeight: 800, display: 'flex', gap: 6, alignItems: 'center' }}><Check size={14} /> Rappels actifs sur cet appareil</div>}
+          {message && <div style={{ marginTop: 10, color: '#E9C2C2', fontSize: 12, lineHeight: 1.5 }}>{message}</div>}
+        </section>
+
+        {/* Types de rappels */}
+        <section style={card}>
+          <div style={{ ...label, marginBottom: 2 }}>CE QUE NOXI PEUT TE RAPPELER</div>
+          <Row title="Pulse du matin" detail="Seulement si tu ne l’as pas encore fait." on={prefs.morning} onToggle={() => save({ ...prefs, morning: !prefs.morning })}>
+            <input type="time" value={prefs.morning_time} onChange={e => save({ ...prefs, morning_time: e.target.value })} style={time} />
+          </Row>
+          <Row title="Clôture du soir" detail="Seulement si ta journée n’est pas encore clôturée." on={prefs.evening} onToggle={() => save({ ...prefs, evening: !prefs.evening })}>
+            <input type="time" value={prefs.evening_time} onChange={e => save({ ...prefs, evening_time: e.target.value })} style={time} />
+          </Row>
+          <Row title="Point sur tes objectifs" detail="En fin d’après-midi, si une habitude n’est pas encore notée. Message neutre." on={prefs.habits_check} onToggle={() => save({ ...prefs, habits_check: !prefs.habits_check })} />
+          <Row title="Bilan de la semaine" detail="Le dimanche, quand ton bilan est prêt." on={prefs.weekly} onToggle={() => save({ ...prefs, weekly: !prefs.weekly })} />
+        </section>
+
+        {/* Limites */}
+        <section style={card}>
+          <div style={label}>LIMITES</div>
+          <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 10 }}>Maximum par jour</div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+            {[1, 2, 3].map(n => (
+              <button key={n} onClick={() => save({ ...prefs, max_per_day: n })}
+                style={{ flex: 1, padding: 12, borderRadius: 12, cursor: 'pointer', fontWeight: 900,
+                  border: `1px solid ${prefs.max_per_day === n ? LIME : SOFT}`, background: prefs.max_per_day === n ? 'rgba(200,255,0,.08)' : CARD2, color: prefs.max_per_day === n ? LIME : WHITE }}>
+                {n}
               </button>
-            )}
+            ))}
           </div>
-        ) : (
-          <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 12, padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 18 }}>✅</span>
-            <span style={{ fontSize: 13, color: ACCENT, fontWeight: 700 }}>Notifications activées</span>
+          <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 10 }}>Heures calmes</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ color: SEC, fontSize: 13 }}>De</span>
+            <input type="time" value={prefs.quiet_start} onChange={e => save({ ...prefs, quiet_start: e.target.value })} style={time} />
+            <span style={{ color: SEC, fontSize: 13 }}>à</span>
+            <input type="time" value={prefs.quiet_end} onChange={e => save({ ...prefs, quiet_end: e.target.value })} style={time} />
           </div>
-        )}
-
-        {/* Préférences */}
-        <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}>
-          {notifications.map((notif, i) => (
-            <div key={notif.key} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', borderBottom: i < notifications.length - 1 ? '1px solid ' + BORDER : 'none' }}>
-              <span style={{ fontSize: 22, flexShrink: 0 }}>{notif.icon}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{notif.title}</div>
-                <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>{notif.desc}</div>
-              </div>
-              <button onClick={() => setPrefs(p => ({ ...p, [notif.key]: !p[notif.key as keyof typeof p] }))}
-                style={{ width: 48, height: 26, borderRadius: 13, background: prefs[notif.key as keyof typeof prefs] ? ACCENT : '#1a1a1a', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background .2s', flexShrink: 0 }}>
-                <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: prefs[notif.key as keyof typeof prefs] ? 25 : 3, transition: 'left .2s' }} />
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* Heure séance */}
-        {prefs.workout && (
-          <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: '14px 16px', marginBottom: 16 }}>
-            <div style={{ fontSize: 12, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>HEURE DE RAPPEL SÉANCE</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {['7', '8', '9', '12', '17', '18'].map(h => (
-                <button key={h} onClick={() => setWorkoutHour(h)}
-                  style={{ flex: 1, padding: '10px 0', background: workoutHour === h ? ACCENT : 'transparent', border: '1px solid ' + (workoutHour === h ? ACCENT : BORDER), borderRadius: 10, color: workoutHour === h ? '#000' : '#555', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
-                  {h}h
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <button onClick={save} disabled={permission !== 'granted'}
-          style={{ width: '100%', padding: 16, background: permission === 'granted' ? ACCENT : '#1a1a1a', border: 'none', borderRadius: 14, color: permission === 'granted' ? '#000' : '#333', fontWeight: 900, fontSize: 14, cursor: permission === 'granted' ? 'pointer' : 'not-allowed' }}>
-          {saved ? '✓ ENREGISTRÉ' : 'ENREGISTRER LES PRÉFÉRENCES'}
-        </button>
-      </div>
-      <BottomNav active="settings" />
+        </section>
+      </main>
+      <BottomNav active="moi" />
     </div>
   );
 }
