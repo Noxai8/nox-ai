@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import MealReview, { type MealValues } from '../components/MealReview';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -42,6 +43,7 @@ export default function FoodScan() {
   const galleryRef = useRef<HTMLInputElement>(null);
 
   const resetScan = () => {
+    setReview(null);
     setPhotoBase64(null);
     setResult(null);
     setError('');
@@ -186,73 +188,51 @@ export default function FoodScan() {
     }
   };
 
-  const addAll = async () => {
-    if (!result || adding || !user) return;
+  // Une estimation photo n'est jamais enregistrée directement : vérification obligatoire
+  const [review, setReview] = useState<MealValues | null>(null);
 
+  const addAll = () => {
+    if (!result) return;
+    setReview({
+      food_name: result.description || 'Repas scanné',
+      calories: Number(result.total?.kcal ?? result.total?.calories ?? 0),
+      protein: Number(result.total?.protein || 0),
+      carbs: Number(result.total?.carbs || 0),
+      fat: Number(result.total?.fat || 0),
+    });
+  };
+
+  const addSingle = (item: any) => {
+    setReview({
+      food_name: item.nom || item.name || 'Aliment',
+      calories: Number(item.kcal || item.calories || 0),
+      protein: Number(item.protein || 0),
+      carbs: Number(item.carbs || 0),
+      fat: Number(item.fat || 0),
+    });
+  };
+
+  const saveReviewed = async (values: MealValues) => {
+    if (!user || adding) return;
     setAdding(true);
     setError('');
-
-    const kcal = result.total?.kcal ?? result.total?.calories ?? 0;
-
     const { error: insertError } = await supabase.from('food_entries').insert({
       user_id: user.id,
       meal_type: selectedMeal,
-      food_name: result.description || 'Repas scanné',
-      calories: Math.round(Number(kcal) || 0),
-      protein:
-        Math.round(Number(result.total?.protein || 0) * 10) / 10,
-      carbs:
-        Math.round(Number(result.total?.carbs || 0) * 10) / 10,
-      fat:
-        Math.round(Number(result.total?.fat || 0) * 10) / 10,
+      ...values,
+      source: 'photo',
       created_at: new Date().toISOString(),
     });
-
     if (insertError) {
-      console.error('FoodScan addAll:', insertError);
+      console.error('FoodScan saveReviewed:', insertError);
       setError("Le repas n'a pas pu être ajouté au journal.");
       setAdding(false);
       return;
     }
-
+    setReview(null);
     setAdded(true);
     setAdding(false);
-
-    window.setTimeout(() => {
-      navigate('/fuel');
-    }, 900);
-  };
-
-  const addSingle = async (item: any) => {
-    if (!user || adding) return;
-
-    setAdding(true);
-    setError('');
-
-    const { error: insertError } = await supabase.from('food_entries').insert({
-      user_id: user.id,
-      meal_type: selectedMeal,
-      food_name: item.nom || item.name || 'Aliment',
-      calories: Math.round(Number(item.kcal || item.calories || 0)),
-      protein: Math.round(Number(item.protein || 0) * 10) / 10,
-      carbs: Math.round(Number(item.carbs || 0) * 10) / 10,
-      fat: Math.round(Number(item.fat || 0) * 10) / 10,
-      created_at: new Date().toISOString(),
-    });
-
-    if (insertError) {
-      console.error('FoodScan addSingle:', insertError);
-      setError("Cet aliment n'a pas pu être ajouté au journal.");
-      setAdding(false);
-      return;
-    }
-
-    setAdded(true);
-    setAdding(false);
-
-    window.setTimeout(() => {
-      navigate('/fuel');
-    }, 850);
+    window.setTimeout(() => { navigate('/fuel'); }, 900);
   };
 
   const totalKcal = Math.round(
@@ -963,7 +943,17 @@ export default function FoodScan() {
               gap: 8,
             }}
           >
-            <button
+            {review && (
+              <MealReview
+                estimate={review}
+                busy={adding}
+                dark={false}
+                onCancel={() => setReview(null)}
+                onConfirm={values => { void saveReviewed(values); }}
+              />
+            )}
+
+            {!review && <button
               type="button"
               onClick={() => void addAll()}
               disabled={adding}
@@ -981,8 +971,8 @@ export default function FoodScan() {
                 opacity: adding ? 0.65 : 1,
               }}
             >
-              {adding ? 'Ajout…' : `Ajouter le repas · ${totalKcal} kcal`}
-            </button>
+              {`Vérifier et ajouter · ${totalKcal} kcal`}
+            </button>}
 
             <button
               type="button"

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import MealReview from '../components/MealReview';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
@@ -96,6 +97,8 @@ export default function Fuel() {
   const [photoB64, setPhotoB64] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanRes, setScanRes] = useState<any>(null);
+  // Vérification obligatoire d'une estimation photo avant tout enregistrement
+  const [reviewingScan, setReviewingScan] = useState(false);
   const [showFridgeScan, setShowFridgeScan] = useState(false);
   const [fridgePhoto, setFridgePhoto] = useState<string | null>(null);
   const [fridgeScanning, setFridgeScanning] = useState(false);
@@ -344,6 +347,7 @@ export default function Fuel() {
     setSearch('');
     setPhotoB64(null);
     setScanRes(null);
+    setReviewingScan(false);
     setQuickKcal('');
     setQuickProt('');
     setVoiceText('');
@@ -370,6 +374,7 @@ export default function Fuel() {
     protein: number;
     carbs: number;
     fat: number;
+    source?: 'manual' | 'photo' | 'voice';
   }) => {
     setSaving(true);
 
@@ -377,6 +382,7 @@ export default function Fuel() {
       user_id: user!.id,
       meal_type: selMeal,
       ...data,
+      source: data.source ?? 'manual',
       created_at: entryDateForSelectedDay(),
     });
 
@@ -438,6 +444,7 @@ export default function Fuel() {
         // La réponse peut être directement un objet JSON ou dans content[0].text
         if (data?.total) {
           setScanRes(data);
+          setReviewingScan(false);
         } else {
           const text = data?.content?.[0]?.text || '';
           const match = text.match(/\{[\s\S]*\}/);
@@ -534,6 +541,7 @@ export default function Fuel() {
         protein: Math.round(food.protein * ratio),
         carbs: Math.round(food.carbs * ratio),
         fat: Math.round(food.fat * ratio),
+        source: 'voice',
       });
     }
   };
@@ -1465,48 +1473,41 @@ export default function Fuel() {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() =>
-                        addEntry({
-                          food_name:
-                            scanRes.description || 'Repas scanné',
-
-                          calories:
-                            scanRes.total?.kcal ||
-                            scanRes.total?.calories ||
-                            0,
-
-                          protein:
-                            scanRes.total?.protein ||
-                            scanRes.total?.proteines ||
-                            0,
-
-                          carbs:
-                            scanRes.total?.carbs ||
-                            scanRes.total?.glucides ||
-                            0,
-
-                          fat:
-                            scanRes.total?.fat ||
-                            scanRes.total?.lipides ||
-                            0,
-                        })
-                      }
-                      disabled={saving}
-                      style={{
-                        width: '100%',
-                        padding: 16,
-                        background: BLACK,
-                        border: 0,
-                        borderRadius: 16,
-                        color: ACCENT,
-                        fontWeight: 900,
-                        fontSize: 14,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      AJOUTER CE REPAS
-                    </button>
+                    {reviewingScan ? (
+                      <MealReview
+                        estimate={{
+                          food_name: scanRes.description || 'Repas scanné',
+                          calories: Number(scanRes.total?.kcal || scanRes.total?.calories || 0),
+                          protein: Number(scanRes.total?.protein || scanRes.total?.proteines || 0),
+                          carbs: Number(scanRes.total?.carbs || scanRes.total?.glucides || 0),
+                          fat: Number(scanRes.total?.fat || scanRes.total?.lipides || 0),
+                        }}
+                        busy={saving}
+                        onCancel={() => setReviewingScan(false)}
+                        onConfirm={async values => {
+                          await addEntry({ ...values, source: 'photo' });
+                          setReviewingScan(false);
+                        }}
+                      />
+                    ) : (
+                      <button
+                        onClick={() => setReviewingScan(true)}
+                        disabled={saving}
+                        style={{
+                          width: '100%',
+                          padding: 16,
+                          background: BLACK,
+                          border: 0,
+                          borderRadius: 16,
+                          color: ACCENT,
+                          fontWeight: 900,
+                          fontSize: 14,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        VÉRIFIER ET AJOUTER
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

@@ -68,6 +68,7 @@ export default function Pantry() {
     if (item.calories_per_100g && item.quantity) {
       const ratio = item.quantity / 100;
       await supabase.from('food_entries').insert({
+      source: 'pantry',
         user_id: user!.id,
         meal_type: 'Déjeuner',
         food_name: item.name + ' (garde-manger)',

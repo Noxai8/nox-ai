@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check, Circle, CircleCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { todayLocalDate } from '../lib/localDate';
+import { buildDayPlan, daySnapshot, summarizeDay, type DayPlanItem } from '../lib/nox/dayPlan';
+import { loadDayPlanInput } from '../lib/nox/dayPlanData';
 
 type Completion = 'yes' | 'partial' | 'no';
 
@@ -47,6 +49,15 @@ export default function Closure() {
   const [saved,      setSaved]      = useState(false);
   const [existing,   setExisting]   = useState<any>(null);
 
+  const [plan, setPlan] = useState<DayPlanItem[] | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    loadDayPlanInput(user.id, (location.state as any)?.priorityType ?? null)
+      .then(input => setPlan(buildDayPlan(input)))
+      .catch(e => { console.error('Bilan de la journée :', e); setPlan(null); });
+  }, [user]);
+  const summary = plan ? summarizeDay(plan) : null;
+
   useEffect(() => {
     if (!user) return;
     supabase
@@ -79,6 +90,7 @@ export default function Closure() {
         completion,
         evening_energy: feeling,
         note:           note.trim() || null,
+        ...(plan ? daySnapshot(plan) : {}),
       }, { onConflict: 'user_id,date' });
       if (error) {
         console.error('daily_closures:', error);
@@ -130,6 +142,45 @@ export default function Closure() {
             </div>
           </div>
         </header>
+
+        {/* Bilan de la journée : validé / reste à faire. La clôture reste possible dans tous les cas. */}
+        {summary && summary.engagements.length > 0 && (
+          <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '18px 20px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em' }}>TA JOURNÉE</div>
+              <div style={{ fontSize: 13, fontWeight: 1000, color: summary.complete ? LIME : WHITE }}>
+                {summary.complete ? 'Journée complète ✓' : `${summary.done.length} / ${summary.engagements.length}`}
+              </div>
+            </div>
+            {summary.done.length > 0 && (
+              <>
+                <div style={{ fontSize: 10, fontWeight: 900, color: LIME, letterSpacing: '.08em', marginBottom: 6 }}>VALIDÉ</div>
+                {summary.done.map(i => (
+                  <div key={i.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', fontSize: 13 }}>
+                    <CircleCheck size={16} color={LIME} style={{ flexShrink: 0 }} />
+                    <span style={{ flex: 1, minWidth: 0, color: WHITE }}>{i.label}</span>
+                    {i.detail && <span style={{ color: MUTED, fontSize: 11, whiteSpace: 'nowrap' }}>{i.detail}</span>}
+                  </div>
+                ))}
+              </>
+            )}
+            {summary.missing.length > 0 && (
+              <>
+                <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.08em', margin: `${summary.done.length ? 12 : 0}px 0 6px` }}>RESTE À FAIRE</div>
+                {summary.missing.map(i => (
+                  <div key={i.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', fontSize: 13 }}>
+                    <Circle size={16} color={MUTED} style={{ flexShrink: 0 }} />
+                    <span style={{ flex: 1, minWidth: 0, color: '#AAAAAA' }}>{i.label}</span>
+                    {i.detail && <span style={{ color: MUTED, fontSize: 11, whiteSpace: 'nowrap' }}>{i.detail}</span>}
+                  </div>
+                ))}
+                <div style={{ marginTop: 10, fontSize: 12, color: MUTED, lineHeight: 1.5 }}>
+                  Tu peux clôturer quand même : NOX garde ce qui manque en mémoire, sans pénalité.
+                </div>
+              </>
+            )}
+          </section>
+        )}
 
         {/* Priorité du jour */}
         {priorityTitle && priorityType !== 'none' && (

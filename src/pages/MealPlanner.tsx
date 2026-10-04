@@ -923,6 +923,7 @@ export default function MealPlanner() {
     setError('');
 
     const { error: logError } = await supabase.from('food_entries').insert({
+      source: 'meal_plan',
       user_id: user.id,
       meal_type: entry.meal_type,
       food_name: entry.food_name,

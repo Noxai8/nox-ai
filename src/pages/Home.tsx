@@ -8,8 +8,8 @@ import { useAuth } from '../lib/AuthContext';
 import { generateDailyPriority, type DailyPriority } from '../lib/nox/priorityEngine';
 import { todayLocalDate } from '../lib/localDate';
 import NoxCompanion from '../components/NoxCompanion';
-import { HABITS, habitName, isTargetMet, usesValueInput, type UserHabit } from '../lib/nox/habits';
-import { buildDayPlan, type DayPlanItem } from '../lib/nox/dayPlan';
+import { HABITS, HABIT_COLUMNS, habitName, isTargetMet, usesValueInput, type UserHabit } from '../lib/nox/habits';
+import { buildDayPlan, summarizeDay, type DayPlanItem } from '../lib/nox/dayPlan';
 import { dayState, noxiLine } from '../lib/nox/noxiVoice';
 import { isMissionDone, missionMinutes, suggestBlock, type DailyMission, type FocusSession } from '../lib/nox/focus';
 
@@ -269,7 +269,7 @@ export default function Home() {
   const [editingClosure, setEditingClosure] = useState(false);
   const [observedDays, setObservedDays] = useState(0);
   const [habits, setHabits] = useState<UserHabit[]>([]);
-  const [habitLogs, setHabitLogs] = useState<{ habit_id: string; date: string; count: number }[]>([]);
+  const [habitLogs, setHabitLogs] = useState<{ habit_id: string; date: string; count: number; source?: string | null }[]>([]);
   const [habitBusy, setHabitBusy] = useState<string | null>(null);
   const [habitValue, setHabitValue] = useState<Record<string, string>>({});
   const [movedToday, setMovedToday] = useState(false);
@@ -293,7 +293,7 @@ export default function Home() {
     since.setDate(since.getDate() - 6);
     const { data: hs, error: hErr } = await supabase
       .from('user_habits')
-      .select('id, kind, label, mode, unit, baseline, daily_target, professional_support, risk_flag, active, started_on')
+      .select(HABIT_COLUMNS)
       .eq('user_id', user.id)
       .eq('active', true)
       .order('created_at');
@@ -303,7 +303,7 @@ export default function Home() {
     if (!list.length) { setHabitLogs([]); return; }
     const { data: logs, error: lErr } = await supabase
       .from('habit_logs')
-      .select('habit_id, date, count')
+      .select('habit_id, date, count, source')
       .eq('user_id', user.id)
       .gte('date', since.toLocaleDateString('sv-SE'));
     if (lErr) { console.error('habit_logs:', lErr.message); return; }
@@ -597,7 +597,7 @@ export default function Home() {
         </header>
 
         <section className="nox-home-section">
-          <SectionHeader title="Ta journée" action={`${dayDone}/${dayItems.length}`} />
+          <SectionHeader title="Ta journée" action={summarizeDay(dayItems).complete ? 'Complète ✓' : `${dayDone}/${dayItems.length}`} />
           <AppCard style={{ padding: 18 }}>
             <div style={{ height: 6, borderRadius: 999, background: '#343835', overflow: 'hidden', marginBottom: 14 }}>
               <div style={{ width: `${(dayDone / Math.max(1, dayItems.length)) * 100}%`, height: '100%', borderRadius: 999, background: '#C8FF00', transition: 'width .5s ease' }} />

@@ -18,6 +18,8 @@ export type UserHabit = {
   professional_support: boolean;
   risk_flag: boolean;
   active: boolean;
+  /** Fait partie de « Ta journée » (absent = oui) */
+  in_day?: boolean;
   started_on: string;
 };
 
@@ -118,7 +120,14 @@ export const isDeclaredSteps = (h: Pick<UserHabit, 'kind'>) => h.kind === 'steps
 
 /** Saisie directe d'une valeur pour les objectifs quantitatifs (pas, minutes, pages…) plutôt que +1 / −1 */
 export const usesValueInput = (h: Pick<UserHabit, 'kind' | 'mode'>) =>
-  h.kind === 'steps' || h.mode === 'build';
+  h.kind === 'steps' || h.kind === 'custom' || h.mode === 'build';
+
+/** Origine d'un relevé : saisie dans l'app, ou mesure par une source native (à venir) */
+export type LogSource = 'manual' | 'healthkit' | 'health_connect';
+export const isMeasured = (source: string | null | undefined) => source === 'healthkit' || source === 'health_connect';
+
+/** Champs à lire pour une habitude */
+export const HABIT_COLUMNS = 'id, kind, label, mode, unit, baseline, daily_target, professional_support, risk_flag, active, started_on, in_day';
 
 export const MODE_LABELS: Record<HabitMode, { title: string; detail: string }> = {
   reduce: { title: 'Réduire', detail: 'Tu fixes une cible quotidienne à ne pas dépasser.' },

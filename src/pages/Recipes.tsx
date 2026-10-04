@@ -370,6 +370,7 @@ export default function Recipes() {
     setActionMessage('');
 
     const { error: insertError } = await supabase.from('food_entries').insert({
+      source: 'recipe',
       user_id: user.id,
       meal_type: selectedMeal,
       food_name: recipe.name + (portions > 1 ? ` ×${portions}` : ''),

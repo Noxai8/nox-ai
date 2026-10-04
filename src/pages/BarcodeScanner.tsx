@@ -320,7 +320,7 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
 
     const { error: insertError } = await supabase
       .from('food_entries')
-      .insert(entry);
+      .insert({ ...entry, source: 'barcode' });
 
     if (insertError) {
       console.error('Barcode food insert:', insertError);

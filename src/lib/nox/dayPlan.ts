@@ -2,7 +2,7 @@
 // Fonction pure : aucune donnée inventée, aucun calcul d'XP (le serveur reste seul juge).
 // Chaque ligne n'apparaît que si elle s'applique à l'utilisateur (axes, habitudes, mission).
 
-import { habitName, isTargetMet, targetLine, type UserHabit } from './habits';
+import { habitName, isMeasured, isTargetMet, targetLine, type UserHabit } from './habits';
 
 export type DayPlanItem = {
   key: string;
@@ -10,6 +10,8 @@ export type DayPlanItem = {
   detail?: string;
   /** Valeur saisie manuellement (pas) : affichée « DÉCLARÉ » */
   declared?: boolean;
+  /** Valeur fournie par une source native (Apple Santé / Health Connect) : « MESURÉ » */
+  measured?: boolean;
   done: boolean;
   route: string;
   /** Clôture : toujours accessible, même si tout n'est pas fait */
@@ -28,7 +30,7 @@ export type DayPlanInput = {
   kcalToday: number;
   mealsToday: number;
   habits: UserHabit[];
-  todayLogs: { habit_id: string; count: number }[];
+  todayLogs: { habit_id: string; count: number; source?: string | null }[];
 };
 
 /** Zone nutrition : ±10 % autour de la cible (jamais un chiffre exact à atteindre) */
@@ -39,7 +41,9 @@ const fr = (n: number) => Math.round(n).toLocaleString('fr-FR');
 export function buildDayPlan(i: DayPlanInput): DayPlanItem[] {
   const has = (area: string) => i.focusAreas == null || i.focusAreas.includes(area);
   const logOf = (h: UserHabit) => i.todayLogs.find(l => l.habit_id === h.id);
-  const steps = i.habits.find(h => h.kind === 'steps') ?? null;
+  // Seuls les objectifs actifs marqués « Dans ma journée » entrent dans le pilotage
+  const dayHabits = i.habits.filter(h => h.active !== false && h.in_day !== false);
+  const steps = dayHabits.find(h => h.kind === 'steps') ?? null;
   const items: DayPlanItem[] = [];
 
   items.push({ key: 'pulse', label: 'Pulse du matin', done: i.pulseDone, route: '/pulse' });
@@ -62,7 +66,8 @@ export function buildDayPlan(i: DayPlanInput): DayPlanItem[] {
       key: 'move', label: 'Bouger',
       // Aucune valeur affichée tant que rien n'a été saisi (pas de « 0 » inventé)
       detail: log ? `${fr(log.count)} / ${fr(steps.daily_target ?? 0)} pas` : `à saisir · objectif ${fr(steps.daily_target ?? 0)} pas`,
-      declared: !!log,
+      declared: !!log && !isMeasured(log.source),
+      measured: !!log && isMeasured(log.source),
       done: !!log && isTargetMet(log.count, steps.daily_target, 'build') === true,
       route: `/habits/${steps.id}`,
     });
@@ -74,26 +79,19 @@ export function buildDayPlan(i: DayPlanInput): DayPlanItem[] {
     });
   }
 
-  // Nutrition : seulement si l'axe est actif. Information, sans effet sur l'XP.
-  if (has('nutrition')) {
-    if (i.caloriesTarget > 0) {
-      const z = nutritionZone(i.caloriesTarget);
-      items.push({
-        key: 'nutrition', label: 'Nutrition',
-        detail: `${fr(i.kcalToday)} kcal · zone ${fr(z.low)}–${fr(z.high)}`,
-        done: i.kcalToday >= z.low && i.kcalToday <= z.high, route: '/fuel',
-      });
-    } else {
-      items.push({
-        key: 'nutrition', label: 'Nutrition',
-        detail: `${i.mealsToday} repas enregistré${i.mealsToday > 1 ? 's' : ''}`,
-        done: i.mealsToday >= 2, route: '/fuel',
-      });
-    }
+  // Nutrition : seulement si l'axe est actif ET qu'une vraie cible existe. Calories issues des repas enregistrés
+  // (validés par l'utilisateur) ; information de pilotage, sans effet sur l'XP.
+  if (has('nutrition') && i.caloriesTarget > 0) {
+    const z = nutritionZone(i.caloriesTarget);
+    items.push({
+      key: 'nutrition', label: 'Nutrition',
+      detail: `${fr(i.kcalToday)} kcal · zone ${fr(z.low)}–${fr(z.high)}`,
+      done: i.kcalToday >= z.low && i.kcalToday <= z.high, route: '/fuel',
+    });
   }
 
   // Habitudes et objectifs personnels (les pas sont déjà sous « Bouger »)
-  for (const h of i.habits) {
+  for (const h of dayHabits) {
     if (h.kind === 'steps') continue;
     const log = logOf(h);
     items.push({
@@ -106,4 +104,42 @@ export function buildDayPlan(i: DayPlanInput): DayPlanItem[] {
 
   items.push({ key: 'closure', label: 'Clôture du soir', done: i.closureDone, route: '/closure', closure: true });
   return items;
+}
+
+// ── Bilan et snapshot de clôture ─────────────────────────────────────────────
+// Le snapshot fige l'état de chaque engagement au moment de la clôture, pour l'historique
+// et les bilans futurs. Il n'alimente jamais l'XP (calculée par le serveur à partir des données brutes).
+
+export type DaySummary = {
+  engagements: DayPlanItem[];   // tous les engagements du jour, hors clôture
+  done: DayPlanItem[];
+  missing: DayPlanItem[];
+  complete: boolean;            // journée complète = tous les engagements applicables validés
+};
+
+export function summarizeDay(items: DayPlanItem[]): DaySummary {
+  const engagements = items.filter(x => !x.closure);
+  const done = engagements.filter(x => x.done);
+  return { engagements, done, missing: engagements.filter(x => !x.done), complete: engagements.length > 0 && done.length === engagements.length };
+}
+
+const categoryOf = (key: string) =>
+  key === 'pulse' ? 'pulse' : key === 'mission' ? 'concentration' : key === 'move' ? 'movement'
+  : key === 'nutrition' ? 'nutrition' : 'goal';
+
+export function daySnapshot(items: DayPlanItem[]) {
+  const s = summarizeDay(items);
+  return {
+    day_snapshot: {
+      version: 1,
+      complete: s.complete,
+      items: s.engagements.map(x => ({
+        key: x.key, category: categoryOf(x.key), label: x.label, done: x.done,
+        detail: x.detail ?? null,
+        source: x.measured ? 'measured' : x.declared ? 'declared' : null,
+      })),
+    },
+    items_done: s.done.length,
+    items_total: s.engagements.length,
+  };
 }

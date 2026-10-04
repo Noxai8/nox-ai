@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 import {
-  CUSTOM_UNITS, HABITS, HABIT_KINDS, MODE_LABELS, habitName,
+  CUSTOM_UNITS, HABITS, HABIT_COLUMNS, HABIT_KINDS, MODE_LABELS, habitName,
   type HabitKind, type HabitMode, type UserHabit,
 } from '../lib/nox/habits';
 
@@ -13,6 +13,7 @@ const BG = '#090B0A';
 const CARD = '#232624';
 const CARD2 = '#191C1A';
 const BORDER = '#4A4F4B';
+const SOFT = '#343835';
 const WHITE = '#FFFFFF';
 const SEC = '#A5AAA6';
 const MUTED = '#747A76';
@@ -46,6 +47,7 @@ const emptyDraft = (kind: HabitKind): Draft => ({
   baseline: '', target: kind === 'steps' ? '7000' : '', riskAnswer: null, professional: false, consent: false,
 });
 
+/** Objectifs du quotidien (pas, objectifs personnels) : configuration dédiée */
 const isBuildKind = (k: HabitKind) => k === 'steps' || k === 'custom';
 const GOAL_IDEAS = ['Lire', 'Méditer', 'Boire de l’eau', 'Étirements', 'Marcher', 'Écrire'];
 
@@ -95,7 +97,7 @@ export default function Habits() {
   const load = async () => {
     const { data, error: e } = await supabase
       .from('user_habits')
-      .select('id, kind, label, mode, unit, baseline, daily_target, professional_support, risk_flag, active, started_on')
+      .select(HABIT_COLUMNS)
       .eq('user_id', user!.id)
       .eq('active', true)
       .order('created_at');
@@ -121,7 +123,8 @@ export default function Habits() {
     if (isBuildKind(draft.kind)) {
       const t = Number(draft.target);
       if (draft.kind === 'custom' && !draft.label.trim()) return false;
-      return draft.target !== '' && Number.isFinite(t) && t > 0 && t <= 100000;
+      const min = draft.mode === 'reduce' ? 0 : 1;
+      return draft.target !== '' && Number.isFinite(t) && t >= min && t <= 100000;
     }
     if (effectiveMode === 'reduce') {
       const t = Number(draft.target);
@@ -150,6 +153,14 @@ export default function Habits() {
     await load();
     if (inOnboarding) { advanceQueue(); return; }
     setDraft(null);
+  };
+
+  // Choisir quels objectifs font partie de « Ta journée »
+  const toggleInDay = async (h: UserHabit) => {
+    const next = h.in_day === false;
+    setHabits(list => list.map(x => (x.id === h.id ? { ...x, in_day: next } : x)));
+    const { error: e } = await supabase.from('user_habits').update({ in_day: next }).eq('id', h.id);
+    if (e) { setError(e.message); void load(); }
   };
 
   const stopTracking = async (h: UserHabit) => {
@@ -247,12 +258,19 @@ export default function Habits() {
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 15, fontWeight: 900 }}>{habitName(h)}</div>
                             <div style={{ color: SEC, fontSize: 12, marginTop: 3 }}>
-                              {h.mode === 'build'
+                              {h.kind === 'custom' && h.mode === 'reduce'
+                                ? `Au plus ${Number(h.daily_target).toLocaleString('fr-FR')} ${h.unit}/jour`
+                                : h.mode === 'build'
                                 ? `Au moins ${Number(h.daily_target).toLocaleString('fr-FR')} ${h.unit}/jour${h.kind === 'steps' ? ' · DÉCLARÉ' : ''}`
                                 : <>{MODE_LABELS[h.mode].title}{h.daily_target != null ? ` · cible ${h.daily_target} ${h.unit}/jour` : ''}</>}
                               {h.professional_support ? ' · avec un professionnel' : ''}
                             </div>
                           </div>
+                          <button onClick={() => toggleInDay(h)} aria-pressed={h.in_day !== false}
+                            title="Dans ma journée"
+                            style={{ display: 'flex', alignItems: 'center', gap: 6, border: `1px solid ${h.in_day !== false ? LIME : SOFT}`, borderRadius: 999, padding: '6px 10px', background: h.in_day !== false ? 'rgba(200,255,0,.08)' : 'transparent', color: h.in_day !== false ? LIME : MUTED, fontSize: 11, fontWeight: 900, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                            {h.in_day !== false ? '✓ Ma journée' : 'Hors journée'}
+                          </button>
                           <button onClick={() => stopTracking(h)}
                             style={{ border: 0, background: 'transparent', color: MUTED, fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
                             Retirer
@@ -378,6 +396,15 @@ export default function Habits() {
                             style={{ ...choice(draft.label === g), width: 'auto', padding: '8px 12px', fontSize: 12, fontWeight: 800 }}>{g}</button>
                         ))}
                       </div>
+                      <div style={{ color: SEC, fontSize: 13, marginBottom: 10 }}>Type d’objectif</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 18 }}>
+                        {([['build', 'Au moins', 'Lire, marcher, boire…'], ['reduce', 'Au plus', 'Écrans, sucre, café…']] as const).map(([m, t, d]) => (
+                          <button key={m} onClick={() => setDraft({ ...draft, mode: m })} style={choice(draft.mode === m)}>
+                            <div style={{ fontSize: 14, fontWeight: 900, color: draft.mode === m ? LIME : WHITE }}>{t}</div>
+                            <div style={{ fontSize: 11, color: SEC, marginTop: 3 }}>{d}</div>
+                          </button>
+                        ))}
+                      </div>
                       <div style={{ color: SEC, fontSize: 13, marginBottom: 10 }}>Unité</div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
                         {CUSTOM_UNITS.map(u => (
@@ -388,7 +415,7 @@ export default function Habits() {
                     </>
                   )}
                   <div style={{ color: SEC, fontSize: 13, marginBottom: 10 }}>
-                    Au moins combien de {draft.kind === 'custom' ? draft.unit : 'pas'} par jour ?
+                    {draft.mode === 'reduce' ? 'Au plus' : 'Au moins'} combien de {draft.kind === 'custom' ? draft.unit : 'pas'} par jour ?
                   </div>
                   <input type="number" inputMode="numeric" min={1} max={100000} placeholder={draft.kind === 'steps' ? '7000' : 'Ex : 20'}
                     value={draft.target} onChange={e => setDraft({ ...draft, target: e.target.value })} style={input} />
