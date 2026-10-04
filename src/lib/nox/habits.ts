@@ -149,5 +149,5 @@ export function targetLine(count: number, target: number | null, mode: HabitMode
   const met = isTargetMet(count, target, mode);
   return mode === 'build'
     ? `${n(count)} / ${n(target)} ${unit}${met ? ' ✓' : ''}`
-    : `${n(count)} · cible ≤ ${n(target)}${met ? ' ✓' : ''}`;
+    : `${n(count)} ${unit} · cible ≤ ${n(target)} ${unit}${met ? ' ✓' : ''}`;
 }
