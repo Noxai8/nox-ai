@@ -86,7 +86,17 @@ export default function NotificationSettings() {
     setBusy(true); setMessage('');
     const { data, error } = await supabase.functions.invoke('send-reminders', { body: { test: true } });
     setBusy(false);
-    if (error) setMessage('Le service de rappels ne répond pas encore. Il doit d’abord être mis en ligne dans Supabase.');
+    if (error) {
+      const ctx = (error as any).context as Response | undefined;
+      const status = ctx?.status;
+      let detail = '';
+      try { const b = await ctx?.json(); detail = b?.message || b?.error || ''; } catch { /* corps non JSON */ }
+      setMessage(
+        status === 404 ? 'Service introuvable (404) : la fonction send-reminders n’est pas encore en ligne dans Supabase.'
+        : detail ? `Erreur du service${status ? ` (${status})` : ''} : ${detail}`
+        : `Le service ne répond pas${status ? ` (code ${status})` : ''}. ${(error as any).message ?? ''}`.trim(),
+      );
+    }
     else setMessage(data?.sent ? 'Test envoyé. La notification devrait arriver dans quelques secondes.' : 'Aucun appareil actif trouvé pour ton compte.');
   };
 

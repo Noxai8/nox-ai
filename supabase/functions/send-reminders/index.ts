@@ -19,11 +19,18 @@ const cors = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 
-webpush.setVapidDetails(
-  Deno.env.get('VAPID_SUBJECT')!,
-  Deno.env.get('VAPID_PUBLIC_KEY')!,
-  Deno.env.get('VAPID_PRIVATE_KEY')!,
-);
+// Vérifie les secrets VAPID ; renvoie un message clair au lieu de planter
+function configureVapid(): string | null {
+  const subject = Deno.env.get('VAPID_SUBJECT');
+  const pub = Deno.env.get('VAPID_PUBLIC_KEY');
+  const priv = Deno.env.get('VAPID_PRIVATE_KEY');
+  if (!pub) return 'Secret VAPID_PUBLIC_KEY manquant';
+  if (!priv) return 'Secret VAPID_PRIVATE_KEY manquant';
+  if (!subject) return 'Secret VAPID_SUBJECT manquant';
+  if (!subject.startsWith('mailto:') && !subject.startsWith('https://')) return 'VAPID_SUBJECT doit commencer par mailto:';
+  try { webpush.setVapidDetails(subject, pub.trim(), priv.trim()); return null; }
+  catch (e: any) { return `Clés VAPID invalides : ${e?.message ?? e}`; }
+}
 
 // ── Voix de NOXI (même ton que l'app : chaleureux, jamais culpabilisant) ──────
 // Règle absolue : aucun rappel ne nomme une habitude.
@@ -91,6 +98,9 @@ async function sendTo(sb: any, userId: string, payload: { title: string; body: s
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+
+  const vapidError = configureVapid();
+  if (vapidError) return json({ error: 'CONFIG', message: vapidError }, 500);
 
   const url = Deno.env.get('SUPABASE_URL')!;
   const service = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
