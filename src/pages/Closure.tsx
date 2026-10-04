@@ -43,6 +43,7 @@ export default function Closure() {
   const [feeling,    setFeeling]    = useState<number | null>(null);
   const [note,       setNote]       = useState('');
   const [saving,     setSaving]     = useState(false);
+  const [saveError,  setSaveError]  = useState('');
   const [saved,      setSaved]      = useState(false);
   const [existing,   setExisting]   = useState<any>(null);
 
@@ -69,6 +70,7 @@ export default function Closure() {
   const save = async () => {
     if (!user || !canSave || saving) return;
     setSaving(true);
+    setSaveError('');
     try {
       const { error } = await supabase.from('daily_closures').upsert({
         user_id:        user.id,
@@ -78,7 +80,10 @@ export default function Closure() {
         evening_energy: feeling,
         note:           note.trim() || null,
       }, { onConflict: 'user_id,date' });
-      if (!error) setSaved(true);
+      if (error) {
+        console.error('daily_closures:', error);
+        setSaveError('Ta journée n’a pas pu être enregistrée. Vérifie ta connexion et réessaie.');
+      } else setSaved(true);
     } finally {
       setSaving(false);
     }
@@ -184,6 +189,9 @@ export default function Closure() {
           style={{ width: '100%', padding: 18, border: 0, borderRadius: 18, background: canSave ? LIME : '#1A1A1A', color: canSave ? '#0A0A0A' : MUTED, fontWeight: 1000, fontSize: 15, cursor: canSave ? 'pointer' : 'not-allowed', transition: 'all .2s' }}>
           {saving ? 'ENREGISTREMENT...' : 'TERMINER MA JOURNÉE'}
         </button>
+        {saveError && (
+          <div role="alert" style={{ marginTop: 12, textAlign: 'center', color: '#E9C2C2', fontSize: 13, lineHeight: 1.5 }}>{saveError}</div>
+        )}
 
         {!canSave && (
           <div style={{ marginTop: 10, textAlign: 'center', fontSize: 11, color: MUTED }}>
