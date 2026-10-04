@@ -432,6 +432,14 @@ export default function Home() {
   const todayCarbs = todayFood.reduce((sum, entry) => sum + Number(entry.carbs || entry.carbs_g || entry.carbohydrates || 0), 0);
   const todayFat = todayFood.reduce((sum, entry) => sum + Number(entry.fat || entry.fat_g || entry.fats || 0), 0);
   const caloriesRemaining = caloriesTarget > 0 ? Math.max(0, caloriesTarget - todayKcal) : null;
+
+  // Pas : uniquement depuis un relevé réellement enregistré.
+  const stepsHabit = habits.find(h => h.kind === 'steps');
+  const todayStepsLog = stepsHabit ? habitLogs.find(l => l.habit_id === stepsHabit.id && l.date === todayLocalDate()) : null;
+  const stepsTarget = stepsHabit?.daily_target != null ? Number(stepsHabit.daily_target) : null;
+  const todaySteps = todayStepsLog ? Number(todayStepsLog.count) : null;
+  const stepsProgress = todaySteps != null && stepsTarget != null && stepsTarget > 0 ? Math.min(100, Math.round((todaySteps / stepsTarget) * 100)) : 0;
+  const stepsMeasured = todayStepsLog?.source === 'healthkit' || todayStepsLog?.source === 'health_connect';
   const sessions = program?.program_json?.sessions || [];
   const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
   const todaySession = sessions.find((session: any) =>
@@ -804,8 +812,35 @@ export default function Home() {
         {habits.length > 0 && (
           <section className="nox-home-section">
             <SectionHeader title="Mes objectifs" action="Gérer ›" onAction={() => navigate('/habits')} />
+            {stepsHabit && (
+              <AppCard style={{ padding: 20, marginBottom: 10 }}>
+                <div className="nox-steps-card">
+                  <div className="nox-steps-ring" style={{ ['--steps-progress' as any]: `${stepsProgress * 3.6}deg` }}>
+                    <div className="nox-steps-ring-inner">
+                      <PersonStanding size={20} color="#C8FF00" />
+                      <div style={{ fontSize: 30, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.05em', marginTop: 7 }}>{todaySteps == null ? '—' : todaySteps.toLocaleString('fr-FR')}</div>
+                      <div style={{ fontSize: 11, fontWeight: 900, marginTop: 5 }}>pas</div>
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: '#8E938F', fontSize: 10, fontWeight: 950, letterSpacing: '.08em', marginBottom: 7 }}>BOUGER AUJOURD'HUI</div>
+                    <div style={{ fontSize: 21, fontWeight: 1000, letterSpacing: '-.03em' }}>
+                      {todaySteps == null ? 'Suivi des pas non connecté' : stepsTarget != null && stepsTarget > 0 && todaySteps >= stepsTarget ? 'Objectif atteint ✓' : stepsTarget != null && stepsTarget > 0 ? `${stepsProgress}% de ton objectif` : `${todaySteps.toLocaleString('fr-FR')} pas aujourd'hui`}
+                    </div>
+                    <div style={{ color: '#A5AAA6', fontSize: 13, lineHeight: 1.5, marginTop: 7 }}>
+                      {stepsTarget != null && stepsTarget > 0 ? `Objectif : ${stepsTarget.toLocaleString('fr-FR')} pas par jour` : 'Définis ton objectif quotidien de pas.'}
+                    </div>
+                    {todaySteps != null ? (
+                      <div style={{ marginTop: 10, display: 'inline-flex', padding: '4px 8px', borderRadius: 999, border: `1px solid ${stepsMeasured ? 'rgba(200,255,0,.35)' : '#343835'}`, color: stepsMeasured ? '#C8FF00' : '#A5AAA6', fontSize: 9, fontWeight: 950, letterSpacing: '.07em' }}>{stepsMeasured ? 'MESURÉ' : 'DÉCLARÉ'}</div>
+                    ) : (
+                      <div style={{ marginTop: 10, color: '#747A76', fontSize: 11, lineHeight: 1.45 }}>Les pas seront affichés ici dès que NOX recevra une mesure Apple Health / Health Connect.</div>
+                    )}
+                  </div>
+                </div>
+              </AppCard>
+            )}
             <div style={{ display: 'grid', gap: 10 }}>
-              {habits.map(h => {
+              {habits.filter(h => h.kind !== 'steps').map(h => {
                 const def = HABITS[h.kind];
                 const Icon = def.icon;
                 const today = todayLocalDate();
@@ -973,6 +1008,10 @@ export default function Home() {
         .nox-square-icon--neutral { color:#FFF; background:#1D201E; }
         .nox-round-arrow { width:42px; height:42px; flex:0 0 auto; border-radius:50%; border:1px solid #2D312E; background:#151816; color:#FFF; display:grid; place-items:center; cursor:pointer; }
         .nox-session-button { flex:0 0 auto; border:0; border-radius:14px; background:#C8FF00; color:#090B0A; padding:13px 18px; font-size:11px; font-weight:1000; cursor:pointer; }
+        .nox-steps-card { display:flex; align-items:center; gap:24px; }
+        .nox-steps-ring { --steps-progress:0deg; width:150px; height:150px; flex:0 0 auto; border-radius:50%; display:grid; place-items:center; background:conic-gradient(#C8FF00 var(--steps-progress),#2A2E2C 0); position:relative; }
+        .nox-steps-ring::after { content:''; position:absolute; inset:11px; border-radius:50%; background:#111513; }
+        .nox-steps-ring-inner { position:relative; z-index:1; text-align:center; }
         @media (max-width:760px) {
           .nox-home-main { padding:0 16px; }
           .nox-home-header { padding-top:34px; }
@@ -985,6 +1024,8 @@ export default function Home() {
           .nox-now-details { width:100%; max-width:none; }
           .nox-compact-row { align-items:center; }
           .nox-session-button { padding:12px; }
+          .nox-steps-card { gap:18px; }
+          .nox-steps-ring { width:132px; height:132px; }
         }
         @media (max-width:430px) {
           .nox-session-button { font-size:0; width:42px; height:42px; border-radius:50%; padding:0; }
