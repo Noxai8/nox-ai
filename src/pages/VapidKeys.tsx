@@ -44,7 +44,9 @@ export default function VapidKeys() {
     <div style={box}>
       <div style={{ color: '#747A76', fontSize: 11, fontWeight: 900, letterSpacing: '.09em', marginBottom: 6 }}>{step}</div>
       <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 10 }}>{name}</div>
-      <div style={{ fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all', color: '#A5AAA6', background: '#191C1A', borderRadius: 12, padding: 12, marginBottom: 12 }}>{value}</div>
+      <div style={{ fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all', color: '#A5AAA6', background: '#191C1A', borderRadius: 12, padding: 12, marginBottom: 12, userSelect: secret ? 'none' : 'text' }}>
+        {secret ? '•'.repeat(43) + '  (masquée : utilise le bouton Copier)' : value}
+      </div>
       <button style={btn(true)} onClick={() => copy(name, value)}>
         {copied === name ? <><Check size={16} /> Copié</> : <><Copy size={16} /> Copier</>}
       </button>
