@@ -57,6 +57,7 @@ alter table public.reminder_prefs
   add column if not exists nudge_mission   boolean not null default true,
   add column if not exists nudge_goals     boolean not null default true,
   add column if not exists min_gap_minutes smallint not null default 120;
+alter table public.reminder_prefs alter column max_per_day set default 3;
 alter table public.reminder_prefs drop constraint if exists reminder_prefs_min_gap_check;
 alter table public.reminder_prefs add constraint reminder_prefs_min_gap_check
   check (min_gap_minutes between 120 and 480);

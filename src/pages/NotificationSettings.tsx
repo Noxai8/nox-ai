@@ -32,7 +32,7 @@ type Prefs = {
 
 const DEFAULTS: Prefs = {
   enabled: true, morning: true, morning_time: '08:30', evening: true, evening_time: '21:00',
-  habits_check: false, weekly: true, quiet_start: '22:30', quiet_end: '07:30', max_per_day: 2,
+  habits_check: false, weekly: true, quiet_start: '22:30', quiet_end: '07:30', max_per_day: 3,
   nudge_nutrition: true, nudge_movement: true, nudge_mission: true, nudge_goals: true,
 };
 

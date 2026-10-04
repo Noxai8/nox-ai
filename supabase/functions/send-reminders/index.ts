@@ -157,7 +157,7 @@ async function processUser(sb: any, p: any): Promise<number> {
   const sentKinds = new Set((logs ?? []).map((l: any) => l.kind));
   const lastSent = Math.max(0, ...(logs ?? []).map((l: any) => new Date(l.sent_at).getTime()));
   const gapOk = !lastSent || Date.now() - lastSent >= gap * 60_000;
-  let budget = (p.max_per_day ?? 2) - (logs ?? []).length;
+  let budget = (p.max_per_day ?? 3) - (logs ?? []).length;
   const reserveEvening = p.evening && !closure && now.minutes < eveningMin + 30 && !sentKinds.has('evening');
   if (!gapOk || budget <= 0) return 0;
 
