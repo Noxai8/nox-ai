@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { localDateFromDate, todayLocalDate } from '../lib/localDate';
 import { BottomNav } from './Home';
 
 const ACCENT = '#c8ff00';
@@ -45,7 +46,7 @@ export default function NoxCalendar() {
       { data: prog },
     ] = await Promise.all([
       supabase.from('workouts').select('created_at, program_name, status').eq('user_id', user!.id).gte('created_at', start).lte('created_at', end),
-      supabase.from('meal_plans').select('planned_date, meal_type, food_name, logged').eq('user_id', user!.id).gte('planned_date', start.slice(0,10)).lte('planned_date', end.slice(0,10)),
+      supabase.from('meal_plans').select('planned_date, meal_type, food_name, logged').eq('user_id', user!.id).gte('planned_date', localDateFromDate(new Date(year, month, 1))).lte('planned_date', localDateFromDate(new Date(year, month + 1, 0))),
       supabase.from('personal_records').select('created_at, exercise_name, weight').eq('user_id', user!.id).gte('created_at', start).lte('created_at', end),
       supabase.from('body_logs').select('created_at, weight').eq('user_id', user!.id).gte('created_at', start).lte('created_at', end),
       supabase.from('workout_programs').select('*').eq('user_id', user!.id).eq('is_active', true).maybeSingle(),
@@ -57,7 +58,7 @@ export default function NoxCalendar() {
 
     // Séances complétées
     (workouts || []).filter(w => w.status === 'completed').forEach(w => {
-      allEvents.push({ date: w.created_at.slice(0,10), type: 'workout', label: w.program_name || 'Séance', color: ACCENT, icon: '🏋️' });
+      allEvents.push({ date: localDateFromDate(new Date(w.created_at)), type: 'workout', label: w.program_name || 'Séance', color: ACCENT, icon: '🏋️' });
     });
 
     // Repas planifiés
@@ -71,12 +72,12 @@ export default function NoxCalendar() {
 
     // PRs
     (prs || []).forEach(p => {
-      allEvents.push({ date: p.created_at.slice(0,10), type: 'pr', label: `PR ${p.exercise_name} ${p.weight}kg`, color: '#ffaa00', icon: '🏆' });
+      allEvents.push({ date: localDateFromDate(new Date(p.created_at)), type: 'pr', label: `PR ${p.exercise_name} ${p.weight}kg`, color: '#ffaa00', icon: '🏆' });
     });
 
     // Pesées
     (body || []).forEach(b => {
-      allEvents.push({ date: b.created_at.slice(0,10), type: 'body', label: `${b.weight}kg`, color: '#888', icon: '⚖️' });
+      allEvents.push({ date: localDateFromDate(new Date(b.created_at)), type: 'body', label: `${b.weight}kg`, color: '#888', icon: '⚖️' });
     });
 
     setEvents(allEvents);
@@ -97,7 +98,7 @@ export default function NoxCalendar() {
   };
 
   const days = getDays();
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayLocalDate();
 
   // Prochaines séances selon programme
   const plannedDays = (() => {
@@ -112,7 +113,7 @@ export default function NoxCalendar() {
         for (let d = 1; d <= 31; d++) {
           const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), d);
           if (date.getMonth() !== currentMonth.getMonth()) break;
-          if (date.getDay() === dow[1]) planned.add(date.toISOString().slice(0,10));
+          if (date.getDay() === dow[1]) planned.add(localDateFromDate(date));
         }
       }
     });
@@ -167,7 +168,7 @@ export default function NoxCalendar() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, marginBottom: 16 }}>
           {days.map((day, i) => {
             if (!day) return <div key={i} />;
-            const dateStr = day.toISOString().slice(0,10);
+            const dateStr = localDateFromDate(day);
             const dayEvents = getEventsForDate(dateStr);
             const hasWorkout = dayEvents.some(e => e.type === 'workout');
             const hasMeal = dayEvents.some(e => e.type === 'meal');
@@ -268,7 +269,7 @@ export default function NoxCalendar() {
           return (
             <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8 }}>
               {week.map(d => {
-                const dateStr = d.toISOString().slice(0,10);
+                const dateStr = localDateFromDate(d);
                 const dayEvts = getEventsForDate(dateStr);
                 const isToday = dateStr === today;
                 return (

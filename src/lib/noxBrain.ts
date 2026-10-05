@@ -1,3 +1,5 @@
+import { localDateFromDate } from './localDate';
+
 /**
  * NOX BRAIN — La couche d'intelligence qui relie les données aux décisions.
  * TDEE réel, NOX Score, surcharge progressive et détection de stagnation.
@@ -11,10 +13,11 @@ function finitePositive(value: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function dayKey(date: string): string {
+// Jour civil local de l'utilisateur (et non le jour UTC) : un repas pris à 0 h 30 appartient au nouveau jour.
+export function dayKey(date: string): string {
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toISOString().slice(0, 10);
+  return localDateFromDate(d);
 }
 
 function roundToIncrement(value: number, increment: number): number {

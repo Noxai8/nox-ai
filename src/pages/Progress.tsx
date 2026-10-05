@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { todayLocalDate } from '../lib/localDate';
 import { useNavigate, useSearchParams } from 'react-router-dom'; 
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
@@ -25,7 +26,7 @@ export default function Progress() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
   const [photoPose, setPhotoPose] = useState('front');
-  const [photoDate, setPhotoDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [photoDate, setPhotoDate] = useState(() => todayLocalDate());
   const [photoSaving, setPhotoSaving] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const [photoSuccess, setPhotoSuccess] = useState(false);
@@ -221,7 +222,7 @@ export default function Progress() {
     setPhotoError('');
     setPhotoSuccess(false);
     setPhotoPose('front');
-    setPhotoDate(new Date().toISOString().slice(0, 10));
+    setPhotoDate(todayLocalDate());
   };
 
   const selectPhoto = (file?: File) => {
@@ -1492,7 +1493,7 @@ Réponds en français, sans markdown.`,
                     <input
                       type="date"
                       value={photoDate}
-                      max={new Date().toISOString().slice(0, 10)}
+                      max={todayLocalDate()}
                       onChange={(e) => setPhotoDate(e.target.value)}
                       disabled={photoSaving}
                       style={{ width: '100%', height: 48, boxSizing: 'border-box', borderRadius: 15, border: `1px solid ${BORDER}`, background: '#F8F9F5', padding: '0 12px', color: '#090909', fontWeight: 800 }}
