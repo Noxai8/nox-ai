@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRight, Check, Sparkles, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-import { todayLocalDate } from '../lib/localDate';
+import { localDayStartISO, todayLocalDate } from '../lib/localDate';
+import { foodTotalsByLocalDay } from '../lib/nox/foodDays';
 import { usePlan } from '../lib/usePlan';
 import { BottomNav } from './Home';
 
@@ -229,19 +230,14 @@ export default function NoxFuture() {
       supabase.from('daily_pulses').select('sleep_score,energy_score,body_score,date').eq('user_id', user!.id).gte('date', since),
       supabase.from('daily_closures').select('completion,date').eq('user_id', user!.id).gte('date', since),
       supabase.from('movement_logs').select('sport,intensity,duration_min,date').eq('user_id', user!.id).gte('date', since),
-      supabase.from('food_entries').select('calories,protein,created_at').eq('user_id', user!.id).gte('created_at', since + 'T00:00:00'),
+      supabase.from('food_entries').select('calories,protein,created_at').eq('user_id', user!.id).gte('created_at', localDayStartISO(since)),
       supabase.from('profiles').select('goal_type,onboarding_context').eq('id', user!.id).maybeSingle(),
       supabase.from('daily_closures').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
     ]);
 
     // Regrouper food
-    const foodByDay: Record<string, { kcal: number; prot: number }> = {};
-    (food ?? []).forEach(f => {
-      const day = f.created_at.slice(0, 10);
-      if (!foodByDay[day]) foodByDay[day] = { kcal: 0, prot: 0 };
-      foodByDay[day].kcal += Number(f.calories ?? 0);
-      foodByDay[day].prot += Number(f.protein  ?? 0);
-    });
+    // Journée LOCALE de l'utilisateur (et non jour UTC)
+    const foodByDay = foodTotalsByLocalDay(food ?? []);
     const foodDays = Object.keys(foodByDay).length;
     const kcalArr  = Object.values(foodByDay).map(d => d.kcal).filter(v => v > 0);
     const protArr  = Object.values(foodByDay).map(d => d.prot).filter(v => v > 0);

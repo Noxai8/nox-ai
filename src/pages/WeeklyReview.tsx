@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
-import { todayLocalDate } from '../lib/localDate';
+import { localDayEndISO, localDayStartISO, todayLocalDate } from '../lib/localDate';
+import { foodTotalsByLocalDay } from '../lib/nox/foodDays';
 import { usePlan } from '../lib/usePlan';
 
 const BG    = '#0A0A0A';
@@ -66,18 +67,13 @@ export default function WeeklyReview() {
       supabase.from('movement_logs').select('sport,duration_min,intensity,date')
         .eq('user_id', user!.id).gte('date', start).lte('date', end),
       supabase.from('food_entries').select('calories,protein,created_at')
-        .eq('user_id', user!.id).gte('created_at', start + 'T00:00:00').lte('created_at', end + 'T23:59:59'),
+        .eq('user_id', user!.id).gte('created_at', localDayStartISO(start)).lte('created_at', localDayEndISO(end)),
       supabase.from('daily_closures').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
     ]);
 
     // Regrouper food par jour
-    const foodByDay: Record<string, { kcal: number; prot: number }> = {};
-    (foodRaw ?? []).forEach(f => {
-      const day = f.created_at.slice(0, 10);
-      if (!foodByDay[day]) foodByDay[day] = { kcal: 0, prot: 0 };
-      foodByDay[day].kcal += Number(f.calories ?? 0);
-      foodByDay[day].prot += Number(f.protein  ?? 0);
-    });
+    // Journée LOCALE de l'utilisateur (et non jour UTC)
+    const foodByDay = foodTotalsByLocalDay(foodRaw ?? []);
     const foodDays  = Object.keys(foodByDay).length;
     const kcalArr   = Object.values(foodByDay).map(d => d.kcal).filter(v => v > 0);
     const protArr   = Object.values(foodByDay).map(d => d.prot).filter(v => v > 0);
