@@ -78,6 +78,7 @@ function localNow(tz: string) {
     sunday: parts.weekday === 'Sun',
   };
 }
+const short = (s: string, n = 60) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 const toMin = (t: string) => { const [h, m] = t.slice(0, 5).split(':').map(Number); return h * 60 + m; };
 const inWindow = (now: number, start: number) => now >= start && now < start + 30; // cron 15 min → fenêtre 30 min
 const inQuiet = (now: number, qs: number, qe: number) => (qs <= qe ? now >= qs && now < qe : now >= qs || now < qe);
@@ -147,6 +148,9 @@ async function processUser(sb: any, p: any): Promise<number> {
   if (inQuiet(now.minutes, toMin(p.quiet_start), toMin(p.quiet_end))) return 0;
 
   const uid = p.user_id;
+  // Sans appareil abonné, rien à envoyer : on ne calcule rien et on ne consomme pas le quota
+  const { data: devices } = await sb.from('push_devices').select('id').eq('user_id', uid).eq('channel', 'web').limit(1);
+  if (!devices?.length) return 0;
   const gap = Math.max(120, Number(p.min_gap_minutes ?? 120));
   const eveningMin = toMin(p.evening_time);
 
@@ -183,15 +187,16 @@ async function processUser(sb: any, p: any): Promise<number> {
   candidates.push(() => {
     if (!p.nudge_mission || sentKinds.has('mission_start') || !inWindow(now.minutes, 14 * 60) || !nudgeAllowed(14 * 60)) return null;
     if (!day.mission || day.mission.done || day.mission.started) return null;
-    return { kind: 'mission_start', title: 'Ta mission t’attend', body: `Tu avais choisi « ${day.mission.title} ». 25 minutes suffisent pour commencer.`, url: '/focus' };
+    return { kind: 'mission_start', title: 'Ta mission t’attend', body: `Tu avais choisi « ${short(day.mission.title)} ». 25 minutes suffisent pour commencer.`, url: '/focus' };
   });
   candidates.push(() => {
     if (!p.nudge_movement || sentKinds.has('movement') || !inWindow(now.minutes, 16 * 60) || !nudgeAllowed(16 * 60)) return null;
     if (!day.steps) return null;                                  // pas d'objectif de pas : aucune affirmation
+    if (day.recovery) return null;                               // récupération : NOX ne pousse jamais à bouger
     if (day.steps.count == null) {                               // aucun relevé : on demande, on n'affirme rien
       return { kind: 'movement', title: 'Tes pas du jour', body: 'Tu peux renseigner tes pas pour que NOX suive ton objectif.', url: `/habits/${day.steps.id}` };
     }
-    if (day.steps.count >= day.steps.target * 0.4) return null;
+    if (day.steps.target == null || day.steps.count >= day.steps.target * 0.4) return null;
     return { kind: 'movement', title: 'Un peu de mouvement ?', body: 'Une marche de 15 minutes ferait déjà avancer ta journée.', url: `/habits/${day.steps.id}` };
   });
   candidates.push(() => {
@@ -206,7 +211,7 @@ async function processUser(sb: any, p: any): Promise<number> {
   candidates.push(() => {
     if (!p.nudge_mission || sentKinds.has('mission_end') || !inWindow(now.minutes, 19 * 60) || !nudgeAllowed(19 * 60)) return null;
     if (!day.mission || day.mission.done || !day.mission.started || day.mission.kind !== 'duration') return null;
-    return { kind: 'mission_end', title: 'Ta mission avance', body: `${day.mission.minutes} / ${day.mission.target} min sur « ${day.mission.title} ». Un bloc de plus et c’est bouclé.`, url: '/focus' };
+    return { kind: 'mission_end', title: 'Ta mission avance', body: `${day.mission.minutes} / ${day.mission.target} min sur « ${short(day.mission.title)} ». Un bloc de plus et c’est bouclé.`, url: '/focus' };
   });
   candidates.push(() => {
     if (!p.nudge_goals || sentKinds.has('goals') || !inWindow(now.minutes, 18 * 60 + 30) || !nudgeAllowed(18 * 60 + 30)) return null;
@@ -218,7 +223,7 @@ async function processUser(sb: any, p: any): Promise<number> {
   candidates.push(() => {
     if (!p.evening || sentKinds.has('evening') || closure || !inWindow(now.minutes, eveningMin) || budget < 1) return null;
     const rest = [
-      day.steps && !(day.steps.count != null && day.steps.count >= day.steps.target) ? 'Bouger' : null,
+      day.steps && !day.recovery && !(day.steps.count != null && day.steps.target != null && day.steps.count >= day.steps.target) ? 'Bouger' : null,
       day.nutritionOn && day.kcalTarget > 0 && !(day.kcal >= day.kcalTarget * 0.9 && day.kcal <= day.kcalTarget * 1.1) ? 'Nutrition' : null,
       day.mission && !day.mission.done ? 'Concentration' : null,
       day.goalsMissing > 0 ? `${day.goalsMissing} objectif${day.goalsMissing > 1 ? 's' : ''}` : null,
@@ -235,6 +240,11 @@ async function processUser(sb: any, p: any): Promise<number> {
     const { error: logErr } = await sb.from('reminder_log').insert({ user_id: uid, kind: msg.kind, local_date: now.date });
     if (logErr) continue;                                        // déjà envoyé (unicité type + jour)
     const n = await sendTo(sb, uid, { title: msg.title, body: msg.body, url: msg.url });
+    if (n === 0) {
+      // Aucun appareil n'a reçu la notification : on n'utilise ni le quota ni le type du jour
+      await sb.from('reminder_log').delete().eq('user_id', uid).eq('kind', msg.kind).eq('local_date', now.date);
+      return 0;
+    }
     budget--;
     return n;                                                    // au plus un rappel par passage
   }
@@ -249,7 +259,7 @@ async function loadDay(sb: any, uid: string, date: string, tz: string) {
     sb.from('profiles').select('focus_areas').eq('id', uid).maybeSingle(),
     sb.from('nutrition_targets').select('calories').eq('user_id', uid).maybeSingle(),
     sb.from('food_entries').select('calories, created_at').eq('user_id', uid).gte('created_at', since),
-    sb.from('daily_pulses').select('id').eq('user_id', uid).eq('date', date).maybeSingle(),
+    sb.from('daily_pulses').select('id, energy_score, body_score').eq('user_id', uid).eq('date', date).maybeSingle(),
     sb.from('daily_missions').select('id, title, kind, target_minutes, done_at').eq('user_id', uid).eq('date', date).maybeSingle(),
     sb.from('user_habits').select('id, kind, unit, daily_target, in_day').eq('user_id', uid).eq('active', true),
     sb.from('habit_logs').select('habit_id, count').eq('user_id', uid).eq('date', date),
@@ -278,7 +288,13 @@ async function loadDay(sb: any, uid: string, date: string, tz: string) {
     kcal: todayFood.reduce((s: number, f: any) => s + Number(f.calories || 0), 0),
     meals: todayFood.length,
     mission: m,
-    steps: stepsHabit ? { id: stepsHabit.id, target: Number(stepsHabit.daily_target || 0), count: logOf(stepsHabit.id) ? Number(logOf(stepsHabit.id).count) : null } : null,
+    // Même règle de sécurité que le Priority Engine : énergie ou corps très bas = journée de récupération
+    recovery: !!pulse && (Number(pulse.energy_score) <= 2 || Number(pulse.body_score) <= 2),
+    steps: stepsHabit ? {
+      id: stepsHabit.id,
+      target: Number(stepsHabit.daily_target) > 0 ? Number(stepsHabit.daily_target) : null,   // jamais de cible inventée
+      count: logOf(stepsHabit.id) ? Number(logOf(stepsHabit.id).count) : null,
+    } : null,
     goalsMissing: dayHabits.filter((h: any) => !isSteps(h) && !logOf(h.id)).length,
   };
 }

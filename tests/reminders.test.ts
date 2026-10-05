@@ -7,7 +7,9 @@ function db(tables: Record<string, any[]>) {
     maybeSingle: async () => ({ data: rows[0] ?? null }), then: (res: any) => res({ data: rows }),
     insert: async (row: any) => { const dup = (tables[t] ?? []).some(r => r.kind === row.kind && r.local_date === row.local_date && r.user_id === row.user_id);
       if (dup) return { error: { message: 'unique' } }; (tables[t] ??= []).push({ ...row, sent_at: new Date().toISOString() }); return { error: null }; },
-    delete: () => api }; return api; };
+    delete: () => { const del: any = { conds: [] as [string, any][],
+      eq(k: string, v: any) { del.conds.push([k, v]); return del; },
+      then(res: any) { tables[t] = (tables[t] ?? []).filter(r => !del.conds.every(([k, v]: any) => r[k] === v)); res({ error: null }); } }; return del; } }; return api; };
   return { from: q };
 }
 const RealDate = Date;
@@ -17,7 +19,7 @@ const prefs = (o: any = {}) => ({ user_id: 'u', enabled: true, morning: true, mo
   habits_check: false, weekly: false, quiet_start: '22:30', quiet_end: '07:30', max_per_day: 3, timezone: 'Europe/Paris',
   nudge_nutrition: true, nudge_movement: true, nudge_mission: true, nudge_goals: true, min_gap_minutes: 120, ...o });
 const base = () => ({ reminder_log: [] as any[], daily_closures: [] as any[], profiles: [{ id: 'u', focus_areas: ['movement','nutrition','focus'] }],
-  nutrition_targets: [{ user_id: 'u', calories: 2000 }], food_entries: [] as any[], daily_pulses: [{ user_id: 'u', date: '2026-10-05', id: 'p' }],
+  nutrition_targets: [{ user_id: 'u', calories: 2000 }], food_entries: [] as any[], daily_pulses: [{ user_id: 'u', date: '2026-10-05', id: 'p', energy_score: 4, body_score: 4 }],
   daily_missions: [] as any[], focus_sessions: [] as any[], user_habits: [] as any[], habit_logs: [] as any[], push_devices: [{ user_id: 'u', channel: 'web', id: 'd', endpoint: 'e', keys: {} }] });
 let ok = 0, ko = 0; const t = (n: string, c: boolean) => { c ? ok++ : ko++; console.log(c ? '✓' : '✗', n); };
 async function run(time: string, tables: any, p = prefs()) { SENT.length = 0; at(time); await processUser(db(tables) as any, p); return SENT[0] ?? null; }
@@ -64,5 +66,30 @@ async function run(time: string, tables: any, p = prefs()) { SENT.length = 0; at
   m = await run('21:05', T, prefs({ max_per_day: 2 })); t('La clôture passe dans la place réservée et liste les catégories', m?.url === '/closure' && m.body.includes('Bouger') && m.body.includes('Nutrition'));
   T = base(); T.daily_closures = [{ user_id: 'u', date: '2026-10-05', id: 'c' }]; m = await run('21:05', T); t('Journée déjà clôturée → pas de rappel de clôture', m === null);
   T = base(); m = await run('16:05', { ...T, user_habits: [{ id: 's', user_id: 'u', kind: 'steps', daily_target: 7000, in_day: true, active: true }] }, prefs({ nudge_movement: false })); t('Type désactivé → rien', m === null);
-  console.log(`\n${ok} réussis, ${ko} échoués`);
+    // ── Corrections finales ──
+  T = base(); T.push_devices = []; T.user_habits = [{ id: 's', user_id: 'u', kind: 'steps', daily_target: 7000, in_day: true, active: true }];
+  m = await run('16:05', T); t('Aucun appareil abonné → rien calculé, rien envoyé', m === null);
+  t('… et rien n’est inscrit dans l’historique (quota intact)', T.reminder_log.length === 0);
+  T = base(); T.user_habits = [{ id: 's', user_id: 'u', kind: 'steps', daily_target: 7000, in_day: true, active: true }];
+  (globalThis as any).__FAIL_PUSH = true; m = await run('16:05', T); (globalThis as any).__FAIL_PUSH = false;
+  t('Échec d’envoi → rien de reçu', m === null);
+  t('… et le rappel n’est pas compté : il pourra être retenté', T.reminder_log.length === 0);
+  m = await run('16:20', T); t('Retenté au passage suivant une fois l’envoi rétabli', m?.title === 'Tes pas du jour');
+  T = base(); T.daily_pulses = [{ user_id: 'u', date: '2026-10-05', id: 'p', energy_score: 2, body_score: 4 }];
+  T.user_habits = [{ id: 's', user_id: 'u', kind: 'steps', daily_target: 7000, in_day: true, active: true }];
+  m = await run('16:05', T); t('Énergie très basse → jamais de rappel pour bouger', m === null);
+  T.daily_pulses[0] = { ...T.daily_pulses[0], energy_score: 4, body_score: 1 }; m = await run('16:05', T);
+  t('Corps très bas → jamais de rappel pour bouger', m === null);
+  T = base(); T.daily_pulses = [{ user_id: 'u', date: '2026-10-05', id: 'p', energy_score: 2, body_score: 2 }];
+  T.user_habits = [{ id: 's', user_id: 'u', kind: 'steps', daily_target: 7000, in_day: true, active: true }];
+  m = await run('21:05', T); t('Clôture un jour de récupération : « Bouger » n’est pas listé', m?.url === '/closure' && !m.body.includes('Bouger'));
+  T = base(); T.user_habits = [{ id: 's', user_id: 'u', kind: 'steps', daily_target: null, in_day: true, active: true }];
+  T.habit_logs = [{ user_id: 'u', habit_id: 's', date: '2026-10-05', count: 1200 }];
+  m = await run('16:05', T); t('Pas sans cible + relevé : aucune comparaison inventée, pas de rappel', m === null);
+  T = base(); T.user_habits = [{ id: 'cs', user_id: 'u', kind: 'custom', unit: 'pas', daily_target: 10000, in_day: true, active: true }];
+  m = await run('16:05', T); t('Objectif personnel en « pas » traité comme un objectif de pas', m?.title === 'Tes pas du jour');
+  T = base(); T.daily_missions = [{ id: 'm', user_id: 'u', date: '2026-10-05', title: 'X'.repeat(120), kind: 'duration', target_minutes: 60, done_at: null }];
+  m = await run('14:05', T); t('Titre de mission tronqué dans la notification', !!m && m.body.length < 140 && m.body.includes('…'));
+
+console.log(`\n${ok} réussis, ${ko} échoués`);
 })();
