@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Phone, Route as RouteIcon } from 'lucide-react';
+import { ArrowLeft, Check, Phone, Route as RouteIcon, Trophy, Leaf, Heart, Zap, Smile, Wind, CupSoda, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { todayLocalDate } from '../lib/localDate';
@@ -140,6 +140,40 @@ export default function HabitDetail() {
     setBusy(false);
   };
 
+  const todayOk = !!todayLog && okLog(todayLog);
+  const isTobacco = habit?.kind === 'tobacco';
+  const isStopTobacco = isTobacco && habit?.mode === 'stop';
+  const weekLogs = lastDays(7).map(d => byDate.get(d)).filter(Boolean) as Log[];
+  const monthLogs = lastDays(30).map(d => byDate.get(d)).filter(Boolean) as Log[];
+  const weekProofs = weekLogs.filter(l => l.target_snapshot != null && okLog(l)).length;
+  const monthProofs = monthLogs.filter(l => l.target_snapshot != null && okLog(l)).length;
+
+  const coach = (() => {
+    if (!todayLog) return {
+      title: 'La prochaine action compte.',
+      body: isStopTobacco
+        ? 'Note ta journée. Chaque cigarette évitée est une décision dans la direction que tu as choisie.'
+        : 'Renseigne ton avancée pour que NOX puisse te montrer concrètement ce que tu accomplis.',
+      accent: LIME,
+    };
+    if (todayOk) return {
+      title: isStopTobacco && todayLog.count === 0 ? 'Tu viens de prouver que c’est possible.' : 'Objectif accompli ✓',
+      body: isStopTobacco && todayLog.count === 0
+        ? 'Journée sans cigarette. Garde cette preuve : tu sais maintenant que tu peux le faire aujourd’hui.'
+        : 'Tu as tenu ton engagement aujourd’hui. Cette réussite devient une preuve sur laquelle t’appuyer demain.',
+      accent: LIME,
+    };
+    return {
+      title: isStopTobacco ? 'La journée continue.' : 'Ce n’est pas terminé.',
+      body: isStopTobacco
+        ? 'Une cigarette ne remet pas en cause le chemin parcouru. La prochaine décision compte : la prochaine cigarette évitée est déjà un progrès.'
+        : habit?.mode === 'build' && habit.daily_target != null
+          ? `Il te reste ${Math.max(0, habit.daily_target - todayLog.count).toLocaleString('fr-FR')} ${habit.unit} pour atteindre ton objectif aujourd’hui.`
+          : 'Ton objectif reste accessible. La prochaine décision peut encore te rapprocher de la cible aujourd’hui.',
+      accent: '#FF9F2E',
+    };
+  })();
+
   // ── Rendu ─────────────────────────────────────────────────────────────────
   const card: React.CSSProperties = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20 };
   const label: React.CSSProperties = { color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em', marginBottom: 12 };
@@ -202,16 +236,51 @@ export default function HabitDetail() {
 
       {error && <div style={{ ...card, borderColor: '#5A3A3A', color: '#E9C2C2', fontSize: 13, marginBottom: 14 }}>{error}</div>}
 
-      {/* AUJOURD'HUI */}
+      {/* AUJOURD'HUI — action + coaching NOX */}
       <section style={{ ...card, marginBottom: 14 }}>
         <div style={label}>AUJOURD’HUI</div>
-        <div style={{ fontSize: 34, fontWeight: 1000, letterSpacing: '-.04em', lineHeight: 1 }}>
-          {todayLog ? todayLog.count.toLocaleString('fr-FR') : '—'}
-          <span style={{ fontSize: 15, color: MUTED, fontWeight: 900 }}> {habit.unit}{isStepsHabit(habit) && todayLog ? (isMeasured(todayLog.source) ? ' · MESURÉ' : ' · DÉCLARÉ') : ''}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+          <div style={{
+            width: 78, height: 78, borderRadius: '50%', flexShrink: 0,
+            display: 'grid', placeItems: 'center',
+            border: `7px solid ${todayLog ? (todayOk ? LIME : '#FF9F2E') : SOFT}`,
+            boxShadow: todayOk ? '0 0 24px rgba(200,255,0,.16)' : 'none',
+            color: todayOk ? BG : WHITE, background: todayOk ? LIME : CARD2,
+          }}>
+            {todayOk ? <Check size={34} strokeWidth={3} /> : <span style={{ fontSize: 26, fontWeight: 1000 }}>{todayLog ? todayLog.count : '—'}</span>}
+          </div>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <div style={{ fontSize: 30, fontWeight: 1000, letterSpacing: '-.04em', lineHeight: 1 }}>
+              {todayLog ? todayLog.count.toLocaleString('fr-FR') : '—'}
+              <span style={{ fontSize: 15, color: MUTED, fontWeight: 900 }}> {habit.unit}</span>
+            </div>
+            <div style={{ marginTop: 8, fontSize: 17, color: todayLog ? (todayOk ? LIME : '#FF9F2E') : SEC, fontWeight: 1000 }}>
+              {!todayLog
+                ? 'Pas encore noté aujourd’hui'
+                : isStopTobacco && todayLog.count === 0
+                  ? 'Journée sans cigarette ✓'
+                  : todayOk ? 'Objectif accompli ✓' : isStopTobacco ? 'Ce n’est pas terminé.' : dayLine(todayLog)}
+            </div>
+            {isStepsHabit(habit) && todayLog && (
+              <div style={{ marginTop: 7, color: isMeasured(todayLog.source) ? LIME : SEC, fontSize: 10, fontWeight: 950, letterSpacing: '.07em' }}>
+                {isMeasured(todayLog.source) ? (todayLog.source === 'healthkit' ? 'MESURÉ · Apple Santé' : 'MESURÉ · Health Connect') : 'DÉCLARÉ'}
+              </div>
+            )}
+          </div>
         </div>
-        <div style={{ marginTop: 8, fontSize: 13, color: todayLog && okLog(todayLog) ? LIME : SEC, fontWeight: 800 }}>
-          {!todayLog ? 'Pas encore noté aujourd’hui' : dayLine(todayLog)}
+
+        <div style={{
+          display: 'flex', gap: 13, alignItems: 'flex-start', marginTop: 18, padding: 16,
+          borderRadius: 16, border: `1px solid ${coach.accent}22`,
+          background: todayOk ? 'rgba(200,255,0,.055)' : todayLog ? 'rgba(255,159,46,.055)' : CARD2,
+        }}>
+          <div style={{ width: 38, height: 38, borderRadius: 12, display: 'grid', placeItems: 'center', flexShrink: 0, background: `${coach.accent}14`, color: coach.accent, fontWeight: 1000 }}>N</div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 1000, color: WHITE }}>{coach.title}</div>
+            <div style={{ marginTop: 5, color: SEC, fontSize: 13, lineHeight: 1.55 }}>{coach.body}</div>
+          </div>
         </div>
+
         {usesValueInput(habit) ? (
           <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
             <input type="number" inputMode="numeric" min={0} max={100000} value={valueDraft} placeholder={todayLog ? String(todayLog.count) : 'Valeur du jour'}
@@ -221,12 +290,12 @@ export default function HabitDetail() {
               onClick={() => { void logToday(Number(valueDraft)); setValueDraft(''); }}>Enregistrer</button>
           </div>
         ) : (
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          {!todayLog && habit.mode !== 'build'
-            ? <button style={{ ...pill, flex: 1 }} disabled={busy} onClick={() => logToday(0)}>Aucun{habit.kind === 'tobacco' ? 'e' : ''} aujourd’hui</button>
-            : <button style={pill} disabled={busy || !todayLog || todayLog.count <= 0} onClick={() => todayLog && logToday(todayLog.count - 1)} aria-label="Retirer 1">−1</button>}
-          <button style={{ ...pill, flex: 1 }} disabled={busy} onClick={() => logToday((todayLog?.count ?? 0) + 1)} aria-label="Ajouter 1">+1</button>
-        </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+            {!todayLog && habit.mode !== 'build'
+              ? <button style={{ ...pill, flex: 1 }} disabled={busy} onClick={() => logToday(0)}>Aucun{habit.kind === 'tobacco' ? 'e' : ''} aujourd’hui</button>
+              : <button style={{ ...pill, flex: 1 }} disabled={busy || !todayLog || todayLog.count <= 0} onClick={() => todayLog && logToday(todayLog.count - 1)} aria-label="Retirer 1">−1</button>}
+            <button style={{ ...pill, flex: 1 }} disabled={busy} onClick={() => logToday((todayLog?.count ?? 0) + 1)} aria-label="Ajouter 1">+1</button>
+          </div>
         )}
       </section>
 
@@ -270,6 +339,61 @@ export default function HabitDetail() {
           {habit.daily_target != null && <span style={{ color: MUTED }}>– – cible actuelle</span>}
         </div>
       </section>
+
+      {/* TES PREUVES — les réussites restent visibles, sans streak punitive */}
+      {habit.mode !== 'track' && (
+        <section style={{ ...card, marginBottom: 14 }}>
+          <div style={label}>TES PREUVES</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>
+            <div style={{ padding: 16, borderRadius: 16, background: CARD2, border: `1px solid ${SOFT}` }}>
+              <Trophy size={22} color={LIME} />
+              <div style={{ marginTop: 10, fontSize: 27, fontWeight: 1000 }}>{weekProofs}</div>
+              <div style={{ color: SEC, fontSize: 12, lineHeight: 1.45 }}>
+                {isStopTobacco ? 'journées sans cigarette cette semaine' : 'objectifs accomplis cette semaine'}
+              </div>
+            </div>
+            <div style={{ padding: 16, borderRadius: 16, background: CARD2, border: `1px solid ${SOFT}` }}>
+              <Leaf size={22} color={LIME} />
+              <div style={{ marginTop: 10, fontSize: 27, fontWeight: 1000 }}>{monthProofs}</div>
+              <div style={{ color: SEC, fontSize: 12, lineHeight: 1.45 }}>
+                {isStopTobacco ? 'journées sans cigarette ce mois-ci' : 'objectifs accomplis ce mois-ci'}
+              </div>
+            </div>
+          </div>
+          {(weekProofs > 0 || monthProofs > 0) && (
+            <div style={{ marginTop: 12, color: SEC, fontSize: 12, lineHeight: 1.5 }}>
+              Ces réussites restent acquises. Une journée plus difficile ne les efface pas.
+            </div>
+          )}
+        </section>
+      )}
+
+      {isStopTobacco && (
+        <section style={{ ...card, marginBottom: 14 }}>
+          <div style={label}>{todayOk ? 'POURQUOI C’EST IMPORTANT' : 'CONSEILS NOX'}</div>
+          <div style={{ display: 'grid', gap: 2 }}>
+            {(todayOk ? [
+              [Heart, 'Une meilleure santé', 'Chaque journée sans cigarette va dans la direction que tu as choisie.'],
+              [Zap, 'Plus d’énergie au quotidien', 'Continue à construire une journée à la fois.'],
+              [Smile, 'Plus de liberté', 'Chaque envie traversée sans fumer est une décision gagnée.'],
+            ] : [
+              [Wind, 'Une envie passe toujours', 'Respire profondément pendant une minute et laisse l’envie redescendre.'],
+              [CupSoda, 'Change d’activité', 'Bois un verre d’eau, marche quelques minutes ou occupe tes mains.'],
+              [Users, 'Tu n’as pas à le faire seul', 'Les ressources d’aide restent disponibles plus bas si tu en as besoin.'],
+            ]).map(([TipIcon, title, detail]: any, i) => (
+              <div key={i} style={{ display: 'flex', gap: 13, alignItems: 'center', padding: '13px 0', borderTop: i ? `1px solid ${SOFT}` : 'none' }}>
+                <div style={{ width: 38, height: 38, borderRadius: 12, background: CARD2, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                  <TipIcon size={19} color={todayOk ? LIME : '#FFB13B'} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 950 }}>{title}</div>
+                  <div style={{ color: SEC, fontSize: 12, marginTop: 3, lineHeight: 1.45 }}>{detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* PROGRESSION */}
       <section style={{ ...card, marginBottom: 14 }}>
