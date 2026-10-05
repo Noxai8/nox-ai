@@ -602,9 +602,73 @@ export default function Home() {
           </div>
         </header>
 
-        {/* PAS DU JOUR — visibles immédiatement ; aucune valeur, cible ou source inventée */}
+        {/* PAS DU JOUR — immédiatement au-dessus de « Ta journée » */}
         {(steps.habit || movementFocus) && (
-          <section className="nox-home-section">
+          <section className="nox-home-section nox-steps-section">
+            <SectionHeader title="Mes objectifs" action="Gérer ›" onAction={() => navigate('/habits')} />
+            <AppCard style={{ padding: 20 }}>
+              <div className="nox-steps-hero">
+                <div className="nox-steps-ring" style={{ ['--steps-progress' as any]: `${steps.progress * 360}deg` }}>
+                  <div className="nox-steps-ring-inner">
+                    <PersonStanding size={20} color="#C8FF00" />
+                    <div className="nox-steps-count">{steps.count == null ? '—' : steps.count.toLocaleString('fr-FR')}</div>
+                    <div className="nox-steps-unit">pas</div>
+                    {steps.target != null && <div className="nox-steps-target-small">sur {steps.target.toLocaleString('fr-FR')}</div>}
+                  </div>
+                </div>
+
+                <div className="nox-steps-main">
+                  <div className="nox-steps-kicker">BOUGER AUJOURD’HUI</div>
+                  <div className="nox-steps-title">Tes pas du jour</div>
+                  {steps.count != null ? (
+                    <>
+                      <div className="nox-steps-value-line">
+                        <strong>{steps.count.toLocaleString('fr-FR')}</strong>
+                        {steps.target != null && <> / {steps.target.toLocaleString('fr-FR')}</>} pas
+                      </div>
+                      {steps.target != null && (
+                        <div className="nox-steps-progress-row">
+                          <div className="nox-steps-progress-track">
+                            <div className="nox-steps-progress-fill" style={{ width: `${Math.round(steps.progress * 100)}%` }} />
+                          </div>
+                          <span>{steps.percent} %</span>
+                        </div>
+                      )}
+                      {steps.sourceLabel && (
+                        <div className={`nox-steps-source ${steps.measured ? 'nox-steps-source--measured' : ''}`}>{steps.sourceLabel}</div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="nox-steps-empty">Aucun relevé aujourd’hui</div>
+                      {!steps.habit ? (
+                        <button className="nox-steps-link" onClick={() => navigate('/habits')}>Configurer mon objectif de pas →</button>
+                      ) : (
+                        <>
+                          <button className="nox-steps-link" onClick={() => setStepsHelp(v => !v)}>Connecter le suivi des pas →</button>
+                          {stepsHelp && (
+                            <div className="nox-steps-help">
+                              La mesure automatique arrivera avec l’app mobile via Apple Santé ou Health Connect.
+                              <button onClick={() => navigate(`/habits/${steps.habit!.id}`)}>Saisir manuellement →</button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div className="nox-steps-goal">
+                  <div className="nox-steps-goal-label"><PersonStanding size={17} /> OBJECTIF</div>
+                  <div className="nox-steps-goal-value">{steps.target != null ? `${steps.target.toLocaleString('fr-FR')} pas / jour` : 'À configurer'}</div>
+                  <div className="nox-steps-goal-copy">La marche et tes activités comptent pour remplir ton objectif de mouvement.</div>
+                </div>
+              </div>
+            </AppCard>
+          </section>
+        )}
+
+        <section className="nox-home-section">
             <AppCard style={{ padding: 20 }}>
               <div className="nox-steps-card">
                 <div className="nox-steps-ring" style={{ ['--steps-progress' as any]: `${steps.progress * 360}deg` }}>
@@ -897,8 +961,7 @@ export default function Home() {
 
         {habits.some(h => !isStepsHabit(h)) && (
           <section className="nox-home-section">
-            <SectionHeader title="Mes objectifs" action="Gérer ›" onAction={() => navigate('/habits')} />
-
+            <SectionHeader title="Mes objectifs personnels" action="Gérer ›" onAction={() => navigate('/habits')} />
             <div style={{ display: 'grid', gap: 10 }}>
               {habits.filter(h => !isStepsHabit(h)).map(h => {
                 const def = HABITS[h.kind];
@@ -1091,7 +1154,40 @@ export default function Home() {
           .nox-session-button { font-size:0; width:42px; height:42px; border-radius:50%; padding:0; }
           .nox-session-button::after { content:'›'; font-size:24px; }
         }
-      `}</style>
+      `}
+        .nox-steps-hero { display:grid; grid-template-columns:180px minmax(0,1fr) 250px; align-items:center; gap:34px; }
+        .nox-steps-ring { --steps-progress:0deg; width:164px; height:164px; border-radius:50%; display:grid; place-items:center; background:conic-gradient(#C8FF00 var(--steps-progress),#2A2E2C 0); position:relative; }
+        .nox-steps-ring::after { content:''; position:absolute; inset:11px; border-radius:50%; background:#111513; }
+        .nox-steps-ring-inner { position:relative; z-index:1; text-align:center; }
+        .nox-steps-count { font-size:32px; line-height:1; font-weight:1000; letter-spacing:-.05em; margin-top:7px; }
+        .nox-steps-unit { font-size:11px; font-weight:900; margin-top:5px; }
+        .nox-steps-target-small { color:#747A76; font-size:10px; font-weight:800; margin-top:5px; }
+        .nox-steps-kicker { color:#8E938F; font-size:10px; font-weight:950; letter-spacing:.08em; margin-bottom:8px; }
+        .nox-steps-title { font-size:24px; font-weight:1000; letter-spacing:-.035em; }
+        .nox-steps-value-line { color:#A5AAA6; font-size:18px; margin-top:8px; }
+        .nox-steps-value-line strong { color:#FFFFFF; font-size:22px; }
+        .nox-steps-progress-row { display:flex; align-items:center; gap:12px; margin-top:14px; }
+        .nox-steps-progress-track { flex:1; height:8px; border-radius:999px; overflow:hidden; background:#343835; }
+        .nox-steps-progress-fill { height:100%; border-radius:999px; background:#C8FF00; }
+        .nox-steps-progress-row > span { min-width:42px; color:#A5AAA6; font-size:12px; font-weight:950; }
+        .nox-steps-source { display:inline-flex; margin-top:13px; padding:4px 8px; border:1px solid #343835; border-radius:999px; color:#A5AAA6; font-size:9px; font-weight:950; letter-spacing:.07em; }
+        .nox-steps-source--measured { border-color:rgba(200,255,0,.35); color:#C8FF00; background:rgba(200,255,0,.08); }
+        .nox-steps-empty { color:#A5AAA6; font-size:14px; margin-top:9px; }
+        .nox-steps-link { margin-top:12px; padding:0; border:0; background:transparent; color:#C8FF00; font-size:12px; font-weight:950; cursor:pointer; }
+        .nox-steps-help { margin-top:10px; color:#8E938F; font-size:11px; line-height:1.5; }
+        .nox-steps-help button { display:block; margin-top:6px; padding:0; border:0; background:transparent; color:#A5AAA6; font-size:11px; font-weight:900; cursor:pointer; text-decoration:underline; }
+        .nox-steps-goal { align-self:stretch; padding:18px; border:1px solid #343835; border-radius:18px; background:#141715; display:flex; flex-direction:column; justify-content:center; }
+        .nox-steps-goal-label { display:flex; align-items:center; gap:7px; color:#8E938F; font-size:10px; font-weight:950; letter-spacing:.08em; }
+        .nox-steps-goal-value { margin-top:9px; font-size:16px; font-weight:1000; }
+        .nox-steps-goal-copy { margin-top:12px; color:#A5AAA6; font-size:12px; line-height:1.5; }
+        @media (max-width:720px) {
+          .nox-steps-hero { grid-template-columns:1fr; gap:20px; }
+          .nox-steps-ring { width:150px; height:150px; margin:0 auto; }
+          .nox-steps-main { text-align:center; }
+          .nox-steps-progress-row { max-width:360px; margin-left:auto; margin-right:auto; margin-top:14px; }
+        }
+
+</style>
     </div>
   );
 
