@@ -656,67 +656,6 @@ export default function Home() {
         )}
 
         <section className="nox-home-section">
-            <AppCard style={{ padding: 20 }}>
-              <div className="nox-steps-card">
-                <div className="nox-steps-ring" style={{ ['--steps-progress' as any]: `${steps.progress * 360}deg` }}>
-                  <div className="nox-steps-ring-inner">
-                    <PersonStanding size={20} color="#C8FF00" />
-                    <div style={{ fontSize: 30, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.05em', marginTop: 7 }}>
-                      {steps.count == null ? '—' : steps.count.toLocaleString('fr-FR')}
-                    </div>
-                    <div style={{ fontSize: 11, fontWeight: 900, marginTop: 5 }}>pas</div>
-                  </div>
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: '#8E938F', fontSize: 10, fontWeight: 950, letterSpacing: '.08em', marginBottom: 7 }}>BOUGER AUJOURD’HUI</div>
-                  <div style={{ fontSize: 21, fontWeight: 1000, letterSpacing: '-.03em', color: steps.done ? '#C8FF00' : '#FFFFFF' }}>
-                    {!steps.habit ? 'Aucun objectif de pas'
-                      : steps.count == null ? 'Suivi des pas non connecté'
-                      : steps.done ? 'Objectif atteint ✓'
-                      : steps.target != null ? `${steps.percent} % de ton objectif`
-                      : `${steps.count.toLocaleString('fr-FR')} pas aujourd’hui`}
-                  </div>
-                  <div style={{ color: '#A5AAA6', fontSize: 13, lineHeight: 1.5, marginTop: 7 }}>
-                    {steps.target != null ? `Objectif : ${steps.target.toLocaleString('fr-FR')} pas` : steps.habit ? 'Aucune cible définie.' : 'Fixe un objectif quotidien pour suivre tes pas.'}
-                  </div>
-
-                  {steps.sourceLabel && (
-                    <div style={{ marginTop: 10, display: 'inline-flex', padding: '4px 8px', borderRadius: 999, fontSize: 9, fontWeight: 950, letterSpacing: '.07em',
-                      border: `1px solid ${steps.measured ? 'rgba(200,255,0,.35)' : '#343835'}`, color: steps.measured ? '#C8FF00' : '#A5AAA6' }}>
-                      {steps.sourceLabel}
-                    </div>
-                  )}
-
-                  {!steps.habit ? (
-                    <button onClick={() => navigate('/habits')}
-                      style={{ marginTop: 12, padding: '10px 14px', borderRadius: 12, border: '1px solid #343835', background: '#191C1A', color: '#FFFFFF', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>
-                      Configurer mon objectif de pas →
-                    </button>
-                  ) : steps.count == null && (
-                    <>
-                      <button onClick={() => setStepsHelp(v => !v)}
-                        style={{ marginTop: 12, padding: '10px 14px', borderRadius: 12, border: '1px solid #343835', background: '#191C1A', color: '#FFFFFF', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>
-                        Connecter le suivi des pas
-                      </button>
-                      {stepsHelp && (
-                        <div style={{ marginTop: 10, color: '#A5AAA6', fontSize: 12, lineHeight: 1.5 }}>
-                          La mesure automatique (Apple Santé, Health Connect) arrivera avec l’app mobile : un site web n’a pas accès au podomètre du téléphone.
-                          <button onClick={() => navigate(`/habits/${steps.habit!.id}`)}
-                            style={{ display: 'block', marginTop: 6, padding: 0, border: 0, background: 'transparent', color: '#C8FF00', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>
-                            En attendant, saisir mes pas manuellement →
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            </AppCard>
-          </section>
-        )}
-
-        <section className="nox-home-section">
           {(() => {
             const summary = summarizeDay(dayItems);
             const left = dayItems.filter(i => !i.done).length;
