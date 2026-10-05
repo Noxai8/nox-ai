@@ -10,6 +10,7 @@ import { todayLocalDate } from '../lib/localDate';
 import NoxCompanion from '../components/NoxCompanion';
 import { HABITS, HABIT_COLUMNS, habitName, isStepsHabit, isTargetMet, usesValueInput, type UserHabit } from '../lib/nox/habits';
 import { buildDayPlan, summarizeDay, type DayPlanItem } from '../lib/nox/dayPlan';
+import { stepsView } from '../lib/nox/steps';
 import { dayState, noxiLine } from '../lib/nox/noxiVoice';
 import { isMissionDone, missionMinutes, suggestBlock, type DailyMission, type FocusSession } from '../lib/nox/focus';
 
@@ -434,16 +435,9 @@ export default function Home() {
   const caloriesRemaining = caloriesTarget > 0 ? Math.max(0, caloriesTarget - todayKcal) : null;
 
   // Pas : aucune valeur inventée. On affiche seulement un relevé réellement présent dans habit_logs.
-  const stepsHabit = habits.find(isStepsHabit);
-  const todayStepsLog = stepsHabit
-    ? habitLogs.find(l => l.habit_id === stepsHabit.id && l.date === todayLocalDate())
-    : null;
-  const stepsTarget = stepsHabit?.daily_target != null ? Number(stepsHabit.daily_target) : null;
-  const todaySteps = todayStepsLog ? Number(todayStepsLog.count) : null;
-  const stepsProgress = todaySteps != null && stepsTarget != null && stepsTarget > 0
-    ? Math.min(100, Math.round((todaySteps / stepsTarget) * 100))
-    : 0;
-  const stepsMeasured = todayStepsLog?.source === 'healthkit' || todayStepsLog?.source === 'health_connect';
+  // Pas du jour : module unique, partagé avec la ligne « Bouger » de « Ta journée »
+  const steps = stepsView(habits, habitLogs.filter(l => l.date === todayLocalDate()));
+  const [stepsHelp, setStepsHelp] = useState(false);
   const sessions = program?.program_json?.sessions || [];
   const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
   const todaySession = sessions.find((session: any) =>
@@ -607,6 +601,69 @@ export default function Home() {
             <span style={{ color: '#C9CDCA', fontSize: 14, lineHeight: 1.5 }}>{noxiMessage}</span>
           </div>
         </header>
+
+        {/* PAS DU JOUR — visibles immédiatement ; aucune valeur, cible ou source inventée */}
+        {(steps.habit || movementFocus) && (
+          <section className="nox-home-section">
+            <AppCard style={{ padding: 20 }}>
+              <div className="nox-steps-card">
+                <div className="nox-steps-ring" style={{ ['--steps-progress' as any]: `${steps.progress * 360}deg` }}>
+                  <div className="nox-steps-ring-inner">
+                    <PersonStanding size={20} color="#C8FF00" />
+                    <div style={{ fontSize: 30, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.05em', marginTop: 7 }}>
+                      {steps.count == null ? '—' : steps.count.toLocaleString('fr-FR')}
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 900, marginTop: 5 }}>pas</div>
+                  </div>
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: '#8E938F', fontSize: 10, fontWeight: 950, letterSpacing: '.08em', marginBottom: 7 }}>BOUGER AUJOURD’HUI</div>
+                  <div style={{ fontSize: 21, fontWeight: 1000, letterSpacing: '-.03em', color: steps.done ? '#C8FF00' : '#FFFFFF' }}>
+                    {!steps.habit ? 'Aucun objectif de pas'
+                      : steps.count == null ? 'Suivi des pas non connecté'
+                      : steps.done ? 'Objectif atteint ✓'
+                      : steps.target != null ? `${steps.percent} % de ton objectif`
+                      : `${steps.count.toLocaleString('fr-FR')} pas aujourd’hui`}
+                  </div>
+                  <div style={{ color: '#A5AAA6', fontSize: 13, lineHeight: 1.5, marginTop: 7 }}>
+                    {steps.target != null ? `Objectif : ${steps.target.toLocaleString('fr-FR')} pas` : steps.habit ? 'Aucune cible définie.' : 'Fixe un objectif quotidien pour suivre tes pas.'}
+                  </div>
+
+                  {steps.sourceLabel && (
+                    <div style={{ marginTop: 10, display: 'inline-flex', padding: '4px 8px', borderRadius: 999, fontSize: 9, fontWeight: 950, letterSpacing: '.07em',
+                      border: `1px solid ${steps.measured ? 'rgba(200,255,0,.35)' : '#343835'}`, color: steps.measured ? '#C8FF00' : '#A5AAA6' }}>
+                      {steps.sourceLabel}
+                    </div>
+                  )}
+
+                  {!steps.habit ? (
+                    <button onClick={() => navigate('/habits')}
+                      style={{ marginTop: 12, padding: '10px 14px', borderRadius: 12, border: '1px solid #343835', background: '#191C1A', color: '#FFFFFF', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>
+                      Configurer mon objectif de pas →
+                    </button>
+                  ) : steps.count == null && (
+                    <>
+                      <button onClick={() => setStepsHelp(v => !v)}
+                        style={{ marginTop: 12, padding: '10px 14px', borderRadius: 12, border: '1px solid #343835', background: '#191C1A', color: '#FFFFFF', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>
+                        Connecter le suivi des pas
+                      </button>
+                      {stepsHelp && (
+                        <div style={{ marginTop: 10, color: '#A5AAA6', fontSize: 12, lineHeight: 1.5 }}>
+                          La mesure automatique (Apple Santé, Health Connect) arrivera avec l’app mobile : un site web n’a pas accès au podomètre du téléphone.
+                          <button onClick={() => navigate(`/habits/${steps.habit!.id}`)}
+                            style={{ display: 'block', marginTop: 6, padding: 0, border: 0, background: 'transparent', color: '#C8FF00', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>
+                            En attendant, saisir mes pas manuellement →
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </AppCard>
+          </section>
+        )}
 
         <section className="nox-home-section">
           {(() => {
@@ -838,66 +895,9 @@ export default function Home() {
           );
         })()}
 
-        {(habits.length > 0 || movementFocus) && (
+        {habits.some(h => !isStepsHabit(h)) && (
           <section className="nox-home-section">
             <SectionHeader title="Mes objectifs" action="Gérer ›" onAction={() => navigate('/habits')} />
-
-            <AppCard style={{ padding: 20, marginBottom: 10 }}>
-              <div className="nox-steps-card">
-                <div className="nox-steps-ring" style={{ ['--steps-progress' as any]: `${stepsProgress * 3.6}deg` }}>
-                  <div className="nox-steps-ring-inner">
-                    <PersonStanding size={20} color="#C8FF00" />
-                    <div style={{ fontSize: 30, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.05em', marginTop: 7 }}>
-                      {todaySteps == null ? '—' : todaySteps.toLocaleString('fr-FR')}
-                    </div>
-                    <div style={{ fontSize: 11, fontWeight: 900, marginTop: 5 }}>pas</div>
-                  </div>
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: '#8E938F', fontSize: 10, fontWeight: 950, letterSpacing: '.08em', marginBottom: 7 }}>
-                    BOUGER AUJOURD'HUI
-                  </div>
-                  <div style={{ fontSize: 21, fontWeight: 1000, letterSpacing: '-.03em' }}>
-                    {todaySteps == null
-                      ? 'Suivi des pas non connecté'
-                      : stepsTarget != null && stepsTarget > 0 && todaySteps >= stepsTarget
-                        ? 'Objectif atteint ✓'
-                        : stepsTarget != null && stepsTarget > 0
-                          ? `${stepsProgress}% de ton objectif`
-                          : `${todaySteps.toLocaleString('fr-FR')} pas aujourd'hui`}
-                  </div>
-                  <div style={{ color: '#A5AAA6', fontSize: 13, lineHeight: 1.5, marginTop: 7 }}>
-                    {stepsTarget != null && stepsTarget > 0
-                      ? `Objectif : ${stepsTarget.toLocaleString('fr-FR')} pas par jour`
-                      : 'Objectif de pas à configurer.'}
-                  </div>
-                  {!stepsHabit ? (
-                    <button onClick={() => navigate('/habits')}
-                      style={{ marginTop: 12, padding: '10px 14px', borderRadius: 12, border: '1px solid #343835', background: '#191C1A', color: '#FFFFFF', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>
-                      Configurer mon objectif de pas →
-                    </button>
-                  ) : todaySteps != null ? (
-                    <div style={{
-                      marginTop: 10, display: 'inline-flex', padding: '4px 8px', borderRadius: 999,
-                      border: `1px solid ${stepsMeasured ? 'rgba(200,255,0,.35)' : '#343835'}`,
-                      color: stepsMeasured ? '#C8FF00' : '#A5AAA6',
-                      fontSize: 9, fontWeight: 950, letterSpacing: '.07em'
-                    }}>
-                      {stepsMeasured ? 'MESURÉ' : 'DÉCLARÉ'}
-                    </div>
-                  ) : (
-                    <div style={{ marginTop: 10, color: '#747A76', fontSize: 11, lineHeight: 1.45 }}>
-                      Aucun relevé aujourd’hui. La mesure automatique arrivera avec l’app mobile (Apple Santé, Health Connect).
-                      <button onClick={() => navigate(`/habits/${stepsHabit.id}`)}
-                        style={{ display: 'block', marginTop: 6, padding: 0, border: 0, background: 'transparent', color: '#A5AAA6', fontSize: 11, fontWeight: 900, cursor: 'pointer', textDecoration: 'underline' }}>
-                        Saisir manuellement
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </AppCard>
 
             <div style={{ display: 'grid', gap: 10 }}>
               {habits.filter(h => !isStepsHabit(h)).map(h => {

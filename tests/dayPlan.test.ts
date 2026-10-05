@@ -29,7 +29,7 @@ t('Deux objectifs personnels distincts affichés', !!item(p0, 'r') && !!item(p0,
 // Pas sous « Bouger », DÉCLARÉ, aucune donnée fictive
 const mv0 = item(p0, 'move');
 t('Pas affichés sous « Bouger »', mv0.label === 'Bouger' && mv0.route === '/habits/s');
-t('Sans saisie : aucun chiffre inventé (pas de « 0 »)', !/\b0 \//.test(mv0.detail) && mv0.detail.startsWith('À saisir'));
+t('Sans saisie : aucun chiffre inventé (pas de « 0 »)', !/\b0 \//.test(mv0.detail) && mv0.detail === 'Connecter le suivi des pas');
 t('Sans saisie : pas marqué DÉCLARÉ', !mv0.declared);
 t('Les pas ne sont pas dupliqués dans les habitudes', !item(p0, 's'));
 const mv1 = item(plan({ todayLogs: [{ habit_id: 's', count: 6999 }] }), 'move');
@@ -92,7 +92,7 @@ t('Progression = min(pas / cible, 1)', Math.abs(item(pc, 'move').progress - 0.64
 t('Atteint seulement à ≥ cible', !item(pc, 'move').done && item(plan({ habits: [customSteps], todayLogs: [{ habit_id: 'cs', count: 10000 }] }), 'move').done);
 const noTarget = H({ id: 'nt', kind: 'steps', mode: 'build', unit: 'pas', daily_target: null });
 const pn = item(plan({ habits: [noTarget] }), 'move');
-t('Sans cible configurée : aucune cible inventée, pas de barre', pn.detail === 'À saisir' && pn.progress === undefined && !pn.done);
+t('Sans cible configurée : aucune cible inventée, pas de barre', pn.detail === 'Connecter le suivi des pas' && pn.progress === undefined && !pn.done);
 t('Sans relevé : jamais « 0 pas »', !/(^|\s)0 pas/.test(item(plan({ habits: [customSteps] }), 'move').detail));
 t('Clôture toujours présente même journée incomplète', item(plan({ habits: [customSteps] }), 'closure')?.closure === true);
 

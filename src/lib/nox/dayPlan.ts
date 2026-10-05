@@ -3,6 +3,7 @@
 // Chaque ligne n'apparaît que si elle s'applique à l'utilisateur (axes, habitudes, mission).
 
 import { habitName, isMeasured, isStepsHabit, isTargetMet, targetLine, type UserHabit } from './habits';
+import { stepsLine, stepsView } from './steps';
 
 export type DayPlanItem = {
   key: string;
@@ -64,24 +65,15 @@ export function buildDayPlan(i: DayPlanInput): DayPlanItem[] {
   // Bouger : les pas déclarés s'y affichent s'ils existent. Jour de récupération : rien n'est demandé.
   const restDay = i.priorityType === 'recovery';
   if (steps && !restDay) {
-    const log = logOf(steps);
-    const target = steps.daily_target;
-    const hasTarget = target != null && Number.isFinite(Number(target)) && Number(target) > 0;
-
+    // Même donnée que la carte des pas d'Aujourd'hui (module steps.ts)
+    const v = stepsView([steps], i.todayLogs);
     items.push({
       key: 'move', label: 'Bouger',
-      // Jamais de valeur ni de cible inventée : sans relevé, « À saisir » ; sans cible, seulement la valeur réelle.
-      detail: log
-        ? hasTarget
-          ? `${fr(log.count)} / ${fr(Number(target))} pas`
-          : `${fr(log.count)} pas`
-        : hasTarget
-          ? `À saisir · objectif ${fr(Number(target))} pas`
-          : 'À saisir',
-      progress: log && hasTarget ? Math.min(1, log.count / Number(target)) : undefined,
-      declared: !!log && !isMeasured(log.source),
-      measured: !!log && isMeasured(log.source),
-      done: !!log && hasTarget && isTargetMet(log.count, Number(target), 'build') === true,
+      detail: stepsLine(v),
+      progress: v.count != null && v.target != null ? v.progress : undefined,
+      declared: v.count != null && !v.measured,
+      measured: v.measured,
+      done: v.done,
       route: `/habits/${steps.id}`,
     });
   } else if (has('movement') && !restDay) {
