@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { todayLocalDate } from '../lib/localDate';
 import { BottomNav } from './Home';
-import { HABITS, HABIT_COLUMNS, MODE_LABELS, habitName, isMeasured, isTargetMet, targetLine, usesValueInput, type HabitMode, type UserHabit } from '../lib/nox/habits';
+import { HABITS, HABIT_COLUMNS, MODE_LABELS, habitName, isMeasured, isStepsHabit, isTargetMet, targetLine, usesValueInput, type HabitMode, type UserHabit } from '../lib/nox/habits';
 
 const BG = '#090B0A';
 const CARD = '#232624';
@@ -207,7 +207,7 @@ export default function HabitDetail() {
         <div style={label}>AUJOURD’HUI</div>
         <div style={{ fontSize: 34, fontWeight: 1000, letterSpacing: '-.04em', lineHeight: 1 }}>
           {todayLog ? todayLog.count.toLocaleString('fr-FR') : '—'}
-          <span style={{ fontSize: 15, color: MUTED, fontWeight: 900 }}> {habit.unit}{habit.kind === 'steps' && todayLog ? (isMeasured(todayLog.source) ? ' · MESURÉ' : ' · DÉCLARÉ') : ''}</span>
+          <span style={{ fontSize: 15, color: MUTED, fontWeight: 900 }}> {habit.unit}{isStepsHabit(habit) && todayLog ? (isMeasured(todayLog.source) ? ' · MESURÉ' : ' · DÉCLARÉ') : ''}</span>
         </div>
         <div style={{ marginTop: 8, fontSize: 13, color: todayLog && okLog(todayLog) ? LIME : SEC, fontWeight: 800 }}>
           {!todayLog ? 'Pas encore noté aujourd’hui' : dayLine(todayLog)}

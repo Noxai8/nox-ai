@@ -118,6 +118,10 @@ export function habitName(h: Pick<UserHabit, 'kind' | 'label'>): string {
 /** Les pas restent déclarés tant que l'app n'a pas de source mesurée (Apple Santé / Health Connect) */
 export const isDeclaredSteps = (h: Pick<UserHabit, 'kind'>) => h.kind === 'steps';
 
+/** Objectif de pas : type « steps », ou objectif personnel créé avec l'unité « pas » (même donnée, une seule représentation) */
+export const isStepsHabit = (h: Pick<UserHabit, 'kind' | 'unit'>) =>
+  h.kind === 'steps' || (h.kind === 'custom' && String(h.unit ?? '').trim().toLowerCase() === 'pas');
+
 /** Saisie directe d'une valeur pour les objectifs quantitatifs (pas, minutes, pages…) plutôt que +1 / −1 */
 export const usesValueInput = (h: Pick<UserHabit, 'kind' | 'mode'>) =>
   h.kind === 'steps' || h.kind === 'custom' || h.mode === 'build';

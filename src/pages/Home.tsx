@@ -8,7 +8,7 @@ import { useAuth } from '../lib/AuthContext';
 import { generateDailyPriority, type DailyPriority } from '../lib/nox/priorityEngine';
 import { todayLocalDate } from '../lib/localDate';
 import NoxCompanion from '../components/NoxCompanion';
-import { HABITS, HABIT_COLUMNS, habitName, isTargetMet, usesValueInput, type UserHabit } from '../lib/nox/habits';
+import { HABITS, HABIT_COLUMNS, habitName, isStepsHabit, isTargetMet, usesValueInput, type UserHabit } from '../lib/nox/habits';
 import { buildDayPlan, summarizeDay, type DayPlanItem } from '../lib/nox/dayPlan';
 import { dayState, noxiLine } from '../lib/nox/noxiVoice';
 import { isMissionDone, missionMinutes, suggestBlock, type DailyMission, type FocusSession } from '../lib/nox/focus';
@@ -434,7 +434,7 @@ export default function Home() {
   const caloriesRemaining = caloriesTarget > 0 ? Math.max(0, caloriesTarget - todayKcal) : null;
 
   // Pas : aucune valeur inventée. On affiche seulement un relevé réellement présent dans habit_logs.
-  const stepsHabit = habits.find(h => h.kind === 'steps');
+  const stepsHabit = habits.find(isStepsHabit);
   const todayStepsLog = stepsHabit
     ? habitLogs.find(l => l.habit_id === stepsHabit.id && l.date === todayLocalDate())
     : null;
@@ -609,25 +609,50 @@ export default function Home() {
         </header>
 
         <section className="nox-home-section">
-          <SectionHeader title="Ta journée" action={summarizeDay(dayItems).complete ? 'Complète ✓' : `${dayDone}/${dayItems.length}`} />
-          <AppCard style={{ padding: 18 }}>
-            <div style={{ height: 6, borderRadius: 999, background: '#343835', overflow: 'hidden', marginBottom: 14 }}>
-              <div style={{ width: `${(dayDone / Math.max(1, dayItems.length)) * 100}%`, height: '100%', borderRadius: 999, background: '#C8FF00', transition: 'width .5s ease' }} />
-            </div>
-            <div style={{ display: 'grid' }}>
-              {dayItems.map((item, i) => (
-                <button key={item.key} onClick={item.go}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 2px', border: 0, borderTop: i ? '1px solid #343835' : 'none', background: 'transparent', color: '#FFFFFF', cursor: 'pointer', textAlign: 'left' }}>
-                  {item.done ? <CircleCheck size={20} color="#C8FF00" /> : <Circle size={20} color="#747A76" />}
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 850, color: item.done ? '#A5AAA6' : '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
-                  {item.measured && <span style={{ padding: '2px 6px', borderRadius: 6, background: 'rgba(200,255,0,.10)', border: '1px solid rgba(200,255,0,.35)', color: '#C8FF00', fontSize: 9, fontWeight: 900, letterSpacing: '.06em', flexShrink: 0 }}>MESURÉ</span>}
-                  {item.declared && <span style={{ padding: '2px 6px', borderRadius: 6, background: '#191C1A', border: '1px solid #343835', color: '#A5AAA6', fontSize: 9, fontWeight: 900, letterSpacing: '.06em', flexShrink: 0 }}>DÉCLARÉ</span>}
-                  {item.detail && <span style={{ color: '#747A76', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0 }}>{item.detail}</span>}
-                  {!item.done && <span style={{ color: '#747A76', fontSize: 16 }}>›</span>}
-                </button>
-              ))}
-            </div>
-          </AppCard>
+          {(() => {
+            const summary = summarizeDay(dayItems);
+            const left = dayItems.filter(i => !i.done).length;
+            return (
+              <>
+                <SectionHeader title="Ta journée" action={summary.complete ? 'Complète ✓' : `${dayDone}/${dayItems.length}`} />
+                <AppCard style={{ padding: 18 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+                    <span style={{ fontSize: 15, fontWeight: 950, color: left ? '#FFFFFF' : '#C8FF00' }}>
+                      {left === 0 ? 'Tout est fait pour aujourd’hui' : `Il reste ${left} engagement${left > 1 ? 's' : ''}`}
+                    </span>
+                    <span style={{ fontSize: 12, color: '#747A76', fontWeight: 800 }}>{dayDone} fait{dayDone > 1 ? 's' : ''}</span>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 999, background: '#343835', overflow: 'hidden', marginBottom: 8 }}>
+                    <div style={{ width: `${(dayDone / Math.max(1, dayItems.length)) * 100}%`, height: '100%', borderRadius: 999, background: '#C8FF00', transition: 'width .5s ease' }} />
+                  </div>
+                  <div style={{ display: 'grid' }}>
+                    {dayItems.map((item, i) => (
+                      <button key={item.key} onClick={item.go}
+                        style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '13px 2px', border: 0, borderTop: i ? '1px solid #343835' : 'none', background: 'transparent', color: '#FFFFFF', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                        <span style={{ marginTop: 1, flexShrink: 0 }}>
+                          {item.done ? <CircleCheck size={20} color="#C8FF00" /> : <Circle size={20} color="#747A76" />}
+                        </span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 14, fontWeight: 850, color: item.done ? '#A5AAA6' : '#FFFFFF' }}>{item.label}</span>
+                            {item.measured && <span style={{ padding: '2px 6px', borderRadius: 6, background: 'rgba(200,255,0,.10)', border: '1px solid rgba(200,255,0,.35)', color: '#C8FF00', fontSize: 9, fontWeight: 900, letterSpacing: '.06em' }}>MESURÉ</span>}
+                            {item.declared && <span style={{ padding: '2px 6px', borderRadius: 6, background: '#191C1A', border: '1px solid #343835', color: '#A5AAA6', fontSize: 9, fontWeight: 900, letterSpacing: '.06em' }}>DÉCLARÉ</span>}
+                          </span>
+                          {item.detail && <span style={{ display: 'block', marginTop: 4, color: '#8E938F', fontSize: 12, fontWeight: 750 }}>{item.detail}</span>}
+                          {item.progress !== undefined && (
+                            <span style={{ display: 'block', height: 4, borderRadius: 999, background: '#343835', overflow: 'hidden', marginTop: 8 }}>
+                              <span style={{ display: 'block', width: `${Math.round(item.progress * 100)}%`, height: '100%', borderRadius: 999, background: item.done ? '#C8FF00' : '#A5AAA6' }} />
+                            </span>
+                          )}
+                        </span>
+                        {!item.done && <span style={{ color: '#747A76', fontSize: 16, marginTop: 1 }}>›</span>}
+                      </button>
+                    ))}
+                  </div>
+                </AppCard>
+              </>
+            );
+          })()}
         </section>
 
         <section className="nox-home-section">
@@ -813,7 +838,7 @@ export default function Home() {
           );
         })()}
 
-        {habits.length > 0 && (
+        {(habits.length > 0 || movementFocus) && (
           <section className="nox-home-section">
             <SectionHeader title="Mes objectifs" action="Gérer ›" onAction={() => navigate('/habits')} />
 
@@ -847,7 +872,12 @@ export default function Home() {
                       ? `Objectif : ${stepsTarget.toLocaleString('fr-FR')} pas par jour`
                       : 'Objectif de pas à configurer.'}
                   </div>
-                  {todaySteps != null ? (
+                  {!stepsHabit ? (
+                    <button onClick={() => navigate('/habits')}
+                      style={{ marginTop: 12, padding: '10px 14px', borderRadius: 12, border: '1px solid #343835', background: '#191C1A', color: '#FFFFFF', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>
+                      Configurer mon objectif de pas →
+                    </button>
+                  ) : todaySteps != null ? (
                     <div style={{
                       marginTop: 10, display: 'inline-flex', padding: '4px 8px', borderRadius: 999,
                       border: `1px solid ${stepsMeasured ? 'rgba(200,255,0,.35)' : '#343835'}`,
@@ -858,7 +888,11 @@ export default function Home() {
                     </div>
                   ) : (
                     <div style={{ marginTop: 10, color: '#747A76', fontSize: 11, lineHeight: 1.45 }}>
-                      En attente d'une mesure Apple Health / Health Connect.
+                      Aucun relevé aujourd’hui. La mesure automatique arrivera avec l’app mobile (Apple Santé, Health Connect).
+                      <button onClick={() => navigate(`/habits/${stepsHabit.id}`)}
+                        style={{ display: 'block', marginTop: 6, padding: 0, border: 0, background: 'transparent', color: '#A5AAA6', fontSize: 11, fontWeight: 900, cursor: 'pointer', textDecoration: 'underline' }}>
+                        Saisir manuellement
+                      </button>
                     </div>
                   )}
                 </div>
@@ -866,7 +900,7 @@ export default function Home() {
             </AppCard>
 
             <div style={{ display: 'grid', gap: 10 }}>
-              {habits.filter(h => h.kind !== 'steps').map(h => {
+              {habits.filter(h => !isStepsHabit(h)).map(h => {
                 const def = HABITS[h.kind];
                 const Icon = def.icon;
                 const today = todayLocalDate();
@@ -915,7 +949,7 @@ export default function Home() {
                       {valueMode ? (
                         <div style={{ display: 'flex', gap: 8, marginTop: 14 }} onClick={stop}>
                           <input type="number" inputMode="numeric" min={0} max={100000} value={draftValue}
-                            placeholder={todayLog ? String(todayLog.count) : h.kind === 'steps' ? 'Nombre de pas' : `Valeur du jour (${h.unit})`}
+                            placeholder={todayLog ? String(todayLog.count) : `Valeur du jour (${h.unit})`}
                             onChange={e => setHabitValue(v => ({ ...v, [h.id]: e.target.value }))}
                             style={{ flex: 1, minWidth: 0, height: 40, padding: '0 12px', borderRadius: 12, border: '1px solid #343835', background: '#191C1A', color: '#FFFFFF', fontSize: 14, fontWeight: 900, outline: 'none' }} />
                           <button style={pill} disabled={busy || draftValue === '' || Number(draftValue) < 0}

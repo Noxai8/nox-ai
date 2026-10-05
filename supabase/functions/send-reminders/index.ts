@@ -251,7 +251,7 @@ async function loadDay(sb: any, uid: string, date: string, tz: string) {
     sb.from('food_entries').select('calories, created_at').eq('user_id', uid).gte('created_at', since),
     sb.from('daily_pulses').select('id').eq('user_id', uid).eq('date', date).maybeSingle(),
     sb.from('daily_missions').select('id, title, kind, target_minutes, done_at').eq('user_id', uid).eq('date', date).maybeSingle(),
-    sb.from('user_habits').select('id, kind, daily_target, in_day').eq('user_id', uid).eq('active', true),
+    sb.from('user_habits').select('id, kind, unit, daily_target, in_day').eq('user_id', uid).eq('active', true),
     sb.from('habit_logs').select('habit_id, count').eq('user_id', uid).eq('date', date),
   ]);
   const focus: string[] | null = profile?.focus_areas ?? null;
@@ -269,7 +269,8 @@ async function loadDay(sb: any, uid: string, date: string, tz: string) {
     };
   }
   const dayHabits = (habits ?? []).filter((h: any) => h.in_day !== false);
-  const stepsHabit = dayHabits.find((h: any) => h.kind === 'steps');
+  const isSteps = (h: any) => h.kind === 'steps' || (h.kind === 'custom' && String(h.unit ?? '').trim().toLowerCase() === 'pas');
+  const stepsHabit = dayHabits.find(isSteps);
   return {
     pulse: !!pulse,
     nutritionOn: focus == null || focus.includes('nutrition'),
@@ -278,6 +279,6 @@ async function loadDay(sb: any, uid: string, date: string, tz: string) {
     meals: todayFood.length,
     mission: m,
     steps: stepsHabit ? { id: stepsHabit.id, target: Number(stepsHabit.daily_target || 0), count: logOf(stepsHabit.id) ? Number(logOf(stepsHabit.id).count) : null } : null,
-    goalsMissing: dayHabits.filter((h: any) => h.kind !== 'steps' && !logOf(h.id)).length,
+    goalsMissing: dayHabits.filter((h: any) => !isSteps(h) && !logOf(h.id)).length,
   };
 }

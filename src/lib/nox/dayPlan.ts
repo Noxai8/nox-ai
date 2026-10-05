@@ -2,7 +2,7 @@
 // Fonction pure : aucune donnée inventée, aucun calcul d'XP (le serveur reste seul juge).
 // Chaque ligne n'apparaît que si elle s'applique à l'utilisateur (axes, habitudes, mission).
 
-import { habitName, isMeasured, isTargetMet, targetLine, type UserHabit } from './habits';
+import { habitName, isMeasured, isStepsHabit, isTargetMet, targetLine, type UserHabit } from './habits';
 
 export type DayPlanItem = {
   key: string;
@@ -13,6 +13,8 @@ export type DayPlanItem = {
   /** Valeur fournie par une source native (Apple Santé / Health Connect) : « MESURÉ » */
   measured?: boolean;
   done: boolean;
+  /** Progression 0–1 pour ce qui se mesure (affichée en barre) ; absente sinon */
+  progress?: number;
   route: string;
   /** Clôture : toujours accessible, même si tout n'est pas fait */
   closure?: boolean;
@@ -43,7 +45,7 @@ export function buildDayPlan(i: DayPlanInput): DayPlanItem[] {
   const logOf = (h: UserHabit) => i.todayLogs.find(l => l.habit_id === h.id);
   // Seuls les objectifs actifs marqués « Dans ma journée » entrent dans le pilotage
   const dayHabits = i.habits.filter(h => h.active !== false && h.in_day !== false);
-  const steps = dayHabits.find(h => h.kind === 'steps') ?? null;
+  const steps = dayHabits.find(isStepsHabit) ?? null;
   const items: DayPlanItem[] = [];
 
   items.push({ key: 'pulse', label: 'Pulse du matin', done: i.pulseDone, route: '/pulse' });
@@ -51,7 +53,8 @@ export function buildDayPlan(i: DayPlanInput): DayPlanItem[] {
   if (i.mission) {
     items.push({
       key: 'mission', label: `Concentration · ${i.mission.title}`,
-      detail: i.mission.kind === 'duration' ? `${i.mission.minutes} / ${i.mission.target_minutes} min` : undefined,
+      detail: i.mission.kind === 'duration' ? `${i.mission.minutes} / ${i.mission.target_minutes} min` : 'Tâche à terminer',
+      progress: i.mission.kind === 'duration' && i.mission.target_minutes ? Math.min(1, i.mission.minutes / i.mission.target_minutes) : undefined,
       done: i.mission.done, route: '/focus',
     });
   } else if (has('focus')) {
@@ -67,14 +70,15 @@ export function buildDayPlan(i: DayPlanInput): DayPlanItem[] {
 
     items.push({
       key: 'move', label: 'Bouger',
-      // Jamais de cible inventée : si aucune cible n'est configurée, on affiche seulement la valeur réelle.
+      // Jamais de valeur ni de cible inventée : sans relevé, « À saisir » ; sans cible, seulement la valeur réelle.
       detail: log
         ? hasTarget
           ? `${fr(log.count)} / ${fr(Number(target))} pas`
           : `${fr(log.count)} pas`
         : hasTarget
-          ? `à saisir · objectif ${fr(Number(target))} pas`
-          : 'à saisir',
+          ? `À saisir · objectif ${fr(Number(target))} pas`
+          : 'À saisir',
+      progress: log && hasTarget ? Math.min(1, log.count / Number(target)) : undefined,
       declared: !!log && !isMeasured(log.source),
       measured: !!log && isMeasured(log.source),
       done: !!log && hasTarget && isTargetMet(log.count, Number(target), 'build') === true,
@@ -94,18 +98,21 @@ export function buildDayPlan(i: DayPlanInput): DayPlanItem[] {
     const z = nutritionZone(i.caloriesTarget);
     items.push({
       key: 'nutrition', label: 'Nutrition',
-      detail: `${fr(i.kcalToday)} kcal · zone ${fr(z.low)}–${fr(z.high)}`,
+      detail: `${fr(i.kcalToday)} / ${fr(i.caloriesTarget)} kcal · zone ${fr(z.low)}–${fr(z.high)}`,
+      progress: Math.min(1, i.kcalToday / i.caloriesTarget),
       done: i.kcalToday >= z.low && i.kcalToday <= z.high, route: '/fuel',
     });
   }
 
   // Habitudes et objectifs personnels (les pas sont déjà sous « Bouger »)
   for (const h of dayHabits) {
-    if (h.kind === 'steps') continue;
+    if (isStepsHabit(h)) continue;
     const log = logOf(h);
     items.push({
       key: h.id, label: habitName(h),
-      detail: log ? targetLine(log.count, h.daily_target, h.mode, h.unit) : 'à noter',
+      detail: log ? targetLine(log.count, h.daily_target, h.mode, h.unit) : 'À noter',
+      // Barre uniquement pour un objectif « au moins » (pour « au plus », moins est mieux)
+      progress: log && h.mode === 'build' && h.daily_target ? Math.min(1, log.count / h.daily_target) : undefined,
       done: !!log && (h.mode === 'track' || isTargetMet(log.count, h.daily_target, h.mode) === true),
       route: `/habits/${h.id}`,
     });

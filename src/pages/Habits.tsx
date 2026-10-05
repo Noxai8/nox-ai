@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 import {
-  CUSTOM_UNITS, HABITS, HABIT_COLUMNS, HABIT_KINDS, MODE_LABELS, habitName,
+  CUSTOM_UNITS, HABITS, HABIT_COLUMNS, HABIT_KINDS, MODE_LABELS, habitName, isStepsHabit,
   type HabitKind, type HabitMode, type UserHabit,
 } from '../lib/nox/habits';
 
@@ -107,7 +107,7 @@ export default function Habits() {
     const loadedHabits = (data ?? []) as UserHabit[];
     setHabits(loadedHabits);
 
-    const stepsHabit = loadedHabits.find(h => h.kind === 'steps');
+    const stepsHabit = loadedHabits.find(isStepsHabit);
     if (stepsHabit) {
       const today = new Date().toISOString().slice(0, 10);
       const { data: stepLog } = await supabase
@@ -129,7 +129,7 @@ export default function Habits() {
     setLoading(false);
   };
 
-  const stepsHabit = habits.find(h => h.kind === 'steps');
+  const stepsHabit = habits.find(isStepsHabit);
   const stepsTarget = stepsHabit?.daily_target ?? null;
   const stepsProgress = todaySteps != null && stepsTarget != null && stepsTarget > 0
     ? Math.min(100, Math.round((todaySteps / stepsTarget) * 100))
@@ -346,7 +346,7 @@ export default function Habits() {
 
                 <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em', marginBottom: 10 }}>OBJECTIFS DU QUOTIDIEN</div>
                 <section style={{ display: 'grid', gap: 10, marginBottom: 28 }}>
-                  {([...(activeKinds.has('steps') ? [] : ['steps']), 'custom'] as HabitKind[]).map(k => {
+                  {([...(habits.some(isStepsHabit) ? [] : ['steps']), 'custom'] as HabitKind[]).map(k => {
                     const d = HABITS[k]; const Icon = d.icon;
                     return (
                       <button key={k} onClick={() => setDraft(emptyDraft(k))}

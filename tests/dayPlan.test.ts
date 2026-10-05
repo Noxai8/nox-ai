@@ -1,5 +1,5 @@
 import { buildDayPlan, daySnapshot, nutritionZone, summarizeDay } from '../src/lib/nox/dayPlan';
-import { isTargetMet, usesValueInput, targetLine } from '../src/lib/nox/habits';
+import { isStepsHabit, isTargetMet, usesValueInput, targetLine } from '../src/lib/nox/habits';
 
 let ok = 0, ko = 0;
 const t = (name: string, cond: boolean) => { cond ? ok++ : ko++; console.log(cond ? '✓' : '✗', name); };
@@ -29,7 +29,7 @@ t('Deux objectifs personnels distincts affichés', !!item(p0, 'r') && !!item(p0,
 // Pas sous « Bouger », DÉCLARÉ, aucune donnée fictive
 const mv0 = item(p0, 'move');
 t('Pas affichés sous « Bouger »', mv0.label === 'Bouger' && mv0.route === '/habits/s');
-t('Sans saisie : aucun chiffre inventé (pas de « 0 »)', !/\b0 \//.test(mv0.detail) && mv0.detail.startsWith('à saisir'));
+t('Sans saisie : aucun chiffre inventé (pas de « 0 »)', !/\b0 \//.test(mv0.detail) && mv0.detail.startsWith('À saisir'));
 t('Sans saisie : pas marqué DÉCLARÉ', !mv0.declared);
 t('Les pas ne sont pas dupliqués dans les habitudes', !item(p0, 's'));
 const mv1 = item(plan({ todayLogs: [{ habit_id: 's', count: 6999 }] }), 'move');
@@ -81,5 +81,19 @@ t('Snapshot structuré : catégorie, état et source de chaque engagement',
   && snap.day_snapshot.items.some((x: any) => x.category === 'nutrition' && !x.done));
 t('Snapshot : compteurs cohérents, sans la clôture', snap.items_total === snap.day_snapshot.items.length && snap.items_done <= snap.items_total);
 t('Snapshot sans aucun champ d’XP', !JSON.stringify(snap).toLowerCase().includes('xp'));
+
+// ── Objectif de pas créé comme objectif personnel (unité « pas ») ──
+const customSteps = H({ id: 'cs', kind: 'custom', label: 'Marcher', mode: 'build', unit: 'pas', daily_target: 10000 });
+t('Objectif personnel en « pas » reconnu comme objectif de pas', isStepsHabit(customSteps) && !isStepsHabit(read));
+const pc = plan({ habits: [customSteps, read], todayLogs: [{ habit_id: 'cs', count: 6420, source: 'manual' }] });
+t('Il alimente « Bouger » : 6 420 / 10 000 pas, DÉCLARÉ', item(pc, 'move')?.detail.replace(/[\u202f\u00a0]/g, ' ') === '6 420 / 10 000 pas' && item(pc, 'move')?.declared === true);
+t('Il n’est pas rendu une deuxième fois comme objectif', !item(pc, 'cs'));
+t('Progression = min(pas / cible, 1)', Math.abs(item(pc, 'move').progress - 0.642) < 1e-9);
+t('Atteint seulement à ≥ cible', !item(pc, 'move').done && item(plan({ habits: [customSteps], todayLogs: [{ habit_id: 'cs', count: 10000 }] }), 'move').done);
+const noTarget = H({ id: 'nt', kind: 'steps', mode: 'build', unit: 'pas', daily_target: null });
+const pn = item(plan({ habits: [noTarget] }), 'move');
+t('Sans cible configurée : aucune cible inventée, pas de barre', pn.detail === 'À saisir' && pn.progress === undefined && !pn.done);
+t('Sans relevé : jamais « 0 pas »', !/(^|\s)0 pas/.test(item(plan({ habits: [customSteps] }), 'move').detail));
+t('Clôture toujours présente même journée incomplète', item(plan({ habits: [customSteps] }), 'closure')?.closure === true);
 
 console.log(`\n${ok} réussis, ${ko} échoués`);

@@ -176,28 +176,27 @@ export default function NotificationSettings() {
           {message && <div style={{ marginTop: 10, color: message.startsWith('Test envoyé') ? LIME : '#E9C2C2', fontSize: 12, lineHeight: 1.5 }}>{message}</div>}
         </section>
 
-        {/* Types de rappels */}
+        {/* Types de rappels : une seule carte, deux parties */}
         <section style={card}>
           <div style={{ ...label, marginBottom: 2 }}>CE QUE NOXI PEUT TE RAPPELER</div>
-          {row('Pulse du matin', 'Seulement si tu ne l’as pas encore fait.', prefs.morning, () => save({ ...prefs, morning: !prefs.morning }),
-            <input type="time" value={prefs.morning_time} onChange={e => save({ ...prefs, morning_time: e.target.value })} style={time} />)}
-          {row('Clôture du soir', 'Seulement si ta journée n’est pas encore clôturée. Elle indique ce qu’il reste, sans jamais nommer une habitude.', prefs.evening, () => save({ ...prefs, evening: !prefs.evening }),
-            <input type="time" value={prefs.evening_time} onChange={e => save({ ...prefs, evening_time: e.target.value })} style={time} />)}
-          {row('Point sur tes objectifs', 'En fin d’après-midi, si une habitude n’est pas encore notée. Message neutre.', prefs.habits_check, () => save({ ...prefs, habits_check: !prefs.habits_check }))}
-          {row('Bilan de la semaine', 'Le dimanche, quand ton bilan est prêt.', prefs.weekly, () => save({ ...prefs, weekly: !prefs.weekly }))}
-        </section>
 
-        {/* Rappels selon ta journée : uniquement à partir de données réellement enregistrées */}
-        <section style={card}>
-          <div style={{ ...label, marginBottom: 2 }}>SELON TA JOURNÉE</div>
-          <div style={{ color: SEC, fontSize: 12, lineHeight: 1.5, margin: '6px 0 4px' }}>
+          <div style={{ color: LIME, fontSize: 11, fontWeight: 900, letterSpacing: '.06em', margin: '14px 0 2px' }}>SELON TA JOURNÉE</div>
+          <div style={{ color: SEC, fontSize: 12, lineHeight: 1.5, margin: '4px 0 2px' }}>
             NOXI regarde ce qui manque vraiment. Sans donnée, il te propose de compléter, il n’affirme jamais rien.
           </div>
           {row('Concentration', 'À 14 h si ta mission n’est pas commencée, à 19 h si elle n’est pas terminée.', prefs.nudge_mission, () => save({ ...prefs, nudge_mission: !prefs.nudge_mission }))}
           {row('Bouger', 'À 16 h, si tu as un objectif de pas : te propose de les saisir, ou une marche si tu es loin.', prefs.nudge_movement, () => save({ ...prefs, nudge_movement: !prefs.nudge_movement }))}
           {row('Nutrition', 'À 18 h, avec une cible calorique : t’invite à compléter tes repas, ou signale si ta journée est loin de ta zone.', prefs.nudge_nutrition, () => save({ ...prefs, nudge_nutrition: !prefs.nudge_nutrition }))}
           {row('Objectifs du jour', 'À 18 h 30, si un objectif de ta journée n’est pas noté. Sans jamais le nommer.', prefs.nudge_goals, () => save({ ...prefs, nudge_goals: !prefs.nudge_goals }))}
-          <div style={{ color: MUTED, fontSize: 11, lineHeight: 1.5, marginTop: 8 }}>
+
+          <div style={{ color: LIME, fontSize: 11, fontWeight: 900, letterSpacing: '.06em', margin: '20px 0 2px' }}>À HEURE FIXE</div>
+          {row('Pulse du matin', 'Seulement si tu ne l’as pas encore fait.', prefs.morning, () => save({ ...prefs, morning: !prefs.morning }),
+            <input type="time" value={prefs.morning_time} onChange={e => save({ ...prefs, morning_time: e.target.value })} style={time} />)}
+          {row('Clôture du soir', 'Seulement si ta journée n’est pas encore clôturée. Elle indique ce qu’il reste, sans jamais nommer une habitude.', prefs.evening, () => save({ ...prefs, evening: !prefs.evening }),
+            <input type="time" value={prefs.evening_time} onChange={e => save({ ...prefs, evening_time: e.target.value })} style={time} />)}
+          {row('Bilan de la semaine', 'Le dimanche, quand ton bilan est prêt.', prefs.weekly, () => save({ ...prefs, weekly: !prefs.weekly }))}
+
+          <div style={{ color: MUTED, fontSize: 11, lineHeight: 1.5, marginTop: 12 }}>
             Toujours au moins 2 h entre deux rappels, jamais deux fois le même dans la journée, et une place gardée pour la clôture.
           </div>
         </section>
