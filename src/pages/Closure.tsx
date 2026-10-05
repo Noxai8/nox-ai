@@ -1,256 +1,590 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Check, Circle, CircleCheck } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Check, Phone, Route as RouteIcon, Trophy, Leaf, Heart, Zap, Smile, Wind, CupSoda, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { todayLocalDate } from '../lib/localDate';
-import { buildDayPlan, daySnapshot, summarizeDay, type DayPlanItem } from '../lib/nox/dayPlan';
-import { loadDayPlanInput } from '../lib/nox/dayPlanData';
+import { BottomNav } from './Home';
+import { HABITS, HABIT_COLUMNS, MODE_LABELS, habitName, isMeasured, isStepsHabit, isTargetMet, targetLine, usesValueInput, type HabitMode, type UserHabit } from '../lib/nox/habits';
 
-type Completion = 'yes' | 'partial' | 'no';
-
-const BG    = '#0A0A0A';
-const CARD  = '#111111';
-const CARD2 = '#161616';
+const BG = '#090B0A';
+const CARD = '#232624';
+const CARD2 = '#191C1A';
+const BORDER = '#4A4F4B';
+const SOFT = '#343835';
 const WHITE = '#FFFFFF';
-const LIME  = '#C8FF00';
-const MUTED = '#666666';
-const BORDER= '#1E1E1E';
+const SEC = '#A5AAA6';
+const MUTED = '#747A76';
+const LIME = '#C8FF00';
 
-const COMPLETIONS: { id: Completion; label: string }[] = [
-  { id: 'yes',     label: 'Oui' },
-  { id: 'partial', label: 'En partie' },
-  { id: 'no',      label: 'Non' },
-];
+type Log = { date: string; count: number; target_snapshot: number | null; mode_snapshot: HabitMode | null; source?: string | null };
+type Period = 7 | 30 | 90;
+type Closure = { date: string };
 
-const FEELINGS = ['😫', '😕', '😐', '🙂', '😄'];
+/** Clés de date locales (YYYY-MM-DD) des n derniers jours, du plus ancien au plus récent */
+function lastDays(n: number): string[] {
+  const out: string[] = [];
+  const d = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate() - i);
+    out.push(x.toLocaleDateString('sv-SE'));
+  }
+  return out;
+}
 
-const NOX_FEEDBACK: Record<Completion, string> = {
-  yes:     'Journée enregistrée. Une journée de plus pour mieux te comprendre.',
-  partial: 'Journée enregistrée. L\'important est d\'avancer, même partiellement.',
-  no:      'Journée enregistrée. Une mauvaise journée reste une donnée utile.',
-};
+function frDate(key: string): string {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+}
 
-export default function Closure() {
-  const { user }   = useAuth();
-  const navigate   = useNavigate();
-  const location   = useLocation();
+const round1 = (n: number) => Math.round(n * 10) / 10;
 
-  // Priorité passée depuis Home via navigation state
-  const priorityTitle  = (location.state as any)?.priorityTitle  ?? null;
-  const priorityType   = (location.state as any)?.priorityType   ?? 'none';
-  const alreadyClosed  = (location.state as any)?.alreadyClosed  ?? false;
+export default function HabitDetail() {
+  const { habitId } = useParams();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  const [completion, setCompletion] = useState<Completion | null>(null);
-  const [feeling,    setFeeling]    = useState<number | null>(null);
-  const [note,       setNote]       = useState('');
-  const [saving,     setSaving]     = useState(false);
-  const [saveError,  setSaveError]  = useState('');
-  const [saved,      setSaved]      = useState(false);
-  const [existing,   setExisting]   = useState<any>(null);
+  const [habit, setHabit] = useState<UserHabit | null>(null);
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [closures, setClosures] = useState<Closure[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<Period>(7);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
-  const [plan, setPlan] = useState<DayPlanItem[] | null>(null);
-  useEffect(() => {
-    if (!user) return;
-    loadDayPlanInput(user.id, (location.state as any)?.priorityType ?? null)
-      .then(input => setPlan(buildDayPlan(input)))
-      .catch(e => { console.error('Bilan de la journée :', e); setPlan(null); });
-  }, [user]);
-  const summary = plan ? summarizeDay(plan) : null;
+  const [editing, setEditing] = useState(false);
+  const [editMode, setEditMode] = useState<HabitMode>('reduce');
+  const [editTarget, setEditTarget] = useState('');
+  const [editPro, setEditPro] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from('daily_closures')
-      .select('completion, evening_energy, note')
-      .eq('user_id', user.id)
-      .eq('date', todayLocalDate())
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setExisting(data);
-          setCompletion(data.completion as Completion);
-          setFeeling(data.evening_energy);
-          setNote(data.note ?? '');
-        }
-      });
-  }, [user]);
+  useEffect(() => { if (user && habitId) void load(); }, [user, habitId]);
 
-  const canSave = completion !== null;
-
-  const save = async () => {
-    if (!user || !canSave || saving) return;
-    setSaving(true);
-    setSaveError('');
-    try {
-      const { error } = await supabase.from('daily_closures').upsert({
-        user_id:        user.id,
-        date:           todayLocalDate(),
-        priority_type:  priorityType,
-        completion,
-        evening_energy: feeling,
-        note:           note.trim() || null,
-        ...(plan ? daySnapshot(plan) : {}),
-      }, { onConflict: 'user_id,date' });
-      if (error) {
-        console.error('daily_closures:', error);
-        setSaveError('Ta journée n’a pas pu être enregistrée. Vérifie ta connexion et réessaie.');
-      } else setSaved(true);
-    } finally {
-      setSaving(false);
-    }
+  const load = async () => {
+    const since = lastDays(90)[0];
+    const [{ data: h, error: hErr }, { data: l, error: lErr }, { data: c, error: cErr }] = await Promise.all([
+      supabase.from('user_habits')
+        .select(HABIT_COLUMNS)
+        .eq('id', habitId!).eq('user_id', user!.id).maybeSingle(),
+      supabase.from('habit_logs')
+        .select('date, count, target_snapshot, mode_snapshot, source')
+        .eq('habit_id', habitId!).eq('user_id', user!.id).gte('date', since)
+        .order('date', { ascending: false }),
+      supabase.from('daily_closures')
+        .select('date')
+        .eq('user_id', user!.id).gte('date', since)
+        .order('date', { ascending: false }),
+    ]);
+    if (hErr || lErr || cErr) setError((hErr || lErr || cErr)!.message);
+    setHabit(h && HABITS[(h as UserHabit).kind] ? (h as UserHabit) : null);
+    setLogs((l ?? []).map((x: any) => ({
+      date: x.date, count: Number(x.count),
+      target_snapshot: x.target_snapshot == null ? null : Number(x.target_snapshot),
+      mode_snapshot: x.mode_snapshot ?? null,
+      source: x.source ?? 'manual',
+    })));
+    setClosures((c ?? []).map((x: any) => ({ date: x.date })));
+    setLoading(false);
   };
 
-  // Écran confirmation
-  if (saved) {
-    return (
-      <div style={{ minHeight: '100vh', background: BG, color: WHITE, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 28px', textAlign: 'center' }}>
-        <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#0F1A00', border: `2px solid ${LIME}`, display: 'grid', placeItems: 'center', marginBottom: 24 }}>
-          <Check size={28} color={LIME} strokeWidth={3} />
-        </div>
-        <div style={{ fontSize: 10, fontWeight: 900, color: LIME, letterSpacing: '.1em', marginBottom: 10 }}>JOURNÉE CLÔTURÉE</div>
-        <div style={{ fontSize: 24, fontWeight: 1000, letterSpacing: '-.04em', marginBottom: 14 }}>
-          {completion === 'yes' ? 'Bien joué.' : completion === 'partial' ? 'Noté.' : 'C\'est enregistré.'}
-        </div>
-        <div style={{ fontSize: 14, color: MUTED, lineHeight: 1.6, marginBottom: 36, maxWidth: 320 }}>
-          {NOX_FEEDBACK[completion!]}
-        </div>
-        <button onClick={() => navigate('/home')}
-          style={{ padding: '16px 36px', border: 0, borderRadius: 18, background: LIME, color: '#0A0A0A', fontWeight: 1000, fontSize: 14, cursor: 'pointer' }}>
-          RETOUR À L'ACCUEIL
-        </button>
-      </div>
+  const today = todayLocalDate();
+  const todayLog = logs.find(l => l.date === today);
+  const def = habit ? HABITS[habit.kind] : null;
+
+  // Alcool à risque sans accompagnement : le serveur impose le suivi seulement
+  const alcoholLocked = !!habit && habit.kind === 'alcohol' && habit.risk_flag && !editPro;
+
+  const byDate = useMemo(() => new Map(logs.map(l => [l.date, l])), [logs]);
+  const days = useMemo(() => lastDays(period), [period]);
+  const periodLogs = days.map(d => byDate.get(d)).filter(Boolean) as Log[];
+  const evaluated = periodLogs.filter(l => l.target_snapshot != null);
+  const okLog = (l: Log) => isTargetMet(l.count, l.target_snapshot, l.mode_snapshot ?? (habit?.mode === 'build' ? 'build' : 'reduce')) === true;
+  const metCount = evaluated.filter(okLog).length;
+  const [valueDraft, setValueDraft] = useState('');
+
+  // Évolution : seulement si départ connu et au moins 3 relevés sur les 7 derniers jours
+  const recent = lastDays(7).map(d => byDate.get(d)).filter(Boolean) as Log[];
+  const avgRecent = recent.length ? recent.reduce((s, l) => s + l.count, 0) / recent.length : null;
+  const canMeasure = habit?.mode !== 'build' && habit?.baseline != null && habit.baseline > 0 && recent.length >= 3 && avgRecent != null;
+  const change = canMeasure ? Math.round(((avgRecent! - habit!.baseline!) / habit!.baseline!) * 100) : null;
+
+  const logToday = async (count: number) => {
+    if (!user || !habit || busy) return;
+    setBusy(true); setError('');
+    const { error: e } = await supabase.from('habit_logs').upsert(
+      { user_id: user.id, habit_id: habit.id, date: today, count: Math.max(0, count) },
+      { onConflict: 'habit_id,date' },
     );
-  }
+    if (e) setError(e.message);
+    await load();
+    setBusy(false);
+  };
 
-  return (
-    <div style={{ minHeight: '100vh', background: BG, color: WHITE }}>
-      <div style={{ maxWidth: 560, margin: '0 auto', padding: '0 20px 40px' }}>
+  const openEdit = () => {
+    if (!habit) return;
+    setEditMode(habit.mode);
+    setEditTarget(habit.daily_target != null ? String(habit.daily_target) : '');
+    setEditPro(habit.professional_support);
+    setEditing(true);
+  };
 
-        {/* Header */}
-        <header style={{ paddingTop: 52, paddingBottom: 28, display: 'flex', alignItems: 'center', gap: 14 }}>
-          <button onClick={() => navigate(-1)}
-            style={{ width: 40, height: 40, borderRadius: 14, border: `1px solid ${BORDER}`, background: CARD, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
-            <ArrowLeft size={18} color={WHITE} />
-          </button>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.1em', marginBottom: 3 }}>
-              {existing ? 'MODIFIER LA CLÔTURE' : 'CLÔTURE DE JOURNÉE'}
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 1000, letterSpacing: '-.04em' }}>
-              Ta journée touche à sa fin.
-            </div>
+  const effectiveEditMode: HabitMode = alcoholLocked ? 'track' : editMode;
+  const targetValid = effectiveEditMode === 'build'
+    ? editTarget !== '' && Number(editTarget) > 0 && Number(editTarget) <= 100000
+    : effectiveEditMode !== 'reduce'
+      || (editTarget !== '' && Number(editTarget) >= 0 && Number(editTarget) <= (habit?.kind === 'custom' ? 100000 : 500));
+
+  const saveEdit = async () => {
+    if (!habit || !targetValid || busy) return;
+    setBusy(true); setError('');
+    const { error: e } = await supabase.from('user_habits').update({
+      mode: effectiveEditMode,
+      daily_target: effectiveEditMode === 'reduce' || effectiveEditMode === 'build' ? Number(editTarget) : null,
+      professional_support: editPro,
+    }).eq('id', habit.id);
+    if (e) setError(e.message);
+    setEditing(false);
+    await load();
+    setBusy(false);
+  };
+
+  const todayOk = !!todayLog && okLog(todayLog);
+  const isTobacco = habit?.kind === 'tobacco';
+  const isAlcohol = habit?.kind === 'alcohol';
+  const isPorn = !!habit && habit.kind === 'custom' && /porn|porno|pornographie/i.test(`${habit.name ?? ''} ${habit.unit ?? ''}`);
+  const isStopBehavior = !!habit && habit.mode === 'stop' && (isTobacco || isAlcohol || isPorn);
+
+  const closedDates = useMemo(() => new Set(closures.map(c => c.date)), [closures]);
+  const todayClosed = closedDates.has(today);
+  const weekLogs = lastDays(7).map(d => byDate.get(d)).filter(Boolean) as Log[];
+  const monthLogs = lastDays(30).map(d => byDate.get(d)).filter(Boolean) as Log[];
+  const proofOk = (l: Log) => closedDates.has(l.date) && l.target_snapshot != null && okLog(l);
+  const weekProofs = weekLogs.filter(proofOk).length;
+  const monthProofs = monthLogs.filter(proofOk).length;
+
+  // "Écart important" = écart par rapport à la cible/référence personnelle.
+  // Ce n'est volontairement PAS un seuil médical universel.
+  const personalReference = habit?.daily_target ?? habit?.baseline ?? null;
+  const heavyOver = !!todayLog && personalReference != null && (
+    personalReference === 0
+      ? todayLog.count >= Math.max(3, (habit?.baseline ?? 0) * 1.5)
+      : todayLog.count >= personalReference * 1.5
+  );
+
+  const coach = (() => {
+    if (!todayLog) return {
+      title: 'La prochaine action compte.',
+      body: isStopBehavior
+        ? 'Note ton avancée. Chaque fois que tu choisis de ne pas reprendre ce comportement, tu renforces la direction que tu as choisie.'
+        : 'Renseigne ton avancée pour que NOX puisse te montrer concrètement ce que tu accomplis.',
+      accent: LIME,
+    };
+
+    if (todayOk) {
+      if (!todayClosed) return {
+        title: 'Tu es en bonne voie.',
+        body: isTobacco && todayLog.count === 0
+          ? '0 cigarette jusqu’ici. Continue : cette réussite deviendra une preuve quand tu clôtureras ta journée.'
+          : isStopBehavior && todayLog.count === 0
+            ? 'Objectif tenu jusqu’ici. Continue : cette réussite deviendra une preuve quand tu clôtureras ta journée.'
+            : 'Tu tiens ton objectif jusqu’ici. Continue jusqu’à la clôture de ta journée.',
+        accent: LIME,
+      };
+      return {
+        title: 'Tu viens de prouver que c’est possible.',
+        body: isTobacco && todayLog.count === 0
+          ? 'Journée sans cigarette clôturée. Cette réussite est maintenant une preuve acquise.'
+          : 'Tu as tenu ton engagement jusqu’à la clôture. Cette réussite est maintenant une preuve acquise.',
+        accent: LIME,
+      };
+    }
+
+    if (heavyOver && isStopBehavior) {
+      if (isAlcohol) return {
+        title: 'Tu es nettement au-dessus de ta direction aujourd’hui.',
+        body: 'Ne banalise pas ce dépassement. Évite d’ajouter de l’alcool maintenant et privilégie ta sécurité. Si tu bois beaucoup ou régulièrement, ne tente pas un arrêt brutal sans avis médical : un sevrage peut nécessiter un accompagnement.',
+        accent: '#FF7A1A',
+      };
+      if (isPorn) return {
+        title: 'Interromps la séquence maintenant.',
+        body: 'Tu es nettement au-dessus de la limite que tu t’étais fixée. Coupe le déclencheur, change d’environnement et concentre-toi uniquement sur la prochaine décision. Cet écart n’efface pas tes réussites précédentes.',
+        accent: '#FF7A1A',
+      };
+      return {
+        title: 'Arrête la séquence maintenant.',
+        body: 'Tu es nettement au-dessus de l’objectif que tu t’es fixé. Fumer est nocif : évite la prochaine cigarette, éloigne-toi du déclencheur et utilise les ressources d’aide si tu en as besoin. Tes réussites précédentes restent acquises.',
+        accent: '#FF7A1A',
+      };
+    }
+
+    return {
+      title: isStopBehavior ? 'La journée continue.' : 'Ce n’est pas terminé.',
+      body: isTobacco
+        ? 'Cet écart ne décide pas de la suite. La prochaine cigarette évitée compte : reprends ta direction maintenant.'
+        : isAlcohol
+          ? 'Cet écart ne décide pas de la suite. Évite d’ajouter une consommation et reprends ta direction à la prochaine décision.'
+          : isPorn
+            ? 'Cet écart ne décide pas de la suite. Coupe le déclencheur et reprends ta direction à la prochaine décision, sans te juger.'
+            : habit?.mode === 'build' && habit.daily_target != null
+              ? `Il te reste ${Math.max(0, habit.daily_target - todayLog.count).toLocaleString('fr-FR')} ${habit.unit} pour atteindre ton objectif aujourd’hui.`
+              : 'Ton objectif reste accessible. La prochaine décision peut encore te rapprocher de la cible aujourd’hui.',
+      accent: '#FF9F2E',
+    };
+  })();
+
+  // ── Rendu ─────────────────────────────────────────────────────────────────
+  const card: React.CSSProperties = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20 };
+  const label: React.CSSProperties = { color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em', marginBottom: 12 };
+  const choice = (on: boolean): React.CSSProperties => ({
+    width: '100%', textAlign: 'left', padding: '14px 16px', borderRadius: 14, cursor: 'pointer',
+    background: on ? 'rgba(200,255,0,.08)' : CARD2, border: `1px solid ${on ? LIME : SOFT}`, color: WHITE,
+  });
+  const pill: React.CSSProperties = {
+    height: 44, minWidth: 54, padding: '0 16px', borderRadius: 14, border: `1px solid ${SOFT}`,
+    background: CARD2, color: WHITE, fontSize: 14, fontWeight: 900, cursor: busy ? 'wait' : 'pointer', opacity: busy ? .6 : 1,
+  };
+
+  const dayLine = (l: Log) =>
+    targetLine(l.count, l.target_snapshot, l.mode_snapshot ?? (habit?.mode === 'build' ? 'build' : 'reduce'), habit?.unit ?? def!.unit);
+
+
+  const shell = (children: React.ReactNode) => (
+    <div style={{ minHeight: '100dvh', background: BG, color: WHITE, paddingBottom: 'calc(160px + env(safe-area-inset-bottom))' }}>
+      <main style={{ width: '100%', maxWidth: 760, margin: '0 auto', padding: '0 16px', boxSizing: 'border-box' }}>
+        {children}
+      </main>
+      <BottomNav active="home" />
+    </div>
+  );
+
+  if (loading) return shell(<div style={{ paddingTop: 60, color: MUTED }}>Chargement…</div>);
+
+  if (!habit || !def) return shell(
+    <div style={{ paddingTop: 60 }}>
+      <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 10 }}>Habitude introuvable</div>
+      <button onClick={() => navigate('/habits')} style={{ ...pill, color: LIME }}>Mes habitudes →</button>
+    </div>,
+  );
+
+  const Icon = def.icon;
+  const max = Math.max(1, ...periodLogs.map(l => l.count), habit.daily_target ?? 0, habit.baseline ?? 0);
+  const W = 700, H = 160, gap = period === 7 ? 14 : period === 30 ? 4 : 2;
+  const bw = (W - gap * (days.length - 1)) / days.length;
+  const yOf = (v: number) => H - (v / max) * (H - 10);
+
+  return shell(
+    <>
+      <header style={{ paddingTop: 44, paddingBottom: 22, display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button onClick={() => navigate(-1)} aria-label="Retour"
+          style={{ width: 42, height: 42, borderRadius: 14, border: `1px solid ${BORDER}`, background: CARD, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
+          <ArrowLeft size={18} color={WHITE} />
+        </button>
+        <div style={{ width: 46, height: 46, borderRadius: 15, background: CARD2, border: `1px solid ${SOFT}`, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+          <Icon size={21} color={LIME} />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ margin: 0, fontSize: 'clamp(26px,5vw,36px)', fontWeight: 850, letterSpacing: '-.04em', lineHeight: 1 }}>{habitName(habit)}</h1>
+          <div style={{ color: SEC, fontSize: 13, marginTop: 6 }}>
+            {MODE_LABELS[habit.mode].title}
+            {habit.daily_target != null ? ` · cible ≤ ${habit.daily_target} ${habit.unit}/jour` : ''}
+            {habit.professional_support ? ' · avec un professionnel' : ''}
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Bilan de la journée : validé / reste à faire. La clôture reste possible dans tous les cas. */}
-        {summary && summary.engagements.length > 0 && (
-          <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '18px 20px', marginBottom: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
-              <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em' }}>TA JOURNÉE</div>
-              <div style={{ fontSize: 13, fontWeight: 1000, color: summary.complete ? LIME : WHITE }}>
-                {summary.complete ? 'Journée complète ✓' : `${summary.done.length} / ${summary.engagements.length}`}
+      {error && <div style={{ ...card, borderColor: '#5A3A3A', color: '#E9C2C2', fontSize: 13, marginBottom: 14 }}>{error}</div>}
+
+      {/* AUJOURD'HUI — action + coaching NOX */}
+      <section style={{ ...card, marginBottom: 14 }}>
+        <div style={label}>AUJOURD’HUI</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+          <div style={{
+            width: 78, height: 78, borderRadius: '50%', flexShrink: 0,
+            display: 'grid', placeItems: 'center',
+            border: `7px solid ${todayLog ? (todayOk ? LIME : '#FF9F2E') : SOFT}`,
+            boxShadow: todayOk ? '0 0 24px rgba(200,255,0,.16)' : 'none',
+            color: todayOk ? BG : WHITE, background: todayOk ? LIME : CARD2,
+          }}>
+            {todayOk ? <Check size={34} strokeWidth={3} /> : <span style={{ fontSize: 26, fontWeight: 1000 }}>{todayLog ? todayLog.count : '—'}</span>}
+          </div>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <div style={{ fontSize: 30, fontWeight: 1000, letterSpacing: '-.04em', lineHeight: 1 }}>
+              {todayLog ? todayLog.count.toLocaleString('fr-FR') : '—'}
+              <span style={{ fontSize: 15, color: MUTED, fontWeight: 900 }}> {habit.unit}</span>
+            </div>
+            <div style={{ marginTop: 8, fontSize: 17, color: todayLog ? (todayOk ? LIME : '#FF9F2E') : SEC, fontWeight: 1000 }}>
+              {!todayLog
+                ? 'Pas encore noté aujourd’hui'
+                : isTobacco && habit.mode === 'stop' && todayLog.count === 0
+                  ? (todayClosed ? 'Journée sans cigarette ✓' : '0 cigarette jusqu’ici ✓')
+                  : todayOk ? (todayClosed ? 'Objectif accompli ✓' : 'Objectif tenu jusqu’ici ✓') : isStopBehavior ? 'Ce n’est pas terminé.' : dayLine(todayLog)}
+            </div>
+            {isStepsHabit(habit) && todayLog && (
+              <div style={{ marginTop: 7, color: isMeasured(todayLog.source) ? LIME : SEC, fontSize: 10, fontWeight: 950, letterSpacing: '.07em' }}>
+                {isMeasured(todayLog.source) ? (todayLog.source === 'healthkit' ? 'MESURÉ · Apple Santé' : 'MESURÉ · Health Connect') : 'DÉCLARÉ'}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{
+          display: 'flex', gap: 13, alignItems: 'flex-start', marginTop: 18, padding: 16,
+          borderRadius: 16, border: `1px solid ${coach.accent}22`,
+          background: todayOk ? 'rgba(200,255,0,.055)' : todayLog ? 'rgba(255,159,46,.055)' : CARD2,
+        }}>
+          <div style={{ width: 38, height: 38, borderRadius: 12, display: 'grid', placeItems: 'center', flexShrink: 0, background: `${coach.accent}14`, color: coach.accent, fontWeight: 1000 }}>N</div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 1000, color: WHITE }}>{coach.title}</div>
+            <div style={{ marginTop: 5, color: SEC, fontSize: 13, lineHeight: 1.55 }}>{coach.body}</div>
+          </div>
+        </div>
+
+        {usesValueInput(habit) ? (
+          <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+            <input type="number" inputMode="numeric" min={0} max={100000} value={valueDraft} placeholder={todayLog ? String(todayLog.count) : 'Valeur du jour'}
+              onChange={e => setValueDraft(e.target.value)}
+              style={{ flex: 1, minWidth: 0, height: 44, padding: '0 14px', borderRadius: 14, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontSize: 15, fontWeight: 900, outline: 'none' }} />
+            <button style={pill} disabled={busy || valueDraft === '' || Number(valueDraft) < 0}
+              onClick={() => { void logToday(Number(valueDraft)); setValueDraft(''); }}>Enregistrer</button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+            {!todayLog && habit.mode !== 'build'
+              ? <button style={{ ...pill, flex: 1 }} disabled={busy} onClick={() => logToday(0)}>Aucun{habit.kind === 'tobacco' ? 'e' : ''} aujourd’hui</button>
+              : <button style={{ ...pill, flex: 1 }} disabled={busy || !todayLog || todayLog.count <= 0} onClick={() => todayLog && logToday(todayLog.count - 1)} aria-label="Retirer 1">−1</button>}
+            <button style={{ ...pill, flex: 1 }} disabled={busy} onClick={() => logToday((todayLog?.count ?? 0) + 1)} aria-label="Ajouter 1">+1</button>
+          </div>
+        )}
+      </section>
+
+      {/* GRAPHIQUE */}
+      <section style={{ ...card, marginBottom: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ ...label, marginBottom: 0 }}>ÉVOLUTION</div>
+          <div style={{ display: 'flex', gap: 4, padding: 3, borderRadius: 999, background: CARD2 }}>
+            {([7, 30, 90] as Period[]).map(p => (
+              <button key={p} onClick={() => setPeriod(p)}
+                style={{ border: 0, borderRadius: 999, padding: '7px 12px', fontSize: 11, fontWeight: 900, cursor: 'pointer',
+                  background: period === p ? LIME : 'transparent', color: period === p ? BG : SEC }}>
+                {p === 7 ? '7 j' : p === 30 ? '30 j' : '3 mois'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {periodLogs.length === 0 ? (
+          <div style={{ color: MUTED, fontSize: 13, padding: '18px 0' }}>Aucun relevé sur cette période.</div>
+        ) : (
+          <svg viewBox={`0 0 ${W} ${H + 4}`} width="100%" style={{ display: 'block' }} role="img" aria-label="Relevés quotidiens">
+            {habit.daily_target != null && (
+              <line x1={0} x2={W} y1={yOf(habit.daily_target)} y2={yOf(habit.daily_target)} stroke={SEC} strokeDasharray="6 6" strokeWidth={1.5} opacity={.6} />
+            )}
+            {days.map((d, i) => {
+              const l = byDate.get(d);
+              const x = i * (bw + gap);
+              if (!l) return <rect key={d} x={x} y={H - 2} width={bw} height={2} rx={1} fill={SOFT} />;
+              const ok = l.target_snapshot != null && okLog(l);
+              const h = Math.max(3, (l.count / max) * (H - 10));
+              return <rect key={d} x={x} y={H - h} width={bw} height={h} rx={Math.min(6, bw / 2)}
+                fill={l.target_snapshot == null ? SEC : ok ? LIME : MUTED} />;
+            })}
+          </svg>
+        )}
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', marginTop: 14, fontSize: 12, color: SEC }}>
+          <span>{periodLogs.length} jour{periodLogs.length > 1 ? 's' : ''} noté{periodLogs.length > 1 ? 's' : ''} sur {period}</span>
+          {evaluated.length > 0 && <span>Dans la cible : {metCount} / {evaluated.length}</span>}
+          {habit.daily_target != null && <span style={{ color: MUTED }}>– – cible actuelle</span>}
+        </div>
+      </section>
+
+      {/* TES PREUVES — les réussites restent visibles, sans streak punitive */}
+      {habit.mode !== 'track' && (
+        <section style={{ ...card, marginBottom: 14 }}>
+          <div style={label}>TES PREUVES</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>
+            <div style={{ padding: 16, borderRadius: 16, background: CARD2, border: `1px solid ${SOFT}` }}>
+              <Trophy size={22} color={LIME} />
+              <div style={{ marginTop: 10, fontSize: 27, fontWeight: 1000 }}>{weekProofs}</div>
+              <div style={{ color: SEC, fontSize: 12, lineHeight: 1.45 }}>
+                {isTobacco ? 'journées sans cigarette clôturées cette semaine' : 'objectifs accomplis et clôturés cette semaine'}
               </div>
             </div>
-            {summary.done.length > 0 && (
-              <>
-                <div style={{ fontSize: 10, fontWeight: 900, color: LIME, letterSpacing: '.08em', marginBottom: 6 }}>VALIDÉ</div>
-                {summary.done.map(i => (
-                  <div key={i.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', fontSize: 13 }}>
-                    <CircleCheck size={16} color={LIME} style={{ flexShrink: 0 }} />
-                    <span style={{ flex: 1, minWidth: 0, color: WHITE }}>{i.label}</span>
-                    {i.detail && <span style={{ color: MUTED, fontSize: 11, whiteSpace: 'nowrap' }}>{i.detail}</span>}
-                  </div>
-                ))}
-              </>
-            )}
-            {summary.missing.length > 0 && (
-              <>
-                <div style={{ fontSize: 10, fontWeight: 900, color: MUTED, letterSpacing: '.08em', margin: `${summary.done.length ? 12 : 0}px 0 6px` }}>RESTE À FAIRE</div>
-                {summary.missing.map(i => (
-                  <div key={i.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', fontSize: 13 }}>
-                    <Circle size={16} color={MUTED} style={{ flexShrink: 0 }} />
-                    <span style={{ flex: 1, minWidth: 0, color: '#AAAAAA' }}>{i.label}</span>
-                    {i.detail && <span style={{ color: MUTED, fontSize: 11, whiteSpace: 'nowrap' }}>{i.detail}</span>}
-                  </div>
-                ))}
-                <div style={{ marginTop: 10, fontSize: 12, color: MUTED, lineHeight: 1.5 }}>
-                  Tu peux clôturer quand même : NOX garde ce qui manque en mémoire, sans pénalité.
+            <div style={{ padding: 16, borderRadius: 16, background: CARD2, border: `1px solid ${SOFT}` }}>
+              <Leaf size={22} color={LIME} />
+              <div style={{ marginTop: 10, fontSize: 27, fontWeight: 1000 }}>{monthProofs}</div>
+              <div style={{ color: SEC, fontSize: 12, lineHeight: 1.45 }}>
+                {isTobacco ? 'journées sans cigarette clôturées ce mois-ci' : 'objectifs accomplis et clôturés ce mois-ci'}
+              </div>
+            </div>
+          </div>
+          {(weekProofs > 0 || monthProofs > 0) && (
+            <div style={{ marginTop: 12, color: SEC, fontSize: 12, lineHeight: 1.5 }}>
+              Ces réussites restent acquises. Une journée plus difficile ne les efface pas.
+            </div>
+          )}
+        </section>
+      )}
+
+      {isTobacco && habit.mode === 'stop' && (
+        <section style={{ ...card, marginBottom: 14 }}>
+          <div style={label}>{todayOk ? 'POURQUOI C’EST IMPORTANT' : 'CONSEILS NOX'}</div>
+          <div style={{ display: 'grid', gap: 2 }}>
+            {(todayOk ? [
+              [Heart, 'Une meilleure santé', 'Chaque journée sans cigarette va dans la direction que tu as choisie.'],
+              [Zap, 'Plus d’énergie au quotidien', 'Continue à construire une journée à la fois.'],
+              [Smile, 'Plus de liberté', 'Chaque envie traversée sans fumer est une décision gagnée.'],
+            ] : [
+              [Wind, 'Une envie passe toujours', 'Respire profondément pendant une minute et laisse l’envie redescendre.'],
+              [CupSoda, 'Change d’activité', 'Bois un verre d’eau, marche quelques minutes ou occupe tes mains.'],
+              [Users, 'Tu n’as pas à le faire seul', 'Les ressources d’aide restent disponibles plus bas si tu en as besoin.'],
+            ]).map(([TipIcon, title, detail]: any, i) => (
+              <div key={i} style={{ display: 'flex', gap: 13, alignItems: 'center', padding: '13px 0', borderTop: i ? `1px solid ${SOFT}` : 'none' }}>
+                <div style={{ width: 38, height: 38, borderRadius: 12, background: CARD2, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                  <TipIcon size={19} color={todayOk ? LIME : '#FFB13B'} />
                 </div>
-              </>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 950 }}>{title}</div>
+                  <div style={{ color: SEC, fontSize: 12, marginTop: 3, lineHeight: 1.45 }}>{detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* PROGRESSION */}
+      <section style={{ ...card, marginBottom: 14 }}>
+        <div style={label}>PROGRESSION</div>
+        {canMeasure ? (
+          <>
+            <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 10, fontSize: 15, fontWeight: 800 }}>
+              <span style={{ color: SEC }}>Départ : <b style={{ color: WHITE }}>{habit.baseline}/jour</b></span>
+              <span style={{ color: MUTED }}>→</span>
+              <span style={{ color: SEC }}>Moyenne actuelle : <b style={{ color: WHITE }}>{round1(avgRecent!)}/jour</b></span>
+            </div>
+            {change !== null && change !== 0 && (
+              <div style={{ marginTop: 12, fontSize: 30, fontWeight: 1000, letterSpacing: '-.04em', color: change < 0 ? LIME : SEC }}>
+                {change > 0 ? '+' : '−'}{Math.abs(change)} %
+              </div>
             )}
-          </section>
-        )}
-
-        {/* Priorité du jour */}
-        {priorityTitle && priorityType !== 'none' && (
-          <div style={{ background: '#0F1A00', border: `1px solid #3A5200`, borderRadius: 20, padding: '14px 16px', marginBottom: 18 }}>
-            <div style={{ fontSize: 10, fontWeight: 900, color: LIME, letterSpacing: '.08em', marginBottom: 6 }}>TA PRIORITÉ DU JOUR</div>
-            <div style={{ fontSize: 15, fontWeight: 900, color: WHITE }}>{priorityTitle}</div>
+            <div style={{ marginTop: 8, color: MUTED, fontSize: 11 }}>Moyenne sur les {recent.length} jours notés des 7 derniers jours.</div>
+          </>
+        ) : (
+          <div style={{ color: SEC, fontSize: 13, lineHeight: 1.55 }}>
+            {habit.baseline == null || habit.baseline <= 0
+              ? 'Aucune valeur de départ renseignée : NOX ne peut pas calculer ton évolution.'
+              : `Pas encore assez de relevés pour mesurer ton évolution (3 jours notés sur les 7 derniers jours minimum, ${recent.length} pour l’instant).`}
           </div>
         )}
+      </section>
 
-        {/* As-tu accompli ta priorité ? */}
-        <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '18px 20px', marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em', marginBottom: 14 }}>
-            {priorityType !== 'none' ? 'AS-TU ACCOMPLI TA PRIORITÉ ?' : 'COMMENT S\'EST PASSÉE TA JOURNÉE ?'}
+      {/* IMPACT */}
+      <section style={{ ...card, marginBottom: 14, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+        <RouteIcon size={20} color={LIME} style={{ flexShrink: 0, marginTop: 2 }} />
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 6 }}>Impact sur ton parcours</div>
+          <div style={{ color: SEC, fontSize: 13, lineHeight: 1.55 }}>
+            {habit.mode === 'track'
+              ? 'En suivi seulement, cette habitude n’a pas de cible : elle ne compte pas pour la journée alignée.'
+              : 'Les journées où tu tiens cet objectif peuvent contribuer à une journée alignée. Un dépassement ne fait jamais perdre de progression.'}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-            {COMPLETIONS.map(({ id, label }) => (
-              <button key={id} onClick={() => setCompletion(id)}
-                style={{ padding: '15px 8px', border: `1px solid ${completion === id ? LIME + '66' : BORDER}`, borderRadius: 16, background: completion === id ? '#0F1A00' : CARD2, color: completion === id ? LIME : MUTED, fontWeight: 1000, fontSize: 13, cursor: 'pointer', transition: 'all .15s' }}>
-                {label}
+        </div>
+      </section>
+
+      {/* OBJECTIF */}
+      <section style={{ ...card, marginBottom: 14 }}>
+        <div style={label}>OBJECTIF ACTUEL</div>
+        {!editing ? (
+          <>
+            <div style={{ fontSize: 16, fontWeight: 900 }}>
+              {MODE_LABELS[habit.mode].title}
+              {habit.daily_target != null ? ` · ≤ ${habit.daily_target} ${habit.unit}/jour` : ''}
+            </div>
+            <div style={{ color: SEC, fontSize: 12, marginTop: 4 }}>{MODE_LABELS[habit.mode].detail}</div>
+            <button onClick={openEdit} style={{ ...pill, marginTop: 16, width: '100%', color: LIME }}>Modifier mon objectif</button>
+          </>
+        ) : (
+          <div style={{ display: 'grid', gap: 10 }}>
+            {habit.kind === 'alcohol' && habit.risk_flag && (
+              <div style={{ padding: 16, borderRadius: 14, background: CARD2, border: `1px solid ${SOFT}` }}>
+                <div style={{ fontSize: 13, lineHeight: 1.55, marginBottom: 12 }}>
+                  Tu as indiqué une consommation quotidienne ou des signes de manque. Un objectif de réduction ou d’arrêt
+                  doit être fixé avec un médecin ou un professionnel ; NOX n’en propose pas.
+                </div>
+                <button onClick={() => setEditPro(!editPro)} style={choice(editPro)}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <Check size={16} color={editPro ? LIME : MUTED} />
+                    <span style={{ fontSize: 13, fontWeight: 800 }}>Je suis accompagné par un professionnel et j’ai un objectif fixé avec lui.</span>
+                  </div>
+                </button>
+              </div>
+            )}
+
+            {alcoholLocked ? (
+              <div style={{ color: SEC, fontSize: 13, lineHeight: 1.55 }}>Suivi seulement, sans cible.</div>
+            ) : (
+              habit.kind === 'steps' ? null : (habit.kind === 'custom' ? (['build', 'reduce'] as HabitMode[]) : (['reduce', 'stop', 'track'] as HabitMode[])).map(m => (
+                <button key={m} onClick={() => setEditMode(m)} style={choice(editMode === m)}>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: editMode === m ? LIME : WHITE }}>{habit.kind === 'custom' ? (m === 'build' ? 'Au moins' : 'Au plus') : MODE_LABELS[m].title}</div>
+                  <div style={{ fontSize: 12, color: SEC, marginTop: 3 }}>{MODE_LABELS[m].detail}</div>
+                </button>
+              ))
+            )}
+
+            {(effectiveEditMode === 'reduce' || effectiveEditMode === 'build') && (
+              <input type="number" inputMode="numeric" min={0} max={habit.kind === 'custom' || habit.kind === 'steps' ? 100000 : 500} value={editTarget} placeholder={effectiveEditMode === 'build' ? 'Au moins…' : 'Au plus…'}
+                onChange={e => setEditTarget(e.target.value)}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '14px 16px', borderRadius: 14, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontSize: 16, fontWeight: 800, outline: 'none' }} />
+            )}
+            <div style={{ color: MUTED, fontSize: 11, lineHeight: 1.5 }}>
+              Le nouvel objectif s’applique aux prochains relevés. Les journées déjà notées gardent la cible de l’époque.
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <button onClick={() => setEditing(false)} style={pill}>Annuler</button>
+              <button onClick={saveEdit} disabled={!targetValid || busy}
+                style={{ ...pill, border: 0, background: targetValid ? LIME : '#2B2F2C', color: targetValid ? BG : MUTED }}>
+                Enregistrer
               </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Ressenti */}
-        <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '18px 20px', marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em', marginBottom: 14 }}>
-            COMMENT TE SENS-TU ?
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
-            {FEELINGS.map((emoji, i) => (
-              <button key={i} onClick={() => setFeeling(feeling === i + 1 ? null : i + 1)}
-                style={{ fontSize: 28, padding: '12px 0', border: `1px solid ${feeling === i + 1 ? LIME + '66' : BORDER}`, borderRadius: 16, background: feeling === i + 1 ? '#0F1A00' : CARD2, cursor: 'pointer', transition: 'all .15s' }}>
-                {emoji}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Note optionnelle */}
-        <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '18px 20px', marginBottom: 22 }}>
-          <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em', marginBottom: 12 }}>
-            QUELQUE CHOSE À AJOUTER ? <span style={{ color: '#333' }}>OPTIONNEL</span>
-          </div>
-          <textarea
-            value={note}
-            onChange={e => setNote(e.target.value)}
-            placeholder="Ex : Journée productive, bonne séance..."
-            maxLength={280}
-            rows={3}
-            style={{ width: '100%', boxSizing: 'border-box', background: CARD2, border: `1px solid ${BORDER}`, borderRadius: 14, padding: '13px 14px', color: WHITE, fontSize: 13, resize: 'none', outline: 'none', font: 'inherit' }}
-          />
-        </section>
-
-        {/* CTA */}
-        <button onClick={save} disabled={!canSave || saving}
-          style={{ width: '100%', padding: 18, border: 0, borderRadius: 18, background: canSave ? LIME : '#1A1A1A', color: canSave ? '#0A0A0A' : MUTED, fontWeight: 1000, fontSize: 15, cursor: canSave ? 'pointer' : 'not-allowed', transition: 'all .2s' }}>
-          {saving ? 'ENREGISTREMENT...' : 'TERMINER MA JOURNÉE'}
-        </button>
-        {saveError && (
-          <div role="alert" style={{ marginTop: 12, textAlign: 'center', color: '#E9C2C2', fontSize: 13, lineHeight: 1.5 }}>{saveError}</div>
-        )}
-
-        {!canSave && (
-          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 11, color: MUTED }}>
-            Indique si tu as accompli ta priorité pour valider.
+            </div>
           </div>
         )}
+      </section>
 
-      </div>
-    </div>
+      {/* HISTORIQUE */}
+      <section style={{ ...card, marginBottom: 14 }}>
+        <div style={label}>HISTORIQUE</div>
+        {logs.length === 0 ? (
+          <div style={{ color: MUTED, fontSize: 13 }}>Aucun relevé pour l’instant.</div>
+        ) : (
+          <div>
+            {logs.slice(0, 30).map((l, i) => {
+              const ok = l.target_snapshot != null && okLog(l);
+              return (
+                <div key={l.date} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '11px 0', borderTop: i ? `1px solid ${SOFT}` : 'none' }}>
+                  <span style={{ color: SEC, fontSize: 13, textTransform: 'capitalize' }}>{l.date === today ? 'Aujourd’hui' : frDate(l.date)}</span>
+                  <span style={{ fontSize: 13, fontWeight: 900, color: ok ? LIME : WHITE }}>{dayLine(l)}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {def.resources.length > 0 && (
+        <section style={card}>
+          <div style={label}>BESOIN D’AIDE ?</div>
+          {def.resources.map(r => (
+            <a key={r.label} href={r.href}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, background: CARD2, color: WHITE, textDecoration: 'none' }}>
+              <Phone size={16} color={LIME} />
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 900 }}>{r.label}</div>
+                <div style={{ fontSize: 12, color: SEC, marginTop: 2 }}>{r.detail}</div>
+              </div>
+            </a>
+          ))}
+        </section>
+      )}
+    </>,
   );
 }
