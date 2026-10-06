@@ -28,14 +28,12 @@ export default function RestDay() {
       });
   }, [user]);
 
-  const claimRestXP = async () => {
+  // Enregistre seulement que le repos est validé aujourd'hui. Aucune XP n'est écrite ici :
+  // la progression est calculée uniquement par le serveur (get_nox_progress), à partir de la journée clôturée.
+  const validateRest = async () => {
     const today = todayLocalDate();
-    const restXP = 25; // Repos = 25 XP (vs 50 pour séance)
-    await supabase.from('profiles').update({
-      xp: (profile?.xp || 0) + restXP,
-      last_rest_claimed: today,
-    }).eq('id', user!.id);
-    setClaimed(true);
+    const { error } = await supabase.from('profiles').update({ last_rest_claimed: today }).eq('id', user!.id);
+    if (!error) setClaimed(true);
   };
 
   const tips = [
@@ -57,17 +55,17 @@ export default function RestDay() {
         Le repos fait partie du programme. Ton corps reconstruit et progresse pendant la récupération.
       </div>
 
-      {/* XP Récupération */}
+      {/* Validation du repos (sans XP : la progression est calculée par le serveur) */}
       {!alreadyClaimed && !claimed ? (
-        <button onClick={claimRestXP}
+        <button onClick={validateRest}
           style={{ background: ACCENT + '22', border: '1px solid ' + ACCENT + '66', borderRadius: 16, padding: '16px 28px', cursor: 'pointer', marginBottom: 32 }}>
-          <div style={{ fontSize: 13, fontWeight: 900, color: ACCENT }}>+25 XP — VALIDER MON REPOS</div>
-          <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Le repos planifié mérite son XP</div>
+          <div style={{ fontSize: 13, fontWeight: 900, color: ACCENT }}>VALIDER MON REPOS</div>
+          <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Ta progression est calculée par NOX quand tu clôtures ta journée.</div>
         </button>
       ) : (
         <div style={{ background: ACCENT + '11', border: '1px solid ' + ACCENT + '33', borderRadius: 16, padding: '14px 24px', marginBottom: 32 }}>
           <div style={{ fontSize: 14, fontWeight: 800, color: ACCENT }}>
-            {claimed ? '✓ +25 XP encaissés 💪' : '✓ Repos validé aujourd\'hui'}
+            ✓ Repos validé aujourd\'hui
           </div>
         </div>
       )}

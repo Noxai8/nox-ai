@@ -605,7 +605,7 @@ export default function Home() {
         {/* PAS DU JOUR — immédiatement au-dessus de « Ta journée » */}
         {(steps.habit || movementFocus) && (
           <section className="nox-home-section">
-            <SectionHeader title="Mes objectifs" action="Gérer ›" onAction={() => navigate('/habits')} />
+            <SectionHeader title="Mes pas" action="Gérer ›" onAction={() => navigate('/habits')} />
             <AppCard style={{ padding: 20 }}>
               <div className="nox-steps-card">
                 <div className="nox-steps-ring" style={{ ['--steps-progress' as any]: `${steps.progress * 360}deg` }}>
