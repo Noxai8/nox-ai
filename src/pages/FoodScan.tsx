@@ -13,6 +13,7 @@ import {
   ScanLine,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { invokeEdge } from '../lib/edgeFunctions';
 import { useAuth } from '../lib/AuthContext';
 
 const ACCENT = '#B7FF00';
@@ -140,40 +141,15 @@ export default function FoodScan() {
         throw new Error('Reconnecte-toi à NOX pour analyser ce repas.');
       }
 
-      const resp = await fetch(
-        'https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1/analyze-meal',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
-          },
-          body: JSON.stringify({
-            base64,
-            mime: 'image/jpeg',
-          }),
-        },
+      // Client Supabase existant : clé publique et jeton de l'utilisateur envoyés automatiquement
+      const { data, error: fnError } = await invokeEdge<any>(
+        'analyze-meal',
+        { base64, mime: 'image/jpeg' },
+        "L'analyse du repas n'est pas disponible pour le moment.",
       );
 
-      let data: any = null;
-
-      try {
-        data = await resp.json();
-      } catch {
-        // handled below
-      }
-
-      if (!resp.ok) {
-        throw new Error(
-          data?.error ||
-            data?.message ||
-            "L'analyse du repas n'est pas disponible pour le moment.",
-        );
-      }
-
-      if (data?.error) {
-        throw new Error(data.error);
+      if (fnError) {
+        throw new Error(fnError);
       }
 
       if (!data) {

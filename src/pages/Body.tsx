@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { invokeEdge } from '../lib/edgeFunctions';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
 import TutorialTooltip from '../components/TutorialTooltip';
@@ -241,27 +242,16 @@ const photoInputRef = useRef<HTMLInputElement>(null);
       });
 
       const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error('Session expirée. Reconnecte-toi puis réessaie.');
+      if (!sessionData.session?.access_token) throw new Error('Session expirée. Reconnecte-toi puis réessaie.');
 
-      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-activity`;
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ image: imageBase64 }),
-      });
-
-      const raw = await response.text();
-      let payload: any = null;
-      try { payload = JSON.parse(raw); } catch { payload = null; }
-
-      if (!response.ok) {
-        throw new Error(payload?.error || `Analyse impossible (${response.status}).`);
-      }
+      // Client Supabase existant : clé publique et jeton de l'utilisateur envoyés automatiquement
+      const { data: payload, error: fnError } = await invokeEdge<any>(
+        'analyze-activity',
+        { image: imageBase64 },
+        'Analyse impossible.',
+      );
+      if (fnError) throw new Error(fnError);
+      const raw = typeof payload === 'string' ? payload : JSON.stringify(payload ?? '');
 
       const extracted = payload?.activity || parseJsonObject(payload?.text || payload?.content || raw);
       if (!extracted || typeof extracted !== 'object') {
