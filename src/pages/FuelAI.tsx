@@ -45,10 +45,10 @@ export default function FuelAI() {
       profile,
       target,
       profileGoal: profile?.goal_type || profile?.goal || profile?.objective || goal || 'transformation physique',
-      calories: Number(target?.calories || 0) > 0 ? Number(target.calories) : null,
-      protein: Number(target?.protein || 0) > 0 ? Number(target.protein) : null,
-      carbs: Number(target?.carbs || 0) > 0 ? Number(target.carbs) : null,
-      fat: Number(target?.fat || 0) > 0 ? Number(target.fat) : null,
+      calories: Number(target?.calories || 0) > 0 ? Number(target?.calories) : null,
+      protein: Number(target?.protein || 0) > 0 ? Number(target?.protein) : null,
+      carbs: Number(target?.carbs || 0) > 0 ? Number(target?.carbs) : null,
+      fat: Number(target?.fat || 0) > 0 ? Number(target?.fat) : null,
     };
   };
 

@@ -133,7 +133,6 @@ const EXERCISE_ALIASES: Record<string, string> = {
   'fentes marchees':                    'walking_lunge',
   'walking lunge':                      'walking_lunge',
   'extension quadriceps':               'leg_extension',
-  'leg extension':                      'leg_extension',
   'bulgarian split squat':              'bulgarian_split_squat',
   'split squat bulgare':                'bulgarian_split_squat',
 
@@ -340,7 +339,6 @@ const VISUALS: Record<string, string> = {
   leg_extension:           '/exercises/leg-extension.webp',
   lunge:                   '/exercises/walking-lunge.webp',
   walking_lunge:           '/exercises/walking-lunge.webp',
-  reverse_dumbbell_lunge:  '/exercises/walking-lunge.webp',
   bulgarian_split_squat:   '/exercises/bulgarian-split-squat.webp',
   goblet_squat:            '/exercises/front-squat.webp',
   sissy_squat:             '/exercises/sissy-squat.webp',

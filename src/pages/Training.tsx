@@ -631,23 +631,10 @@ const skipCooldown = async () => {
 const validateSet = async () => {
     if (savingSet || !user) return;
 
-    // Si hors réseau, stocker localement
+    // Hors réseau : aucune file d'attente hors ligne n'existe (queueOffline n'a jamais été implémentée).
+    // On ne fait pas semblant d'enregistrer : la saisie est conservée pour être validée une fois reconnecté.
     if (isOffline) {
-      const ex = exercises[currentIdx];
-      if (ex) {
-        queueOffline('workout_set', {
-          workout_id: workoutId,
-          exercise_name: ex.name,
-          set_number: currentSet,
-          weight: parseFloat(String(weight).replace(',','.')) || 0,
-          reps: parseInt(String(reps)) || 0,
-          created_at: new Date().toISOString(),
-          workoutId,
-        });
-        setCurrentSet(s => s + 1);
-        setWeight('');
-        setReps('');
-      }
+      setTrainingError('Pas de connexion : cette série n’a pas été enregistrée. Reconnecte-toi puis valide-la à nouveau.');
       return;
     }
 
@@ -1168,7 +1155,7 @@ const exerciseSteps = noxExercise ? getNoxExerciseSteps(noxExercise.id) : demoSt
 const exerciseTips = noxExercise ? getNoxExerciseCoachTips(noxExercise.id) : exerciseSteps.map(step => step.cue);
 const exerciseMistakes = noxExercise ? getNoxExerciseMistakes(noxExercise.id) : [];
 const exerciseMuscles = noxExercise ? getNoxExerciseMuscles(noxExercise.id) : { primary: tags, secondary: [], stabilizers: [] };
-const exerciseDifficulty = noxExercise?.difficulty || ex?.difficulty || 'Standard';
+const exerciseDifficulty = ex?.difficulty || 'Standard';
 const totalSets = parseInt(ex?.sets) || 3;
 
 const trackingMode = getExerciseTrackingMode(ex);

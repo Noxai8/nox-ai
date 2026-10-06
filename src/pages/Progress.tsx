@@ -74,8 +74,8 @@ export default function Progress() {
     const ordered = [...photos].sort((a: any, b: any) =>
       new Date(a.taken_at || a.created_at).getTime() - new Date(b.taken_at || b.created_at).getTime()
     );
-    setCompareA(current => current && ordered.some((p: any) => p.id === current.id) ? current : ordered[0]);
-    setCompareB(current => current && ordered.some((p: any) => p.id === current.id) ? current : ordered[ordered.length - 1]);
+    setCompareA((current: { id: string } | null) => current && ordered.some((p: any) => p.id === current.id) ? current : ordered[0]);
+    setCompareB((current: { id: string } | null) => current && ordered.some((p: any) => p.id === current.id) ? current : ordered[ordered.length - 1]);
   }, [photos]);
 
   useEffect(() => {

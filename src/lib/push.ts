@@ -6,7 +6,7 @@ import { supabase } from './supabase';
 export const VAPID_PUBLIC_KEY =
   'BDhgYOkpeP2DjIcDIYY4jGlRNJ6pKI-EJZicp4bkre9HVl6oXWzMD6mbdajz1-aAB0CtDdndjS1_tc0Foy0jWyo';
 
-function urlBase64ToUint8Array(base64: string): Uint8Array {
+function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4);
   const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
   const raw = atob(b64);

@@ -80,7 +80,20 @@ const photoInputRef = useRef<HTMLInputElement>(null);
   const [scanPreview, setScanPreview] = useState<string | null>(null);
   const scanInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { if (user) void load(); }, [user]);
+  // Photos de progression : chargées depuis body_photos (mêmes colonnes que l'envoi et la suppression ci-dessous).
+  // Cette fonction était appelée sans exister : les photos n'apparaissaient jamais et l'envoi affichait une erreur.
+  const loadPhotos = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('body_photos')
+      .select('id, photo_url, storage_path, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    if (error) { console.error('body_photos:', error.message); return; }
+    setBodyPhotos(data ?? []);
+  };
+
+  useEffect(() => { if (user) { void load(); void loadPhotos(); } }, [user]);
 
   useEffect(() => {
     const add = searchParams.get('add');

@@ -1981,7 +1981,7 @@ export default function Fuel() {
         </div>
       )}
 
-      <BottomNav />
+      <BottomNav active="fuel" />
     </div>
   );
 }
