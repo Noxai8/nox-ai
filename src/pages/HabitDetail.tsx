@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { todayLocalDate } from '../lib/localDate';
 import { BottomNav } from './Home';
+import { habitCoach, habitFlags, habitStatusLabel, isProof } from '../lib/nox/habitCoach';
 import { HABITS, HABIT_COLUMNS, MODE_LABELS, habitName, isMeasured, isStepsHabit, isTargetMet, targetLine, usesValueInput, type HabitMode, type UserHabit } from '../lib/nox/habits';
 
 const BG = '#090B0A';
@@ -44,6 +45,7 @@ export default function HabitDetail() {
   const navigate = useNavigate();
 
   const [habit, setHabit] = useState<UserHabit | null>(null);
+  const [closedDates, setClosedDates] = useState<Set<string>>(new Set());
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>(7);
@@ -59,7 +61,7 @@ export default function HabitDetail() {
 
   const load = async () => {
     const since = lastDays(90)[0];
-    const [{ data: h, error: hErr }, { data: l, error: lErr }] = await Promise.all([
+    const [{ data: h, error: hErr }, { data: l, error: lErr }, { data: cl, error: cErr }] = await Promise.all([
       supabase.from('user_habits')
         .select(HABIT_COLUMNS)
         .eq('id', habitId!).eq('user_id', user!.id).maybeSingle(),
@@ -67,7 +69,11 @@ export default function HabitDetail() {
         .select('date, count, target_snapshot, mode_snapshot, source')
         .eq('habit_id', habitId!).eq('user_id', user!.id).gte('date', since)
         .order('date', { ascending: false }),
+      // Journées réellement clôturées : seules elles peuvent transformer une réussite en preuve
+      supabase.from('daily_closures').select('date').eq('user_id', user!.id).gte('date', since),
     ]);
+    if (cErr) setError(cErr.message);
+    setClosedDates(new Set((cl ?? []).map((x: any) => x.date)));
     if (hErr || lErr) setError((hErr || lErr)!.message);
     setHabit(h && HABITS[(h as UserHabit).kind] ? (h as UserHabit) : null);
     setLogs((l ?? []).map((x: any) => ({
@@ -141,38 +147,21 @@ export default function HabitDetail() {
   };
 
   const todayOk = !!todayLog && okLog(todayLog);
-  const isTobacco = habit?.kind === 'tobacco';
-  const isStopTobacco = isTobacco && habit?.mode === 'stop';
+  const { isStopTobacco } = habitFlags(habit);
+  const todayClosed = closedDates.has(today);
   const weekLogs = lastDays(7).map(d => byDate.get(d)).filter(Boolean) as Log[];
   const monthLogs = lastDays(30).map(d => byDate.get(d)).filter(Boolean) as Log[];
-  const weekProofs = weekLogs.filter(l => l.target_snapshot != null && okLog(l)).length;
-  const monthProofs = monthLogs.filter(l => l.target_snapshot != null && okLog(l)).length;
+  // Une preuve = journée clôturée ET réussie. Un écart ultérieur ne retire jamais une preuve passée.
+  const proofOf = (l: Log) => l.target_snapshot != null && isProof(l.date, okLog(l), closedDates);
+  const weekProofs = weekLogs.filter(proofOf).length;
+  const monthProofs = monthLogs.filter(proofOf).length;
 
-  const coach = (() => {
-    if (!todayLog) return {
-      title: 'La prochaine action compte.',
-      body: isStopTobacco
-        ? 'Note ta journée. Chaque cigarette évitée est une décision dans la direction que tu as choisie.'
-        : 'Renseigne ton avancée pour que NOX puisse te montrer concrètement ce que tu accomplis.',
-      accent: LIME,
-    };
-    if (todayOk) return {
-      title: isStopTobacco && todayLog.count === 0 ? 'Tu viens de prouver que c’est possible.' : 'Objectif accompli ✓',
-      body: isStopTobacco && todayLog.count === 0
-        ? 'Journée sans cigarette. Garde cette preuve : tu sais maintenant que tu peux le faire aujourd’hui.'
-        : 'Tu as tenu ton engagement aujourd’hui. Cette réussite devient une preuve sur laquelle t’appuyer demain.',
-      accent: LIME,
-    };
-    return {
-      title: isStopTobacco ? 'La journée continue.' : 'Ce n’est pas terminé.',
-      body: isStopTobacco
-        ? 'Une cigarette ne remet pas en cause le chemin parcouru. La prochaine décision compte : la prochaine cigarette évitée est déjà un progrès.'
-        : habit?.mode === 'build' && habit.daily_target != null
-          ? `Il te reste ${Math.max(0, habit.daily_target - todayLog.count).toLocaleString('fr-FR')} ${habit.unit} pour atteindre ton objectif aujourd’hui.`
-          : 'Ton objectif reste accessible. La prochaine décision peut encore te rapprocher de la cible aujourd’hui.',
-      accent: '#FF9F2E',
-    };
-  })();
+  const coachMsg = habit ? habitCoach(habit, todayLog?.count ?? null, todayOk, todayClosed) : null;
+  const coach = {
+    title: coachMsg?.title ?? '',
+    body: coachMsg?.body ?? '',
+    accent: coachMsg?.tone === 'positive' ? LIME : coachMsg?.tone === 'firm' ? '#FF7A1A' : todayLog ? '#FF9F2E' : LIME,
+  };
 
   // ── Rendu ─────────────────────────────────────────────────────────────────
   const card: React.CSSProperties = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20 };
@@ -255,11 +244,7 @@ export default function HabitDetail() {
               <span style={{ fontSize: 15, color: MUTED, fontWeight: 900 }}> {habit.unit}</span>
             </div>
             <div style={{ marginTop: 8, fontSize: 17, color: todayLog ? (todayOk ? LIME : '#FF9F2E') : SEC, fontWeight: 1000 }}>
-              {!todayLog
-                ? 'Pas encore noté aujourd’hui'
-                : isStopTobacco && todayLog.count === 0
-                  ? 'Journée sans cigarette ✓'
-                  : todayOk ? 'Objectif accompli ✓' : isStopTobacco ? 'Ce n’est pas terminé.' : dayLine(todayLog)}
+              {habitStatusLabel(habit, todayLog?.count ?? null, todayOk, todayClosed, todayLog ? dayLine(todayLog) : '')}
             </div>
             {isStepsHabit(habit) && todayLog && (
               <div style={{ marginTop: 7, color: isMeasured(todayLog.source) ? LIME : SEC, fontSize: 10, fontWeight: 950, letterSpacing: '.07em' }}>
@@ -349,14 +334,14 @@ export default function HabitDetail() {
               <Trophy size={22} color={LIME} />
               <div style={{ marginTop: 10, fontSize: 27, fontWeight: 1000 }}>{weekProofs}</div>
               <div style={{ color: SEC, fontSize: 12, lineHeight: 1.45 }}>
-                {isStopTobacco ? 'journées sans cigarette cette semaine' : 'objectifs accomplis cette semaine'}
+                {isStopTobacco ? 'journées sans cigarette clôturées cette semaine' : 'objectifs accomplis et clôturés cette semaine'}
               </div>
             </div>
             <div style={{ padding: 16, borderRadius: 16, background: CARD2, border: `1px solid ${SOFT}` }}>
               <Leaf size={22} color={LIME} />
               <div style={{ marginTop: 10, fontSize: 27, fontWeight: 1000 }}>{monthProofs}</div>
               <div style={{ color: SEC, fontSize: 12, lineHeight: 1.45 }}>
-                {isStopTobacco ? 'journées sans cigarette ce mois-ci' : 'objectifs accomplis ce mois-ci'}
+                {isStopTobacco ? 'journées sans cigarette clôturées ce mois-ci' : 'objectifs accomplis et clôturés ce mois-ci'}
               </div>
             </div>
           </div>
