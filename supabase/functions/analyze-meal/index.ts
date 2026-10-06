@@ -150,7 +150,6 @@ serve(async (req) => {
         'Content-Type': 'application/json',
         'x-api-key': ANTHROPIC_KEY,
         'anthropic-version': '2023-06-01',
-        'anthropic-workspace-id': 'wrkspc_01L3cb9d5iNZv6pGhXFb1jW2',
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
@@ -165,8 +164,13 @@ serve(async (req) => {
     const rawResponse = await response.text()
     let anthropicData: any = null
     try { anthropicData = JSON.parse(rawResponse) } catch {
+      // Diagnostic (jamais la clé) : statut et début de la réponse brute
+      console.error('ANTHROPIC_NON_JSON', response.status, rawResponse.slice(0, 200))
       return new Response(JSON.stringify({ error: 'Réponse Anthropic invalide.' }), { status: 502, headers: jsonHeaders })
     }
+
+    // Diagnostic (jamais la clé) : statut, type et message d'erreur renvoyés par Anthropic
+    if (!response.ok) console.error('ANTHROPIC_ERROR', response.status, anthropicData?.error?.type ?? '', anthropicData?.error?.message ?? '')
 
     if (!response.ok) return new Response(JSON.stringify({ error: anthropicData?.error?.message ?? `Erreur Anthropic (${response.status})` }), { status: 502, headers: jsonHeaders })
 
