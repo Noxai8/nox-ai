@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, Search, Activity as ActivityIcon, Bike, Dumbbell, Waves, PersonStanding, CircleDot, Mountain, HeartPulse } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { localDateFromDate, todayLocalDate } from '../lib/localDate';
@@ -76,11 +76,21 @@ export default function ActivityAdd() {
     padding: '12px 14px', borderRadius: 13, cursor: 'pointer', fontWeight: 900, fontSize: 13, textAlign: 'left',
     border: `1px solid ${on ? LIME : SOFT}`, background: on ? 'rgba(200,255,0,.08)' : CARD2, color: on ? LIME : WHITE,
   });
-  const tile: React.CSSProperties = { ...choice(false), padding: '14px', fontSize: 14 };
+  const activityIcon = (id: string) => {
+    if (id === 'marche' || id === 'randonnee') return <PersonStanding size={19} />;
+    if (id === 'velo') return <Bike size={19} />;
+    if (id === 'musculation') return <Dumbbell size={19} />;
+    if (id === 'natation') return <Waves size={19} />;
+    if (['football','basket','tennis','padel','badminton'].includes(id)) return <CircleDot size={19} />;
+    if (id === 'yoga' || id === 'etirements') return <HeartPulse size={19} />;
+    if (id === 'autre') return <Mountain size={19} />;
+    return <ActivityIcon size={19} />;
+  };
+  const tile: React.CSSProperties = { ...choice(false), minHeight: 58, padding: '11px 13px', fontSize: 14, display: 'flex', alignItems: 'center', gap: 11 };
 
   return (
-    <div style={{ minHeight: '100dvh', background: BG, color: WHITE, paddingBottom: 'calc(160px + env(safe-area-inset-bottom))' }}>
-      <main style={{ width: '100%', maxWidth: 760, margin: '0 auto', padding: '0 16px', boxSizing: 'border-box' }}>
+    <div style={{ minHeight: '100dvh', background: BG, color: WHITE, paddingBottom: 'calc(220px + env(safe-area-inset-bottom))' }}>
+      <main style={{ width: '100%', maxWidth: 900, margin: '0 auto', padding: '0 clamp(16px,3vw,28px)', boxSizing: 'border-box' }}>
         <header style={{ paddingTop: 44, paddingBottom: 18, display: 'flex', alignItems: 'center', gap: 14 }}>
           <button onClick={() => (step === 'form' ? setStep('pick') : navigate('/activity'))} aria-label="Retour"
             style={{ width: 42, height: 42, borderRadius: 14, border: `1px solid ${BORDER}`, background: CARD, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
@@ -103,7 +113,7 @@ export default function ActivityAdd() {
               <section style={card}>
                 <div style={label}>ACTIVITÉS RÉCENTES</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {recent.map(r => <button key={r.id} onClick={() => pick(r.id)} style={{ ...choice(false), padding: '9px 14px' }}>{r.label}</button>)}
+                  {recent.map(r => <button key={r.id} onClick={() => pick(r.id)} style={{ ...choice(false), padding: '9px 13px', display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: LIME, display: 'grid' }}>{activityIcon(r.id)}</span>{r.label}</button>)}
                 </div>
               </section>
             )}
@@ -119,7 +129,7 @@ export default function ActivityAdd() {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
-                  {results.map(a => <button key={a.id} onClick={() => pick(a.id)} style={tile}>{a.label}</button>)}
+                  {results.map(a => <button key={a.id} onClick={() => pick(a.id)} style={tile}><span style={{ width: 34, height: 34, borderRadius: 10, background: '#111513', display: 'grid', placeItems: 'center', color: LIME, flexShrink: 0 }}>{activityIcon(a.id)}</span><span>{a.label}</span></button>)}
                 </div>
               )}
             </section>
