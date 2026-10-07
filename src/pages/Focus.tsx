@@ -11,10 +11,10 @@ import {
 } from '../lib/nox/focus';
 
 const BG = '#090B0A';
-const CARD = '#232624';
+const CARD = '#171A18';
 const CARD2 = '#191C1A';
-const BORDER = '#4A4F4B';
-const SOFT = '#343835';
+const BORDER = '#303531';
+const SOFT = '#292E2A';
 const WHITE = '#FFFFFF';
 const SEC = '#A5AAA6';
 const MUTED = '#747A76';
@@ -143,7 +143,7 @@ export default function Focus() {
   const done = mission ? missionMinutes(sessions, mission.id) : 0;
   const complete = mission ? isMissionDone(mission, done) : false;
 
-  const card: React.CSSProperties = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20, marginBottom: 14 };
+  const card: React.CSSProperties = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 18, padding: 18, marginBottom: 12 };
   const label: React.CSSProperties = { color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em', marginBottom: 12 };
   const choice = (on: boolean): React.CSSProperties => ({
     padding: '12px 14px', borderRadius: 13, cursor: 'pointer', fontWeight: 900, fontSize: 13,
@@ -163,7 +163,7 @@ export default function Focus() {
     const remaining = open.planned_minutes * 60 - elapsed;
     return (
       <div style={{ minHeight: '100dvh', background: BG, color: WHITE, display: 'flex', flexDirection: 'column' }}>
-        <main style={{ flex: 1, width: '100%', maxWidth: 560, margin: '0 auto', padding: '56px 20px 32px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+        <main style={{ flex: 1, width: '100%', maxWidth: 760, margin: '0 auto', padding: '44px 16px 32px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
           <div style={{ color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.12em' }}>MODE CONCENTRATION</div>
           <div style={{ fontSize: 24, fontWeight: 850, letterSpacing: '-.03em', marginTop: 8 }}>{mission?.title ?? 'Ta mission'}</div>
           <div style={{ flex: 1, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
@@ -191,7 +191,7 @@ export default function Focus() {
   return (
     <div style={{ minHeight: '100dvh', background: BG, color: WHITE, paddingBottom: 'calc(160px + env(safe-area-inset-bottom))' }}>
       <main style={{ width: '100%', maxWidth: 760, margin: '0 auto', padding: '0 16px', boxSizing: 'border-box' }}>
-        <header style={{ paddingTop: 44, paddingBottom: 22, display: 'flex', alignItems: 'center', gap: 14 }}>
+        <header style={{ paddingTop: 30, paddingBottom: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
           <button onClick={() => (editing ? setEditing(false) : navigate(-1))} aria-label="Retour"
             style={{ width: 42, height: 42, borderRadius: 14, border: `1px solid ${BORDER}`, background: CARD, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
             <ArrowLeft size={18} color={WHITE} />
