@@ -230,10 +230,10 @@ export default function WeeklyReview() {
           </section>
         )}
 
-        {/* MOUVEMENT */}
+        {/* ACTIVITÉ (libellé seulement : calcul inchangé, basé sur movement_logs) */}
         {movements.length > 0 && (
           <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '18px 20px', marginBottom: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em', marginBottom: 14 }}>MOUVEMENT</div>
+            <div style={{ fontSize: 11, fontWeight: 900, color: MUTED, letterSpacing: '.08em', marginBottom: 14 }}>ACTIVITÉ</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: sportSet.length ? 12 : 0 }}>
               <div style={{ background: CARD2, borderRadius: 16, padding: '14px 16px' }}>
                 <div style={{ fontSize: 24, fontWeight: 1000 }}>{movements.length}</div>

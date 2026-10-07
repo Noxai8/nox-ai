@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { HABITS, habitName, isTargetMet, type UserHabit } from '../lib/nox/habits';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, CalendarDays, ChevronRight, Crown, Dumbbell, Flame, Infinity as InfinityIcon, Leaf, LockKeyhole, Medal, MessageCircle, Shield, Trophy, Utensils } from 'lucide-react';
+import { Activity as ActivityIcon, ArrowRight, CalendarDays, ChevronRight, Crown, Dumbbell, Flame, Infinity as InfinityIcon, Leaf, LockKeyhole, Medal, MessageCircle, Shield, Trophy, Utensils } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
@@ -103,6 +103,8 @@ export default function MonNox() {
   const [activeDays,    setActiveDays]    = useState(0);
   const [prioritiesDone,setPrioritiesDone]= useState(0);
   const [totalWorkouts, setTotalWorkouts] = useState(0);
+  // Activités saisies (movement_logs) : affichées avec les séances terminées, sans rapprochement entre les deux
+  const [totalManualActivities, setTotalManualActivities] = useState(0);
   const [avgSleep,      setAvgSleep]      = useState<number | null>(null);
   const [avgEnergy,     setAvgEnergy]     = useState<number | null>(null);
   const [avgBody,       setAvgBody]       = useState<number | null>(null);
@@ -119,11 +121,13 @@ export default function MonNox() {
       { count: pulses },
       { count: workouts },
       { data: pulseData },
+      { count: manualActivities },
     ] = await Promise.all([
       supabase.from('daily_closures').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
       supabase.from('daily_pulses').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
       supabase.from('workouts').select('id', { count: 'exact', head: true }).eq('user_id', user!.id).eq('status', 'completed'),
       supabase.from('daily_pulses').select('sleep_score, energy_score, body_score').eq('user_id', user!.id).order('date', { ascending: false }).limit(14),
+      supabase.from('movement_logs').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
     ]);
 
     // XP calculée et plafonnée côté serveur (barème v2) — l'app ne fait qu'afficher
@@ -150,6 +154,7 @@ export default function MonNox() {
     setObservedDays(closures ?? 0);
     setTotalPulses(pulses ?? 0);
     setTotalWorkouts(workouts ?? 0);
+    setTotalManualActivities(manualActivities ?? 0);
 
     if (pulseData && pulseData.length >= 3) {
       const avg = (key: 'sleep_score' | 'energy_score' | 'body_score') =>
@@ -222,10 +227,13 @@ export default function MonNox() {
     });
   }
 
+  // Affichage seulement : séances guidées terminées + activités saisies. Aucune règle n'utilise ce total.
+  const totalActivities = totalWorkouts + totalManualActivities;
+
   // Mémoire — contenu déterministe selon vraies données
   const saitItems: string[] = [
     totalPulses >= 1  ? `Tu as renseigné ton état ${totalPulses} fois.` : '',
-    totalWorkouts >= 1 ? `Tu as complété ${totalWorkouts} séance${totalWorkouts > 1 ? 's' : ''}.` : '',
+    totalActivities >= 1 ? `Tu as enregistré ${totalActivities} activité${totalActivities > 1 ? 's' : ''}.` : '',
     observedDays >= 7  ? `Tu utilises NOX depuis ${observedDays} jours.` : '',
     avgSleep !== null  ? `Ton sommeil moyen (14 j) : ${avgSleep}/5.` : '',
     avgEnergy !== null ? `Ton énergie moyenne (14 j) : ${avgEnergy}/5.` : '',
@@ -293,7 +301,7 @@ export default function MonNox() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
                 {[
                   { label: 'Nutrition', path: '/fuel', icon: Utensils },
-                  { label: 'Mouvement', path: '/movement', icon: Dumbbell },
+                  { label: 'Activité', path: '/activity', icon: ActivityIcon },
                   { label: 'Récupération', path: '/recovery', icon: Leaf },
                   { label: 'Parler à NOX', path: isPro ? '/coach' : '/subscribe', icon: MessageCircle },
                 ].map(({label,path,icon:Icon}) => (
@@ -350,7 +358,7 @@ export default function MonNox() {
             <section style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:18}}>
               {[
                 ['Jours validés',observedDays,CalendarDays,'#FF9F43'],
-                ['Séances',totalWorkouts,Dumbbell,LIME],
+                ['Activités',totalActivities,ActivityIcon,LIME],
                 ['Rangs franchis',Math.max(0,noxRank-1),Crown,'#E9B94D']
               ].map(([label,value,Icon,color]:any)=><div key={String(label)} style={{background:'linear-gradient(180deg,#151917,#101311)',border:`1px solid ${BORDER}`,borderRadius:17,padding:'15px 8px',textAlign:'center'}}><Icon size={17} color={color} style={{marginBottom:7}}/><strong style={{display:'block',fontSize:21}}>{value}</strong><span style={{display:'block',fontSize:9,color:MUTED,marginTop:4}}>{label}</span></div>)}
             </section>
@@ -369,7 +377,7 @@ export default function MonNox() {
                 {aligned && (
                   <>
                     <div style={{fontSize:12,color:SECONDARY,marginTop:8}}>
-                      {aligned.movement} mouvement · {aligned.focus} concentration · {aligned.habits} habitude{aligned.habits > 1 ? 's' : ''} · {aligned.recovery} récupération
+                      {aligned.movement} activité{aligned.movement > 1 ? 's' : ''} · {aligned.focus} concentration · {aligned.habits} habitude{aligned.habits > 1 ? 's' : ''} · {aligned.recovery} récupération
                     </div>
                     <div style={{fontSize:10,color:MUTED,marginTop:5}}>Une journée peut compter dans plusieurs catégories.</div>
                   </>

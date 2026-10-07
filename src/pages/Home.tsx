@@ -972,7 +972,7 @@ export default function Home() {
 
         {todaySession && !todayWorkout && (
           <section className="nox-home-section">
-            <SectionHeader title="Mouvement" action="Plus" onAction={() => navigate('/program')} />
+            <SectionHeader title="Séance du jour" action="Plus" onAction={() => navigate('/program')} />
             <AppCard style={{ padding: 18 }}>
               <div className="nox-compact-row">
                 <div className="nox-square-icon nox-square-icon--neutral"><Dumbbell size={25} /></div>
@@ -989,7 +989,7 @@ export default function Home() {
 
         {todayWorkout && (
           <section className="nox-home-section">
-            <SectionHeader title="Mouvement" />
+            <SectionHeader title="Séance du jour" />
             <AppCard style={{ padding: 20 }}>
               <div className="nox-compact-row">
                 <div className="nox-square-icon"><Dumbbell size={24} /></div>
