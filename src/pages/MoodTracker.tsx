@@ -6,12 +6,12 @@ import { BottomNav } from './Home';
 
 const ACCENT = '#c8ff00';
 const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const SURFACE = '#171A18';
+const BORDER = '#303531';
 
 const MOODS = [
   { id: 5, emoji: '😄', label: 'Excellent', color: ACCENT },
-  { id: 4, emoji: '😊', label: 'Bien', color: '#4488ff' },
+  { id: 4, emoji: '😊', label: 'Bien', color: ACCENT },
   { id: 3, emoji: '😐', label: 'Neutre', color: '#ffaa00' },
   { id: 2, emoji: '😔', label: 'Pas top', color: '#ff6644' },
   { id: 1, emoji: '😞', label: 'Difficile', color: '#ff4444' },
@@ -267,9 +267,9 @@ export default function MoodTracker() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, paddingBottom: 90 }}>
+    <div style={{ minHeight: '100vh', maxWidth: 900, margin: '0 auto', background: BG, paddingBottom: 'calc(170px + env(safe-area-inset-bottom))' }}>
       <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid ' + BORDER }}>
-        <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Readiness NOX</div>
+        <div style={{ fontSize: 11, color: '#8D948F', textTransform: 'uppercase', letterSpacing: '.1em' }}>Readiness NOX</div>
         <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>HUMEUR & RÉCUPÉRATION</div>
         <div style={{ fontSize: 12, color: '#666', lineHeight: 1.5, marginTop: 6 }}>
           Ton check-in aide NOX à décider si tu dois pousser, adapter ou récupérer.
@@ -286,10 +286,10 @@ export default function MoodTracker() {
 
         <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: '14px 16px', marginBottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>ACTIVITÉ ESTIMÉE · 7 JOURS</div>
+            <div style={{ fontSize: 11, color: '#8D948F', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>ACTIVITÉ ESTIMÉE · 7 JOURS</div>
             <div style={{ fontSize: 24, fontWeight: 900, color: '#ff6644' }}>{caloriesBurned} kcal</div>
           </div>
-          <div style={{ fontSize: 11, color: '#555', textAlign: 'right', lineHeight: 1.4 }}>
+          <div style={{ fontSize: 11, color: '#8D948F', textAlign: 'right', lineHeight: 1.4 }}>
             Estimation NOX<br />à partir des séances
           </div>
         </div>
@@ -393,7 +393,7 @@ export default function MoodTracker() {
                   {recommendation.score}
                 </div>
               </div>
-              <div style={{ color: '#888', fontSize: 12, lineHeight: 1.55, marginTop: 9 }}>{recommendation.text}</div>
+              <div style={{ color: '#A5AAA6', fontSize: 12, lineHeight: 1.55, marginTop: 9 }}>{recommendation.text}</div>
               <div style={{ marginTop: 12 }}>
                 {recommendation.actions.map((action, i) => (
                   <div key={i} style={{ color: '#bbb', fontSize: 12, lineHeight: 1.5, marginTop: 6 }}>
@@ -465,14 +465,14 @@ export default function MoodTracker() {
 
         {history.length > 0 && (
           <div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>DERNIERS CHECK-INS</div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#8D948F', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>DERNIERS CHECK-INS</div>
             <div style={{ display: 'flex', gap: 8 }}>
               {history.slice(0, 7).reverse().map((log, i) => {
                 const m = MOODS.find(item => item.id === log.mood_score);
                 return (
                   <div key={log.id || i} style={{ flex: 1, minWidth: 0, textAlign: 'center', background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 10, padding: '9px 2px' }}>
                     <div style={{ fontSize: 20 }}>{m?.emoji || '—'}</div>
-                    <div style={{ fontSize: 9, color: '#555', marginTop: 4 }}>
+                    <div style={{ fontSize: 9, color: '#8D948F', marginTop: 4 }}>
                       {new Date(log.created_at).toLocaleDateString('fr-FR', { weekday: 'short' })}
                     </div>
                   </div>
