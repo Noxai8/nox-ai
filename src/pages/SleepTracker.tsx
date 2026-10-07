@@ -7,8 +7,8 @@ import { BottomNav } from './Home';
 
 const ACCENT = '#c8ff00';
 const BG = '#0a0a0a';
-const SURFACE = '#111';
-const BORDER = '#1a1a1a';
+const SURFACE = '#171A18';
+const BORDER = '#303531';
 
 const QUALITY_LABELS = ['', 'Très mauvais', 'Mauvais', 'Moyen', 'Bien', 'Excellent'];
 const QUALITY_COLORS = ['', '#ff4444', '#ff6600', '#ffaa00', '#44cc88', ACCENT];
@@ -75,10 +75,10 @@ export default function SleepTracker() {
   const durationColor = duration >= 8 ? ACCENT : duration >= 7 ? '#44cc88' : duration >= 6 ? '#ffaa00' : '#ff6600';
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, paddingBottom: 90 }}>
+    <div style={{ minHeight: '100vh', maxWidth: 900, margin: '0 auto', background: BG, paddingBottom: 'calc(170px + env(safe-area-inset-bottom))' }}>
       <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid ' + BORDER }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 22, marginBottom: 12, display: 'block' }}>←</button>
-        <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.1em' }}>Récupération</div>
+        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: '#8D948F', cursor: 'pointer', fontSize: 22, marginBottom: 12, display: 'block' }}>←</button>
+        <div style={{ fontSize: 11, color: '#8D948F', textTransform: 'uppercase', letterSpacing: '.1em' }}>Récupération</div>
         <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>SOMMEIL</div>
       </div>
 
@@ -92,7 +92,7 @@ export default function SleepTracker() {
           ].map(({ label, value, color }) => (
             <div key={label} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: '14px 0', textAlign: 'center' }}>
               <div style={{ fontSize: 20, fontWeight: 900, color }}>{value}</div>
-              <div style={{ fontSize: 10, color: '#555', fontWeight: 700 }}>{label}</div>
+              <div style={{ fontSize: 10, color: '#8D948F', fontWeight: 700 }}>{label}</div>
             </div>
           ))}
         </div>
@@ -104,24 +104,24 @@ export default function SleepTracker() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
               <div>
-                <label style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: 6 }}>Couché à</label>
+                <label style={{ fontSize: 11, color: '#8D948F', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: 6 }}>Couché à</label>
                 <input type="time" value={form.bedtime} onChange={e => setForm(f => ({ ...f, bedtime: e.target.value }))}
-                  style={{ width: '100%', padding: '12px', background: '#0d0d0d', border: '1px solid ' + BORDER, borderRadius: 10, color: '#fff', fontSize: 16, boxSizing: 'border-box' as const, outline: 'none' }} />
+                  style={{ width: '100%', padding: '12px', background: '#111513', border: '1px solid ' + BORDER, borderRadius: 10, color: '#fff', fontSize: 16, boxSizing: 'border-box' as const, outline: 'none' }} />
               </div>
               <div>
-                <label style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: 6 }}>Levé à</label>
+                <label style={{ fontSize: 11, color: '#8D948F', textTransform: 'uppercase', letterSpacing: '.06em', display: 'block', marginBottom: 6 }}>Levé à</label>
                 <input type="time" value={form.waketime} onChange={e => setForm(f => ({ ...f, waketime: e.target.value }))}
-                  style={{ width: '100%', padding: '12px', background: '#0d0d0d', border: '1px solid ' + BORDER, borderRadius: 10, color: '#fff', fontSize: 16, boxSizing: 'border-box' as const, outline: 'none' }} />
+                  style={{ width: '100%', padding: '12px', background: '#111513', border: '1px solid ' + BORDER, borderRadius: 10, color: '#fff', fontSize: 16, boxSizing: 'border-box' as const, outline: 'none' }} />
               </div>
             </div>
 
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
               <span style={{ fontSize: 28, fontWeight: 900, color: durationColor }}>{duration}h</span>
-              <span style={{ fontSize: 13, color: '#555', marginLeft: 8 }}>de sommeil</span>
+              <span style={{ fontSize: 13, color: '#8D948F', marginLeft: 8 }}>de sommeil</span>
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
+              <div style={{ fontSize: 11, color: '#8D948F', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
                 Qualité {form.quality > 0 && <span style={{ color: QUALITY_COLORS[form.quality] }}>— {QUALITY_LABELS[form.quality]}</span>}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -136,7 +136,7 @@ export default function SleepTracker() {
 
             <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               placeholder="Notes optionnelles (rêves, réveils nocturnes...)"
-              style={{ width: '100%', minHeight: 60, padding: '10px 12px', background: '#0d0d0d', border: '1px solid ' + BORDER, borderRadius: 10, color: '#fff', fontSize: 13, resize: 'none', outline: 'none', boxSizing: 'border-box' as const, fontFamily: 'inherit', marginBottom: 14 }} />
+              style={{ width: '100%', minHeight: 60, padding: '10px 12px', background: '#111513', border: '1px solid ' + BORDER, borderRadius: 10, color: '#fff', fontSize: 13, resize: 'none', outline: 'none', boxSizing: 'border-box' as const, fontFamily: 'inherit', marginBottom: 14 }} />
 
             <button onClick={save} disabled={!form.quality || saving}
               onTouchEnd={e => { e.preventDefault(); if (form.quality && !saving) save(); }}
@@ -147,14 +147,14 @@ export default function SleepTracker() {
         ) : (
           <div style={{ background: ACCENT + '0d', border: '1px solid ' + ACCENT + '33', borderRadius: 16, padding: 16, marginBottom: 20, textAlign: 'center' }}>
             <div style={{ fontSize: 28, fontWeight: 900, color: ACCENT }}>{todayLog.duration_hours}h</div>
-            <div style={{ fontSize: 13, color: '#888' }}>Nuit enregistrée · Qualité {todayLog.quality}/5</div>
+            <div style={{ fontSize: 13, color: '#A5AAA6' }}>Nuit enregistrée · Qualité {todayLog.quality}/5</div>
           </div>
         )}
 
         {/* Historique 14 nuits */}
         {history.length > 0 && (
           <>
-            <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>14 DERNIÈRES NUITS</div>
+            <div style={{ fontSize: 11, color: '#8D948F', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>14 DERNIÈRES NUITS</div>
             {/* Mini graphique barres */}
             <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: 16, marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 60, marginBottom: 8 }}>
@@ -165,16 +165,16 @@ export default function SleepTracker() {
                 })}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 9, color: '#555' }}>il y a 2 sem.</span>
-                <span style={{ fontSize: 9, color: '#555' }}>Hier</span>
+                <span style={{ fontSize: 9, color: '#8D948F' }}>il y a 2 sem.</span>
+                <span style={{ fontSize: 9, color: '#8D948F' }}>Hier</span>
               </div>
             </div>
 
             {history.slice(0, 7).map(log => (
               <div key={log.id} style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 12, padding: '10px 14px', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: 12, color: '#555' }}>{new Date(log.created_at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
-                  <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{log.bedtime} → {log.waketime}</div>
+                  <div style={{ fontSize: 12, color: '#8D948F' }}>{new Date(log.created_at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
+                  <div style={{ fontSize: 11, color: '#A5AAA6', marginTop: 2 }}>{log.bedtime} → {log.waketime}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 16, fontWeight: 900, color: (log.duration_hours || 0) >= 7 ? ACCENT : '#ffaa00' }}>{log.duration_hours}h</div>
@@ -187,7 +187,7 @@ export default function SleepTracker() {
 
         {/* Conseils sommeil */}
         <div style={{ background: SURFACE, border: '1px solid ' + BORDER, borderRadius: 14, padding: 16, marginTop: 8 }}>
-          <div style={{ fontSize: 11, color: '#555', fontWeight: 800, textTransform: 'uppercase', marginBottom: 10 }}>💡 OPTIMISATION SOMMEIL</div>
+          <div style={{ fontSize: 11, color: '#8D948F', fontWeight: 800, textTransform: 'uppercase', marginBottom: 10 }}>💡 OPTIMISATION SOMMEIL</div>
           {[
             { tip: 'Dors 7-9h pour maximiser la synthèse protéique et la récupération musculaire', icon: '⏰' },
             { tip: 'Heure de coucher régulière ±30min = meilleure qualité de sommeil profond', icon: '🎯' },
@@ -196,7 +196,7 @@ export default function SleepTracker() {
           ].map((c, i) => (
             <div key={i} style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: i < 3 ? '1px solid #0d0d0d' : 'none' }}>
               <span style={{ fontSize: 16, flexShrink: 0 }}>{c.icon}</span>
-              <span style={{ fontSize: 12, color: '#888', lineHeight: 1.5 }}>{c.tip}</span>
+              <span style={{ fontSize: 12, color: '#A5AAA6', lineHeight: 1.5 }}>{c.tip}</span>
             </div>
           ))}
         </div>
