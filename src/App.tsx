@@ -44,6 +44,7 @@ const Habits = lazy(() => import('./pages/Habits'));
 const HabitDetail = lazy(() => import('./pages/HabitDetail'));
 const VapidKeys = lazy(() => import('./pages/VapidKeys'));
 const Focus = lazy(() => import('./pages/Focus'));
+const Activity = lazy(() => import('./pages/Activity'));
 
 /* =========================================================
    LOADER NOX — DARK PREMIUM
@@ -371,6 +372,7 @@ function AppRoutes() {
         <Route path="/habits/:habitId" element={<ProtectedRoute><HabitDetail /></ProtectedRoute>} />
         <Route path="/outils/cles-notifications" element={<ProtectedRoute><VapidKeys /></ProtectedRoute>} />
         <Route path="/focus" element={<ProtectedRoute><Focus /></ProtectedRoute>} />
+        <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
 
         {/* =====================================================
             HEALTH / RECOVERY
