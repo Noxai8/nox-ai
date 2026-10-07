@@ -46,7 +46,7 @@ function QuickAddModal({ open, onClose }: { open: boolean; onClose: () => void }
 
   const actions = [
     { label: 'Repas',           icon: Utensils, path: '/food-scan', color: '#FF6B35' },
-    { label: 'Mouvement/Sport', icon: Dumbbell, path: '/movement',  color: '#C8FF00' },
+    { label: 'Activité',        icon: Activity, path: '/activity/new', color: '#C8FF00' },
     { label: 'Concentration',   icon: Target,   path: '/focus',     color: '#C8FF00' },
     { label: 'Poids',           icon: Scale,    path: '/body',      color: '#64B5F6' },
     { label: 'Sommeil',         icon: Moon,     path: '/sleep',     color: '#9C89FF' },
@@ -605,7 +605,7 @@ export default function Home() {
         {/* PAS DU JOUR — immédiatement au-dessus de « Ta journée » */}
         {(steps.habit || movementFocus) && (
           <section className="nox-home-section">
-            <SectionHeader title="Mes pas" action="Gérer ›" onAction={() => navigate('/habits')} />
+            <SectionHeader title="Mes pas" action="Activité ›" onAction={() => navigate('/activity')} />
             <AppCard style={{ padding: 20 }}>
               <div className="nox-steps-card">
                 <div className="nox-steps-ring" style={{ ['--steps-progress' as any]: `${steps.progress * 360}deg` }}>

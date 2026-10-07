@@ -644,9 +644,9 @@ export default function Settings() {
             onClick={() => navigate('/nutrition-goals')}
           />
           <Row
-            title="Mouvement / Sport"
-            subtitle="Programme et préférences de mouvement"
-            onClick={() => navigate('/program')}
+            title="Activité"
+            subtitle="Pas, activités du jour et de la semaine"
+            onClick={() => navigate('/activity')}
           />
           <Row
             title="Récupération"
