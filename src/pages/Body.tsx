@@ -8,8 +8,8 @@ import TutorialTooltip from '../components/TutorialTooltip';
 
 const ACCENT = '#C8FF00';
 const BG = '#090B0A';
-const SURFACE = '#232624';
-const BORDER = '#4A4F4B';
+const SURFACE = '#171A18';
+const BORDER = '#303531';
 
 type Tab = 'progress' | 'activity' | 'photos';
 type ActivityMode = 'manual' | 'scan' | 'confirm';
@@ -552,7 +552,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
 
   const activityInput = (key: keyof ActivityForm, label: string, unit?: string, placeholder = '') => (
     <label style={{ display: 'block', background: '#191C1A', border: `1px solid ${BORDER}`, borderRadius: 14, padding: 12 }}>
-      <div style={{ fontSize: 9.5, color: '#777', fontWeight: 850, textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ fontSize: 9.5, color: '#8D948F', fontWeight: 850, textTransform: 'uppercase' }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'center', marginTop: 5 }}>
         <input
           value={activityForm[key]}
@@ -562,7 +562,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
           inputMode={key === 'activity_type' || key === 'notes' ? undefined : 'decimal'}
           style={{ width: '100%', minWidth: 0, border: 0, outline: 0, background: 'transparent', color: '#FFFFFF', fontSize: 16, fontWeight: 850 }}
         />
-        {unit && <span style={{ color: '#555', fontSize: 10 }}>{unit}</span>}
+        {unit && <span style={{ color: '#737A75', fontSize: 10 }}>{unit}</span>}
       </div>
     </label>
   );
@@ -585,7 +585,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
                 <div style={{ fontSize: 28, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.07em' }}>NOX</div>
                 <div style={{ width: 9, height: 9, borderRadius: '50%', background: ACCENT }} />
               </div>
-              <div style={{ fontSize: 10, color: '#999D95', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 7 }}>CORPS & ACTIVITÉ</div>
+              <div style={{ fontSize: 10, color: '#999D95', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 7 }}>CORPS</div>
             </div>
             <button onClick={() => setShowAdd(true)} style={{ border: 0, borderRadius: 13, background: ACCENT, color: '#050505', padding: '11px 15px', fontSize: 11, fontWeight: 950, letterSpacing: '.04em', cursor: 'pointer' }}>+ CHECK-IN</button>
           </div>
@@ -609,17 +609,17 @@ const photoInputRef = useRef<HTMLInputElement>(null);
           {tab === 'progress' && (
             <>
               {latest ? (
-                <div style={{ background: '#090909', border: `1px solid ${BORDER}`, borderRadius: 22, padding: 20, marginBottom: 14 }}>
+                <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 22, padding: 20, marginBottom: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, alignItems: 'flex-start' }}>
                     <div>
-                      <div style={{ fontSize: 10, color: '#777', fontWeight: 850, letterSpacing: '.09em' }}>POIDS ACTUEL</div>
+                      <div style={{ fontSize: 10, color: '#8D948F', fontWeight: 850, letterSpacing: '.09em' }}>POIDS ACTUEL</div>
                       <div style={{ fontSize: 42, fontWeight: 950, letterSpacing: '-.055em', lineHeight: 1.05, marginTop: 6, color: '#FFFFFF' }}>
-                        {Number(latest.weight)}<span style={{ fontSize: 15, color: '#777', marginLeft: 5 }}>kg</span>
+                        {Number(latest.weight)}<span style={{ fontSize: 15, color: '#8D948F', marginLeft: 5 }}>kg</span>
                       </div>
                     </div>
                     {delta !== null && (
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 9.5, color: '#666', fontWeight: 850, letterSpacing: '.08em' }}>ÉVOLUTION</div>
+                        <div style={{ fontSize: 9.5, color: '#7E8580', fontWeight: 850, letterSpacing: '.08em' }}>ÉVOLUTION</div>
                         <div style={{ marginTop: 6, fontSize: 20, fontWeight: 950, color: parseFloat(delta) <= 0 ? ACCENT : '#ff785f' }}>
                           {parseFloat(delta) > 0 ? '+' : ''}{delta} kg
                         </div>
@@ -640,7 +640,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
 
                   <div style={{ borderRadius: 15, padding: '12px 10px 4px', background: '#191C1A', border: `1px solid ${BORDER}` }}>
                     {weightLogs.length >= 2 ? <MiniChart /> : (
-                      <div style={{ height: 80, display: 'grid', placeItems: 'center', color: '#555', fontSize: 11.5 }}>Encore un check-in pour afficher ta courbe</div>
+                      <div style={{ height: 80, display: 'grid', placeItems: 'center', color: '#737A75', fontSize: 11.5 }}>Encore un check-in pour afficher ta courbe</div>
                     )}
                   </div>
                 </div>
@@ -648,36 +648,36 @@ const photoInputRef = useRef<HTMLInputElement>(null);
                 <div style={{ borderRadius: 22, border: `1px solid ${BORDER}`, background: SURFACE, padding: '42px 22px', textAlign: 'center', marginBottom: 14 }}>
                   <div style={{ width: 52, height: 52, margin: '0 auto 16px', borderRadius: 16, background: 'rgba(200,255,0,.08)', border: '1px solid rgba(200,255,0,.16)', display: 'grid', placeItems: 'center', color: ACCENT, fontSize: 22 }}>+</div>
                   <div style={{ fontSize: 18, fontWeight: 950 }}>COMMENCE TON SUIVI</div>
-                  <div style={{ color: '#777', fontSize: 12.5, lineHeight: 1.55, margin: '8px auto 18px', maxWidth: 300 }}>Ajoute ton premier check-in pour construire ta courbe de progression.</div>
+                  <div style={{ color: '#8D948F', fontSize: 12.5, lineHeight: 1.55, margin: '8px auto 18px', maxWidth: 300 }}>Ajoute ton premier check-in pour construire ta courbe de progression.</div>
                   <button onClick={() => setShowAdd(true)} style={{ border: 0, borderRadius: 12, background: ACCENT, color: '#050505', padding: '12px 17px', fontWeight: 950, cursor: 'pointer' }}>AJOUTER MON POIDS</button>
                 </div>
               )}
 
               {logs.filter(l => l.weight).length > 0 && (
                 <>
-                  <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '21px 2px 10px' }}>HISTORIQUE</div>
+                  <div style={{ fontSize: 10.5, color: '#8D948F', fontWeight: 900, letterSpacing: '.09em', margin: '21px 2px 10px' }}>HISTORIQUE</div>
                   {logs.filter(l => l.weight).slice(0, 10).map(log => (
                     <div key={log.id} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 15, padding: '14px 15px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'center' }}>
                       <div>
-                        <div style={{ fontSize: 18, fontWeight: 950 }}>{log.weight} <span style={{ fontSize: 11, color: '#666' }}>kg</span></div>
-                        <div style={{ fontSize: 10.5, color: '#666', marginTop: 4 }}>{new Date(log.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                        <div style={{ fontSize: 18, fontWeight: 950 }}>{log.weight} <span style={{ fontSize: 11, color: '#7E8580' }}>kg</span></div>
+                        <div style={{ fontSize: 10.5, color: '#7E8580', marginTop: 4 }}>{new Date(log.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                       </div>
-                      {log.notes && <div style={{ fontSize: 11, color: '#777', maxWidth: 150, textAlign: 'right', lineHeight: 1.4 }}>{log.notes}</div>}
+                      {log.notes && <div style={{ fontSize: 11, color: '#8D948F', maxWidth: 150, textAlign: 'right', lineHeight: 1.4 }}>{log.notes}</div>}
                     </div>
                   ))}
                 </>
               )}
 
-              <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>MENSURATIONS</div>
+              <div style={{ fontSize: 10.5, color: '#8D948F', fontWeight: 900, letterSpacing: '.09em', margin: '22px 2px 10px' }}>MENSURATIONS</div>
               {logs.filter(l => l.waist_cm || l.chest_cm).length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '55px 20px', borderRadius: 22, background: SURFACE, border: `1px solid ${BORDER}` }}>
                   <div style={{ fontSize: 18, fontWeight: 950 }}>MESURE TON ÉVOLUTION</div>
-                  <div style={{ fontSize: 12.5, color: '#777', lineHeight: 1.55, margin: '9px auto 20px', maxWidth: 310 }}>Le poids ne raconte pas tout. Ajoute tes mensurations pour mieux suivre ta transformation.</div>
+                  <div style={{ fontSize: 12.5, color: '#8D948F', lineHeight: 1.55, margin: '9px auto 20px', maxWidth: 310 }}>Le poids ne raconte pas tout. Ajoute tes mensurations pour mieux suivre ta transformation.</div>
                   <button onClick={() => setShowAdd(true)} style={{ border: 0, borderRadius: 12, background: ACCENT, color: '#050505', padding: '12px 17px', fontWeight: 950, cursor: 'pointer' }}>AJOUTER DES MESURES</button>
                 </div>
               ) : logs.filter(l => l.waist_cm || l.chest_cm).slice(0, 5).map(log => (
                 <div key={log.id} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: 16, marginBottom: 11 }}>
-                  <div style={{ fontSize: 10.5, color: '#666', fontWeight: 850, marginBottom: 12 }}>{new Date(log.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+                  <div style={{ fontSize: 10.5, color: '#7E8580', fontWeight: 850, marginBottom: 12 }}>{new Date(log.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
                     {[
                       { key: 'chest_cm', label: 'Poitrine' },
@@ -687,8 +687,8 @@ const photoInputRef = useRef<HTMLInputElement>(null);
                       { key: 'thighs_cm', label: 'Cuisses' },
                     ].filter(m => log[m.key]).map(({ key, label }) => (
                       <div key={key} style={{ background: '#191C1A', border: `1px solid ${BORDER}`, borderRadius: 13, padding: 13 }}>
-                        <div style={{ fontSize: 18, fontWeight: 950 }}>{log[key]} <span style={{ fontSize: 10, color: '#666' }}>cm</span></div>
-                        <div style={{ fontSize: 9.5, color: '#777', marginTop: 4, textTransform: 'uppercase', fontWeight: 800 }}>{label}</div>
+                        <div style={{ fontSize: 18, fontWeight: 950 }}>{log[key]} <span style={{ fontSize: 10, color: '#7E8580' }}>cm</span></div>
+                        <div style={{ fontSize: 9.5, color: '#8D948F', marginTop: 4, textTransform: 'uppercase', fontWeight: 800 }}>{label}</div>
                       </div>
                     ))}
                   </div>
@@ -701,12 +701,12 @@ const photoInputRef = useRef<HTMLInputElement>(null);
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10, marginBottom: 12 }}>
                 <div style={{ borderRadius: 18, padding: 17, background: SURFACE, border: `1px solid ${BORDER}` }}>
-                  <div style={{ fontSize: 9.5, color: '#666', fontWeight: 900, letterSpacing: '.08em' }}>AUJOURD'HUI</div>
-                  <div style={{ fontSize: 28, fontWeight: 950, marginTop: 6 }}>{Math.round(todayMinutes)} <span style={{ fontSize: 11, color: '#666' }}>min</span></div>
+                  <div style={{ fontSize: 9.5, color: '#7E8580', fontWeight: 900, letterSpacing: '.08em' }}>AUJOURD'HUI</div>
+                  <div style={{ fontSize: 28, fontWeight: 950, marginTop: 6 }}>{Math.round(todayMinutes)} <span style={{ fontSize: 11, color: '#7E8580' }}>min</span></div>
                 </div>
                 <div style={{ borderRadius: 18, padding: 17, background: SURFACE, border: `1px solid ${BORDER}` }}>
-                  <div style={{ fontSize: 9.5, color: '#666', fontWeight: 900, letterSpacing: '.08em' }}>MACHINE / EST.</div>
-                  <div style={{ fontSize: 28, fontWeight: 950, marginTop: 6, color: ACCENT }}>{Math.round(todayCalories)} <span style={{ fontSize: 11, color: '#666' }}>kcal</span></div>
+                  <div style={{ fontSize: 9.5, color: '#7E8580', fontWeight: 900, letterSpacing: '.08em' }}>MACHINE / EST.</div>
+                  <div style={{ fontSize: 28, fontWeight: 950, marginTop: 6, color: ACCENT }}>{Math.round(todayCalories)} <span style={{ fontSize: 11, color: '#7E8580' }}>kcal</span></div>
                 </div>
               </div>
 
@@ -723,26 +723,26 @@ const photoInputRef = useRef<HTMLInputElement>(null);
                 <div role="alert" style={{ marginTop: 14, borderRadius: 12, padding: '10px 12px', background: 'rgba(255,95,95,.08)', border: '1px solid rgba(255,95,95,.22)', color: '#ff8a8a', fontSize: 11.5 }}>{activityError}</div>
               )}
 
-              <div style={{ fontSize: 10.5, color: '#777', fontWeight: 900, letterSpacing: '.09em', margin: '24px 2px 10px' }}>HISTORIQUE ACTIVITÉ</div>
+              <div style={{ fontSize: 10.5, color: '#8D948F', fontWeight: 900, letterSpacing: '.09em', margin: '24px 2px 10px' }}>HISTORIQUE ACTIVITÉ</div>
               {activities.length === 0 ? (
-                <div style={{ borderRadius: 18, padding: '35px 20px', background: SURFACE, border: `1px solid ${BORDER}`, textAlign: 'center', color: '#666', fontSize: 12 }}>Aucune activité enregistrée.</div>
+                <div style={{ borderRadius: 18, padding: '35px 20px', background: SURFACE, border: `1px solid ${BORDER}`, textAlign: 'center', color: '#7E8580', fontSize: 12 }}>Aucune activité enregistrée.</div>
               ) : activities.slice(0, 20).map(activity => (
                 <div key={activity.id} style={{ borderRadius: 16, padding: 15, background: SURFACE, border: `1px solid ${BORDER}`, marginBottom: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                     <div>
                       <div style={{ fontWeight: 950, fontSize: 15 }}>{activity.activity_type}</div>
-                      <div style={{ color: '#666', fontSize: 10.5, marginTop: 4 }}>
+                      <div style={{ color: '#7E8580', fontSize: 10.5, marginTop: 4 }}>
                         {new Date(activity.performed_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} · {activity.source === 'scan' ? 'scan machine' : 'saisie manuelle'}
                       </div>
                     </div>
-                    <button onClick={() => void deleteActivity(activity.id)} aria-label="Supprimer l'activité" style={{ border: 0, background: 'transparent', color: '#555', cursor: 'pointer', fontSize: 18 }}>×</button>
+                    <button onClick={() => void deleteActivity(activity.id)} aria-label="Supprimer l'activité" style={{ border: 0, background: 'transparent', color: '#737A75', cursor: 'pointer', fontSize: 18 }}>×</button>
                   </div>
                   <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 12, fontSize: 12, fontWeight: 850 }}>
                     <span>{activity.duration_minutes} min</span>
                     {activity.calories_burned != null && <span style={{ color: ACCENT }}>{activity.calories_burned} kcal</span>}
                     {activity.distance_km != null && <span>{Number(activity.distance_km).toFixed(2)} km</span>}
                   </div>
-                  {activity.notes && <div style={{ color: '#777', fontSize: 11, lineHeight: 1.45, marginTop: 9 }}>{activity.notes}</div>}
+                  {activity.notes && <div style={{ color: '#8D948F', fontSize: 11, lineHeight: 1.45, marginTop: 9 }}>{activity.notes}</div>}
                 </div>
               ))}
             </>
@@ -780,12 +780,12 @@ const photoInputRef = useRef<HTMLInputElement>(null);
                   style={{ width: '100%', padding: 16, background: photoUploading ? SURFACE : ACCENT, border: 'none', borderRadius: 14, color: photoUploading ? '#555' : '#000', fontWeight: 900, fontSize: 14, cursor: 'pointer', touchAction: 'manipulation', marginBottom: 8 }}>
                   {photoUploading ? 'UPLOAD EN COURS...' : 'AJOUTER UNE PHOTO'}
                 </button>
-                <div style={{ fontSize: 11, color: '#555', textAlign: 'center' }}>Tes photos sont privées — stockées sur ton compte uniquement</div>
+                <div style={{ fontSize: 11, color: '#737A75', textAlign: 'center' }}>Tes photos sont privées — stockées sur ton compte uniquement</div>
               </div>
 
               {/* Galerie */}
               {bodyPhotos.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: '#555' }}>
+                <div style={{ textAlign: 'center', padding: '40px 0', color: '#737A75' }}>
                   
                   <div style={{ fontSize: 14 }}>Pas encore de photos</div>
                   <div style={{ fontSize: 12, marginTop: 6 }}>Ajoute ta première photo de progression</div>
@@ -839,17 +839,17 @@ const photoInputRef = useRef<HTMLInputElement>(null);
                 { key: 'thighs_cm', label: 'Cuisses', unit: 'cm', placeholder: '—' },
               ].map(({ key, label, unit, placeholder }) => (
                 <label key={key} style={{ display: 'block', background: '#191C1A', border: `1px solid ${BORDER}`, borderRadius: 14, padding: 12 }}>
-                  <div style={{ fontSize: 9.5, color: '#777', fontWeight: 850, textTransform: 'uppercase' }}>{label}</div>
+                  <div style={{ fontSize: 9.5, color: '#8D948F', fontWeight: 850, textTransform: 'uppercase' }}>{label}</div>
                   <div style={{ display: 'flex', alignItems: 'center', marginTop: 5 }}>
                     <input value={(form as any)[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} type="number" inputMode="decimal" style={{ width: '100%', minWidth: 0, border: 0, outline: 0, background: 'transparent', color: '#FFFFFF', fontSize: 18, fontWeight: 900 }} />
-                    <span style={{ color: '#555', fontSize: 10 }}>{unit}</span>
+                    <span style={{ color: '#737A75', fontSize: 10 }}>{unit}</span>
                   </div>
                 </label>
               ))}
             </div>
 
             <label style={{ display: 'block', marginTop: 10 }}>
-              <div style={{ fontSize: 9.5, color: '#777', fontWeight: 850, textTransform: 'uppercase', marginBottom: 6 }}>Note</div>
+              <div style={{ fontSize: 9.5, color: '#8D948F', fontWeight: 850, textTransform: 'uppercase', marginBottom: 6 }}>Note</div>
               <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Comment tu te sens aujourd'hui ?" type="text" style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${BORDER}`, outline: 0, background: '#191C1A', color: '#FFFFFF', borderRadius: 14, padding: '13px 14px', fontSize: 13 }} />
             </label>
 
@@ -878,7 +878,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
               <>
                 <div style={{ borderRadius: 18, padding: '24px 18px', border: '1px dashed #333', background: SURFACE, textAlign: 'center' }}>
                   <div style={{ fontSize: 16, fontWeight: 950 }}>PHOTO DE L'ÉCRAN</div>
-                  <div style={{ color: '#777', fontSize: 12, lineHeight: 1.55, margin: '8px auto 17px', maxWidth: 340 }}>
+                  <div style={{ color: '#8D948F', fontSize: 12, lineHeight: 1.55, margin: '8px auto 17px', maxWidth: 340 }}>
                     Cadre l’écran pour que la durée, les calories et la distance soient lisibles. NOX te demandera toujours de confirmer avant d’enregistrer.
                   </div>
                   <input ref={scanInputRef} type="file" accept="image/*" capture="environment" onChange={e => e.target.files?.[0] && void scanMachine(e.target.files[0])} style={{ display: 'none' }} />
@@ -906,7 +906,7 @@ const photoInputRef = useRef<HTMLInputElement>(null);
                   </div>
                   {activityInput('notes', 'Note', undefined, 'Optionnel')}
                 </div>
-                <div style={{ color: '#666', fontSize: 10.5, lineHeight: 1.5, marginTop: 12 }}>
+                <div style={{ color: '#7E8580', fontSize: 10.5, lineHeight: 1.5, marginTop: 12 }}>
                   Les calories affichées par les machines restent des estimations. Elles sont conservées comme données d’activité, pas comme calories automatiquement “à manger”.
                 </div>
                 <button onClick={() => void saveActivity()} disabled={activitySaving} style={{ width: '100%', border: 0, borderRadius: 14, background: activitySaving ? '#2a2a2a' : ACCENT, color: activitySaving ? '#777' : '#050505', padding: 15, marginTop: 16, fontSize: 12, fontWeight: 950, cursor: activitySaving ? 'wait' : 'pointer' }}>
