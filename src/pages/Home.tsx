@@ -11,6 +11,7 @@ import NoxCompanion from '../components/NoxCompanion';
 import { HABITS, HABIT_COLUMNS, habitName, isStepsHabit, isTargetMet, usesValueInput, type UserHabit } from '../lib/nox/habits';
 import { buildDayPlan, summarizeDay, type DayPlanItem } from '../lib/nox/dayPlan';
 import { stepsView } from '../lib/nox/steps';
+import { todaySessionFromProgram } from '../lib/nox/guidedSessions';
 import { dayState, noxiLine } from '../lib/nox/noxiVoice';
 import { isMissionDone, missionMinutes, suggestBlock, type DailyMission, type FocusSession } from '../lib/nox/focus';
 
@@ -438,11 +439,8 @@ export default function Home() {
   // Pas du jour : module unique, partagé avec la ligne « Bouger » de « Ta journée »
   const steps = stepsView(habits, habitLogs.filter(l => l.date === todayLocalDate()));
   const [stepsHelp, setStepsHelp] = useState(false);
-  const sessions = program?.program_json?.sessions || [];
-  const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-  const todaySession = sessions.find((session: any) =>
-    String(session?.day || '').toLowerCase().includes(dayNames[new Date().getDay()].toLowerCase().slice(0, 3))
-  ) || null;
+  // Séance guidée du jour : source de vérité partagée avec Activité (règle inchangée)
+  const todaySession = todaySessionFromProgram(program);
 
   const priority: DailyPriority = useMemo(() => generateDailyPriority({
     pulse: todayPulse ? {

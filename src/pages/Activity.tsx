@@ -7,9 +7,10 @@ import { localDateFromDate, localDayStartISO, todayLocalDate } from '../lib/loca
 import { HABIT_COLUMNS, type UserHabit } from '../lib/nox/habits';
 import { stepsView } from '../lib/nox/steps';
 import {
-  activitiesForDay, INTENSITY_LABELS, ORIGIN_LABELS, summarize, weekSummary,
+  activitiesForDay, workoutDay, INTENSITY_LABELS, ORIGIN_LABELS, summarize, weekSummary,
   type DatedStepsLog, type MovementLogRow, type WorkoutRow,
 } from '../lib/nox/activity';
+import { sessionRouteId, todaySessionFromProgram, type ProgramLike } from '../lib/nox/guidedSessions';
 import { BottomNav } from './Home';
 
 // ── /activity — lecture seule ────────────────────────────────────────────────
@@ -50,6 +51,8 @@ export default function Activity() {
   const [stepsLogs, setStepsLogs] = useState<DatedStepsLog[]>([]);
   const [movement, setMovement] = useState<MovementLogRow[]>([]);
   const [workouts, setWorkouts] = useState<WorkoutRow[]>([]);
+  // Programme actif (moteur des séances guidées, inchangé, en arrière-plan)
+  const [program, setProgram] = useState<ProgramLike>(null);
 
   const days = useMemo(() => last7Days(), []);
   const today = todayLocalDate();
@@ -58,23 +61,31 @@ export default function Activity() {
 
   const load = async () => {
     const first = days[0];
-    const [h, l, m, w] = await Promise.all([
+    const [h, l, m, w, p] = await Promise.all([
       supabase.from('user_habits').select(HABIT_COLUMNS).eq('user_id', user!.id).eq('active', true),
       supabase.from('habit_logs').select('habit_id, date, count, source').eq('user_id', user!.id).gte('date', first),
       supabase.from('movement_logs').select('id, date, sport, duration_min, intensity, note, created_at').eq('user_id', user!.id).gte('date', first),
       supabase.from('workouts').select('id, name, status, started_at, finished_at, duration_minutes, duration_min')
         .eq('user_id', user!.id).eq('status', 'completed').gte('finished_at', localDayStartISO(first)),
+      supabase.from('workout_programs').select('id, program_json').eq('user_id', user!.id).eq('is_active', true).maybeSingle(),
     ]);
-    const firstError = h.error || l.error || m.error || w.error;
+    const firstError = h.error || l.error || m.error || w.error || p.error;
     if (firstError) setError(firstError.message);
     setHabits((h.data ?? []) as UserHabit[]);
     setStepsLogs(((l.data ?? []) as any[]).map(x => ({ habit_id: x.habit_id, date: x.date, count: Number(x.count), source: x.source ?? 'manual' })));
     setMovement((m.data ?? []) as MovementLogRow[]);
     setWorkouts((w.data ?? []) as WorkoutRow[]);
+    setProgram((p.data ?? null) as ProgramLike);
     setLoading(false);
   };
 
   const steps = stepsView(habits, stepsLogs.filter(l => l.date === today));
+  // Séances NOX : même séance du jour que la Home ; « faite » = une séance terminée aujourd'hui (même définition que la Home)
+  const guidedSession = todaySessionFromProgram(program);
+  const guidedRouteId = sessionRouteId(program, guidedSession);
+  const guidedDoneToday = workouts.some(w => workoutDay(w) === today);
+  const guidedMinutes = Number(guidedSession?.duration_minutes) > 0 ? Number(guidedSession.duration_minutes) : null;
+  const guidedExercises = Array.isArray(guidedSession?.exercises) && guidedSession.exercises.length > 0 ? guidedSession.exercises.length : null;
   const todayItems = activitiesForDay(today, movement, workouts);
   const todaySummary = summarize(todayItems);
   const week = weekSummary(days, habits, stepsLogs, movement, workouts);
@@ -209,6 +220,57 @@ export default function Activity() {
                   <ChevronRight size={16} color={MUTED} />
                 </div>
               ))}
+            </section>
+
+            {/* SÉANCES NOX — porte d'entrée vers le moteur Program/Training existant */}
+            <section style={card}>
+              <div style={label}>SÉANCES NOX</div>
+              {guidedSession ? (
+                <>
+                  <div style={{ fontSize: 17, fontWeight: 950, letterSpacing: '-.02em' }}>
+                    {typeof guidedSession.name === 'string' && guidedSession.name.trim() ? guidedSession.name : 'Séance du jour'}
+                  </div>
+                  {(guidedMinutes != null || guidedExercises != null) && (
+                    <div style={{ color: SEC, fontSize: 12, marginTop: 4 }}>
+                      {[guidedMinutes != null ? `${guidedMinutes} min` : null, guidedExercises != null ? `${guidedExercises} exercice${guidedExercises > 1 ? 's' : ''}` : null].filter(Boolean).join(' · ')}
+                    </div>
+                  )}
+                  {guidedDoneToday ? (
+                    <div style={{ color: LIME, fontSize: 13, fontWeight: 900, marginTop: 12 }}>Séance terminée aujourd’hui ✓</div>
+                  ) : guidedRouteId != null && (
+                    <button onClick={() => navigate(`/training/${guidedRouteId}`)}
+                      style={{ marginTop: 14, width: '100%', padding: 14, border: 0, borderRadius: 13, background: LIME, color: BG, fontWeight: 900, fontSize: 14, cursor: 'pointer' }}>
+                      Commencer
+                    </button>
+                  )}
+                  <button onClick={() => navigate('/program')}
+                    style={{ marginTop: 10, padding: 0, border: 0, background: 'transparent', color: SEC, fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
+                    Voir mon programme ›
+                  </button>
+                </>
+              ) : program ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <span style={{ color: SEC, fontSize: 13 }}>Pas de séance prévue aujourd’hui.</span>
+                  <button onClick={() => navigate('/program')}
+                    style={{ padding: 0, border: 0, background: 'transparent', color: SEC, fontWeight: 800, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    Voir mon programme ›
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div style={{ color: SEC, fontSize: 13, lineHeight: 1.5 }}>Des séances guidées construites pour toi, si tu veux un cadre.</div>
+                  <button onClick={() => navigate('/generate-program')}
+                    style={{ marginTop: 12, padding: '10px 14px', borderRadius: 12, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontWeight: 900, fontSize: 13, cursor: 'pointer' }}>
+                    Créer mon programme
+                  </button>
+                </>
+              )}
+              {(program || workouts.length > 0) && (
+                <button onClick={() => navigate('/training-calendar')}
+                  style={{ display: 'block', marginTop: 14, padding: '12px 0 0', width: '100%', textAlign: 'left', border: 0, borderTop: `1px solid ${SOFT}`, background: 'transparent', color: SEC, fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
+                  Historique des séances ›
+                </button>
+              )}
             </section>
           </>
         ) : (

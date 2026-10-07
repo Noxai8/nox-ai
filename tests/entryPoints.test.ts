@@ -7,6 +7,7 @@ const t = (n: string, c: boolean) => { c ? ok++ : ko++; console.log(c ? '✓' : 
 const home = read('src/pages/Home.tsx'), settings = read('src/pages/Settings.tsx'), app = read('src/App.tsx');
 const dayPlan = read('src/lib/nox/dayPlan.ts'), steps = read('src/lib/nox/steps.ts');
 const monNox = read('src/pages/MonNox.tsx'), weekly = read('src/pages/WeeklyReview.tsx');
+const activity = read('src/pages/Activity.tsx');
 
 t('+ global : « Activité » ouvre /activity/new', /label: 'Activité',\s+icon: Activity, path: '\/activity\/new'/.test(home));
 t('+ global : plus d’entrée « Mouvement/Sport »', !home.includes("'Mouvement/Sport'"));
@@ -33,5 +34,18 @@ t('Mon NOX : « Ta route » dit « activité »', monNox.includes("{aligned.move
 t('Bilan hebdo : titre « ACTIVITÉ », calcul toujours basé sur movement_logs', weekly.includes('>ACTIVITÉ</div>') && !weekly.includes('>MOUVEMENT</div>') && weekly.includes("from('movement_logs').select('sport,duration_min,intensity,date')"));
 t('Home : sections de séance titrées « Séance du jour », destinations inchangées', (home.match(/title="Séance du jour"/g) ?? []).length === 2 && !home.includes('title="Mouvement"') && home.includes(`<SectionHeader title="Séance du jour" action="Plus" onAction={() => navigate('/program')} />`));
 t('Moi : pas de ligne « Programme d’entraînement »', !settings.includes("Programme d'entraînement") && !settings.includes('Programme d’entraînement'));
+
+// ── Lot 6 : Séances NOX dans Activité ──
+t('Activité : section « SÉANCES NOX »', activity.includes('>SÉANCES NOX</div>'));
+t('Activité : séance du jour issue du module partagé', activity.includes('todaySessionFromProgram(program)') && activity.includes('sessionRouteId(program, guidedSession)'));
+t('Cas A : « Commencer » démarre la séance existante', activity.includes('navigate(`/training/${guidedRouteId}`)') && />\s*Commencer\s*</.test(activity));
+t('Cas A/B : « Voir mon programme » vers /program', (activity.match(/navigate\('\/program'\)/g) ?? []).length === 2 && activity.includes('Voir mon programme'));
+t('Cas C : « Créer mon programme » vers le flux de génération existant', activity.includes("navigate('/generate-program')") && activity.includes('Créer mon programme') && !/Créer une séance guidée/.test(activity));
+t('Historique des séances vers TrainingCalendar', activity.includes("navigate('/training-calendar')") && activity.includes('Historique des séances'));
+{
+  // Code sans commentaires (JSX {/* … */} et //) : seul le texte réellement affichable est contrôlé
+  const visible = activity.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  t('Le mot « Training » n’apparaît dans aucun texte visible d’Activité', !/Training/.test(visible));
+}
 
 console.log(`\n${ok} réussis, ${ko} échoués`);
