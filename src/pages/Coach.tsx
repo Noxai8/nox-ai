@@ -9,12 +9,12 @@ import PaywallCard from '../components/PaywallCard';
 import { ArrowUp, ChevronRight } from 'lucide-react';
 
 const ACCENT = '#C8FF00';
-const BG     = '#F7F8F4';
-const WHITE  = '#FFFFFF';
-const BLACK  = '#0B0B0B';
-const MUTED  = '#7A7F76';
-const BORDER = '#E8EAE4';
-const LIME   = '#F0FFD0';
+const BG     = '#090B0A';
+const WHITE  = '#171A18';
+const BLACK  = '#FFFFFF';
+const MUTED  = '#8D948F';
+const BORDER = '#303531';
+const LIME   = '#20271A';
 const FN     = 'https://zpxrsmnpcyzafawlweyl.supabase.co/functions/v1';
 
 // Suggestions contextuelles selon la DA
@@ -266,7 +266,7 @@ REGLES :
 
   return (
     <div style={{ minHeight: '100vh', background: BG, color: BLACK, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ width: '100%', maxWidth: 560, margin: '0 auto', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <div style={{ width: '100%', maxWidth: 760, margin: '0 auto', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
 
         {/* PAYWALL */}
         {!isPro && (
@@ -384,7 +384,7 @@ REGLES :
         {/* INPUT */}
         <div style={{
           position: 'fixed', bottom: 70, left: '50%', transform: 'translateX(-50%)',
-          width: '100%', maxWidth: 560, padding: '12px 16px',
+          width: '100%', maxWidth: 760, padding: '12px 16px',
           background: 'rgba(247,248,244,.97)', backdropFilter: 'blur(16px)',
           borderTop: `1px solid ${BORDER}`, boxSizing: 'border-box', zIndex: 100,
         }}>
