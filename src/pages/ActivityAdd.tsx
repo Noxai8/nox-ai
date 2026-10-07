@@ -86,7 +86,7 @@ export default function ActivityAdd() {
     if (id === 'autre') return <Mountain size={19} />;
     return <ActivityIcon size={19} />;
   };
-  const tile: React.CSSProperties = { ...choice(false), minHeight: 58, padding: '11px 13px', fontSize: 14, display: 'flex', alignItems: 'center', gap: 11 };
+  const tile: React.CSSProperties = { ...choice(false), minHeight: 64, padding: '12px 14px', fontSize: 14, display: 'flex', alignItems: 'center', gap: 12, transition: 'border-color .15s ease, transform .15s ease' };
 
   return (
     <div style={{ minHeight: '100dvh', background: BG, color: WHITE, paddingBottom: 'calc(220px + env(safe-area-inset-bottom))' }}>
@@ -118,8 +118,8 @@ export default function ActivityAdd() {
               </section>
             )}
 
-            <section style={card}>
-              <div style={label}>{query ? 'RÉSULTATS' : 'TOUTES LES ACTIVITÉS'}</div>
+            <section style={{ ...card, background: '#1D201E' }}>
+              <div style={{ ...label, display:'flex', justifyContent:'space-between', alignItems:'center' }}><span>{query ? 'RÉSULTATS' : 'TOUTES LES ACTIVITÉS'}</span><span style={{color:SEC, letterSpacing:0, fontWeight:700}}>{results.length}</span></div>
               {results.length === 0 ? (
                 <div style={{ color: SEC, fontSize: 13, lineHeight: 1.5 }}>
                   Aucune activité trouvée.
@@ -128,7 +128,7 @@ export default function ActivityAdd() {
                   </button>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8 }}>
                   {results.map(a => <button key={a.id} onClick={() => pick(a.id)} style={tile}><span style={{ width: 34, height: 34, borderRadius: 10, background: '#111513', display: 'grid', placeItems: 'center', color: LIME, flexShrink: 0 }}>{activityIcon(a.id)}</span><span>{a.label}</span></button>)}
                 </div>
               )}
