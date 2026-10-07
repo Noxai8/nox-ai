@@ -118,6 +118,11 @@ export default function Activity() {
           ))}
         </div>
 
+        <button onClick={() => navigate('/activity/new')}
+          style={{ width: '100%', padding: 16, marginBottom: 16, border: 0, borderRadius: 14, background: LIME, color: BG, fontWeight: 900, fontSize: 14, cursor: 'pointer' }}>
+          + Ajouter une activité
+        </button>
+
         {error && <div style={{ ...card, borderColor: '#5A3A3A', color: '#E9C2C2', fontSize: 13 }}>{error}</div>}
 
         {loading ? <div style={{ color: MUTED }}>Chargement…</div> : tab === 'day' ? (

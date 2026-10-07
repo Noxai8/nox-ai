@@ -1,5 +1,9 @@
 // À lancer avec le fuseau de Paris : TZ=Europe/Paris npx tsx tests/activity.test.ts
-import { activitiesForDay, sportLabel, summarize, weekSummary, workoutDay, workoutMinutes } from '../src/lib/nox/activity';
+import {
+  ACTIVITY_CATALOG, activitiesForDay, movementInsert, recentActivities, searchActivities, sportLabel, summarize,
+  validateNewActivity, weekSummary, workoutDay, workoutMinutes,
+} from '../src/lib/nox/activity';
+import { localDateFromDate, todayLocalDate } from '../src/lib/localDate';
 import { stepsView } from '../src/lib/nox/steps';
 
 let ok = 0, ko = 0;
@@ -55,5 +59,55 @@ const week = weekSummary(['2026-10-05', D], [steps], [{ habit_id: 's', date: D, 
 t('Semaine : jour sans relevé de pas → null (pas 0)', week[0].steps === null && week[0].stepsSource === null);
 t('Semaine : relevé réel du jour avec sa source', week[1].steps === 8200 && week[1].stepsSource === 'DÉCLARÉ');
 t('Semaine : nombre d’activités et durée par jour', week[0].activities === 1 && week[0].minutes === 25 && week[1].activities === 5 && week[1].minutes === 228);
+
+// ── Étape 3 : ajout manuel ──
+const ids = ACTIVITY_CATALOG.map(a => a.id);
+t('Catalogue : les 16 activités demandées', ['marche','course','velo','football','musculation','natation','padel','tennis','basket','badminton','boxe','randonnee','yoga','etirements','danse','autre'].every(id => ids.includes(id)) && ids.length === 16);
+t('Recherche « pad » → Padel', searchActivities('pad').map(a => a.id).join() === 'padel');
+t('Recherche sans accent : « velo » → Vélo, « etirem » → Étirements', searchActivities('velo')[0]?.id === 'velo' && searchActivities('etirem')[0]?.id === 'etirements');
+t('Recherche insensible à la casse : « BOXE »', searchActivities('BOXE')[0]?.id === 'boxe');
+t('Recherche vide → toute la liste ; sans résultat → liste vide', searchActivities('').length === 16 && searchActivities('zzz').length === 0);
+const rec = recentActivities([
+  { id: '1', date: '2026-10-01', sport: 'course', duration_min: 20, created_at: '2026-10-01T08:00:00Z' },
+  { id: '2', date: '2026-10-05', sport: 'padel', duration_min: 60, created_at: '2026-10-05T18:00:00Z' },
+  { id: '3', date: '2026-10-03', sport: 'course', duration_min: 25, created_at: '2026-10-03T08:00:00Z' },
+] as any);
+t('Activités récentes : distinctes, de la plus récente à la plus ancienne', rec.map(r => r.id).join() === 'padel,course' && rec[0].label === 'Padel');
+
+const TODAY = '2026-10-06', YESTERDAY = '2026-10-05';
+const base = { sport: 'padel', date: TODAY, durationMin: 60, intensity: 'moderate' as const, note: '' };
+t('Padel accepté', validateNewActivity(base, TODAY, YESTERDAY).length === 0);
+t('Note facultative : vide → null', validateNewActivity({ ...base, note: '' }, TODAY, YESTERDAY).length === 0 && movementInsert('u', base).note === null);
+t('Note conservée telle quelle (espaces retirés)', movementInsert('u', { ...base, note: '  avec des amis ' }).note === 'avec des amis');
+t('Note > 280 caractères refusée', validateNewActivity({ ...base, note: 'x'.repeat(281) }, TODAY, YESTERDAY).length === 1);
+t('Intensité obligatoire (schéma)', validateNewActivity({ ...base, intensity: '' }, TODAY, YESTERDAY).some(e => /intensité/.test(e)));
+t('Durée obligatoire, entière, entre 1 et 600', ['', 0, 1.5, 601].every(d => validateNewActivity({ ...base, durationMin: d as any }, TODAY, YESTERDAY).length === 1) && validateNewActivity({ ...base, durationMin: '45' }, TODAY, YESTERDAY).length === 0);
+t('Activité obligatoire', validateNewActivity({ ...base, sport: '' }, TODAY, YESTERDAY).length === 1);
+t('Date : aujourd’hui ou hier seulement (pas de futur, pas avant-hier)', validateNewActivity({ ...base, date: YESTERDAY }, TODAY, YESTERDAY).length === 0 && validateNewActivity({ ...base, date: '2026-10-07' }, TODAY, YESTERDAY).length === 1 && validateNewActivity({ ...base, date: '2026-10-04' }, TODAY, YESTERDAY).length === 1);
+
+const row = movementInsert('user-1', { ...base, sport: 'Padel ', durationMin: '60' });
+t('Ligne movement_logs : uniquement les colonnes existantes', JSON.stringify(Object.keys(row).sort()) === JSON.stringify(['date','duration_min','intensity','note','sport','user_id']));
+t('Aucune source, distance, calorie ni pas ajoutés', !['source','distance_km','calories','calories_burned','steps','count','started_at'].some(k => k in row));
+t('Valeurs normalisées : sport « padel », durée numérique', row.sport === 'padel' && row.duration_min === 60 && row.intensity === 'moderate');
+
+// Une fois enregistrée : DÉCLARÉ, reprise par le résumé, aucun pas
+const saved = [{ id: 'new', ...row, created_at: '2026-10-06T12:00:00Z' }];
+const items = activitiesForDay(TODAY, saved as any, []);
+t('Activité enregistrée affichée comme DÉCLARÉ', items.length === 1 && items[0].origin === 'declared' && items[0].label === 'Padel');
+const sum = summarize(items);
+t('Résumé recalculé : 1 activité, 60 min', sum.count === 1 && sum.activeMinutes === 60);
+t('Musculation saisie = activité normale (pas de séance guidée)', activitiesForDay(TODAY, [{ id: 'm', date: TODAY, sport: 'musculation', duration_min: 45, intensity: 'intense' }] as any, [])[0].label === 'Musculation');
+const marche = movementInsert('u', { ...base, sport: 'marche', durationMin: 30 });
+t('« Marche · 30 min » ne génère jamais de pas', !('steps' in marche) && stepsView([steps], []).count === null);
+
+// Date locale (Paris) : à 00:30 le 06/10, « aujourd'hui » = 06/10 et « hier » = 05/10
+{
+  const Real = Date, ms = Real.parse('2026-10-05T22:30:00Z');
+  (globalThis as any).Date = class extends Real { constructor(...a: any[]) { super(...(a.length ? a : [ms])); } static now() { return ms; } };
+  const today = todayLocalDate(); const n = new Date();
+  const yesterday = localDateFromDate(new Date(n.getFullYear(), n.getMonth(), n.getDate() - 1));
+  (globalThis as any).Date = Real;
+  t('Date locale correcte à 00:30 (Paris) : aujourd’hui 06/10, hier 05/10', today === '2026-10-06' && yesterday === '2026-10-05');
+}
 
 console.log(`\n${ok} réussis, ${ko} échoués`);
