@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Footprints, Plus, Activity as ActivityIcon, Dumbbell, Bike, Waves, PersonStanding } from 'lucide-react';
+import { ArrowLeft, Footprints, Plus, Activity as ActivityIcon, Dumbbell, Bike, Waves, PersonStanding, ChevronRight, Clock3, Route } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { localDateFromDate, localDayStartISO, todayLocalDate } from '../lib/localDate';
@@ -127,10 +127,10 @@ export default function Activity() {
           ))}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 18 }}>
           <button onClick={() => navigate('/activity/new')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 15px', border: 0, borderRadius: 999, background: LIME, color: BG, fontWeight: 950, fontSize: 13, cursor: 'pointer', boxShadow: '0 8px 24px rgba(200,255,0,.12)' }}>
-            <Plus size={16} strokeWidth={3} /> Ajouter une activité
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 14px', border: `1px solid rgba(200,255,0,.38)`, borderRadius: 12, background: 'rgba(200,255,0,.08)', color: LIME, fontWeight: 900, fontSize: 12, cursor: 'pointer' }}>
+            <Plus size={15} strokeWidth={3} /> Ajouter
           </button>
         </div>
 
@@ -173,13 +173,18 @@ export default function Activity() {
             </section>
 
             {/* ACTIVITÉ QUOTIDIENNE — aucune valeur estimée */}
-            <section style={card}>
-              <div style={label}>ACTIVITÉ QUOTIDIENNE</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
-                {metric('DISTANCE', '—', 'Non disponible')}
-                {metric('MINUTES ACTIVES', todaySummary.activeMinutes == null ? '—' : `${todaySummary.activeMinutes} min`,
-                  todaySummary.activeMinutes == null ? 'Aucune durée enregistrée' : todaySummary.partialMinutes ? 'Durées connues seulement' : undefined)}
-                {metric('ACTIVITÉS', String(todaySummary.count))}
+            <section style={{ ...card, padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '18px 20px 10px', ...label, marginBottom: 0 }}>AUJOURD’HUI</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+                {[
+                  { icon: <Route size={16}/>, title: 'DISTANCE', value: '—', hint: 'Non disponible' },
+                  { icon: <Clock3 size={16}/>, title: 'ACTIF', value: todaySummary.activeMinutes == null ? '—' : `${todaySummary.activeMinutes} min`, hint: todaySummary.activeMinutes == null ? 'Aucune durée' : undefined },
+                  { icon: <ActivityIcon size={16}/>, title: 'ACTIVITÉS', value: String(todaySummary.count), hint: undefined },
+                ].map((m, i) => <div key={m.title} style={{ padding: '14px 20px 18px', borderLeft: i ? `1px solid ${SOFT}` : 'none' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:7, color:MUTED, fontSize:10, fontWeight:900, letterSpacing:'.07em' }}><span style={{color:LIME, display:'grid'}}>{m.icon}</span>{m.title}</div>
+                  <div style={{ fontSize: 24, fontWeight: 950, letterSpacing:'-.04em', marginTop:8 }}>{m.value}</div>
+                  {m.hint && <div style={{color:MUTED,fontSize:10,marginTop:4}}>{m.hint}</div>}
+                </div>)}
               </div>
             </section>
 
@@ -201,6 +206,7 @@ export default function Activity() {
                     </div>
                   </div>
                   <span style={tag(ORIGIN_LABELS[a.origin], false)}>{ORIGIN_LABELS[a.origin]}</span>
+                  <ChevronRight size={16} color={MUTED} />
                 </div>
               ))}
             </section>
