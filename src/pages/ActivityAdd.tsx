@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Activity as ActivityIcon, Bike, Dumbbell, Waves, PersonStanding, CircleDot, Mountain, HeartPulse } from 'lucide-react';
+import { ArrowLeft, Search, Activity as ActivityIcon, Bike, Dumbbell, Waves, PersonStanding, CircleDot, Mountain, HeartPulse, Minus, Plus, CalendarDays, MessageSquarePlus, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { localDateFromDate, todayLocalDate } from '../lib/localDate';
@@ -44,6 +44,7 @@ export default function ActivityAdd() {
   const [duration, setDuration] = useState('');
   const [intensity, setIntensity] = useState<Intensity | ''>('');
   const [note, setNote] = useState('');
+  const [noteOpen, setNoteOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -136,62 +137,61 @@ export default function ActivityAdd() {
           </>
         ) : (
           <>
-            <section style={card}>
-              <div style={label}>ACTIVITÉ</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                <span style={{ fontSize: 18, fontWeight: 950 }}>{sportLabel(sport)}</span>
-                <button onClick={() => setStep('pick')} style={{ border: 0, background: 'transparent', color: LIME, fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Changer</button>
-              </div>
-            </section>
-
-            <section style={card}>
-              <div style={label}>DATE</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {[[today, 'Aujourd’hui'], [yesterday, 'Hier']].map(([d, l]) => (
-                  <button key={d} onClick={() => setDate(d)} style={{ ...choice(date === d), textAlign: 'center' }}>{l}</button>
-                ))}
-              </div>
-            </section>
-
-            <section style={card}>
-              <div style={label}>DURÉE</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-                {DURATION_PRESETS.map(m => (
-                  <button key={m} onClick={() => setDuration(String(m))} style={{ ...choice(duration === String(m)), padding: '9px 14px' }}>{m} min</button>
-                ))}
-              </div>
-              <input type="number" inputMode="numeric" min={1} max={600} value={duration} onChange={e => setDuration(e.target.value)} placeholder="Autre durée (minutes)"
-                style={{ width: '100%', boxSizing: 'border-box', height: 46, padding: '0 14px', borderRadius: 12, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontSize: 15, fontWeight: 800, outline: 'none' }} />
-            </section>
-
-            <section style={card}>
-              <div style={label}>INTENSITÉ</div>
-              <div style={{ display: 'grid', gap: 8 }}>
-                {INTENSITIES.map(i => (
-                  <button key={i} onClick={() => setIntensity(i)} style={choice(intensity === i)}>
-                    <div style={{ fontSize: 14, fontWeight: 900 }}>{INTENSITY_UI[i].title}</div>
-                    <div style={{ fontSize: 12, color: SEC, fontWeight: 700, marginTop: 3 }}>{INTENSITY_UI[i].detail}</div>
+            <section style={{ marginBottom: 30, padding: '6px 2px 0' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+                <div style={{ width:54, height:54, borderRadius:17, background:'rgba(200,255,0,.08)', border:'1px solid rgba(200,255,0,.18)', display:'grid', placeItems:'center', color:LIME }}>
+                  {activityIcon(sport)}
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:24, fontWeight:950, letterSpacing:'-.035em' }}>{sportLabel(sport)}</div>
+                  <button onClick={() => setDate(date === today ? yesterday : today)} style={{ marginTop:5, padding:0, border:0, background:'transparent', color:SEC, display:'inline-flex', alignItems:'center', gap:6, fontSize:12, fontWeight:800, cursor:'pointer' }}>
+                    <CalendarDays size={13}/>{date === today ? 'Aujourd’hui' : 'Hier'}
                   </button>
-                ))}
+                </div>
+                <button onClick={() => setStep('pick')} style={{ border:0, background:'transparent', color:LIME, fontSize:12, fontWeight:900, cursor:'pointer' }}>Changer</button>
               </div>
             </section>
 
-            <section style={card}>
-              <div style={label}>NOTE (FACULTATIVE)</div>
-              <textarea value={note} onChange={e => setNote(e.target.value.slice(0, MAX_NOTE))} rows={3} placeholder="Ex : bonne séance avec des amis"
-                style={{ width: '100%', boxSizing: 'border-box', padding: 12, borderRadius: 12, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontSize: 14, outline: 'none', resize: 'vertical', fontFamily: 'inherit' }} />
-              <div style={{ color: MUTED, fontSize: 11, textAlign: 'right', marginTop: 4 }}>{note.length}/{MAX_NOTE}</div>
+            <section style={{ ...card, padding:'22px 18px 18px' }}>
+              <div style={{ ...label, textAlign:'center', marginBottom:16 }}>DURÉE</div>
+              <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:'clamp(18px,5vw,42px)', marginBottom:18 }}>
+                <button aria-label="Retirer 5 minutes" onClick={() => setDuration(String(Math.max(1, (Number(duration) || 30) - 5)))} style={{ width:46,height:46,borderRadius:15,border:`1px solid ${SOFT}`,background:CARD2,color:WHITE,display:'grid',placeItems:'center',cursor:'pointer' }}><Minus size={19}/></button>
+                <div style={{ minWidth:150, textAlign:'center' }}>
+                  <input aria-label="Durée en minutes" type="number" inputMode="numeric" min={1} max={600} value={duration} onChange={e=>setDuration(e.target.value)} placeholder="30"
+                    style={{ width:100, padding:0, border:0, outline:'none', background:'transparent', color:WHITE, textAlign:'right', fontSize:46, lineHeight:1, fontWeight:950, letterSpacing:'-.06em' }} />
+                  <span style={{ marginLeft:7, color:SEC, fontSize:15, fontWeight:850 }}>min</span>
+                </div>
+                <button aria-label="Ajouter 5 minutes" onClick={() => setDuration(String(Math.min(600, (Number(duration) || 25) + 5)))} style={{ width:46,height:46,borderRadius:15,border:`1px solid ${SOFT}`,background:CARD2,color:WHITE,display:'grid',placeItems:'center',cursor:'pointer' }}><Plus size={19}/></button>
+              </div>
+              <div style={{ display:'flex', justifyContent:'center', flexWrap:'wrap', gap:7 }}>
+                {DURATION_PRESETS.slice(0,4).map(m => <button key={m} onClick={()=>setDuration(String(m))} style={{ ...choice(duration===String(m)), padding:'8px 13px', textAlign:'center' }}>{m}</button>)}
+              </div>
             </section>
 
-            {error && <div style={{ color: '#E9C2C2', fontSize: 13, marginBottom: 10 }}>{error}</div>}
-            <button onClick={save} disabled={!!errors.length || saving}
-              style={{ width: '100%', padding: 18, border: 0, borderRadius: 14, fontWeight: 800, fontSize: 15,
-                background: errors.length ? '#2B2F2C' : LIME, color: errors.length ? MUTED : BG, cursor: errors.length ? 'not-allowed' : 'pointer' }}>
-              {saving ? 'ENREGISTREMENT…' : 'ENREGISTRER'}
-            </button>
-            {errors.length > 0 && <div style={{ color: MUTED, fontSize: 12, marginTop: 8, textAlign: 'center' }}>{errors[0]}</div>}
-            <div style={{ color: MUTED, fontSize: 11, marginTop: 12, lineHeight: 1.5, textAlign: 'center' }}>
-              Activité déclarée. Elle n’ajoute aucun pas : tes pas viennent uniquement de leur propre relevé.
+            <section style={{ margin:'28px 0' }}>
+              <div style={{ ...label, marginLeft:2, marginBottom:10 }}>INTENSITÉ</div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', padding:4, borderRadius:16, background:CARD2, border:`1px solid ${SOFT}`, gap:4 }}>
+                {INTENSITIES.map(i => <button key={i} onClick={()=>setIntensity(i)} style={{ minHeight:48, border: intensity===i ? `1px solid ${LIME}`:'1px solid transparent', borderRadius:12, background:intensity===i?'rgba(200,255,0,.10)':'transparent', color:intensity===i?LIME:SEC, fontWeight:900, fontSize:12, cursor:'pointer' }}>{INTENSITY_UI[i].title}</button>)}
+              </div>
+              <div style={{ minHeight:18, marginTop:9, color:MUTED, fontSize:11, textAlign:'center', fontWeight:700 }}>{intensity ? INTENSITY_UI[intensity].detail : 'Choisis ton niveau d’effort'}</div>
+            </section>
+
+            {!noteOpen ? <button onClick={()=>setNoteOpen(true)} style={{ width:'100%', border:0, borderTop:`1px solid ${SOFT}`, borderBottom:`1px solid ${SOFT}`, background:'transparent', color:SEC, padding:'15px 2px', display:'flex', alignItems:'center', gap:9, fontSize:12, fontWeight:850, cursor:'pointer' }}><MessageSquarePlus size={16} color={LIME}/> Ajouter une note <span style={{marginLeft:'auto',color:MUTED}}>Facultatif</span></button> :
+              <section style={{ ...card, position:'relative' }}>
+                <button aria-label="Fermer la note" onClick={()=>{setNoteOpen(false);setNote('')}} style={{position:'absolute',right:12,top:12,border:0,background:'transparent',color:MUTED,cursor:'pointer'}}><X size={16}/></button>
+                <div style={label}>NOTE</div>
+                <textarea autoFocus value={note} onChange={e=>setNote(e.target.value.slice(0,MAX_NOTE))} rows={3} placeholder="Un détail à retenir…"
+                  style={{width:'100%',boxSizing:'border-box',padding:12,borderRadius:12,border:`1px solid ${SOFT}`,background:CARD2,color:WHITE,fontSize:14,outline:'none',resize:'vertical',fontFamily:'inherit'}}/>
+                <div style={{color:MUTED,fontSize:10,textAlign:'right',marginTop:4}}>{note.length}/{MAX_NOTE}</div>
+              </section>}
+
+            {error && <div style={{ color:'#E9C2C2', fontSize:12, marginTop:14 }}>{error}</div>}
+            <div style={{ height:110 }} />
+            <div style={{ position:'sticky', bottom:'calc(86px + env(safe-area-inset-bottom))', zIndex:15, padding:'12px 0', background:'linear-gradient(180deg, rgba(9,11,10,0), #090B0A 28%)' }}>
+              <button onClick={save} disabled={!!errors.length || saving} style={{ width:'100%', padding:17, border:0, borderRadius:15, fontWeight:950, fontSize:13, letterSpacing:'.035em', background:errors.length?'#242825':LIME, color:errors.length?MUTED:BG, cursor:errors.length?'not-allowed':'pointer', boxShadow:errors.length?'none':'0 12px 32px rgba(200,255,0,.12)' }}>
+                {saving ? 'ENREGISTREMENT…' : 'ENREGISTRER L’ACTIVITÉ'}
+              </button>
+              {errors.length > 0 && <div style={{ color:MUTED, fontSize:10, marginTop:7, textAlign:'center' }}>{errors[0]}</div>}
             </div>
           </>
         )}
