@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Footprints } from 'lucide-react';
+import { ArrowLeft, Footprints, Plus, Activity as ActivityIcon, Dumbbell, Bike, Waves, PersonStanding } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { localDateFromDate, localDayStartISO, todayLocalDate } from '../lib/localDate';
@@ -97,9 +97,18 @@ export default function Activity() {
     </div>
   );
 
+  const activityIcon = (name: string) => {
+    const n = name.toLowerCase();
+    if (n.includes('musculation')) return <Dumbbell size={18} />;
+    if (n.includes('vélo')) return <Bike size={18} />;
+    if (n.includes('natation')) return <Waves size={18} />;
+    if (n.includes('marche') || n.includes('randonnée')) return <PersonStanding size={18} />;
+    return <ActivityIcon size={18} />;
+  };
+
   return (
-    <div style={{ minHeight: '100dvh', background: BG, color: WHITE, paddingBottom: 'calc(160px + env(safe-area-inset-bottom))' }}>
-      <main style={{ width: '100%', maxWidth: 760, margin: '0 auto', padding: '0 16px', boxSizing: 'border-box' }}>
+    <div style={{ minHeight: '100dvh', background: BG, color: WHITE, paddingBottom: 'calc(210px + env(safe-area-inset-bottom))' }}>
+      <main style={{ width: '100%', maxWidth: 900, margin: '0 auto', padding: '0 clamp(16px,3vw,28px)', boxSizing: 'border-box' }}>
         <header style={{ paddingTop: 44, paddingBottom: 18, display: 'flex', alignItems: 'center', gap: 14 }}>
           <button onClick={() => navigate(-1)} aria-label="Retour"
             style={{ width: 42, height: 42, borderRadius: 14, border: `1px solid ${BORDER}`, background: CARD, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
@@ -118,10 +127,12 @@ export default function Activity() {
           ))}
         </div>
 
-        <button onClick={() => navigate('/activity/new')}
-          style={{ width: '100%', padding: 16, marginBottom: 16, border: 0, borderRadius: 14, background: LIME, color: BG, fontWeight: 900, fontSize: 14, cursor: 'pointer' }}>
-          + Ajouter une activité
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+          <button onClick={() => navigate('/activity/new')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 15px', border: 0, borderRadius: 999, background: LIME, color: BG, fontWeight: 950, fontSize: 13, cursor: 'pointer', boxShadow: '0 8px 24px rgba(200,255,0,.12)' }}>
+            <Plus size={16} strokeWidth={3} /> Ajouter une activité
+          </button>
+        </div>
 
         {error && <div style={{ ...card, borderColor: '#5A3A3A', color: '#E9C2C2', fontSize: 13 }}>{error}</div>}
 
@@ -178,7 +189,10 @@ export default function Activity() {
               {todayItems.length === 0 ? (
                 <div style={{ color: SEC, fontSize: 13 }}>Aucune activité enregistrée aujourd’hui.</div>
               ) : todayItems.map((a, i) => (
-                <div key={a.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', borderTop: i ? `1px solid ${SOFT}` : 'none' }}>
+                <div key={a.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderTop: i ? `1px solid ${SOFT}` : 'none' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: CARD2, border: `1px solid ${SOFT}`, display: 'grid', placeItems: 'center', color: LIME, flexShrink: 0 }}>
+                    {activityIcon(a.label)}
+                  </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 900 }}>{a.label}</div>
                     <div style={{ color: SEC, fontSize: 12, marginTop: 3 }}>
