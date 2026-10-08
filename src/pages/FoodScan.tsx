@@ -768,95 +768,47 @@ export default function FoodScan() {
         )}
 
         {!photoBase64 && !scanning && !result && (
-          <div
-            style={{
-              maxWidth: 580,
-              margin: 'clamp(20px, 6vh, 64px) auto 0',
-              padding: '0 4px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                marginBottom: 24,
-              }}
-            >
-              <div
-                style={{
-                  width: 48,
-                  height: 48,
-                  flexShrink: 0,
-                  borderRadius: 15,
-                  background: '#20291B',
-                  border: '1px solid #354526',
-                  color: ACCENT,
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
-                <Camera size={23} strokeWidth={1.8} />
+          <div style={{ maxWidth: 650, margin: '24px auto 42px', border: `1px solid ${BORDER}`, borderRadius: 26, background: '#101411', padding: '28px clamp(16px, 4vw, 34px)' }}>
+            <div style={{ display: 'grid', justifyItems: 'center', textAlign: 'center', gap: 10, marginBottom: 20 }}>
+              <div style={{ width: 58, height: 58, borderRadius: 18, background: '#202B17', color: ACCENT, border: '1px solid #3D501F', display: 'grid', placeItems: 'center' }}>
+                <Camera size={27} />
               </div>
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-.035em' }}>
-                  Ton repas, en photo.
-                </div>
-                <div style={{ marginTop: 5, color: MUTED, fontSize: 13, lineHeight: 1.5 }}>
-                  Prends une photo ou choisis-en une. NOX estimera les aliments et leurs quantités.
-                </div>
-              </div>
+              <div style={{ fontSize: 24, fontWeight: 950, letterSpacing: '-.04em' }}>Prends ton repas en photo</div>
+              <div style={{ color: MUTED, maxWidth: 430, lineHeight: 1.55, fontSize: 13 }}>NOX identifie les aliments et estime les quantités et les valeurs nutritionnelles.</div>
             </div>
-            <div style={{ display: 'grid', gap: 10 }}>
-              <button
-                type="button"
-                onClick={() => cameraRef.current?.click()}
-                style={{
-                  minHeight: 58,
-                  border: 'none',
-                  borderRadius: 16,
-                  background: ACCENT,
-                  color: ON_ACCENT,
-                  fontWeight: 900,
-                  fontSize: 15,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 10,
-                }}
-              >
-                <Camera size={19} />
-                Prendre une photo
-              </button>
-              <button
-                type="button"
-                onClick={() => galleryRef.current?.click()}
-                style={{
-                  minHeight: 54,
-                  border: `1px solid ${BORDER}`,
-                  borderRadius: 16,
-                  background: SURFACE,
-                  color: TEXT,
-                  fontWeight: 750,
-                  fontSize: 14,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 10,
-                }}
-              >
-                <ImagePlus size={18} />
-                Choisir dans la galerie
-              </button>
+            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 19, border: `1px solid ${BORDER}`, height: 205, background: '#242925', marginBottom: 14 }}>
+              <img src="https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1000&q=85" alt="Exemple illustratif d'un repas photographié, non analysé" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <div style={{ position: 'absolute', inset: 0, boxShadow: 'inset 0 0 60px rgba(0,0,0,.24)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', bottom: 11, left: 12, background: 'rgba(8,10,9,.85)', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '5px 9px', color: '#E4E9E4', fontSize: 11, fontWeight: 750 }}>Exemple de photo · non analysée</div>
+              {[[8,9],[92,9],[8,91],[92,91]].map(([x,y],i) => <span key={i} style={{ position: 'absolute', left: x+'%', top: y+'%', width: 19, height: 19, borderLeft: i%2===0 ? `3px solid ${ACCENT}` : 'none', borderRight: i%2===1 ? `3px solid ${ACCENT}` : 'none', borderTop: i<2 ? `3px solid ${ACCENT}` : 'none', borderBottom: i>=2 ? `3px solid ${ACCENT}` : 'none', transform: 'translate(-50%,-50%)', pointerEvents: 'none' }} />)}
             </div>
-            <p style={{ color: MUTED, fontSize: 12, lineHeight: 1.6, margin: '18px 2px 0' }}>
-              Avant l'ajout au journal, tu pourras vérifier et corriger les valeurs estimées.
-            </p>
+            <div style={{ display: 'grid', gap: 9 }}>
+              <button type="button" onClick={() => cameraRef.current?.click()} style={{ minHeight: 58, border: 'none', borderRadius: 15, background: ACCENT, color: ON_ACCENT, fontWeight: 900, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer' }}><Camera size={19} /> Prendre une photo</button>
+              <button type="button" onClick={() => galleryRef.current?.click()} style={{ minHeight: 54, border: `1px solid ${BORDER}`, borderRadius: 15, background: SURFACE, color: TEXT, fontWeight: 800, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer' }}><ImagePlus size={18} /> Choisir dans la galerie</button>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '18px 0', color: MUTED, fontSize: 11, fontWeight: 800 }}><span style={{ height: 1, background: BORDER, flex: 1 }} />OU<span style={{ height: 1, background: BORDER, flex: 1 }} /></div>
+            <button type="button" onClick={() => navigate('/fuel?scan=barcode')} style={{ width: '100%', minHeight: 66, border: `1px solid ${BORDER}`, borderRadius: 15, background: SURFACE, color: TEXT, display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left', padding: '12px 17px', cursor: 'pointer' }}>
+              <ScanLine size={23} color={ACCENT} />
+              <span style={{ flex: 1 }}><strong style={{ display: 'block', fontSize: 14 }}>Scanner un code-barres</strong><span style={{ display: 'block', color: MUTED, fontSize: 12, marginTop: 4 }}>Pour ajouter un produit emballé</span></span>
+              <span style={{ color: MUTED, fontSize: 24 }}>›</span>
+            </button>
           </div>
         )}
-      
+        {!photoBase64 && !scanning && !result && (
+          <div style={{ maxWidth: 790, margin: '0 auto 28px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))', gap: 16 }}>
+            {[
+              ['✦', 'Analyse par IA', 'Identification des aliments'],
+              ['▥', 'Valeurs nutritionnelles', 'Calories et macronutriments'],
+              ['✓', 'Tu gardes le contrôle', 'Corrige avant d’enregistrer'],
+            ].map(([symbol, title, description]) => (
+              <div key={title} style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                <div style={{ width: 37, height: 37, flexShrink: 0, borderRadius: 13, display: 'grid', placeItems: 'center', background: '#1B2515', color: ACCENT, fontSize: 22 }}>{symbol}</div>
+                <div><div style={{ color: TEXT, fontSize: 12, fontWeight: 850 }}>{title}</div><div style={{ color: MUTED, fontSize: 11, marginTop: 4 }}>{description}</div></div>
+              </div>
+            ))}
+          </div>
+        )}
+
       </main>
 
       <footer
