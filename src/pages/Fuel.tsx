@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import MealReview from '../components/MealReview';
 import BarcodeScanner from './BarcodeScanner';
 import { supabase } from '../lib/supabase';
@@ -83,14 +83,21 @@ export default function Fuel() {
   const [water, setWater] = useState(0);
   const [weekCalories, setWeekCalories] = useState<Record<string, number>>({});
 
-  const [showAdd, setShowAdd] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [showAdd, setShowAdd] = useState(() => searchParams.get('scan') === 'barcode');
   const [fuelView, setFuelView] = useState<'tracking' | 'ai'>('tracking');
 
   const [addMode, setAddMode] = useState<
     'choose' | 'photo' | 'search' | 'barcode' | 'quick' | 'voice' | 'custom'
-  >('choose');
+  >(searchParams.get('scan') === 'barcode' ? 'barcode' : 'choose');
 
   const [selMeal, setSelMeal] = useState('Dejeuner');
+  useEffect(() => {
+    if (searchParams.get('scan') !== 'barcode') return;
+    setShowAdd(true);
+    setAddMode('barcode');
+    setSearchParams(previous => { const next = new URLSearchParams(previous); next.delete('scan'); return next; }, { replace: true });
+  }, [searchParams, setSearchParams]);
   const [search, setSearch] = useState('');
   const [selFood, setSelFood] = useState<any>(null);
   const [qty, setQty] = useState('100');
