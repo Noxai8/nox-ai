@@ -227,7 +227,7 @@ export default function Focus() {
                 <>
                   <div style={{ color: SEC, fontSize: 13, margin: '16px 0 10px' }}>Objectif aujourd’hui</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                    {MISSION_TARGETS.map(t => <button key={t} onClick={() => setTarget(t)} style={choice(target === t)}>{t >= 60 ? `${t / 60} h${t % 60 ? ` ${t % 60}` : ''}` : `${t} min`}</button>)}
+                    {MISSION_TARGETS.map(t => <button key={t} onClick={() => setTarget(t)} style={choice(target === t)}>{t >= 60 ? `${Math.floor(t / 60)} h${t % 60 ? ` ${t % 60}` : ''}` : `${t} min`}</button>)}
                   </div>
                 </>
               )}
