@@ -439,7 +439,7 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
                 height: 64,
                 borderRadius: 21,
                 background: ACCENT,
-                color: TEXT,
+                color: BG,
                 display: 'grid',
                 placeItems: 'center',
                 marginBottom: 16,
@@ -477,7 +477,7 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
                   borderRadius: 14,
                   padding: '12px 17px',
                   background: ACCENT,
-                  color: TEXT,
+                  color: BG,
                   fontSize: 12,
                   fontWeight: 900,
                   cursor: cameraStarting ? 'default' : 'pointer',
@@ -611,7 +611,7 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
               flex: 1,
               minWidth: 0,
               padding: '13px 14px',
-              background: '#FAFBF7',
+              background: '#202521',
               border: `1px solid ${BORDER}`,
               borderRadius: 13,
               color: TEXT,
@@ -651,8 +651,8 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
             marginTop: 12,
             padding: '12px 14px',
             borderRadius: 14,
-            background: '#FFF1EF',
-            color: '#A53B2F',
+            background: '#2B1C1A',
+            color: '#FFB2A8',
             fontSize: 12,
             fontWeight: 750,
             display: 'flex',
@@ -694,7 +694,7 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
                     width: 62,
                     height: 62,
                     borderRadius: 14,
-                    background: '#F0F1EC',
+                    background: '#202521',
                     display: 'grid',
                     placeItems: 'center',
                   }}
@@ -727,7 +727,7 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
                     gap: 5,
                     marginTop: 7,
                     color:
-                      product.per100g.kcal > 0 ? '#536000' : '#A53B2F',
+                      product.per100g.kcal > 0 ? '#C8FF00' : '#FFB2A8',
                     fontSize: 10,
                     fontWeight: 850,
                   }}
@@ -774,7 +774,7 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
                 <div
                   key={String(label)}
                   style={{
-                    background: '#F7F8F4',
+                    background: '#202521',
                     borderRadius: 13,
                     padding: '11px 5px',
                     textAlign: 'center',
@@ -872,7 +872,7 @@ export default function BarcodeScanner({ onAdd, selectedMeal, onClose }: Props) 
                   style={{
                     width: '100%',
                     padding: '13px 14px',
-                    background: '#FAFBF7',
+                    background: '#202521',
                     border: `1px solid ${BORDER}`,
                     borderRadius: 13,
                     color: TEXT,
