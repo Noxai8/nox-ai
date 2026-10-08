@@ -16,12 +16,13 @@ import { supabase } from '../lib/supabase';
 import { invokeEdge } from '../lib/edgeFunctions';
 import { useAuth } from '../lib/AuthContext';
 
-const ACCENT = '#B7FF00';
-const BG = '#F6F7F2';
-const SURFACE = '#FFFFFF';
-const BORDER = '#E4E4DF';
-const TEXT = '#111111';
-const MUTED = '#74746D';
+const ACCENT = '#C8FF00';
+const BG = '#090B0A';
+const SURFACE = '#171A18';
+const BORDER = '#303531';
+const TEXT = '#FFFFFF';
+const ON_ACCENT = '#090B0A';
+const MUTED = '#A5AAA6';
 
 const MEALS = ['Petit-déjeuner', 'Déjeuner', 'Dîner', 'Snacks'];
 
@@ -377,9 +378,9 @@ export default function FoodScan() {
               style={{
                 padding: '9px 13px',
                 borderRadius: 999,
-                border: `1px solid ${active ? '#A5E600' : BORDER}`,
+                border: `1px solid ${active ? '#A5D600' : BORDER}`,
                 background: active ? ACCENT : SURFACE,
-                color: TEXT,
+                color: active ? ON_ACCENT : TEXT,
                 fontSize: 11,
                 fontWeight: 850,
                 cursor: 'pointer',
@@ -406,7 +407,7 @@ export default function FoodScan() {
               marginBottom: 14,
               borderRadius: 22,
               overflow: 'hidden',
-              background: '#ECEDE8',
+              background: '#242925',
               border: `1px solid ${BORDER}`,
             }}
           >
@@ -511,13 +512,13 @@ export default function FoodScan() {
         {error && !scanning && (
           <div
             style={{
-              background: '#FFF1EF',
+              background: '#2B1C1A',
               border: '1px solid #F3C8C2',
               borderRadius: 16,
               padding: 14,
               marginBottom: 14,
               fontSize: 12,
-              color: '#A53B2F',
+              color: '#FFB2A8',
               display: 'flex',
               alignItems: 'flex-start',
               gap: 9,
@@ -769,7 +770,7 @@ export default function FoodScan() {
                           borderRadius: 13,
                           border: '1px solid #A5E600',
                           background: ACCENT,
-                          color: TEXT,
+                          color: ON_ACCENT,
                           display: 'grid',
                           placeItems: 'center',
                           cursor: adding ? 'default' : 'pointer',
@@ -788,7 +789,7 @@ export default function FoodScan() {
               style={{
                 marginTop: 12,
                 fontSize: 10,
-                color: '#989A93',
+                color: '#8D948F',
                 lineHeight: 1.45,
               }}
             >
@@ -862,7 +863,7 @@ export default function FoodScan() {
                   border: '1px solid #A5E600',
                   borderRadius: 15,
                   background: ACCENT,
-                  color: TEXT,
+                  color: ON_ACCENT,
                   fontWeight: 900,
                   fontSize: 12,
                   cursor: 'pointer',
@@ -883,7 +884,7 @@ export default function FoodScan() {
                   minHeight: 50,
                   border: `1px solid ${BORDER}`,
                   borderRadius: 15,
-                  background: '#FAFBF7',
+                  background: '#1D211E',
                   color: TEXT,
                   fontWeight: 850,
                   fontSize: 12,
@@ -940,7 +941,7 @@ export default function FoodScan() {
                 background: ACCENT,
                 border: '1px solid #A5E600',
                 borderRadius: 16,
-                color: TEXT,
+                color: ON_ACCENT,
                 fontWeight: 950,
                 fontSize: 14,
                 cursor: adding ? 'default' : 'pointer',
