@@ -768,7 +768,7 @@ export default function FoodScan() {
         )}
 
         {!photoBase64 && !scanning && !result && (
-          <div style={{ maxWidth: 650, margin: '24px auto 42px', border: `1px solid ${BORDER}`, borderRadius: 26, background: '#101411', padding: '28px clamp(16px, 4vw, 34px)' }}>
+          <div style={{ maxWidth: 650, margin: '12px auto 22px', border: `1px solid ${BORDER}`, borderRadius: 26, background: '#101411', padding: '28px clamp(16px, 4vw, 34px)' }}>
             <div style={{ display: 'grid', justifyItems: 'center', textAlign: 'center', gap: 10, marginBottom: 20 }}>
               <div style={{ width: 58, height: 58, borderRadius: 18, background: '#202B17', color: ACCENT, border: '1px solid #3D501F', display: 'grid', placeItems: 'center' }}>
                 <Camera size={27} />
@@ -795,7 +795,7 @@ export default function FoodScan() {
           </div>
         )}
         {!photoBase64 && !scanning && !result && (
-          <div style={{ maxWidth: 790, margin: '0 auto 28px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))', gap: 16 }}>
+          <div style={{ maxWidth: 790, margin: '0 auto 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))', gap: 16 }}>
             {[
               ['✦', 'Analyse par IA', 'Identification des aliments'],
               ['▥', 'Valeurs nutritionnelles', 'Calories et macronutriments'],
