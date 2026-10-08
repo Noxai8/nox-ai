@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MealReview from '../components/MealReview';
+import BarcodeScanner from './BarcodeScanner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { BottomNav } from './Home';
@@ -1878,40 +1879,13 @@ export default function Fuel() {
               </div>
             )}
 
-            {/* CODE-BARRES */}
+            {/* CODE-BARRES : vrai lecteur + saisie manuelle de secours */}
             {addMode === 'barcode' && (
-              <div
-                style={{
-                  textAlign: 'center',
-                  padding: '26px 10px',
-                }}
-              >
-                <ScanLine
-                  size={42}
-                  color={BLACK}
-                  style={{ marginBottom: 12 }}
-                />
-
-                <div
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 900,
-                    marginBottom: 6,
-                  }}
-                >
-                  Scanner un code-barres
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: MUTED,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  Place le code-barres du produit face à la caméra.
-                </div>
-              </div>
+              <BarcodeScanner
+                selectedMeal={selMeal}
+                onAdd={() => { setShowAdd(false); setAddMode('choose'); window.location.reload(); }}
+                onClose={() => setAddMode('choose')}
+              />
             )}
 
             {/* MANUEL */}
