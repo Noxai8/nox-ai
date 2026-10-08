@@ -9,10 +9,10 @@ import { habitCoach, habitFlags, habitStatusLabel, isProof } from '../lib/nox/ha
 import { HABITS, HABIT_COLUMNS, MODE_LABELS, habitName, isMeasured, isStepsHabit, isTargetMet, targetLine, usesValueInput, type HabitMode, type UserHabit } from '../lib/nox/habits';
 
 const BG = '#090B0A';
-const CARD = '#232624';
+const CARD = '#171A18';
 const CARD2 = '#191C1A';
-const BORDER = '#4A4F4B';
-const SOFT = '#343835';
+const BORDER = '#303531';
+const SOFT = '#292E2A';
 const WHITE = '#FFFFFF';
 const SEC = '#A5AAA6';
 const MUTED = '#747A76';
@@ -486,11 +486,13 @@ export default function HabitDetail() {
         ) : (
           <div>
             {logs.slice(0, 30).map((l, i) => {
-              const ok = l.target_snapshot != null && okLog(l);
+              // Avant la clôture, une réussite reste provisoire : ni ✓ ni vert. Une preuve passée reste acquise.
+              const proof = proofOf(l);
+              const line = proof ? dayLine(l) : dayLine(l).replace(/\s*✓$/, '');
               return (
                 <div key={l.date} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '11px 0', borderTop: i ? `1px solid ${SOFT}` : 'none' }}>
                   <span style={{ color: SEC, fontSize: 13, textTransform: 'capitalize' }}>{l.date === today ? 'Aujourd’hui' : frDate(l.date)}</span>
-                  <span style={{ fontSize: 13, fontWeight: 900, color: ok ? LIME : WHITE }}>{dayLine(l)}</span>
+                  <span style={{ fontSize: 13, fontWeight: 900, color: proof ? LIME : WHITE }}>{line}</span>
                 </div>
               );
             })}
