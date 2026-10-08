@@ -422,39 +422,7 @@ export default function FoodScan() {
               }}
             />
 
-            {scanning && (
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'rgba(17,17,17,.36)',
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
-                <div
-                  style={{
-                    width: '76%',
-                    height: 118,
-                    borderRadius: 20,
-                    border: `2px solid ${ACCENT}`,
-                    position: 'relative',
-                  }}
-                >
-                  <div
-                    style={{
-                      position: 'absolute',
-                      left: 14,
-                      right: 14,
-                      top: '50%',
-                      height: 2,
-                      background: ACCENT,
-                      boxShadow: `0 0 14px ${ACCENT}`,
-                    }}
-                  />
-                </div>
-              </div>
-            )}
+
           </div>
         )}
 
