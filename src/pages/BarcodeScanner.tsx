@@ -12,12 +12,12 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
-const ACCENT = '#B7FF00';
-const BG = '#F6F7F2';
-const SURFACE = '#FFFFFF';
-const BORDER = '#E4E4DF';
-const TEXT = '#111111';
-const MUTED = '#77776F';
+const ACCENT = '#C8FF00';
+const BG = '#090B0A';
+const SURFACE = '#171A18';
+const BORDER = '#303531';
+const TEXT = '#FFFFFF';
+const MUTED = '#A5AAA6';
 
 type Props = {
   onAdd: (entry: any) => void;
