@@ -770,105 +770,93 @@ export default function FoodScan() {
         {!photoBase64 && !scanning && !result && (
           <div
             style={{
-              background: SURFACE,
-              border: `1px solid ${BORDER}`,
-              borderRadius: 24,
-              padding: '30px 22px',
-              textAlign: 'center',
-              marginTop: 8,
+              maxWidth: 580,
+              margin: 'clamp(20px, 6vh, 64px) auto 0',
+              padding: '0 4px',
             }}
           >
             <div
               style={{
-                width: 72,
-                height: 72,
-                borderRadius: 23,
-                background: ACCENT,
-                display: 'grid',
-                placeItems: 'center',
-                margin: '0 auto 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
+                marginBottom: 24,
               }}
             >
-              <Camera size={31} strokeWidth={2.3} />
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  flexShrink: 0,
+                  borderRadius: 15,
+                  background: '#20291B',
+                  border: '1px solid #354526',
+                  color: ACCENT,
+                  display: 'grid',
+                  placeItems: 'center',
+                }}
+              >
+                <Camera size={23} strokeWidth={1.8} />
+              </div>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-.035em' }}>
+                  Ton repas, en photo.
+                </div>
+                <div style={{ marginTop: 5, color: MUTED, fontSize: 13, lineHeight: 1.5 }}>
+                  Prends une photo ou choisis-en une. NOX estimera les aliments et leurs quantités.
+                </div>
+              </div>
             </div>
-
-            <div
-              style={{
-                fontSize: 20,
-                fontWeight: 950,
-                letterSpacing: '-.03em',
-              }}
-            >
-              Prends ton repas en photo
-            </div>
-
-            <div
-              style={{
-                maxWidth: 300,
-                margin: '8px auto 0',
-                fontSize: 12,
-                color: MUTED,
-                lineHeight: 1.55,
-              }}
-            >
-              NOX analyse la photo pour identifier les aliments et estimer
-              calories, protéines, glucides et lipides.
-            </div>
-
-            <div
-              style={{
-                marginTop: 20,
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 8,
-              }}
-            >
+            <div style={{ display: 'grid', gap: 10 }}>
               <button
                 type="button"
                 onClick={() => cameraRef.current?.click()}
                 style={{
-                  minHeight: 50,
-                  border: '1px solid #A5E600',
-                  borderRadius: 15,
+                  minHeight: 58,
+                  border: 'none',
+                  borderRadius: 16,
                   background: ACCENT,
                   color: ON_ACCENT,
                   fontWeight: 900,
-                  fontSize: 12,
+                  fontSize: 15,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 7,
+                  gap: 10,
                 }}
               >
-                <Camera size={17} />
-                Caméra
+                <Camera size={19} />
+                Prendre une photo
               </button>
-
               <button
                 type="button"
                 onClick={() => galleryRef.current?.click()}
                 style={{
-                  minHeight: 50,
+                  minHeight: 54,
                   border: `1px solid ${BORDER}`,
-                  borderRadius: 15,
-                  background: '#1D211E',
+                  borderRadius: 16,
+                  background: SURFACE,
                   color: TEXT,
-                  fontWeight: 850,
-                  fontSize: 12,
+                  fontWeight: 750,
+                  fontSize: 14,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 7,
+                  gap: 10,
                 }}
               >
-                <ImagePlus size={17} />
-                Galerie
+                <ImagePlus size={18} />
+                Choisir dans la galerie
               </button>
             </div>
+            <p style={{ color: MUTED, fontSize: 12, lineHeight: 1.6, margin: '18px 2px 0' }}>
+              Avant l'ajout au journal, tu pourras vérifier et corriger les valeurs estimées.
+            </p>
           </div>
         )}
+      
       </main>
 
       <footer
