@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Search, Activity as ActivityIcon, Bike, Dumbbell, Waves, PersonStanding, CircleDot, Mountain, HeartPulse, Minus, Plus, CalendarDays, MessageSquarePlus, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
@@ -33,13 +33,16 @@ const DURATION_PRESETS = [15, 30, 45, 60, 90];
 export default function ActivityAdd() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const today = todayLocalDate();
   const yesterday = useMemo(() => { const d = new Date(); return localDateFromDate(new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1)); }, []);
 
-  const [step, setStep] = useState<'pick' | 'form'>('pick');
+  const initialSport = searchParams.get('sport') || '';
+  const validInitialSport = searchActivities('').some(a => a.id === initialSport) ? initialSport : '';
+  const [step, setStep] = useState<'pick' | 'form'>(validInitialSport ? 'form' : 'pick');
   const [query, setQuery] = useState('');
   const [recent, setRecent] = useState<ActivityKind[]>([]);
-  const [sport, setSport] = useState('');
+  const [sport, setSport] = useState(validInitialSport);
   const [date, setDate] = useState(today);
   const [duration, setDuration] = useState('');
   const [intensity, setIntensity] = useState<Intensity | ''>('');
