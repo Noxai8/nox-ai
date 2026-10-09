@@ -21,6 +21,19 @@ type PulseData = {
 };
 
 type Dimension = 'sleep' | 'energy' | 'body';
+type Mood = 'bad' | 'low' | 'okay' | 'good' | 'great';
+const MOODS: { id: Mood; emoji: string; label: string }[] = [
+  { id: 'bad', emoji: '😞', label: 'Ça ne va pas' },
+  { id: 'low', emoji: '😕', label: 'Pas trop' },
+  { id: 'okay', emoji: '😐', label: 'Correct' },
+  { id: 'good', emoji: '🙂', label: 'Bien' },
+  { id: 'great', emoji: '😄', label: 'Très bien' },
+];
+const NOXI_INTRO: Record<'bad' | 'low' | 'okay', string> = {
+  bad: 'Hey 💚 Ça semble difficile aujourd’hui. Tu veux en parler, ou simplement trouver une toute petite étape pour rendre la journée plus facile ?',
+  low: 'Hey 💚 Qu’est-ce qui te pèse le plus aujourd’hui ? On peut prendre les choses doucement.',
+  okay: 'On peut avancer tranquillement aujourd’hui. Tu veux qu’on organise une petite étape ensemble ?',
+};
 
 const SCORES = [1, 2, 3, 4, 5] as const;
 
@@ -192,6 +205,8 @@ export default function Pulse() {
   const navigate = useNavigate();
   const today = todayLocalDate();
 
+  const [mood, setMood] = useState<Mood | null>(null);
+  const [showNoxiInvite, setShowNoxiInvite] = useState(false);
   const [sleep, setSleep] = useState(0);
   const [energy, setEnergy] = useState(0);
   const [body, setBody] = useState(0);
@@ -221,7 +236,7 @@ export default function Pulse() {
       });
   }, [user, today]);
 
-  const canSave = sleep > 0 && energy > 0 && body > 0;
+  const canSave = sleep > 0 && energy > 0 && body > 0 && mood !== null;
 
   const save = async () => {
     if (!user || !canSave || saving) return;
@@ -243,7 +258,11 @@ export default function Pulse() {
       if (err) throw err;
 
       setSaved(true);
-      setTimeout(() => navigate('/home'), 900);
+      if (mood === 'bad' || mood === 'low' || mood === 'okay') {
+        setShowNoxiInvite(true);
+      } else {
+        navigate('/home');
+      }
     } catch (e: any) {
       setError(e?.message || 'Impossible d\'enregistrer le Pulse.');
     } finally {
@@ -340,6 +359,13 @@ export default function Pulse() {
         </header>
 
         <main style={{ padding: '0 28px 54px' }}>
+          <section aria-label="Humeur du jour" style={{ padding: 20, marginBottom: 16, borderRadius: 24, background: SURFACE, border: `1px solid ${BORDER}` }}>
+            <h2 style={{ margin: '0 0 8px', fontSize: 21 }}>Comment tu te sens aujourd’hui ?</h2>
+            <p style={{ color: MUTED, fontSize: 13, margin: '0 0 18px' }}>Il n’y a pas de bonne ou de mauvaise réponse.</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+              {MOODS.map(item => <button key={item.id} type="button" aria-pressed={mood === item.id} onClick={() => setMood(item.id)} style={{ minHeight: 86, borderRadius: 16, border: `1px solid ${mood === item.id ? ACCENT : BORDER}`, background: mood === item.id ? '#283217' : ALT, color: WHITE, cursor: 'pointer', padding: 8 }}><span style={{ display: 'block', fontSize: 27, marginBottom: 6 }}>{item.emoji}</span><span style={{ fontSize: 11 }}>{item.label}</span></button>)}
+            </div>
+          </section>
           <ScoreCard
             dimension="sleep"
             value={sleep}
@@ -441,6 +467,16 @@ export default function Pulse() {
         </main>
       </div>
 
+      {showNoxiInvite && mood && (mood === 'bad' || mood === 'low' || mood === 'okay') && (
+        <div role="dialog" aria-modal="true" aria-label="NOXI te propose son aide" style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,.85)', display: 'grid', placeItems: 'center', padding: 20 }}>
+          <div style={{ maxWidth: 420, width: '100%', background: '#141914', border: '1px solid #35412A', borderRadius: 26, padding: 24 }}>
+            <div style={{ color: ACCENT, fontWeight: 900, marginBottom: 14 }}>NOXI 💚</div>
+            <p style={{ lineHeight: 1.65, fontSize: 17 }}>{NOXI_INTRO[mood]}</p>
+            <button type="button" onClick={() => navigate('/coach')} style={{ width: '100%', padding: 16, border: 0, borderRadius: 16, background: ACCENT, color: BLACK, fontWeight: 900, marginTop: 12 }}>Parler à NOXI</button>
+            <button type="button" onClick={() => navigate('/home')} style={{ width: '100%', padding: 16, border: 0, background: 'transparent', color: '#C7CCC7', marginTop: 8 }}>Pas maintenant</button>
+          </div>
+        </div>
+      )}
       <style>{`
         @media (max-width: 560px) {
           .nox-pulse-score-label { font-size: 9px; }
