@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Search, Activity as ActivityIcon, Bike, Dumbbell, Waves, PersonStanding, CircleDot, Mountain, HeartPulse, Minus, Plus, CalendarDays, MessageSquarePlus, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -67,6 +67,11 @@ export default function ActivityAdd() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [timerStart, setTimerStart] = useState<number | null>(null);
+  const [timerElapsed, setTimerElapsed] = useState(0);
+  const timerAccumulated = useRef(0);
+  const [duplicateWarning, setDuplicateWarning] = useState('');
+  const [duplicateConfirmed, setDuplicateConfirmed] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -75,12 +80,27 @@ export default function ActivityAdd() {
       .then(({ data }) => setRecent(recentActivities((data ?? []) as MovementLogRow[])));
   }, [user]);
 
+  useEffect(() => {
+    if (timerStart == null) return;
+    const tick = () => setTimerElapsed(timerAccumulated.current + Math.floor((Date.now() - timerStart) / 1000));
+    tick();
+    const interval = window.setInterval(tick, 1000);
+    return () => window.clearInterval(interval);
+  }, [timerStart]);
+  const stopTimer = () => {
+    const seconds = timerAccumulated.current + (timerStart == null ? 0 : Math.floor((Date.now() - timerStart) / 1000));
+    timerAccumulated.current = seconds;
+    setTimerStart(null);
+    setTimerElapsed(seconds);
+    if (seconds >= 60) setDuration(String(Math.max(1, Math.round(seconds / 60))));
+  };
+  const resetTimer = () => { timerAccumulated.current = 0; setTimerStart(null); setTimerElapsed(0); };
   const results = searchActivities(query);
   const input = { sport, date, durationMin: duration, intensity, note };
   const errors = validateNewActivity(input, today, yesterday);
   const estimatedKcal = estimateCalories(sport, intensity, duration, weightKg);
 
-  const pick = (id: string) => { setSport(id); setError(''); setStep('form'); };
+  const pick = (id: string) => { setSport(id); setError(''); setDuplicateWarning(''); setDuplicateConfirmed(false); resetTimer(); setStep('form'); };
 
   const save = async () => {
     if (!user || saving || errors.length) return;
@@ -90,6 +110,17 @@ export default function ActivityAdd() {
       setError('Indique une distance valide en kilomètres, ou laisse le champ vide.');
       setSaving(false);
       return;
+    }
+    if (!duplicateConfirmed) {
+      const { data: recentSame } = await supabase.from('movement_logs')
+        .select('id, duration_min, created_at').eq('user_id', user.id)
+        .eq('date', date).eq('sport', sport).order('created_at', { ascending: false }).limit(10);
+      if ((recentSame ?? []).some(row => Math.abs(Number(row.duration_min) - Number(duration)) <= 5 &&
+          row.created_at && Date.now() - new Date(row.created_at).getTime() < 7200000)) {
+        setDuplicateWarning('Une activité similaire a déjà été enregistrée récemment. Vérifie qu’il ne s’agit pas d’un doublon.');
+        setSaving(false);
+        return;
+      }
     }
     const caloriesToSave = includeEstimate ? estimatedKcal : null;
     const { error: e } = await supabase.from('movement_logs').insert({
@@ -186,6 +217,16 @@ export default function ActivityAdd() {
               </div>
             </section>
 
+            <section style={{ ...card, background: '#131B15', borderColor: 'rgba(200,255,0,.22)' }}>
+              <div style={{ ...label, color: LIME }}>CHRONOMÈTRE · SUIVI MANUEL</div>
+              <div style={{ fontSize: 32, fontWeight: 950, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{String(Math.floor(timerElapsed / 3600)).padStart(2, '0')}:{String(Math.floor(timerElapsed % 3600 / 60)).padStart(2, '0')}:{String(timerElapsed % 60).padStart(2, '0')}</div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <button type="button" onClick={() => timerStart == null ? setTimerStart(Date.now()) : stopTimer()} style={{ flex: 1, minHeight: 44, borderRadius: 12, border: 0, background: LIME, color: BG, fontWeight: 900, cursor: 'pointer' }}>{timerStart == null ? (timerElapsed ? 'Reprendre' : 'Démarrer') : 'Pause'}</button>
+                <button type="button" onClick={stopTimer} disabled={timerStart == null && !timerElapsed} style={{ flex: 1, minHeight: 44, borderRadius: 12, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, cursor: 'pointer' }}>Terminer</button>
+                <button type="button" onClick={resetTimer} style={{ padding: '0 12px', borderRadius: 12, border: `1px solid ${SOFT}`, background: CARD2, color: SEC, cursor: 'pointer' }}>RAZ</button>
+              </div>
+              <p style={{ color: MUTED, fontSize: 11, margin: '10px 0 0' }}>Garde cette page ouverte. Le chronomètre ne détecte pas automatiquement le mouvement.</p>
+            </section>
             <section style={{ ...card, padding:'22px 18px 18px' }}>
               <div style={{ ...label, textAlign:'center', marginBottom:16 }}>DURÉE</div>
               <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:'clamp(18px,5vw,42px)', marginBottom:18 }}>
@@ -240,6 +281,7 @@ export default function ActivityAdd() {
                 <div style={{color:MUTED,fontSize:10,textAlign:'right',marginTop:4}}>{note.length}/{MAX_NOTE}</div>
               </section>}
 
+            {duplicateWarning && <div role="alert" style={{ ...card, borderColor: '#A88D37', fontSize: 12 }}><strong>Doublon possible</strong><p>{duplicateWarning}</p><button type="button" onClick={() => { setDuplicateConfirmed(true); setDuplicateWarning(''); }} style={{ border: 0, background: LIME, color: BG, borderRadius: 10, padding: '10px 14px', fontWeight: 900, cursor: 'pointer' }}>Vérifié, enregistrer quand même</button></div>}
             {error && <div style={{ color:'#E9C2C2', fontSize:12, marginTop:14 }}>{error}</div>}
             <div style={{ height:110 }} />
             <div style={{ position:'sticky', bottom:'calc(86px + env(safe-area-inset-bottom))', zIndex:15, padding:'12px 0', background:'linear-gradient(180deg, rgba(9,11,10,0), #090B0A 28%)' }}>
