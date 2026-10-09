@@ -39,7 +39,7 @@ export default function MealReview({
     .every(k => value(k) !== '' && Number.isFinite(num(k)) && num(k) >= 0 && num(k) <= (k === 'calories' ? 5000 : 500));
 
   const C = dark
-    ? { card: '#232624', field: '#191C1A', border: '#343835', text: '#FFFFFF', sec: '#A5AAA6', muted: '#747A76' }
+    ? { card: '#111611', field: '#1A201C', border: '#343D35', text: '#FFFFFF', sec: '#A5AAA6', muted: '#747A76' }
     : { card: '#FFFFFF', field: '#F4F5F1', border: '#E1E3DC', text: '#0B0B0B', sec: '#5C6158', muted: '#8A8F85' };
   const LIME = '#C8FF00';
   const field: React.CSSProperties = {
@@ -61,10 +61,10 @@ export default function MealReview({
   );
 
   return (
-    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 18, color: C.text }}>
-      <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: '.08em', color: LIME, marginBottom: 6 }}>VÉRIFIE AVANT D’AJOUTER</div>
+    <div style={{ background: C.card, border: `1px solid ${dark ? LIME : C.border}`, borderRadius: 20, padding: 'clamp(16px, 2.5vw, 24px)', color: C.text, boxShadow: dark ? 'inset 0 0 0 1px rgba(200,255,0,.10)' : 'none' }}>
+      <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: '.08em', color: LIME, marginBottom: 6 }}>VÉRIFIE ET AJUSTE SI NÉCESSAIRE</div>
       <div style={{ fontSize: 13, color: C.sec, lineHeight: 1.5, marginBottom: 16 }}>
-        Ce sont des estimations à partir de la photo. Corrige ce qui ne correspond pas : seules les valeurs que tu valides seront enregistrées.
+        Les valeurs sont estimées à partir de la photo. Ajuste-les si besoin : rien n'est enregistré avant ta validation.
       </div>
 
       <div style={label}>REPAS</div>
@@ -82,7 +82,7 @@ export default function MealReview({
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: 12, marginBottom: 16 }}>
         {numField('calories', 'CALORIES', 'kcal')}
         {numField('protein', 'PROTÉINES', 'g')}
         {numField('carbs', 'GLUCIDES', 'g')}
