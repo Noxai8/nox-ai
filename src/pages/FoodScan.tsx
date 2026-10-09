@@ -11,6 +11,12 @@ import {
   Plus,
   RefreshCw,
   ScanLine,
+  Sparkles,
+  Utensils,
+  Flame,
+  Dumbbell,
+  Wheat,
+  Droplets,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { invokeEdge } from '../lib/edgeFunctions';
@@ -40,6 +46,7 @@ export default function FoodScan() {
   const [error, setError] = useState('');
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  const reviewRef = useRef<HTMLDivElement>(null);
 
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -168,9 +175,14 @@ export default function FoodScan() {
   // Une estimation photo n'est jamais enregistrée directement : vérification obligatoire
   const [review, setReview] = useState<MealValues | null>(null);
 
+  const showReview = (values: MealValues) => {
+    setReview(values);
+    window.setTimeout(() => reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  };
+
   const addAll = () => {
     if (!result) return;
-    setReview({
+    showReview({
       food_name: result.description || 'Repas scanné',
       calories: Number(result.total?.kcal ?? result.total?.calories ?? 0),
       protein: Number(result.total?.protein || 0),
@@ -180,7 +192,7 @@ export default function FoodScan() {
   };
 
   const addSingle = (item: any) => {
-    setReview({
+    showReview({
       food_name: item.nom || item.name || 'Aliment',
       calories: Number(item.kcal || item.calories || 0),
       protein: Number(item.protein || 0),
@@ -400,29 +412,9 @@ export default function FoodScan() {
           padding: '18px 18px 8px',
         }}
       >
-        {photoBase64 && (
-          <div
-            style={{
-              position: 'relative',
-              marginBottom: 14,
-              borderRadius: 22,
-              overflow: 'hidden',
-              background: '#242925',
-              border: `1px solid ${BORDER}`,
-            }}
-          >
-            <img
-              src={photoBase64}
-              alt="Repas à analyser"
-              style={{
-                display: 'block',
-                width: '100%',
-                height: 260,
-                objectFit: 'cover',
-              }}
-            />
-
-
+        {photoBase64 && (!result || scanning) && (
+          <div style={{ maxWidth: 900, margin: '0 auto 16px', borderRadius: 20, overflow: 'hidden', border: `1px solid ${BORDER}` }}>
+            <img src={photoBase64} alt="Photo du repas" style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }} />
           </div>
         )}
 
@@ -499,271 +491,66 @@ export default function FoodScan() {
         )}
 
         {result && !scanning && (
-          <div style={{ maxWidth: 900, margin: '0 auto' }}>
-            <div
-              style={{
-                background: SURFACE,
-                border: `1px solid ${BORDER}`,
-                borderRadius: 20,
-                padding: 16,
-                marginBottom: 12,
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  marginBottom: 8,
-                }}
-              >
-                <div
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 10,
-                    background: ACCENT,
-                    display: 'grid',
-                    placeItems: 'center',
-                  }}
-                >
-                  <ScanLine size={16} />
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 10,
-                    color: MUTED,
-                    fontWeight: 900,
-                    textTransform: 'uppercase',
-                    letterSpacing: '.06em',
-                  }}
-                >
-                  Repas détecté
-                  {result.fiabilite ? ` · ${result.fiabilite}` : ''}
+          <div style={{ maxWidth: 1120, margin: '0 auto', display: 'grid', gap: 18, paddingBottom: 22 }}>
+            <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 20, alignItems: 'stretch' }}>
+              {photoBase64 && (
+                <img src={photoBase64} alt="Photo analysée du repas" style={{ width: '100%', height: '100%', minHeight: 230, maxHeight: 330, objectFit: 'cover', borderRadius: 20, border: `1px solid ${BORDER}`, boxSizing: 'border-box' }} />
+              )}
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 14 }}>
+                <div style={{ color: ACCENT, fontSize: 13, fontWeight: 850, display: 'flex', gap: 8, alignItems: 'center' }}><Sparkles size={17} /> Analyse par IA · Estimation</div>
+                <h2 style={{ fontSize: 'clamp(20px, 2.7vw, 28px)', lineHeight: 1.2, margin: 0, letterSpacing: '-.035em' }}>{result.description || 'Repas analysé'}</h2>
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: MUTED }}>Voici les aliments détectés sur ta photo. Vérifie les quantités avant d'enregistrer.</p>
+                {result.note && <p style={{ margin: 0, fontSize: 12, color: MUTED }}>{result.note}</p>}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 9 }}>
+                  {[
+                    { label: 'Calories', val: totalKcal, unit: 'kcal', Icon: Flame, tint: '#FF823B' },
+                    { label: 'Protéines', val: Math.round(Number(result.total?.protein || 0)), unit: 'g', Icon: Dumbbell, tint: ACCENT },
+                    { label: 'Glucides', val: Math.round(Number(result.total?.carbs || 0)), unit: 'g', Icon: Wheat, tint: '#F7C947' },
+                    { label: 'Lipides', val: Math.round(Number(result.total?.fat || 0)), unit: 'g', Icon: Droplets, tint: '#F178A5' },
+                  ].map(({ label, val, unit, Icon, tint }) => (
+                    <div key={label} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: '14px 12px', display: 'flex', alignItems: 'center', gap: 11 }}>
+                      <div style={{ background: '#242924', color: tint, width: 38, height: 38, borderRadius: 12, display: 'grid', placeItems: 'center', flexShrink: 0 }}><Icon size={20} /></div>
+                      <div><div style={{ fontWeight: 950, fontSize: 21, lineHeight: 1.1 }}>{val}<span style={{ fontSize: 10, color: MUTED, marginLeft: 4 }}>{unit}</span></div><div style={{ color: MUTED, fontSize: 11, marginTop: 5 }}>{label}</div></div>
+                    </div>
+                  ))}
                 </div>
               </div>
+            </section>
 
-              <div
-                style={{
-                  fontSize: 17,
-                  fontWeight: 900,
-                  lineHeight: 1.3,
-                }}
-              >
-                {result.description || 'Repas analysé'}
-              </div>
+            {Array.isArray(result.aliments) && result.aliments.length > 0 && (
+              <section style={{ border: `1px solid ${BORDER}`, borderRadius: 20, padding: 'clamp(12px, 2vw, 20px)', background: '#101311' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                  <Utensils size={22} color={ACCENT} />
+                  <div><h3 style={{ margin: 0, fontSize: 19, letterSpacing: '-.02em' }}>Aliments détectés</h3><div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>Sélectionne un aliment pour le vérifier et l'ajouter seul.</div></div>
+                </div>
+                <div style={{ display: 'grid', gap: 7 }}>
+                  {result.aliments.map((item: any, index: number) => (
+                    <div key={`${item.nom || item.name || 'food'}-${index}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, background: SURFACE, border: `1px solid ${BORDER}` }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 11, background: '#28301D', display: 'grid', placeItems: 'center', color: ACCENT, flexShrink: 0 }}><Utensils size={18} /></div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 850, fontSize: 13, lineHeight: 1.4 }}>{item.nom || item.name || 'Aliment'}</div>
+                        <div style={{ fontSize: 11, color: MUTED, marginTop: 3, lineHeight: 1.4 }}>{item.quantite || 'Quantité estimée'} · P {Number(item.protein || 0)} g · G {Number(item.carbs || 0)} g · L {Number(item.fat || 0)} g</div>
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 850, whiteSpace: 'nowrap', background: '#252A26', borderRadius: 99, padding: '7px 10px' }}>{Math.round(Number(item.kcal || item.calories || 0))} kcal</span>
+                      <button type="button" onClick={() => addSingle(item)} disabled={adding} aria-label={`Vérifier et ajouter ${item.nom || item.name || 'cet aliment'}`} title="Vérifier cet aliment" style={{ width: 37, height: 37, borderRadius: 11, border: `1px solid ${BORDER}`, background: '#242924', color: ACCENT, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}><Plus size={19} /></button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
-              {result.note && (
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: MUTED,
-                    marginTop: 7,
-                    lineHeight: 1.45,
-                  }}
-                >
-                  {result.note}
+            <div ref={reviewRef} style={{ scrollMarginTop: 16 }}>
+              {review ? (
+                <MealReview key={review.food_name + review.calories} estimate={review} busy={adding} dark onCancel={() => setReview(null)} onConfirm={values => { void saveReviewed(values); }} />
+              ) : (
+                <div style={{ border: `1px solid ${ACCENT}`, borderRadius: 20, background: '#111611', padding: 'clamp(14px, 2vw, 22px)' }}>
+                  <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 6 }}>Vérifie et ajuste si nécessaire</div>
+                  <div style={{ color: MUTED, fontSize: 12, marginBottom: 16 }}>Les valeurs sont estimées par l'IA. Rien n'est enregistré sans ta validation.</div>
+                  <button type="button" onClick={addAll} disabled={adding} style={{ width: '100%', minHeight: 54, background: ACCENT, color: ON_ACCENT, border: 'none', borderRadius: 13, fontWeight: 900, fontSize: 14, cursor: 'pointer' }}>Vérifier et ajouter le repas · {totalKcal} kcal</button>
                 </div>
               )}
             </div>
-
-            <div
-              style={{
-                background: SURFACE,
-                border: `1px solid ${BORDER}`,
-                borderRadius: 20,
-                padding: 15,
-                marginBottom: 12,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  color: MUTED,
-                  fontWeight: 900,
-                  textTransform: 'uppercase',
-                  marginBottom: 12,
-                }}
-              >
-                Estimation nutritionnelle
-              </div>
-
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4,minmax(0,1fr))',
-                  gap: 7,
-                }}
-              >
-                {[
-                  {
-                    label: 'Calories',
-                    val: totalKcal,
-                    unit: 'kcal',
-                  },
-                  {
-                    label: 'Protéines',
-                    val: Math.round(Number(result.total?.protein || 0)),
-                    unit: 'g',
-                  },
-                  {
-                    label: 'Glucides',
-                    val: Math.round(Number(result.total?.carbs || 0)),
-                    unit: 'g',
-                  },
-                  {
-                    label: 'Lipides',
-                    val: Math.round(Number(result.total?.fat || 0)),
-                    unit: 'g',
-                  },
-                ].map(({ label, val, unit }) => (
-                  <div
-                    key={label}
-                    style={{
-                      background: '#0A0A0A',
-                      borderRadius: 13,
-                      padding: '11px 4px',
-                      textAlign: 'center',
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 950,
-                      }}
-                    >
-                      {val}
-                      <span
-                        style={{
-                          fontSize: 8,
-                          color: MUTED,
-                          marginLeft: 2,
-                        }}
-                      >
-                        {unit}
-                      </span>
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: 8.5,
-                        color: MUTED,
-                        marginTop: 4,
-                      }}
-                    >
-                      {label}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {Array.isArray(result.aliments) && result.aliments.length > 0 && (
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                }}
-              >
-                {result.aliments.map((item: any, index: number) => (
-                  <div
-                    key={`${item.nom || item.name || 'food'}-${index}`}
-                    style={{
-                      background: SURFACE,
-                      border: `1px solid ${BORDER}`,
-                      borderRadius: 17,
-                      padding: '13px 13px 13px 14px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: 12,
-                    }}
-                  >
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 850,
-                        }}
-                      >
-                        {item.nom || item.name || 'Aliment'}
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: 10.5,
-                          color: MUTED,
-                          marginTop: 4,
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        {item.quantite || 'Quantité estimée'}
-                        {' · '}
-                        P {Number(item.protein || 0)}g
-                        {' · '}
-                        G {Number(item.carbs || 0)}g
-                        {' · '}
-                        L {Number(item.fat || 0)}g
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 900,
-                        }}
-                      >
-                        {Math.round(Number(item.kcal || item.calories || 0))}{' '}
-                        kcal
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => void addSingle(item)}
-                        disabled={adding}
-                        aria-label={`Ajouter ${item.nom || item.name || 'cet aliment'}`}
-                        style={{
-                          width: 42,
-                          height: 42,
-                          borderRadius: 13,
-                          border: '1px solid #A5E600',
-                          background: ACCENT,
-                          color: ON_ACCENT,
-                          display: 'grid',
-                          placeItems: 'center',
-                          cursor: adding ? 'default' : 'pointer',
-                          opacity: adding ? 0.6 : 1,
-                        }}
-                      >
-                        <Plus size={18} strokeWidth={2.8} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div
-              style={{
-                marginTop: 12,
-                fontSize: 10,
-                color: '#8D948F',
-                lineHeight: 1.45,
-              }}
-            >
-              Les valeurs issues d’une photo sont des estimations. Vérifie les
-              quantités si tu as besoin d’un suivi plus précis.
-            </div>
+            <button type="button" onClick={() => { resetScan(); cameraRef.current?.click(); }} style={{ width: '100%', minHeight: 46, background: SURFACE, color: TEXT, border: `1px solid ${BORDER}`, borderRadius: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><RefreshCw size={16} /> Nouvelle photo</button>
           </div>
         )}
 
@@ -820,75 +607,8 @@ export default function FoodScan() {
           borderTop: result ? `1px solid ${BORDER}` : 'none',
         }}
       >
-        {result && !scanning ? (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-              maxWidth: 900,
-              margin: '0 auto',
-            }}
-          >
-            {review && (
-              <MealReview
-                estimate={review}
-                busy={adding}
-                dark={true}
-                onCancel={() => setReview(null)}
-                onConfirm={values => { void saveReviewed(values); }}
-              />
-            )}
+        {photoBase64 && !scanning && !result ? (
 
-            {!review && <button
-              type="button"
-              onClick={() => void addAll()}
-              disabled={adding}
-              style={{
-                width: '100%',
-                minHeight: 56,
-                padding: '14px 16px',
-                background: ACCENT,
-                border: '1px solid #A5E600',
-                borderRadius: 16,
-                color: ON_ACCENT,
-                fontWeight: 950,
-                fontSize: 14,
-                cursor: adding ? 'default' : 'pointer',
-                opacity: adding ? 0.65 : 1,
-              }}
-            >
-              {`Vérifier et ajouter · ${totalKcal} kcal`}
-            </button>}
-
-            <button
-              type="button"
-              onClick={() => {
-                resetScan();
-                cameraRef.current?.click();
-              }}
-              style={{
-                width: '100%',
-                minHeight: 46,
-                padding: '11px 14px',
-                background: SURFACE,
-                border: `1px solid ${BORDER}`,
-                borderRadius: 14,
-                color: TEXT,
-                fontWeight: 800,
-                fontSize: 12,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 7,
-              }}
-            >
-              <RefreshCw size={15} />
-              Nouvelle photo
-            </button>
-          </div>
-        ) : photoBase64 && !scanning && !result ? (
           <button
             type="button"
             onClick={() => {
