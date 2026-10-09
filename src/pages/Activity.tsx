@@ -222,56 +222,6 @@ export default function Activity() {
               ))}
             </section>
 
-            {/* PROGRAMME GUIDÉ — intégré à l'univers Activité */}
-            <section style={card}>
-              <div style={label}>MON PROGRAMME · ENTRAÎNEMENT GUIDÉ</div>
-              {guidedSession ? (
-                <>
-                  <div style={{ fontSize: 17, fontWeight: 950, letterSpacing: '-.02em' }}>
-                    {typeof guidedSession.name === 'string' && guidedSession.name.trim() ? guidedSession.name : 'Séance du jour'}
-                  </div>
-                  {(guidedMinutes != null || guidedExercises != null) && (
-                    <div style={{ color: SEC, fontSize: 12, marginTop: 4 }}>
-                      {[guidedMinutes != null ? `${guidedMinutes} min` : null, guidedExercises != null ? `${guidedExercises} exercice${guidedExercises > 1 ? 's' : ''}` : null].filter(Boolean).join(' · ')}
-                    </div>
-                  )}
-                  {guidedDoneToday ? (
-                    <div style={{ color: LIME, fontSize: 13, fontWeight: 900, marginTop: 12 }}>Séance terminée aujourd’hui ✓</div>
-                  ) : guidedRouteId != null && (
-                    <button onClick={() => navigate(`/training/${guidedRouteId}`)}
-                      style={{ marginTop: 14, width: '100%', padding: 14, border: 0, borderRadius: 13, background: LIME, color: BG, fontWeight: 900, fontSize: 14, cursor: 'pointer' }}>
-                      Commencer
-                    </button>
-                  )}
-                  <button onClick={() => navigate('/program')}
-                    style={{ marginTop: 10, padding: 0, border: 0, background: 'transparent', color: SEC, fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
-                    Voir mon programme ›
-                  </button>
-                </>
-              ) : program ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                  <span style={{ color: SEC, fontSize: 13 }}>Pas de séance prévue aujourd’hui.</span>
-                  <button onClick={() => navigate('/program')}
-                    style={{ padding: 0, border: 0, background: 'transparent', color: SEC, fontWeight: 800, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    Voir mon programme ›
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div style={{ color: SEC, fontSize: 13, lineHeight: 1.5 }}>Des séances guidées construites pour toi, si tu veux un cadre.</div>
-                  <button onClick={() => navigate('/generate-program')}
-                    style={{ marginTop: 12, padding: '10px 14px', borderRadius: 12, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontWeight: 900, fontSize: 13, cursor: 'pointer' }}>
-                    Créer mon programme
-                  </button>
-                </>
-              )}
-              {(program || workouts.length > 0) && (
-                <button onClick={() => navigate('/training-calendar')}
-                  style={{ display: 'block', marginTop: 14, padding: '12px 0 0', width: '100%', textAlign: 'left', border: 0, borderTop: `1px solid ${SOFT}`, background: 'transparent', color: SEC, fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
-                  Historique des séances ›
-                </button>
-              )}
-            </section>
           </>
         ) : (
           <>
