@@ -10,6 +10,7 @@ import type { UserHabit } from './habits';
 export type MovementLogRow = {
   id: string; date: string; sport: string; duration_min: number | null;
   intensity?: string | null; note?: string | null; created_at?: string | null;
+  calories_kcal?: number | null; calories_source?: string | null; distance_km?: number | null; distance_source?: string | null;
 };
 export type WorkoutRow = {
   id: string; name?: string | null; status?: string | null;
@@ -26,6 +27,10 @@ export type ActivityItem = {
   origin: ActivityOrigin;      // declared = saisie manuelle · recorded = séance enregistrée dans l'app
   at: string | null;           // horodatage connu (tri), sinon null
   intensity: string | null;
+  caloriesKcal: number | null;
+  caloriesSource: string | null;
+  distanceKm: number | null;
+  distanceSource: string | null;
 };
 
 // ── Catalogue des activités ──
@@ -89,10 +94,13 @@ export function activitiesForDay(date: string, movement: MovementLogRow[], worko
     ...movement.filter(m => m.date === date).map(m => ({
       key: `m-${m.id}`, label: sportLabel(m.sport), minutes: positive(m.duration_min),
       origin: 'declared' as const, at: m.created_at ?? null, intensity: m.intensity ?? null,
+      caloriesKcal: m.calories_kcal ?? null, caloriesSource: m.calories_source ?? null,
+      distanceKm: m.distance_km ?? null, distanceSource: m.distance_source ?? null,
     })),
     ...workouts.filter(w => workoutDay(w) === date).map(w => ({
       key: `w-${w.id}`, label: w.name?.trim() ? `Musculation · ${w.name.trim()}` : 'Musculation',
       minutes: workoutMinutes(w), origin: 'recorded' as const, at: w.finished_at ?? null, intensity: null,
+      caloriesKcal: null, caloriesSource: null, distanceKm: null, distanceSource: null,
     })),
   ];
   return items.sort((a, b) => (a.at ?? '').localeCompare(b.at ?? ''));
