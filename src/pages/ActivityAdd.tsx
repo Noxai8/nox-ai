@@ -61,6 +61,8 @@ export default function ActivityAdd() {
   const [duration, setDuration] = useState('');
   const [intensity, setIntensity] = useState<Intensity | ''>('');
   const [weightKg, setWeightKg] = useState('');
+  const [distanceKm, setDistanceKm] = useState('');
+  const [includeEstimate, setIncludeEstimate] = useState(true);
   const [note, setNote] = useState('');
   const [noteOpen, setNoteOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -83,9 +85,22 @@ export default function ActivityAdd() {
   const save = async () => {
     if (!user || saving || errors.length) return;
     setSaving(true); setError('');
-    const { error: e } = await supabase.from('movement_logs').insert(movementInsert(user.id, input));
+    const distanceValue = distanceKm.trim() ? Number(distanceKm.replace(',', '.')) : null;
+    if (distanceValue != null && (!Number.isFinite(distanceValue) || distanceValue <= 0 || distanceValue > 1000)) {
+      setError('Indique une distance valide en kilomètres, ou laisse le champ vide.');
+      setSaving(false);
+      return;
+    }
+    const caloriesToSave = includeEstimate ? estimatedKcal : null;
+    const { error: e } = await supabase.from('movement_logs').insert({
+      ...movementInsert(user.id, input),
+      calories_kcal: caloriesToSave,
+      calories_source: caloriesToSave == null ? null : 'estimated_met',
+      distance_km: distanceValue,
+      distance_source: distanceValue == null ? null : 'declared',
+    });
     setSaving(false);
-    if (e) { setError('L’activité n’a pas pu être enregistrée. Réessaie.'); console.error('movement_logs:', e.message); return; }
+    if (e) { setError(/column|schema cache|does not exist/i.test(e.message) ? 'Mise à jour de la base nécessaire avant de sauvegarder les calories. Contacte l’administrateur NOX.' : 'L’activité n’a pas pu être enregistrée. Réessaie.'); console.error('movement_logs:', e.message); return; }
     // Retour à Activité : la page recharge les vraies données, l'activité apparaît aussitôt
     navigate('/activity', { replace: true });
   };
@@ -207,6 +222,14 @@ export default function ActivityAdd() {
                 </>
               ) : <p style={{ color: SEC, fontSize: 12, margin: 0 }}>Pas d'estimation fiable disponible pour cette catégorie. NOX n'invente pas de calories.</p>}
             </section>
+
+            <section style={{ ...card, background: CARD2 }}>
+              <div style={label}>DISTANCE PARCOURUE · FACULTATIF</div>
+              <label htmlFor="distance-km" style={{ fontSize: 12, color: SEC }}>Distance déclarée (km), si tu la connais</label>
+              <input id="distance-km" type="number" min={0} max={1000} step="0.01" inputMode="decimal" value={distanceKm} onChange={e => setDistanceKm(e.target.value)} placeholder="Ex. 5,2" style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 8, height: 44, padding: '0 12px', borderRadius: 12, background: CARD, color: WHITE, border: `1px solid ${SOFT}` }} />
+              <div style={{ fontSize: 11, color: MUTED, marginTop: 8 }}>DÉCLARÉ · NOX ne déduit jamais une distance de la durée.</div>
+            </section>
+            {estimatedKcal != null && <label style={{ display: 'flex', alignItems: 'center', gap: 10, color: SEC, fontSize: 12, margin: '0 0 18px' }}><input type="checkbox" checked={includeEstimate} onChange={e => setIncludeEstimate(e.target.checked)} style={{ accentColor: LIME, width: 17, height: 17 }} /> Enregistrer l'estimation de {estimatedKcal} kcal avec la mention « ESTIMÉ · MET »</label>}
 
             {!noteOpen ? <button onClick={()=>setNoteOpen(true)} style={{ width:'100%', border:0, borderTop:`1px solid ${SOFT}`, borderBottom:`1px solid ${SOFT}`, background:'transparent', color:SEC, padding:'15px 2px', display:'flex', alignItems:'center', gap:9, fontSize:12, fontWeight:850, cursor:'pointer' }}><MessageSquarePlus size={16} color={LIME}/> Ajouter une note <span style={{marginLeft:'auto',color:MUTED}}>Facultatif</span></button> :
               <section style={{ ...card, position:'relative' }}>
