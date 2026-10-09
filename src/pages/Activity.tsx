@@ -7,10 +7,9 @@ import { localDateFromDate, localDayStartISO, todayLocalDate } from '../lib/loca
 import { HABIT_COLUMNS, type UserHabit } from '../lib/nox/habits';
 import { stepsView } from '../lib/nox/steps';
 import {
-  activitiesForDay, workoutDay, INTENSITY_LABELS, ORIGIN_LABELS, summarize, weekSummary,
+  activitiesForDay, INTENSITY_LABELS, ORIGIN_LABELS, summarize, weekSummary,
   type DatedStepsLog, type MovementLogRow, type WorkoutRow,
 } from '../lib/nox/activity';
-import { sessionRouteId, todaySessionFromProgram, type ProgramLike } from '../lib/nox/guidedSessions';
 import { BottomNav } from './Home';
 
 // ── /activity — lecture seule ────────────────────────────────────────────────
@@ -51,8 +50,6 @@ export default function Activity() {
   const [stepsLogs, setStepsLogs] = useState<DatedStepsLog[]>([]);
   const [movement, setMovement] = useState<MovementLogRow[]>([]);
   const [workouts, setWorkouts] = useState<WorkoutRow[]>([]);
-  // Programme actif (moteur des séances guidées, inchangé, en arrière-plan)
-  const [program, setProgram] = useState<ProgramLike>(null);
 
   const days = useMemo(() => last7Days(), []);
   const today = todayLocalDate();
@@ -61,31 +58,23 @@ export default function Activity() {
 
   const load = async () => {
     const first = days[0];
-    const [h, l, m, w, p] = await Promise.all([
+    const [h, l, m, w] = await Promise.all([
       supabase.from('user_habits').select(HABIT_COLUMNS).eq('user_id', user!.id).eq('active', true),
       supabase.from('habit_logs').select('habit_id, date, count, source').eq('user_id', user!.id).gte('date', first),
       supabase.from('movement_logs').select('id, date, sport, duration_min, intensity, note, created_at').eq('user_id', user!.id).gte('date', first),
       supabase.from('workouts').select('id, name, status, started_at, finished_at, duration_minutes, duration_min')
         .eq('user_id', user!.id).eq('status', 'completed').gte('finished_at', localDayStartISO(first)),
-      supabase.from('workout_programs').select('id, program_json').eq('user_id', user!.id).eq('is_active', true).maybeSingle(),
     ]);
-    const firstError = h.error || l.error || m.error || w.error || p.error;
+    const firstError = h.error || l.error || m.error || w.error;
     if (firstError) setError(firstError.message);
     setHabits((h.data ?? []) as UserHabit[]);
     setStepsLogs(((l.data ?? []) as any[]).map(x => ({ habit_id: x.habit_id, date: x.date, count: Number(x.count), source: x.source ?? 'manual' })));
     setMovement((m.data ?? []) as MovementLogRow[]);
     setWorkouts((w.data ?? []) as WorkoutRow[]);
-    setProgram((p.data ?? null) as ProgramLike);
     setLoading(false);
   };
 
   const steps = stepsView(habits, stepsLogs.filter(l => l.date === today));
-  // Séances NOX : même séance du jour que la Home ; « faite » = une séance terminée aujourd'hui (même définition que la Home)
-  const guidedSession = todaySessionFromProgram(program);
-  const guidedRouteId = sessionRouteId(program, guidedSession);
-  const guidedDoneToday = workouts.some(w => workoutDay(w) === today);
-  const guidedMinutes = Number(guidedSession?.duration_minutes) > 0 ? Number(guidedSession.duration_minutes) : null;
-  const guidedExercises = Array.isArray(guidedSession?.exercises) && guidedSession.exercises.length > 0 ? guidedSession.exercises.length : null;
   const todayItems = activitiesForDay(today, movement, workouts);
   const todaySummary = summarize(todayItems);
   const week = weekSummary(days, habits, stepsLogs, movement, workouts);
