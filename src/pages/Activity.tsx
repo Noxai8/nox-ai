@@ -61,7 +61,7 @@ export default function Activity() {
     const [h, l, m, w] = await Promise.all([
       supabase.from('user_habits').select(HABIT_COLUMNS).eq('user_id', user!.id).eq('active', true),
       supabase.from('habit_logs').select('habit_id, date, count, source').eq('user_id', user!.id).gte('date', first),
-      supabase.from('movement_logs').select('id, date, sport, duration_min, intensity, note, created_at').eq('user_id', user!.id).gte('date', first),
+      supabase.from('movement_logs').select('id, date, sport, duration_min, intensity, note, created_at, calories_kcal, calories_source, distance_km, distance_source').eq('user_id', user!.id).gte('date', first),
       supabase.from('workouts').select('id, name, status, started_at, finished_at, duration_minutes, duration_min')
         .eq('user_id', user!.id).eq('status', 'completed').gte('finished_at', localDayStartISO(first)),
     ]);
@@ -227,6 +227,8 @@ export default function Activity() {
                     <div style={{ color: SEC, fontSize: 12, marginTop: 3 }}>
                       {a.minutes == null ? 'Durée non disponible' : `${a.minutes} min`}
                       {a.intensity && INTENSITY_LABELS[a.intensity] ? ` · intensité ${INTENSITY_LABELS[a.intensity]}` : ''}
+                      {a.distanceKm != null ? ` · ${a.distanceKm} km (déclaré)` : ''}
+                      {a.caloriesKcal != null ? ` · ${a.caloriesKcal} kcal (${a.caloriesSource === 'estimated_met' ? 'estimé' : a.caloriesSource === 'measured' ? 'mesuré' : 'déclaré'})` : ''}
                     </div>
                   </div>
                   <span style={tag(ORIGIN_LABELS[a.origin], false)}>{ORIGIN_LABELS[a.origin]}</span>
