@@ -149,7 +149,7 @@ export default function Activity() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 9 }}>
             {sports.map(({ name, Icon, image }) => (
-              <button key={name} type="button" onClick={() => navigate('/activity/new')} aria-label={`Ajouter une activité : ${name}`} style={{ position: 'relative', height: 126, borderRadius: 17, overflow: 'hidden', border: `1px solid ${BORDER}`, background: '#171D19', color: WHITE, cursor: 'pointer', padding: 0, textAlign: 'left' }}>
+              <button key={name} type="button" onClick={() => navigate(`/activity/new?sport=${encodeURIComponent(({ Marche: 'marche', Course: 'course', 'Vélo': 'velo', Musculation: 'musculation', Yoga: 'yoga' } as Record<string, string>)[name])}`)} aria-label={`Ajouter une activité : ${name}`} style={{ position: 'relative', height: 126, borderRadius: 17, overflow: 'hidden', border: `1px solid ${BORDER}`, background: '#171D19', color: WHITE, cursor: 'pointer', padding: 0, textAlign: 'left' }}>
                 <img src={image} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, opacity: .8 }} />
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,.04), rgba(0,0,0,.86))' }} />
                 <span style={{ position: 'absolute', bottom: 12, left: 12, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12, fontWeight: 900 }}><Icon size={22} color={LIME} />{name}</span>
