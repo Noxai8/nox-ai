@@ -61,6 +61,8 @@ export default function ActivityAdd() {
   const [duration, setDuration] = useState('');
   const [intensity, setIntensity] = useState<Intensity | ''>('');
   const [weightKg, setWeightKg] = useState('');
+  const [profileWeight, setProfileWeight] = useState<number | null>(null);
+  const [weightLoading, setWeightLoading] = useState(true);
   const [distanceKm, setDistanceKm] = useState('');
   const [gpsKm, setGpsKm] = useState(0);
   const [gpsActive, setGpsActive] = useState(false);
@@ -118,6 +120,24 @@ export default function ActivityAdd() {
     }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
     setGpsActive(true);
   };
+
+  useEffect(() => {
+    if (!user) { setWeightLoading(false); return; }
+    let alive = true;
+    supabase.from('body_logs').select('weight, created_at').eq('user_id', user.id)
+      .not('weight', 'is', null).order('created_at', { ascending: false }).limit(1)
+      .then(({ data, error }) => {
+        if (!alive) return;
+        if (error) console.warn('Poids NOX indisponible:', error.message);
+        const value = Number(data?.[0]?.weight);
+        if (data?.length && Number.isFinite(value) && value >= 25 && value <= 350) {
+          setProfileWeight(value);
+          setWeightKg(String(value));
+        }
+        setWeightLoading(false);
+      });
+    return () => { alive = false; };
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -204,7 +224,7 @@ export default function ActivityAdd() {
   const tile: React.CSSProperties = { ...choice(false), minHeight: 64, padding: '12px 14px', fontSize: 14, display: 'flex', alignItems: 'center', gap: 12, transition: 'border-color .15s ease, transform .15s ease' };
 
   return (
-    <div style={{ minHeight: '100dvh', background: BG, color: WHITE, paddingBottom: 'calc(220px + env(safe-area-inset-bottom))' }}>
+    <div style={{ minHeight: '100dvh', background: BG, color: WHITE, paddingBottom: 'calc(110px + env(safe-area-inset-bottom))' }}>
       <main style={{ width: '100%', maxWidth: 900, margin: '0 auto', padding: '0 clamp(16px,3vw,28px)', boxSizing: 'border-box' }}>
         <header style={{ paddingTop: 44, paddingBottom: 18, display: 'flex', alignItems: 'center', gap: 14 }}>
           <button onClick={() => (step === 'form' ? setStep('pick') : navigate('/activity'))} aria-label="Retour"
@@ -302,11 +322,18 @@ export default function ActivityAdd() {
 
             <section style={{ ...card, background: '#131B15', borderColor: 'rgba(200,255,0,.24)' }}>
               <div style={{ ...label, color: LIME }}>CALORIES DÉPENSÉES · ESTIMATION</div>
-              <p style={{ color: SEC, fontSize: 12, lineHeight: 1.5, margin: '0 0 12px' }}>Estimation basée sur l'activité, l'intensité, la durée et ton poids. Elle ne provient pas d'un capteur et peut varier sensiblement.</p>
+              <p style={{ color: SEC, fontSize: 12, lineHeight: 1.5, margin: '0 0 12px' }}>Calcul indicatif selon ton activité, ta durée, ton intensité et ton poids NOX.</p>
               {MET_VALUES[sport] ? (
                 <>
-                  <label htmlFor="activity-weight" style={{ display: 'block', fontSize: 12, fontWeight: 850, marginBottom: 7 }}>Ton poids pour ce calcul (kg)</label>
-                  <input id="activity-weight" type="number" inputMode="decimal" min={25} max={350} step="0.1" value={weightKg} onChange={e => setWeightKg(e.target.value)} placeholder="Ex. 75" style={{ width: '100%', boxSizing: 'border-box', height: 44, padding: '0 13px', borderRadius: 12, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontSize: 15, outline: 'none' }} />
+                  <div style={{ fontSize: 12, color: SEC, marginBottom: 10 }}>
+                    {weightLoading ? 'Récupération du poids NOX…' : profileWeight != null ? `Poids NOX : ${profileWeight} kg` : 'Aucun poids récent enregistré dans NOX.'}
+                  </div>
+                  {profileWeight == null && !weightLoading && <button type="button" onClick={() => navigate('/body?add=weight')} style={{ background: 'transparent', border: `1px solid ${SOFT}`, color: LIME, padding: '9px 12px', borderRadius: 10, fontWeight: 800, marginBottom: 10 }}>Ajouter mon poids dans NOX</button>}
+                  <details style={{ marginBottom: 12 }}>
+                    <summary style={{ fontSize: 11, color: SEC, cursor: 'pointer' }}>Modifier le poids pour cette estimation</summary>
+                    <label htmlFor="activity-weight" style={{ display: 'block', fontSize: 11, marginTop: 10, marginBottom: 6 }}>Poids (kg)</label>
+                    <input id="activity-weight" type="number" inputMode="decimal" min={25} max={350} step="0.1" value={weightKg} onChange={e => setWeightKg(e.target.value)} placeholder="Ex. 75" style={{ width: '100%', boxSizing: 'border-box', height: 44, padding: '0 13px', borderRadius: 12, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontSize: 15, outline: 'none' }} />
+                  </details>
                   <div aria-live="polite" style={{ fontSize: 26, fontWeight: 950, marginTop: 14, color: estimatedKcal == null ? SEC : LIME }}>{estimatedKcal == null ? '—' : `≈ ${estimatedKcal} kcal`}</div>
                   <div style={{ fontSize: 11, color: SEC, marginTop: 5 }}>{estimatedKcal == null ? 'Renseigne poids, durée et intensité pour afficher une estimation.' : 'ESTIMÉ · indicatif, non enregistré comme mesure'}</div>
                 </>
@@ -340,8 +367,8 @@ export default function ActivityAdd() {
 
             {duplicateWarning && <div role="alert" style={{ ...card, borderColor: '#A88D37', fontSize: 12 }}><strong>Doublon possible</strong><p>{duplicateWarning}</p><button type="button" onClick={() => { setDuplicateConfirmed(true); setDuplicateWarning(''); }} style={{ border: 0, background: LIME, color: BG, borderRadius: 10, padding: '10px 14px', fontWeight: 900, cursor: 'pointer' }}>Vérifié, enregistrer quand même</button></div>}
             {error && <div style={{ color:'#E9C2C2', fontSize:12, marginTop:14 }}>{error}</div>}
-            <div style={{ height:110 }} />
-            <div style={{ position:'sticky', bottom:'calc(86px + env(safe-area-inset-bottom))', zIndex:15, padding:'12px 0', background:'linear-gradient(180deg, rgba(9,11,10,0), #090B0A 28%)' }}>
+            <div style={{ height:24 }} />
+            <div style={{ padding:'12px 0 24px' }}>
               <button onClick={save} disabled={!!errors.length || saving} style={{ width:'100%', padding:17, border:0, borderRadius:15, fontWeight:950, fontSize:13, letterSpacing:'.035em', background:errors.length?'#242825':LIME, color:errors.length?MUTED:BG, cursor:errors.length?'not-allowed':'pointer', boxShadow:errors.length?'none':'0 12px 32px rgba(200,255,0,.12)' }}>
                 {saving ? 'ENREGISTREMENT…' : 'ENREGISTRER L’ACTIVITÉ'}
               </button>
