@@ -47,7 +47,7 @@ function QuickAddModal({ open, onClose }: { open: boolean; onClose: () => void }
 
   const actions = [
     { label: 'Repas',           icon: Utensils, path: '/food-scan', color: '#FF6B35' },
-    { label: 'Activité',        icon: Activity, path: '/activity/new', color: '#C8FF00' },
+    { label: 'Activité',        icon: Activity, path: '/activity', color: '#C8FF00' },
     { label: 'Concentration',   icon: Target,   path: '/focus',     color: '#C8FF00' },
     { label: 'Poids',           icon: Scale,    path: '/body',      color: '#64B5F6' },
     { label: 'Sommeil',         icon: Moon,     path: '/sleep',     color: '#9C89FF' },
