@@ -13,7 +13,9 @@ struct NOXWebView: UIViewRepresentable {
         configuration.userContentController = controller
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
-        webView.isInspectable = false
+        if #available(iOS 16.4, *) {
+            webView.isInspectable = false
+        }
         context.coordinator.webView = webView
         guard let address = Bundle.main.object(forInfoDictionaryKey: "NOXWebURL") as? String,
               let url = URL(string: address),
