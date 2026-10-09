@@ -62,6 +62,12 @@ export default function ActivityAdd() {
   const [intensity, setIntensity] = useState<Intensity | ''>('');
   const [weightKg, setWeightKg] = useState('');
   const [distanceKm, setDistanceKm] = useState('');
+  const [gpsKm, setGpsKm] = useState(0);
+  const [gpsActive, setGpsActive] = useState(false);
+  const [gpsError, setGpsError] = useState('');
+  const gpsWatch = useRef<number | null>(null);
+  const gpsLast = useRef<GeolocationPosition | null>(null);
+  const gpsMeters = useRef(0);
   const [includeEstimate, setIncludeEstimate] = useState(true);
   const [note, setNote] = useState('');
   const [noteOpen, setNoteOpen] = useState(false);
@@ -72,6 +78,46 @@ export default function ActivityAdd() {
   const timerAccumulated = useRef(0);
   const [duplicateWarning, setDuplicateWarning] = useState('');
   const [duplicateConfirmed, setDuplicateConfirmed] = useState(false);
+
+  const stopGps = () => {
+    if (gpsWatch.current != null && navigator.geolocation) navigator.geolocation.clearWatch(gpsWatch.current);
+    gpsWatch.current = null;
+    gpsLast.current = null;
+    setGpsActive(false);
+  };
+  useEffect(() => () => {
+    if (gpsWatch.current != null && navigator.geolocation) navigator.geolocation.clearWatch(gpsWatch.current);
+  }, []);
+  const startGps = () => {
+    if (!navigator.geolocation || !window.isSecureContext) {
+      setGpsError('Le GPS nécessite un navigateur compatible et une connexion HTTPS.');
+      return;
+    }
+    setGpsError('');
+    gpsLast.current = null;
+    gpsMeters.current = 0;
+    setGpsKm(0);
+    gpsWatch.current = navigator.geolocation.watchPosition(position => {
+      if (position.coords.accuracy > 35) return;
+      const previous = gpsLast.current;
+      gpsLast.current = position;
+      if (!previous || position.timestamp <= previous.timestamp) return;
+      const radians = (n: number) => n * Math.PI / 180;
+      const dLat = radians(position.coords.latitude - previous.coords.latitude);
+      const dLon = radians(position.coords.longitude - previous.coords.longitude);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(radians(previous.coords.latitude)) * Math.cos(radians(position.coords.latitude)) * Math.sin(dLon / 2) ** 2;
+      const meters = 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const speed = meters / ((position.timestamp - previous.timestamp) / 1000);
+      if (meters >= 5 && speed <= 12 && speed > 0) {
+        gpsMeters.current += meters;
+        setGpsKm(gpsMeters.current / 1000);
+      }
+    }, err => {
+      setGpsError(err.code === 1 ? 'Autorisation GPS refusée. Active la localisation dans ton navigateur si tu souhaites ce suivi.' : 'Signal GPS indisponible. Réessaie à l’extérieur.');
+      stopGps();
+    }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+    setGpsActive(true);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -100,12 +146,14 @@ export default function ActivityAdd() {
   const errors = validateNewActivity(input, today, yesterday);
   const estimatedKcal = estimateCalories(sport, intensity, duration, weightKg);
 
-  const pick = (id: string) => { setSport(id); setError(''); setDuplicateWarning(''); setDuplicateConfirmed(false); resetTimer(); setStep('form'); };
+  const pick = (id: string) => { stopGps(); setSport(id); setError(''); setDuplicateWarning(''); setDuplicateConfirmed(false); resetTimer(); setStep('form'); };
 
   const save = async () => {
     if (!user || saving || errors.length) return;
     setSaving(true); setError('');
-    const distanceValue = distanceKm.trim() ? Number(distanceKm.replace(',', '.')) : null;
+    const manualDistance = distanceKm.trim() ? Number(distanceKm.replace(',', '.')) : null;
+    const useGps = manualDistance == null && gpsKm >= 0.05;
+    const distanceValue = manualDistance ?? (useGps ? Math.round(gpsKm * 1000) / 1000 : null);
     if (distanceValue != null && (!Number.isFinite(distanceValue) || distanceValue <= 0 || distanceValue > 1000)) {
       setError('Indique une distance valide en kilomètres, ou laisse le champ vide.');
       setSaving(false);
@@ -128,11 +176,12 @@ export default function ActivityAdd() {
       calories_kcal: caloriesToSave,
       calories_source: caloriesToSave == null ? null : 'estimated_met',
       distance_km: distanceValue,
-      distance_source: distanceValue == null ? null : 'declared',
+      distance_source: distanceValue == null ? null : useGps ? 'measured' : 'declared',
     });
     setSaving(false);
     if (e) { setError(/column|schema cache|does not exist/i.test(e.message) ? 'Mise à jour de la base nécessaire avant de sauvegarder les calories. Contacte l’administrateur NOX.' : 'L’activité n’a pas pu être enregistrée. Réessaie.'); console.error('movement_logs:', e.message); return; }
     // Retour à Activité : la page recharge les vraies données, l'activité apparaît aussitôt
+    stopGps();
     navigate('/activity', { replace: true });
   };
 
@@ -264,6 +313,14 @@ export default function ActivityAdd() {
               ) : <p style={{ color: SEC, fontSize: 12, margin: 0 }}>Pas d'estimation fiable disponible pour cette catégorie. NOX n'invente pas de calories.</p>}
             </section>
 
+            <section style={{ ...card, background: '#131B15', borderColor: 'rgba(200,255,0,.22)' }}>
+              <div style={{ ...label, color: LIME }}>DISTANCE GPS · FACULTATIF</div>
+              <div style={{ fontSize: 26, fontWeight: 950 }}>{gpsKm >= 0.05 ? gpsKm.toFixed(2) + ' km' : '—'}</div>
+              <p style={{ color: SEC, fontSize: 11, lineHeight: 1.5 }}>Démarre le GPS uniquement si tu le souhaites. NOX calcule la distance à partir des positions reçues, sans enregistrer ton trajet ni tes coordonnées. Le suivi s'arrête quand tu quittes cette page.</p>
+              <button type="button" onClick={gpsActive ? stopGps : startGps} style={{ background: gpsActive ? CARD2 : LIME, color: gpsActive ? WHITE : BG, border: gpsActive ? `1px solid ${SOFT}` : 'none', borderRadius: 12, padding: '12px 16px', fontWeight: 900, cursor: 'pointer' }}>{gpsActive ? 'Arrêter le GPS' : 'Activer le GPS'}</button>
+              {gpsError && <div role="alert" style={{ color: '#E9C2C2', fontSize: 12, marginTop: 10 }}>{gpsError}</div>}
+              <div style={{ color: MUTED, fontSize: 11, marginTop: 10 }}>Distance GPS mesurée enregistrée seulement si ≥ 50 m et si aucune distance manuelle n'est saisie. Précision variable selon le téléphone et le signal.</div>
+            </section>
             <section style={{ ...card, background: CARD2 }}>
               <div style={label}>DISTANCE PARCOURUE · FACULTATIF</div>
               <label htmlFor="distance-km" style={{ fontSize: 12, color: SEC }}>Distance déclarée (km), si tu la connais</label>
