@@ -85,7 +85,7 @@ export default function Activity() {
   const sports = [
     { name: 'Marche', Icon: PersonStanding, image: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=500&q=85' },
     { name: 'Course', Icon: ActivityIcon, image: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=500&q=85' },
-    { name: 'Vélo', Icon: Bike, image: 'https://images.unsplash.com/photo-1541625602330-2277b4c461de?auto=format&fit=crop&w=500&q=85' },
+    { name: 'Vélo', Icon: Bike, image: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=500&q=85' },
     { name: 'Musculation', Icon: Dumbbell, image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=500&q=85' },
     { name: 'Yoga', Icon: Heart, image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=500&q=85' },
   ];
@@ -150,7 +150,7 @@ export default function Activity() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 9 }}>
             {sports.map(({ name, Icon, image }) => (
               <button key={name} type="button" onClick={() => navigate(`/activity/new?sport=${encodeURIComponent(({ Marche: 'marche', Course: 'course', 'Vélo': 'velo', Musculation: 'musculation', Yoga: 'yoga' } as Record<string, string>)[name])}`)} aria-label={`Ajouter une activité : ${name}`} style={{ position: 'relative', height: 126, borderRadius: 17, overflow: 'hidden', border: `1px solid ${BORDER}`, background: '#171D19', color: WHITE, cursor: 'pointer', padding: 0, textAlign: 'left' }}>
-                <img src={image} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, opacity: .8 }} />
+                <img src={image} alt="" loading="lazy" onError={e => { e.currentTarget.style.display = "none"; }} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, opacity: .8 }} />
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,.04), rgba(0,0,0,.86))' }} />
                 <span style={{ position: 'absolute', bottom: 12, left: 12, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12, fontWeight: 900 }}><Icon size={22} color={LIME} />{name}</span>
               </button>
