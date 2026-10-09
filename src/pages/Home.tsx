@@ -11,6 +11,7 @@ import NoxCompanion from '../components/NoxCompanion';
 import { HABITS, HABIT_COLUMNS, habitName, isStepsHabit, isTargetMet, usesValueInput, type UserHabit } from '../lib/nox/habits';
 import { buildDayPlan, summarizeDay, type DayPlanItem } from '../lib/nox/dayPlan';
 import { stepsView } from '../lib/nox/steps';
+import { healthKitBridgeAvailable, requestNativeStepSync, validateNativeSteps } from '../lib/nox/healthKitBridge';
 import { todaySessionFromProgram } from '../lib/nox/guidedSessions';
 import { dayState, noxiLine } from '../lib/nox/noxiVoice';
 import { isMissionDone, missionMinutes, suggestBlock, type DailyMission, type FocusSession } from '../lib/nox/focus';
@@ -274,6 +275,7 @@ export default function Home() {
   const [habits, setHabits] = useState<UserHabit[]>([]);
   const [habitLogs, setHabitLogs] = useState<{ habit_id: string; date: string; count: number; source?: string | null }[]>([]);
   const [habitBusy, setHabitBusy] = useState<string | null>(null);
+  const [healthSyncStatus, setHealthSyncStatus] = useState('');
   const [habitValue, setHabitValue] = useState<Record<string, string>>({});
   const [movedToday, setMovedToday] = useState(false);
   const [mission, setMission] = useState<DailyMission | null>(null);
@@ -312,6 +314,27 @@ export default function Home() {
     if (lErr) { console.error('habit_logs:', lErr.message); return; }
     setHabitLogs((logs ?? []).map((l: any) => ({ ...l, count: Number(l.count) })));
   };
+
+  // Pont iOS : actif uniquement dans une app iOS signée qui expose noxHealth.
+  // Le wrapper transmet uniquement un total absolu de pas, jamais des échantillons.
+  useEffect(() => {
+    if (!user || !healthKitBridgeAvailable()) return;
+    window.receiveNOXHealthSteps = async raw => {
+      const payload = validateNativeSteps(raw, todayLocalDate());
+      if (!payload) { setHealthSyncStatus('Relevé Apple Santé invalide ou indisponible.'); return; }
+      const { data: h, error: hError } = await supabase.from('user_habits')
+        .select('id').eq('user_id', user.id).eq('kind', 'steps').eq('active', true).limit(1).maybeSingle();
+      if (hError || !h) { setHealthSyncStatus('Configure ton objectif de pas dans NOX avant la synchronisation.'); return; }
+      const { error: saveError } = await supabase.from('habit_logs').upsert({
+        user_id: user.id, habit_id: h.id, date: payload.date,
+        count: payload.count, source: 'healthkit',
+      }, { onConflict: 'habit_id,date' });
+      if (saveError) { setHealthSyncStatus('Synchronisation impossible. Réessaie.'); console.error('healthkit steps:', saveError.message); return; }
+      setHealthSyncStatus('Pas synchronisés depuis Apple Santé.');
+      await loadHabits();
+    };
+    return () => { delete window.receiveNOXHealthSteps; };
+  }, [user]);
 
   // Relevé du jour — le serveur fige la cible et calcule l'XP (plafond 80/jour)
   const logHabit = async (h: UserHabit, count: number) => {
@@ -634,14 +657,15 @@ export default function Home() {
                   )}
                   {steps.sourceLabel && <div style={{ marginTop: 10, color: steps.measured ? '#C8FF00' : '#A5AAA6', fontSize: 10, fontWeight: 950 }}>{steps.sourceLabel}</div>}
                   {steps.count == null && (
-                    <button onClick={() => steps.habit ? setStepsHelp(v => !v) : navigate('/habits')}
+                    <button onClick={() => { if (!steps.habit) { navigate('/habits'); return; } if (healthKitBridgeAvailable()) { setHealthSyncStatus('Ouverture de l’autorisation Apple Santé…'); requestNativeStepSync(); } else setStepsHelp(v => !v); }}
                       style={{ marginTop: 12, padding: 0, border: 0, background: 'transparent', color: '#C8FF00', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>
-                      {steps.habit ? 'Connecter le suivi des pas →' : 'Configurer mon objectif de pas →'}
+                      {steps.habit ? (healthKitBridgeAvailable() ? 'Synchroniser Apple Santé →' : 'Comment connecter Apple Santé ? →') : 'Configurer mon objectif de pas →'}
                     </button>
                   )}
+                  {healthSyncStatus && <div role="status" style={{ marginTop: 8, color: '#A5AAA6', fontSize: 11 }}>{healthSyncStatus}</div>}
                   {stepsHelp && steps.habit && steps.count == null && (
                     <div style={{ marginTop: 8, color: '#8E938F', fontSize: 11, lineHeight: 1.5 }}>
-                      La mesure automatique arrivera avec l’app mobile via Apple Santé ou Health Connect.
+                      Sur iPhone, la version Safari ne peut pas accéder à Apple Santé. Une application NOX iOS signée, avec ton autorisation, est nécessaire.
                     </div>
                   )}
                 </div>
