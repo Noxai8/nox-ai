@@ -772,6 +772,12 @@ export default function Home() {
                       : `Tu as dépassé ta cible aujourd'hui. Ce n'est pas grave : garde ton suivi et reprends ton rythme habituel au prochain repas.`
                     : 'Ajoute un objectif nutritionnel pour afficher tes calories restantes.'}
                 </div>
+                {caloriesExceeded > 0 && (
+                  <div style={{ marginTop: 14 }}>
+                    <p style={{ margin: '0 0 11px', color: '#C4CBC5', fontSize: 12, lineHeight: 1.5 }}>Envie de bouger un peu ? Une marche ou une activité douce peut te faire du bien, sans chercher à compenser ce que tu as mangé.</p>
+                    <button type="button" onClick={() => navigate('/activity')} style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: 12, border: 'none', background: '#C8FF00', color: '#101410', fontWeight: 900, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><Activity size={17} /> Je bouge maintenant <ChevronRight size={16} /></button>
+                  </div>
+                )}
               </div>
             </div>
           </AppCard>
