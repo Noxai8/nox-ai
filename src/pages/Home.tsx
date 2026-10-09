@@ -435,6 +435,7 @@ export default function Home() {
   const todayCarbs = todayFood.reduce((sum, entry) => sum + Number(entry.carbs || entry.carbs_g || entry.carbohydrates || 0), 0);
   const todayFat = todayFood.reduce((sum, entry) => sum + Number(entry.fat || entry.fat_g || entry.fats || 0), 0);
   const caloriesRemaining = caloriesTarget > 0 ? Math.max(0, caloriesTarget - todayKcal) : null;
+  const caloriesExceeded = caloriesTarget > 0 ? Math.max(0, Math.round(todayKcal - caloriesTarget)) : 0;
 
   // Pas : aucune valeur inventée. On affiche seulement un relevé réellement présent dans habit_logs.
   // Pas du jour : module unique, partagé avec la ligne « Bouger » de « Ta journée »
@@ -741,10 +742,10 @@ export default function Home() {
                 <div className="nox-calorie-ring-inner">
                   <Utensils size={21} color="#C8FF00" />
                   <div style={{ fontSize: 34, lineHeight: 1, fontWeight: 1000, letterSpacing: '-.05em', marginTop: 8 }}>
-                    {caloriesRemaining !== null ? Math.round(caloriesRemaining) : '—'}
+                    {caloriesExceeded > 0 ? caloriesExceeded : caloriesRemaining !== null ? Math.round(caloriesRemaining) : '—'}
                   </div>
                   <div style={{ fontSize: 11, fontWeight: 900, marginTop: 5 }}>
-                    {caloriesRemaining !== null ? 'kcal restantes' : 'objectif à définir'}
+                    {caloriesExceeded > 0 ? 'kcal au-dessus' : caloriesRemaining !== null ? 'kcal restantes' : 'objectif à définir'}
                   </div>
                   {caloriesTarget > 0 && <div style={{ fontSize: 11, color: '#777D79', marginTop: 4 }}>sur {Math.round(caloriesTarget)}</div>}
                 </div>
@@ -762,13 +763,13 @@ export default function Home() {
                   <Target size={17} /> OBJECTIF DU JOUR
                 </div>
                 <div style={{ fontSize: 18, lineHeight: 1.15, fontWeight: 1000, marginTop: 16 }}>
-                  {caloriesTarget > 0 ? (todayKcal <= caloriesTarget ? 'Rester dans ta cible' : 'Cible dépassée') : 'Définis ta cible'}
+                  {caloriesTarget > 0 ? (todayKcal <= caloriesTarget ? 'Rester dans ta cible' : `Objectif dépassé de ${caloriesExceeded.toLocaleString('fr-FR')} kcal`) : 'Définis ta cible'}
                 </div>
                 <div style={{ color: '#A8ACA9', fontSize: 13, lineHeight: 1.5, marginTop: 9 }}>
                   {caloriesRemaining !== null
                     ? todayKcal <= caloriesTarget
                       ? `Il te reste ${Math.round(caloriesRemaining)} kcal pour atteindre ton objectif aujourd'hui.`
-                      : `Tu as consommé ${Math.round(todayKcal - caloriesTarget)} kcal au-delà de ta cible actuelle.`
+                      : `Tu as dépassé ta cible aujourd'hui. Ce n'est pas grave : garde ton suivi et reprends ton rythme habituel au prochain repas.`
                     : 'Ajoute un objectif nutritionnel pour afficher tes calories restantes.'}
                 </div>
               </div>
