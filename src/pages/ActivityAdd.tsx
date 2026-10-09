@@ -29,6 +29,20 @@ const INTENSITY_UI: Record<Intensity, { title: string; detail: string }> = {
   intense: { title: 'Intense', detail: 'Difficile, essoufflé' },
 };
 const DURATION_PRESETS = [15, 30, 45, 60, 90];
+// MET indicatifs par activité et intensité. Ce calcul n'est jamais une mesure de capteur.
+const MET_VALUES: Record<string, [number, number, number]> = {
+  marche: [2.8, 3.8, 5], course: [6, 8.3, 11.5], velo: [4, 6.8, 10],
+  football: [4, 7, 9], musculation: [3, 5, 6], natation: [4, 6, 9],
+  padel: [3.5, 5.5, 7], tennis: [4, 7, 9], basket: [4.5, 6.5, 8],
+  badminton: [3.5, 5.5, 7], boxe: [5, 7.8, 10], randonnee: [3.5, 5.3, 7],
+  yoga: [2, 2.5, 3.5], etirements: [2, 2.3, 2.8], danse: [3, 5, 7],
+};
+function estimateCalories(sport: string, intensity: Intensity | '', duration: string, weight: string): number | null {
+  const kg = Number(weight), minutes = Number(duration);
+  const met = MET_VALUES[sport]?.[intensity === 'light' ? 0 : intensity === 'moderate' ? 1 : 2];
+  if (!intensity || !met || !Number.isFinite(kg) || kg < 25 || kg > 350 || !Number.isFinite(minutes) || minutes <= 0 || minutes > 600) return null;
+  return Math.round(met * 3.5 * kg / 200 * minutes);
+}
 
 export default function ActivityAdd() {
   const { user } = useAuth();
@@ -46,6 +60,7 @@ export default function ActivityAdd() {
   const [date, setDate] = useState(today);
   const [duration, setDuration] = useState('');
   const [intensity, setIntensity] = useState<Intensity | ''>('');
+  const [weightKg, setWeightKg] = useState('');
   const [note, setNote] = useState('');
   const [noteOpen, setNoteOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -61,6 +76,7 @@ export default function ActivityAdd() {
   const results = searchActivities(query);
   const input = { sport, date, durationMin: duration, intensity, note };
   const errors = validateNewActivity(input, today, yesterday);
+  const estimatedKcal = estimateCalories(sport, intensity, duration, weightKg);
 
   const pick = (id: string) => { setSport(id); setError(''); setStep('form'); };
 
@@ -177,6 +193,19 @@ export default function ActivityAdd() {
                 {INTENSITIES.map(i => <button key={i} onClick={()=>setIntensity(i)} style={{ minHeight:48, border: intensity===i ? `1px solid ${LIME}`:'1px solid transparent', borderRadius:12, background:intensity===i?'rgba(200,255,0,.10)':'transparent', color:intensity===i?LIME:SEC, fontWeight:900, fontSize:12, cursor:'pointer' }}>{INTENSITY_UI[i].title}</button>)}
               </div>
               <div style={{ minHeight:18, marginTop:9, color:MUTED, fontSize:11, textAlign:'center', fontWeight:700 }}>{intensity ? INTENSITY_UI[intensity].detail : 'Choisis ton niveau d’effort'}</div>
+            </section>
+
+            <section style={{ ...card, background: '#131B15', borderColor: 'rgba(200,255,0,.24)' }}>
+              <div style={{ ...label, color: LIME }}>CALORIES DÉPENSÉES · ESTIMATION</div>
+              <p style={{ color: SEC, fontSize: 12, lineHeight: 1.5, margin: '0 0 12px' }}>Estimation basée sur l'activité, l'intensité, la durée et ton poids. Elle ne provient pas d'un capteur et peut varier sensiblement.</p>
+              {MET_VALUES[sport] ? (
+                <>
+                  <label htmlFor="activity-weight" style={{ display: 'block', fontSize: 12, fontWeight: 850, marginBottom: 7 }}>Ton poids pour ce calcul (kg)</label>
+                  <input id="activity-weight" type="number" inputMode="decimal" min={25} max={350} step="0.1" value={weightKg} onChange={e => setWeightKg(e.target.value)} placeholder="Ex. 75" style={{ width: '100%', boxSizing: 'border-box', height: 44, padding: '0 13px', borderRadius: 12, border: `1px solid ${SOFT}`, background: CARD2, color: WHITE, fontSize: 15, outline: 'none' }} />
+                  <div aria-live="polite" style={{ fontSize: 26, fontWeight: 950, marginTop: 14, color: estimatedKcal == null ? SEC : LIME }}>{estimatedKcal == null ? '—' : `≈ ${estimatedKcal} kcal`}</div>
+                  <div style={{ fontSize: 11, color: SEC, marginTop: 5 }}>{estimatedKcal == null ? 'Renseigne poids, durée et intensité pour afficher une estimation.' : 'ESTIMÉ · indicatif, non enregistré comme mesure'}</div>
+                </>
+              ) : <p style={{ color: SEC, fontSize: 12, margin: 0 }}>Pas d'estimation fiable disponible pour cette catégorie. NOX n'invente pas de calories.</p>}
             </section>
 
             {!noteOpen ? <button onClick={()=>setNoteOpen(true)} style={{ width:'100%', border:0, borderTop:`1px solid ${SOFT}`, borderBottom:`1px solid ${SOFT}`, background:'transparent', color:SEC, padding:'15px 2px', display:'flex', alignItems:'center', gap:9, fontSize:12, fontWeight:850, cursor:'pointer' }}><MessageSquarePlus size={16} color={LIME}/> Ajouter une note <span style={{marginLeft:'auto',color:MUTED}}>Facultatif</span></button> :
