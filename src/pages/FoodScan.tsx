@@ -499,7 +499,7 @@ export default function FoodScan() {
         )}
 
         {result && !scanning && (
-          <div>
+          <div style={{ maxWidth: 900, margin: '0 auto' }}>
             <div
               style={{
                 background: SURFACE,
@@ -826,13 +826,15 @@ export default function FoodScan() {
               display: 'flex',
               flexDirection: 'column',
               gap: 8,
+              maxWidth: 900,
+              margin: '0 auto',
             }}
           >
             {review && (
               <MealReview
                 estimate={review}
                 busy={adding}
-                dark={false}
+                dark={true}
                 onCancel={() => setReview(null)}
                 onConfirm={values => { void saveReviewed(values); }}
               />
