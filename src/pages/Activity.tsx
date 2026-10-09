@@ -222,9 +222,9 @@ export default function Activity() {
               ))}
             </section>
 
-            {/* SÉANCES NOX — porte d'entrée vers le moteur Program/Training existant */}
+            {/* PROGRAMME GUIDÉ — intégré à l'univers Activité */}
             <section style={card}>
-              <div style={label}>SÉANCES NOX</div>
+              <div style={label}>MON PROGRAMME · ENTRAÎNEMENT GUIDÉ</div>
               {guidedSession ? (
                 <>
                   <div style={{ fontSize: 17, fontWeight: 950, letterSpacing: '-.02em' }}>
