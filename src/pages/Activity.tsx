@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Footprints, Plus, Activity as ActivityIcon, Dumbbell, Bike, Waves, PersonStanding, ChevronRight, Clock3, Route } from 'lucide-react';
+import { ArrowLeft, Footprints, Plus, Activity as ActivityIcon, Dumbbell, Bike, Waves, PersonStanding, ChevronRight, Clock3, Route, Sparkles, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { localDateFromDate, localDayStartISO, todayLocalDate } from '../lib/localDate';
@@ -16,9 +16,9 @@ import { BottomNav } from './Home';
 // Uniquement des données réellement enregistrées. Une donnée absente s'affiche « — ».
 
 const BG = '#090B0A';
-const CARD = '#232624';
-const CARD2 = '#191C1A';
-const BORDER = '#4A4F4B';
+const CARD = '#151A17';
+const CARD2 = '#101512';
+const BORDER = '#303A33';
 const SOFT = '#343835';
 const WHITE = '#FFFFFF';
 const SEC = '#A5AAA6';
@@ -82,6 +82,14 @@ export default function Activity() {
   const weekKnownMinutes = week.filter(d => d.minutes != null);
   const weekMinutes = weekKnownMinutes.length ? weekKnownMinutes.reduce((s, d) => s + (d.minutes as number), 0) : null;
 
+  const sports = [
+    { name: 'Marche', Icon: PersonStanding, image: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=500&q=85' },
+    { name: 'Course', Icon: ActivityIcon, image: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=500&q=85' },
+    { name: 'Vélo', Icon: Bike, image: 'https://images.unsplash.com/photo-1541625602330-2277b4c461de?auto=format&fit=crop&w=500&q=85' },
+    { name: 'Musculation', Icon: Dumbbell, image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=500&q=85' },
+    { name: 'Yoga', Icon: Heart, image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=500&q=85' },
+  ];
+
   const card: React.CSSProperties = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20, marginBottom: 14 };
   const label: React.CSSProperties = { color: MUTED, fontSize: 11, fontWeight: 900, letterSpacing: '.09em', marginBottom: 12 };
   const tag = (text: string, measured: boolean): React.CSSProperties => ({
@@ -108,13 +116,13 @@ export default function Activity() {
 
   return (
     <div style={{ minHeight: '100dvh', background: BG, color: WHITE, paddingBottom: 'calc(210px + env(safe-area-inset-bottom))' }}>
-      <main style={{ width: '100%', maxWidth: 900, margin: '0 auto', padding: '0 clamp(16px,3vw,28px)', boxSizing: 'border-box' }}>
+      <main style={{ width: '100%', maxWidth: 1140, margin: '0 auto', padding: '0 clamp(16px,3vw,28px)', boxSizing: 'border-box' }}>
         <header style={{ paddingTop: 44, paddingBottom: 18, display: 'flex', alignItems: 'center', gap: 14 }}>
           <button onClick={() => navigate(-1)} aria-label="Retour"
             style={{ width: 42, height: 42, borderRadius: 14, border: `1px solid ${BORDER}`, background: CARD, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
             <ArrowLeft size={18} color={WHITE} />
           </button>
-          <h1 style={{ margin: 0, fontSize: 'clamp(30px,5vw,40px)', fontWeight: 850, letterSpacing: '-.04em', lineHeight: 1 }}>Activité</h1>
+          <div><h1 style={{ margin: 0, fontSize: 'clamp(30px,5vw,40px)', fontWeight: 850, letterSpacing: '-.04em', lineHeight: 1 }}>Activité</h1><p style={{ color: SEC, margin: '9px 0 0', fontSize: 13 }}>Bouge à ton rythme. Chaque mouvement compte.</p></div>
         </header>
 
         <div role="tablist" style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 999, background: CARD2, border: `1px solid ${SOFT}`, marginBottom: 18 }}>
@@ -134,6 +142,22 @@ export default function Activity() {
           </button>
         </div>
 
+        <section style={{ marginBottom: 22 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 950, margin: 0, letterSpacing: '-.03em' }}>Ajouter une activité</h2>
+            <button type="button" onClick={() => navigate('/activity/new')} style={{ color: LIME, background: 'none', border: 0, cursor: 'pointer', fontSize: 12, fontWeight: 850 }}>Choisir une activité ›</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 9 }}>
+            {sports.map(({ name, Icon, image }) => (
+              <button key={name} type="button" onClick={() => navigate('/activity/new')} aria-label={`Ajouter une activité : ${name}`} style={{ position: 'relative', height: 126, borderRadius: 17, overflow: 'hidden', border: `1px solid ${BORDER}`, background: '#171D19', color: WHITE, cursor: 'pointer', padding: 0, textAlign: 'left' }}>
+                <img src={image} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, opacity: .8 }} />
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,.04), rgba(0,0,0,.86))' }} />
+                <span style={{ position: 'absolute', bottom: 12, left: 12, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12, fontWeight: 900 }}><Icon size={22} color={LIME} />{name}</span>
+              </button>
+            ))}
+            <button type="button" onClick={() => navigate('/activity/new')} style={{ height: 126, borderRadius: 17, border: `1px solid ${BORDER}`, background: CARD2, color: WHITE, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 12 }}><Plus size={23} color={LIME} />Autre</button>
+          </div>
+        </section>
         {error && <div style={{ ...card, borderColor: '#5A3A3A', color: '#E9C2C2', fontSize: 13 }}>{error}</div>}
 
         {loading ? <div style={{ color: MUTED }}>Chargement…</div> : tab === 'day' ? (
@@ -190,9 +214,9 @@ export default function Activity() {
 
             {/* ACTIVITÉS DU JOUR */}
             <section style={card}>
-              <div style={label}>ACTIVITÉS DU JOUR</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}><h2 style={{ margin: 0, fontSize: 20, fontWeight: 950 }}>Mes activités du jour</h2><span style={{ fontSize: 12, color: SEC }}>{todaySummary.count} activité{todaySummary.count > 1 ? 's' : ''}{todaySummary.activeMinutes != null ? ` · ${todaySummary.activeMinutes} min` : ''}</span></div>
               {todayItems.length === 0 ? (
-                <div style={{ color: SEC, fontSize: 13 }}>Aucune activité enregistrée aujourd’hui.</div>
+                <div style={{ color: SEC, fontSize: 13 }}>Aucune activité enregistrée aujourd’hui. Choisis une activité ci-dessus pour commencer.</div>
               ) : todayItems.map((a, i) => (
                 <div key={a.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderTop: i ? `1px solid ${SOFT}` : 'none' }}>
                   <div style={{ width: 40, height: 40, borderRadius: 12, background: CARD2, border: `1px solid ${SOFT}`, display: 'grid', placeItems: 'center', color: LIME, flexShrink: 0 }}>
@@ -216,10 +240,20 @@ export default function Activity() {
           <>
             {/* SEMAINE — uniquement des valeurs calculées à partir des données enregistrées */}
             <section style={card}>
-              <div style={label}>7 DERNIERS JOURS</div>
+              <div style={label}>MA SEMAINE · 7 DERNIERS JOURS</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 16 }}>
                 {metric('ACTIVITÉS', String(weekActivities))}
                 {metric('DURÉE CONNUE', weekMinutes == null ? '—' : `${weekMinutes} min`, weekMinutes == null ? 'Aucune durée enregistrée' : undefined)}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 8, alignItems: 'end', height: 135, padding: '12px 0', marginBottom: 8, borderBottom: `1px solid ${SOFT}` }}>
+                {week.map((d, i) => {
+                  const maxCount = Math.max(1, ...week.map(w => w.activities));
+                  return <div key={d.date} style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', gap: 7 }}>
+                    <span style={{ color: SEC, fontSize: 10 }}>{d.activities ? d.activities : '—'}</span>
+                    <div style={{ width: 'min(100%, 40px)', height: `${Math.max(6, d.activities / maxCount * 78)}px`, borderRadius: '7px 7px 3px 3px', background: d.activities ? LIME : SOFT, opacity: d.activities ? 1 : .55 }} />
+                    <span style={{ color: i === 6 ? LIME : SEC, fontSize: 10, fontWeight: 800 }}>{dayLabel(d.date, today).slice(0, 3)}</span>
+                  </div>;
+                })}
               </div>
               {[...week].reverse().map((d, i) => (
                 <div key={d.date} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 0', borderTop: i ? `1px solid ${SOFT}` : 'none', fontSize: 13 }}>
@@ -239,6 +273,10 @@ export default function Activity() {
             </section>
           </>
         )}
+        <div style={{ border: '1px solid rgba(200,255,0,.3)', borderRadius: 20, background: 'linear-gradient(100deg,#182414,#101712)', padding: '20px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginTop: 18 }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}><Sparkles color={LIME} size={26}/><div><strong style={{ fontSize: 18 }}>Chaque mouvement compte</strong><p style={{ color: SEC, fontSize: 12, margin: '5px 0 0' }}>Avance à ton rythme, même quelques minutes font la différence.</p></div></div>
+          <button type="button" onClick={() => navigate('/activity/new')} style={{ border: 0, borderRadius: 13, background: LIME, color: BG, fontWeight: 900, padding: '14px 18px', cursor: 'pointer' }}>+ Ajouter une activité</button>
+        </div>
       </main>
       <BottomNav active="home" />
     </div>
